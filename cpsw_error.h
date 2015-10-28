@@ -51,10 +51,21 @@ class AddressAlreadyAttachedError: public CPSWError {
 		AddressAlreadyAttachedError(const char *n) : CPSWError(n)   {}
 };
 
+class ConfigurationError: public CPSWError {
+	public:
+		ConfigurationError(const char *s) : CPSWError(s) {}
+};
+
 
 class InternalError: public CPSWError {
 	public:
 		InternalError() : CPSWError("Internal Error") {}
+		InternalError(const char*s) : CPSWError(s) {}
+};
+
+class AddrOutOfRangeError: public CPSWError {
+	public:
+		AddrOutOfRangeError(const char *s) : CPSWError(s) {}
 };
 
 #endif

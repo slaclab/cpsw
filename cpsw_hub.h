@@ -8,15 +8,75 @@
 #include <string.h>
 #include <ctype.h>
 
+typedef enum ByteOrder { UNKNOWN = 0, LE = 12, BE = 21 } ByteOrder;
+
+class Visitor;
+
+class Visitable {
+public:
+	virtual void accept(Visitor *v, bool depthFirst) const = 0;
+};
+
+class Entry: public virtual IEntry {
+private:
+	const std::string	name;
+	const uint64_t    	sizeBits;
+	mutable bool        cacheable;
+	mutable bool        cacheableSet;
+	mutable bool        locked;
+	mutable ByteOrder   byteOrder;
+
+public:
+	Entry(const char *name, uint64_t sizeBits);
+
+	virtual const char *getName() const
+	{
+		return name.c_str();
+	}
+
+	virtual uint64_t getSizeBits() const
+	{
+		return sizeBits;
+	}
+
+	virtual bool getCacheable() const
+	{
+		return cacheable;
+	}
+
+	virtual bool getCacheableSet() const
+	{
+		return cacheableSet;
+	}
+
+	virtual ByteOrder getByteOrder() const
+	{
+		return byteOrder;
+	}
+
+	// may throw exception if modified after
+	// being attached
+	virtual void setCacheable(bool cacheable) const;
+	virtual void setByteOrder(ByteOrder byteOrder) const;
+
+	virtual ~Entry() {}
+
+	void setLocked()
+	{
+		locked = true;
+	}
+
+	virtual void accept(Visitor *v, bool depthFirst) const;
+};
 
 class Child {
 	public:
 		virtual const char     *getName() const = 0;
 		virtual const Entry   *getEntry() const = 0;
 		virtual       unsigned getNelms() const = 0;
-		virtual int   read(CompositePathIterator *node, uint8_t *dst, uint64_t off, int headBits, uint64_t sizeBits) const = 0;
-
+		virtual uint64_t       read(CompositePathIterator *node, uint8_t *dst, uint64_t off, int headBits, uint64_t sizeBits) const = 0;
 };
+
 
 #include <cpsw_address.h>
 
@@ -26,7 +86,7 @@ struct StrCmp {
     }
 };
 
-class Dev : public Hub {
+class Dev : public IDev, public Entry {
 	private:
 		typedef  std::map<const char*, Address *, StrCmp> Children;
 		mutable  Children children; // only by 'add' method
@@ -36,6 +96,7 @@ class Dev : public Hub {
 
 	public:
 		Dev(const char *name, uint64_t sizeBits = 0);
+		virtual ~Dev();
 		
 		// template: each (device-specific) address must be instantiated
 		// by it's creator device and then added.
@@ -48,6 +109,15 @@ class Dev : public Hub {
 		virtual Path findByName(const char *s) const;
 
 		virtual const Child *getChild(const char *name) const;
+	
+		virtual void accept(Visitor *v, bool depthFirst) const;
+};
+
+class Visitor {
+public:
+	virtual void visit(const Entry * e)  { visit( (const Visitable *) e ); }
+	virtual void visit(const Dev   * d)  { visit( (const Entry*) d );      }
+	virtual void visit(const Visitable *){ throw InternalError("Unimplemented Visitor"); }
 };
 
 #endif
