@@ -10,11 +10,14 @@
 
 typedef enum ByteOrder { UNKNOWN = 0, LE = 12, BE = 21 } ByteOrder;
 
+extern const ByteOrder hostByteOrder;
+
 class Visitor;
 
 class Visitable {
 public:
 	virtual void accept(Visitor *v, bool depthFirst) const = 0;
+	virtual ~Visitable();
 };
 
 class Entry: public virtual IEntry {
@@ -69,12 +72,26 @@ public:
 	virtual void accept(Visitor *v, bool depthFirst) const;
 };
 
+class IntEntry : public Entry {
+private:
+	bool is_signed;
+public:
+	IntEntry(const char *name, uint64_t sizeBits, bool is_signed)
+	: Entry(name, sizeBits), is_signed(is_signed)
+	{
+	}
+
+	bool isSigned() const { return is_signed; }
+};
+
 class Child {
 	public:
+		virtual const IDev    *getOwner() const = 0;
 		virtual const char     *getName() const = 0;
 		virtual const Entry   *getEntry() const = 0;
 		virtual       unsigned getNelms() const = 0;
-		virtual uint64_t       read(CompositePathIterator *node, uint8_t *dst, uint64_t off, int headBits, uint64_t sizeBits) const = 0;
+		virtual uint64_t       read(CompositePathIterator *node, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned headBits, uint64_t sizeBits) const = 0;
+		virtual ~Child() {}
 };
 
 
@@ -118,6 +135,7 @@ public:
 	virtual void visit(const Entry * e)  { visit( (const Visitable *) e ); }
 	virtual void visit(const Dev   * d)  { visit( (const Entry*) d );      }
 	virtual void visit(const Visitable *){ throw InternalError("Unimplemented Visitor"); }
+	virtual ~Visitor() {}
 };
 
 #endif

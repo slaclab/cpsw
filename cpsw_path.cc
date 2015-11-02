@@ -43,6 +43,8 @@ public:
 	virtual bool verifyAtTail(const IDev *h);
 
 	virtual void append(Path p);
+	virtual void append(Child *);
+	virtual void append(Child *, int, int);
 
 	virtual Path concat(Path p) const;
 
@@ -56,6 +58,20 @@ public:
 	}
 };
 
+PathEntry::PathEntry(const Child *a, int idxf, int idxt) : c_p(a), idxf(idxf), idxt(idxt)
+{
+	if ( idxf < 0 )
+		idxf = 0;
+	if ( a ) {
+		int n = a->getNelms() - 1;
+		if ( idxf > n )
+			idxf = n;
+		if ( idxt < 0 || idxt > n )
+			idxt = n;
+		if ( idxt < idxf )
+			idxt = idxf;
+	}
+}
 
 void PathImpl::dump(FILE *f) const
 {
@@ -323,6 +339,19 @@ Path rval = Path( h );
 void PathImpl::append(Path p)
 {
 	append2(this, toPathImpl(p));
+}
+
+void PathImpl::append(Child *c, int f, int t)
+{
+	if ( ! verifyAtTail( c->getOwner() ) ) {
+		throw InvalidPathError( Path( this ) );
+	}
+	push_back( PathEntry(c, f, t) );
+}
+
+void PathImpl::append(Child *c)
+{
+	append(c, 0, -1);
 }
 
 

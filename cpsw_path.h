@@ -11,7 +11,7 @@ struct PathEntry {
 	const Child *c_p;
 	int    idxf, idxt;
 
-	PathEntry(const Child *a, int idxf = 0, int idxt = -1) : c_p(a), idxf(idxf), idxt(idxt) {}
+	PathEntry(const Child *a, int idxf = 0, int idxt = -1);
 };
 
 // NOTE: all paths supplied to the constructor(s) must remain valid

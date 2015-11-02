@@ -29,7 +29,7 @@ class MMIOAddress : public Address {
 		using Address::dump;
 
 		virtual void dump(FILE *f) const;
-		virtual uint64_t  read(CompositePathIterator *node, uint8_t *dst, uint64_t off, int headBits, uint64_t sizeBits) const;
+		virtual uint64_t  read(CompositePathIterator *node, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned headBits, uint64_t sizeBits) const;
 		virtual void attach(Entry *child);
 };
 
@@ -67,10 +67,10 @@ void MMIOAddress::dump(FILE *f) const
 	Address::dump( f ); fprintf(f, "+0x%"PRIx64, offset);
 }
 
-uint64_t MMIOAddress::read(CompositePathIterator *node, uint8_t *dst, uint64_t off, int headBits, uint64_t sizeBits) const
+uint64_t MMIOAddress::read(CompositePathIterator *node, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned headBits, uint64_t sizeBits) const
 {
 int        rval = 0, fro, to;
-uintptr_t  dstStride = node->getNelmsRight() * ((sizeBits+7)/8);
+uintptr_t  dstStride = node->getNelmsRight() * dbytes;
 
 	headBits += this->headBits;
 	if ( headBits > 7 ) {
@@ -78,7 +78,7 @@ uintptr_t  dstStride = node->getNelmsRight() * ((sizeBits+7)/8);
 		headBits &= 7;
 	}
 
-	if ( sizeBits == 8*getStride()  && dstStride == getStride() ) {
+	if ( sizeBits == 8*getStride()  && dstStride == getStride() && getEntry()->getCacheable() ) {
 		// if strides == size then we can try to read all in one chunk
 		sizeBits *= (*node)->idxt - (*node)->idxf + 1;
 		to        = (*node)->idxf;
@@ -87,7 +87,7 @@ uintptr_t  dstStride = node->getNelmsRight() * ((sizeBits+7)/8);
 	}
 	for ( int i = (*node)->idxf; i <= to; i++ ) {
 		CompositePathIterator it = *node;
-		rval += Address::read(&it, dst, off + this->offset + stride *i, headBits, sizeBits);
+		rval += Address::read(&it, dst, dbytes, off + this->offset + stride *i, headBits, sizeBits);
 		dst  += dstStride;
 	}
 	return rval;

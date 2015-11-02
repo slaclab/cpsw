@@ -4,7 +4,16 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-uint64_t  Address::read(CompositePathIterator *node, uint8_t *dst, uint64_t off, int headBits, uint64_t sizeBits) const
+static ByteOrder hbo()
+{
+union { uint16_t i; uint8_t c[2]; } tst = { i:1 };
+	return tst.c[0] ? LE : BE;
+}
+
+const ByteOrder hostByteOrder = hbo();
+
+
+uint64_t  Address::read(CompositePathIterator *node, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned headBits, uint64_t sizeBits) const
 {
 	const Child *c;
 	printf("Reading %s", getName());
@@ -22,11 +31,16 @@ uint64_t  Address::read(CompositePathIterator *node, uint8_t *dst, uint64_t off,
 	++(*node);
 	if ( ! node->atEnd() ) {
 		c = (*node)->c_p;
-		return c->read(node, dst, off, headBits, sizeBits);
+		return c->read(node, dst, dbytes, off, headBits, sizeBits);
 	} else {
 		throw ConfigurationError("Configuration Error: -- unable to route I/O");
 		return 0;
 	}
+}
+
+const IDev *Address::getOwner() const 
+{
+	return owner;
 }
 
 void Address::dump(FILE *f) const
