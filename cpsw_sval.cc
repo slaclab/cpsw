@@ -86,7 +86,7 @@ uint64_t         sizeBits = getSizeBits();
 		sizeBits = 8*sizeof(*buf);
 	}
 
-	got = cl->read( &it, (uint8_t*)buf, off, headBits, sizeBits );
+	got = cl->read( &it, (uint8_t*)buf, sizeof(*buf), off, headBits, sizeBits );
 
 	if ( ie->getByteOrder() != hostByteOrder ) {
 		for ( int i = 0; i<nelms; i++ ) {
