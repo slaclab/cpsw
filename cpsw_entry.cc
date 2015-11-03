@@ -2,9 +2,9 @@
 #include <cpsw_hub.h>
 #include <ctype.h>
 
-Entry::Entry(const char *cname, uint64_t sizeBits)
+Entry::Entry(const char *cname, uint64_t size)
 : name( cname ),
-  sizeBits( sizeBits ),
+  size( size),
   cacheableSet( false ),
   byteOrder( UNKNOWN ),
   locked( false )

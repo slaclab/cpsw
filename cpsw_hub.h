@@ -23,23 +23,23 @@ public:
 class Entry: public virtual IEntry {
 private:
 	const std::string	name;
-	const uint64_t    	sizeBits;
+	const uint64_t    	size;
 	mutable bool        cacheable;
 	mutable bool        cacheableSet;
 	mutable bool        locked;
 	mutable ByteOrder   byteOrder;
 
 public:
-	Entry(const char *name, uint64_t sizeBits);
+	Entry(const char *name, uint64_t size);
 
 	virtual const char *getName() const
 	{
 		return name.c_str();
 	}
 
-	virtual uint64_t getSizeBits() const
+	virtual uint64_t getSize() const
 	{
-		return sizeBits;
+		return size;
 	}
 
 	virtual bool getCacheable() const
@@ -74,14 +74,18 @@ public:
 
 class IntEntry : public Entry {
 private:
-	bool is_signed;
+	bool     is_signed;
+	int      ls_bit;
+	uint64_t size_bits;
 public:
-	IntEntry(const char *name, uint64_t sizeBits, bool is_signed)
-	: Entry(name, sizeBits), is_signed(is_signed)
+	IntEntry(const char *name, uint64_t sizeBits, bool is_signed, int lsBit = 0)
+	: Entry(name, (sizeBits + lsBit + 7)/8), is_signed(is_signed), ls_bit(lsBit), size_bits(sizeBits)
 	{
 	}
 
 	bool isSigned() const { return is_signed; }
+	int  getLsBit() const { return ls_bit;    }
+	uint64_t getSizeBits() const { return size_bits; }
 };
 
 class Child {
@@ -90,7 +94,7 @@ class Child {
 		virtual const char     *getName() const = 0;
 		virtual const Entry   *getEntry() const = 0;
 		virtual       unsigned getNelms() const = 0;
-		virtual uint64_t       read(CompositePathIterator *node, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned headBits, uint64_t sizeBits) const = 0;
+		virtual uint64_t       read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
 		virtual ~Child() {}
 };
 
@@ -112,7 +116,7 @@ class Dev : public IDev, public Entry {
 		virtual void add(Address *a, Entry *child);
 
 	public:
-		Dev(const char *name, uint64_t sizeBits = 0);
+		Dev(const char *name, uint64_t size= 0);
 		virtual ~Dev();
 		
 		// template: each (device-specific) address must be instantiated

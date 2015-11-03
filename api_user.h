@@ -28,7 +28,7 @@ class EventListener;
 class IEntry {
 public:
 	virtual const char *getName()  const = 0;
-	virtual uint64_t getSizeBits() const = 0;
+	virtual uint64_t    getSize() const = 0;
 	virtual ~IEntry() {}
 };
 
@@ -102,6 +102,7 @@ public:
 // Read-write
 class IScalVal : public IScalVal_RO {
 public:
+	virtual uint64_t getSizeBits()       = 0; // size in bits
 	virtual void     setVal(uint64_t *p) = 0; // (possibly truncating) write from 64-bit value(s)
 	virtual void     setVal(uint32_t *p) = 0; // (possibly truncating) write from 32-bit value(s)
 	virtual void     setVal(uint16_t *p) = 0; // (possibly truncating) write from 16-bit value(s)

@@ -45,7 +45,7 @@ class Address : public Child {
 			return nelms;
 		}
 
-		virtual uint64_t read(CompositePathIterator *node, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned headBits, uint64_t sizeBits) const;
+		virtual uint64_t read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 
 		virtual void dump(FILE *f) const;
 

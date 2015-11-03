@@ -13,7 +13,7 @@ union { uint16_t i; uint8_t c[2]; } tst = { i:1 };
 const ByteOrder hostByteOrder = hbo();
 
 
-uint64_t  Address::read(CompositePathIterator *node, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned headBits, uint64_t sizeBits) const
+uint64_t  Address::read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 	const Child *c;
 	printf("Reading %s", getName());
@@ -31,7 +31,7 @@ uint64_t  Address::read(CompositePathIterator *node, uint8_t *dst, unsigned dbyt
 	++(*node);
 	if ( ! node->atEnd() ) {
 		c = (*node)->c_p;
-		return c->read(node, dst, dbytes, off, headBits, sizeBits);
+		return c->read(node, cacheable, dst, dbytes, off, sbytes);
 	} else {
 		throw ConfigurationError("Configuration Error: -- unable to route I/O");
 		return 0;
@@ -109,8 +109,8 @@ const Child *Dev::getChild(const char *name) const
 	return children[name];
 }
 
-Dev::Dev(const char *name, uint64_t sizeBits)
-: Entry(name, sizeBits)
+Dev::Dev(const char *name, uint64_t size)
+: Entry(name, size)
 {
 	// by default - mark containers as cacheable; user may still override
 	setCacheable( true );
