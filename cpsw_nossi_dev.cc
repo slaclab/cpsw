@@ -58,9 +58,12 @@ int      nw = (sbytes + 3)/4;
 struct msghdr mh;
 struct iovec  iov[3];
 
+	if ( nw == 0 )
+		return 0;
+
 	bufh[i++] = 0;
 	bufh[i++] = (off >> 2) & 0x3fffffff;
-	bufh[i++] = nw;
+	bufh[i++] = nw - 1;
 	bufh[i++] = 0;
 
 	if ( BE == hostByteOrder() ) {
@@ -80,23 +83,38 @@ struct iovec  iov[3];
 	mh.msg_flags      = 0;
 
 	i = 0;
-	iov[i++].iov_base = bufh;
-	iov[i++].iov_len  = 8 + (off &3);
+	iov[i].iov_base = bufh;
+	iov[i].iov_len  = 8 + (off & 3);
+	i++;
 
-	iov[i++].iov_base = dst;
-	iov[i++].iov_len  = sbytes;
+	iov[i].iov_base = dst;
+	iov[i].iov_len  = sbytes;
+	i++;
 
 	if ( sbytes & 3 ) {
-		iov[i++].iov_base = buft;
-		iov[i++].iov_len  = 4 - (sbytes & 3);
+		iov[i].iov_base = buft;
+		iov[i].iov_len  = 4 - (sbytes & 3);
+		i++;
 	}
 
 	mh.msg_iov        = iov;
 	mh.msg_iovlen     = i;
 
-	if ( recvmsg( sd, &mh, 0 ) < 0 ) {
+	int got;
+
+	bufh[0] = 0xdeadbeef;
+	bufh[1] = 0xdeadbeef;
+
+	if ( (got = recvmsg( sd, &mh, 0 )) < 0 ) {
 		throw InternalError("FIXME -- need I/O Error here");
 	}
+
+//	printf("got %i bytes\n", got);
+//	for (i=0; i<2; i++ )
+//		printf("header[%i]: %x\n", i, bufh[i]);
+
+//	for ( i=0; i<sbytes; i++ )
+//		printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
 	
 	return sbytes;
 }
