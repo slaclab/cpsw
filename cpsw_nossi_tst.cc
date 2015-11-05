@@ -4,18 +4,26 @@
 
 #define VLEN 128
 #define ADCL 10
+
+class AXIV : public MMIODev {
+public:
+	AXIV(const char *name) : MMIODev(name, 0x1000, 0, LE)
+	{
+		addAtAddr( new IntEntry("blds", 8, false, 0), 0x800, VLEN  );
+	}
+};
+
 int
 main()
 {
 NoSsiDev  root("fpga","192.168.2.10");
 MMIODev   mmio("mmio",0x100000,0,UNKNOWN);
-MMIODev   axiv("vers",0x1000,  0,LE);
+AXIV      axiv("vers");
 MMIODev   sysm("sysm",0x1000,  0,LE);
 
 uint8_t str[VLEN];
 int16_t adcv[ADCL];
 
-	axiv.addAtAddr( new IntEntry("blds", 8, false, 0), 0x800, VLEN  );
 
 	sysm.addAtAddr( new IntEntry("adcs", 16, true, 0), 0x400, ADCL, 4 );
 
