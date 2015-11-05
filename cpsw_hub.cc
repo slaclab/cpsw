@@ -17,7 +17,7 @@ ByteOrder hostByteOrder() {  return _hostByteOrder; }
 void _setHostByteOrder(ByteOrder o) { _hostByteOrder = o; }
 
 Address::Address(Dev *owner, unsigned nelms, ByteOrder byteOrder)
-:owner(owner), nelms(nelms), byteOrder(byteOrder)
+:owner(owner), child(NULL), nelms(nelms), byteOrder(byteOrder)
 {
 	if ( UNKNOWN == byteOrder )
 		byteOrder = hostByteOrder();
