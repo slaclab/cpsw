@@ -1,4 +1,5 @@
 #include <cpsw_mmio_dev.h>
+#include <inttypes.h>
 
 MMIOAddress::MMIOAddress(
 			MMIODev *owner,
