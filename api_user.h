@@ -36,8 +36,8 @@ class IPath {
 public:
 	// lookup 'name' under this path and return new 'full' path
 	virtual Path        findByName(const char *name) const = 0;
-	// strip last element of this path
-	virtual void        up()                         = 0;
+	// strip last element of this path and return child at tail (or NULL if none)
+	virtual const Child *up()                        = 0;
 	// test if this path is empty
 	virtual bool        empty()                const = 0;
 	virtual void        clear()                      = 0; // absolute; reset to root
@@ -48,6 +48,8 @@ public:
 	virtual const IDev *parent()               const = 0;
 	// return Entry at the end of this path (if any -- NULL otherwise)
 	virtual const IEntry *tail()               const = 0;
+	// return Child at the end of this path (if any -- NULL otherwise)
+	virtual const Child *getChildAtTail()      const = 0;
 	virtual std::string toString()             const = 0;
 	virtual void        dump(FILE *)           const = 0;
 	// verify the 'hub' is at the tail of this path
@@ -85,7 +87,8 @@ public:
 
 class IScalVal_RO : public virtual IEntry {
 public:
-	virtual int      getNelms()               = 0; // if array
+	virtual int      getNelms()                               = 0; // if array
+	virtual uint64_t getSizeBits()      const                 = 0; // size in bits
 	virtual unsigned getVal(uint64_t *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into 64-bit (array)
 	virtual unsigned getVal(uint32_t *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into 32-bit (array)
 	virtual unsigned getVal(uint16_t *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into 16-bit (array)
@@ -102,7 +105,6 @@ public:
 // Read-write
 class IScalVal : public IScalVal_RO {
 public:
-	virtual uint64_t getSizeBits()       = 0; // size in bits
 	virtual void     setVal(uint64_t *p) = 0; // (possibly truncating) write from 64-bit value(s)
 	virtual void     setVal(uint32_t *p) = 0; // (possibly truncating) write from 32-bit value(s)
 	virtual void     setVal(uint16_t *p) = 0; // (possibly truncating) write from 16-bit value(s)

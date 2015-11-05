@@ -10,7 +10,7 @@
 
 typedef enum ByteOrder { UNKNOWN = 0, LE = 12, BE = 21 } ByteOrder;
 
-extern const ByteOrder hostByteOrder;
+ByteOrder hostByteOrder();
 
 class Visitor;
 
@@ -27,7 +27,6 @@ private:
 	mutable bool        cacheable;
 	mutable bool        cacheableSet;
 	mutable bool        locked;
-	mutable ByteOrder   byteOrder;
 
 public:
 	Entry(const char *name, uint64_t size);
@@ -52,15 +51,9 @@ public:
 		return cacheableSet;
 	}
 
-	virtual ByteOrder getByteOrder() const
-	{
-		return byteOrder;
-	}
-
 	// may throw exception if modified after
 	// being attached
 	virtual void setCacheable(bool cacheable) const;
-	virtual void setByteOrder(ByteOrder byteOrder) const;
 
 	virtual ~Entry() {}
 
@@ -90,10 +83,11 @@ public:
 
 class Child {
 	public:
-		virtual const IDev    *getOwner() const = 0;
-		virtual const char     *getName() const = 0;
-		virtual const Entry   *getEntry() const = 0;
-		virtual       unsigned getNelms() const = 0;
+		virtual const IDev    *getOwner()     const = 0;
+		virtual const char     *getName()     const = 0;
+		virtual const Entry   *getEntry()     const = 0;
+		virtual       unsigned getNelms()     const = 0;
+		virtual ByteOrder  getByteOrder()     const = 0;
 		virtual uint64_t       read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
 		virtual ~Child() {}
 };

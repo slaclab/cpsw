@@ -10,12 +10,23 @@ union { uint16_t i; uint8_t c[2]; } tst = { i:1 };
 	return tst.c[0] ? LE : BE;
 }
 
-const ByteOrder hostByteOrder = hbo();
+static ByteOrder _hostByteOrder = hbo();
 
+ByteOrder hostByteOrder() {  return _hostByteOrder; }
+
+void _setHostByteOrder(ByteOrder o) { _hostByteOrder = o; }
+
+Address::Address(Dev *owner, unsigned nelms, ByteOrder byteOrder)
+:owner(owner), nelms(nelms), byteOrder(byteOrder)
+{
+	if ( UNKNOWN == byteOrder )
+		byteOrder = hostByteOrder();
+}
 
 uint64_t  Address::read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 	const Child *c;
+#ifdef HUB_DEBUG
 	printf("Reading %s", getName());
 	if ( getNelms() > 1 ) {
 		printf("[%i", (*node)->idxf);
@@ -26,6 +37,7 @@ uint64_t  Address::read(CompositePathIterator *node, bool cacheable, uint8_t *ds
 	printf(" @%"PRIx64, off);
 	printf(" --> %p ", dst);
 	dump(); printf("\n");
+#endif
 
 	// chain through parent
 	++(*node);
@@ -59,25 +71,21 @@ public:
 	}
 
 	virtual void visit(const Entry *child) {
-		printf("considering propagating atts to %s\n", child->getName());
+//		printf("considering propagating atts to %s\n", child->getName());
 		if ( ! parent ) {
 			throw InternalError("InternalError: AddChildVisitor has no parent");
 		}
 		if ( parent->getCacheableSet() && ! child->getCacheableSet() ) {
-			printf("setting cacheable\n");
+//			printf("setting cacheable\n");
 			child->setCacheable( parent->getCacheable() );
-		}
-		if ( parent->getByteOrder() != UNKNOWN && child->getByteOrder() == UNKNOWN ) {
-			printf("setting byteorder\n");
-			child->setByteOrder( parent->getByteOrder() );
 		}
 	}
 
 	virtual void visit(const Dev *child) {
-		if ( ! child->getCacheableSet() || UNKNOWN == child->getByteOrder() )
+		if ( ! child->getCacheableSet() )
 			visit( (const Entry*) child );
 		parent = child;
-		printf("setting parent to %s\n", child->getName());
+//		printf("setting parent to %s\n", child->getName());
 	}
 };
 
@@ -85,7 +93,7 @@ void Dev::add(Address *a, Entry *child)
 {
 	AddChildVisitor propagateAttributes( this, child );
 
-	child->Entry::setLocked(); printf("locking %s\n", child->getName());
+	child->Entry::setLocked(); //printf("locking %s\n", child->getName());
 	a->attach( child );
 	std::pair<Children::iterator,bool> ret = children.insert( std::pair<const char *, Address*>(a->getName(), a) );
 	if ( ! ret.second ) {

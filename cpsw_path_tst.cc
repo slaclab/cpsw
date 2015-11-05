@@ -25,7 +25,6 @@ Entry  c4("leaf1", 8);
 	c2.addAtAddr(&c3);
 	c2.addAtAddr(&c4, 4);
 
-	c2.setByteOrder( LE );
 	c2.setCacheable( true );
 	c1.addAtAddr(&c2, 4);
 	r.addAtAddr(&c1,2);

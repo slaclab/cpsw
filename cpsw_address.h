@@ -3,17 +3,19 @@
 
 #include <api_user.h>
 #include <stdio.h>
+#include <cpsw_hub.h>
 
 class Dev;
 
 class Address : public Child {
 	private:
-		const Dev*     owner;
 		const Entry*   child;
 		unsigned       nelms;
 
 	protected:
-		Address(Dev *owner, unsigned nelms = 1):owner(owner), nelms(nelms) {}
+		const Dev*     owner;
+		ByteOrder      byteOrder;
+		Address(Dev *owner, unsigned nelms = 1, ByteOrder byteOrder = UNKNOWN);
 
 	// Only Dev and its subclasses may create addresses ...
 	friend class Dev;
@@ -43,6 +45,11 @@ class Address : public Child {
 		virtual unsigned getNelms() const
 		{
 			return nelms;
+		}
+
+		virtual ByteOrder getByteOrder() const
+		{
+			return byteOrder;
 		}
 
 		virtual uint64_t read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;

@@ -33,11 +33,21 @@ public:
 	static bool hasParent(PathImpl::const_reverse_iterator &i);
 	static bool hasParent(PathImpl::reverse_iterator &i);
 
-	virtual void up() 
+	virtual const Child * up() 
 	{
+	const Child *rval = NULL;
 		if ( ! empty() ) {
+			rval = back().c_p;
 			pop_back();
 		}
+		return rval;
+	}
+
+	virtual const Child *getChildAtTail() const
+	{
+		if ( ! empty() )
+			return back().c_p;
+		return NULL;
 	}
 
 	virtual bool verifyAtTail(const IDev *h);
