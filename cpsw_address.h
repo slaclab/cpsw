@@ -8,12 +8,13 @@
 class Dev;
 
 class Address : public Child {
+	protected:
+		const Dev*     owner;
 	private:
 		const Entry*   child;
 		unsigned       nelms;
 
 	protected:
-		const Dev*     owner;
 		ByteOrder      byteOrder;
 		Address(Dev *owner, unsigned nelms = 1, ByteOrder byteOrder = UNKNOWN);
 
