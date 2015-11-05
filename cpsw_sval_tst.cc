@@ -3,7 +3,15 @@
 #include <cpsw_path.h>
 #include <cpsw_mmio_dev.h>
 #include <stdlib.h>
-#include <math.h>
+#include <inttypes.h>
+
+#ifndef PRIx64
+#define PRIx64 "llx"
+#endif
+
+#ifndef PRIx8
+#define PRIx8 "hhx"
+#endif
 
 class MemDev;
 

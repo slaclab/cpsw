@@ -4,7 +4,7 @@
 #include <api_user.h>
 #include <cpsw_hub.h>
 #include <cpsw_path.h>
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
 
 class MMIODev;

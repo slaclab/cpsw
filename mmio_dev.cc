@@ -19,6 +19,11 @@ int MMIOAddress::getLdWidth() const
 	return owner->getLdWidth();
 }
 
+/* old RHEL compiler */
+#ifndef PRIx64
+#define PRIx64 "llx"
+#endif
+
 void MMIOAddress::dump(FILE *f) const
 {
 	Address::dump( f ); fprintf(f, "+0x%"PRIx64, offset);
