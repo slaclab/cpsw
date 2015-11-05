@@ -6,7 +6,7 @@ MMIOAddress::MMIOAddress(
 			unsigned nelms,
 			uint64_t stride,
 			ByteOrder byteOrder)
-: offset(offset), stride(stride), Address(owner, nelms, UNKNOWN == byteOrder ? owner->getByteOrder() : byteOrder), owner(owner)
+: Address(owner, nelms, UNKNOWN == byteOrder ? owner->getByteOrder() : byteOrder), offset(offset), stride(stride), owner(owner)
 {
 /*
 	if ( (owner->getLdWidth() - 1) & offset )
@@ -26,11 +26,8 @@ void MMIOAddress::dump(FILE *f) const
 
 uint64_t MMIOAddress::read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
-int        rval      = 0, fro, to;
+int        rval      = 0, to;
 uintptr_t  dstStride = node->getNelmsRight() * dbytes;
-unsigned   sbytes_i  = sbytes;
-unsigned   dbytes_i  = dbytes;
-int        w         = 1 << owner->getLdWidth();
 
 	if ( sbytes == getStride()  && dbytes == sbytes && getEntry()->getCacheable() ) {
 		// if strides == size then we can try to read all in one chunk

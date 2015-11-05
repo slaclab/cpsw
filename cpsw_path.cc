@@ -283,13 +283,13 @@ use_origin:
 		if ( idxf < 0 )
 			idxf = 0;
 
-		if ( idxf > idxt || idxt >= found->getNelms() ) {
+		if ( idxf > idxt || idxt >= (int)found->getNelms() ) {
 			throw InvalidPathError( s );
 		}
 
 		p->push_back( PathEntry(found, idxf, idxt) );
 
-	} while ( s = sl );
+	} while ( (s = sl) != NULL );
 
 	return Path(p);
 }

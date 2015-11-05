@@ -75,7 +75,6 @@ template <typename E> unsigned ScalVal_ROAdapt<E>::getVal(uint8_t *buf, unsigned
 const    IntEntry *ie = IEntryAdapt<E>::ie;
 CompositePathIterator it( & (IEntryAdapt<E>::p) );
 const Child       *cl = it->c_p;
-uint64_t         got;
 uint64_t         off = 0;
 unsigned         sbytes   = getSize();
 unsigned         dbytes   = elsz;
@@ -106,7 +105,7 @@ ByteOrder        host     = hostByteOrder();
 		}
 	}
 	
-	got = cl->read( &it, ie->getCacheable(), ibufp, sbytes, off, sbytes );
+	cl->read( &it, ie->getCacheable(), ibufp, sbytes, off, sbytes );
 
 	bool sign_extend = getSizeBits() < 8*dbytes;
 	bool truncate    = getSizeBits() > 8*dbytes;

@@ -51,22 +51,13 @@ const MemDev *owner = static_cast<const MemDev*>(getOwner());
 	memcpy(dst, owner->buf + off, dbytes);
 //printf("MemDev read from off %lli", off);
 //for ( int ii=0; ii<dbytes; ii++) printf(" 0x%02x", dst[ii]); printf("\n");
+	return dbytes;
 }
 
 #define NELMS  10
 #define STRIDE 9
 #define BITS16 12
 #define SHFT16 2
-
-static uint16_t swp16(uint16_t x, ByteOrder native)
-{
-	if ( native != hostByteOrder() ) {
-		x = (x>>8) | (x<<8);
-	}
-	return x;
-}
-
-#define SWP16(x) swp16(x,native)
 
 int64_t rrr()
 {
@@ -79,7 +70,7 @@ int64_t rrr()
 void swp(uint8_t* b, unsigned sz, ByteOrder nat)
 {
 	if ( nat != hostByteOrder() ) {
-		for ( int i=0; i<sz/2; i++ ) {
+		for ( unsigned i=0; i<sz/2; i++ ) {
 			uint8_t tmp = b[sz-1-i];
 			b[sz-1-i] = b[i];
 			b[i]      = tmp;
@@ -167,16 +158,12 @@ MMIODev mmio("mmio",2048, 0, UNKNOWN);
 MMIODev mmio_le("le", 1024, 0, LE);
 MMIODev mmio_be("be", 1024, 0, BE);
 Path p_be, p_le;
-uint16_t ui16[NELMS], uo16[NELMS];
-int got, i, bo;
-
-ByteOrder native = hostByteOrder();
 
 int  bits[] = { 4, 13, 16, 22, 32, 44, 64 };
 int  shft[] = { 0, 3, 7 };
 bool sign[] = { true, false };
 
-int bits_idx, shft_idx, sign_idx;
+unsigned bits_idx, shft_idx, sign_idx;
 
 	mm.addAtAddr( &mmio );
 	mmio.addAtAddr( &mmio_le,    0);
@@ -230,6 +217,10 @@ int bits_idx, shft_idx, sign_idx;
 	}
 
 #else
+int got, i, bo;
+ByteOrder native = hostByteOrder();
+
+uint16_t ui16[NELMS], uo16[NELMS];
 IntEntry e12_2_s("i12-2-s", BITS16, true,  SHFT16);
 IntEntry e12_2_u("i12-2-u", BITS16, false, SHFT16);
 IntEntry e12_0_s("i12-0-s", BITS16, true,  0);
