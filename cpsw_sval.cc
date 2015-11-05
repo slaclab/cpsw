@@ -2,19 +2,18 @@
 #include <cpsw_path.h>
 #include <cpsw_hub.h>
 
-template<typename E> class IEntryAdapt : public virtual IEntry {
+class IEntryAdapt : public virtual IEntry {
 protected:
-	const E *ie;
+	const IntEntry *ie;
 	Path     p;
-public:
-	IEntryAdapt(Path p)
-	:p(p)
+
+	IEntryAdapt(Path p, const IntEntry *ie)
+	:ie(ie), p(p)
 	{
 		if ( p->empty() )
 			throw InvalidPathError("<EMPTY>");
-		if ( ! (ie = dynamic_cast<const E *>( p->tail() )) ) {
-			throw InterfaceNotImplementedError(p);
-		}
+		if ( p->tail() != ie )
+			throw InternalError("inconsistent args passed to IEntryAdapt");
 		if ( UNKNOWN == p->getChildAtTail()->getByteOrder() ) {
 			throw ConfigurationError("Configuration Error: byte-order not set");
 		}
@@ -23,28 +22,25 @@ public:
 	virtual uint64_t    getSize() const { return ie->getSize(); }
 };
 
-template<typename E> class IIntEntryAdapt : public IEntryAdapt<E> {
+class IIntEntryAdapt : public IEntryAdapt {
 public:
-	IIntEntryAdapt(Path p) : IEntryAdapt<E>(p) {}
-	virtual bool     isSigned()    const { return IEntryAdapt<E>::ie->isSigned();    }
-	virtual int      getLsBit()    const { return IEntryAdapt<E>::ie->getLsBit();    }
-	virtual uint64_t getSizeBits() const { return IEntryAdapt<E>::ie->getSizeBits(); }
-	using IEntryAdapt<E>::getName;
+	IIntEntryAdapt(Path p, const IntEntry *ie) : IEntryAdapt(p, ie) {}
+	virtual bool     isSigned()    const { return ie->isSigned();    }
+	virtual int      getLsBit()    const { return ie->getLsBit();    }
+	virtual uint64_t getSizeBits() const { return ie->getSizeBits(); }
 };
 
-template<typename E> class ScalVal_ROAdapt : public IScalVal_RO, public IIntEntryAdapt<E> {
+class ScalVal_ROAdapt : public IScalVal_RO, public IIntEntryAdapt {
 private:
 	int nelms;
 public:
-	ScalVal_ROAdapt(Path p)
-	: IIntEntryAdapt<E>(p), nelms(-1)
+	ScalVal_ROAdapt(Path p, const IntEntry *ie)
+	: IIntEntryAdapt(p, ie), nelms(-1)
 	{
 	}
 
-	using IIntEntryAdapt<E>::getLsBit;
-	virtual bool     isSigned()    const { return IIntEntryAdapt<E>::isSigned(); }
-//	virtual int      getLsBit()    const { return getLsBit(); }
-	virtual uint64_t getSizeBits() const { return IIntEntryAdapt<E>::getSizeBits(); }
+	virtual bool     isSigned()    const { return IIntEntryAdapt::isSigned(); }
+	virtual uint64_t getSizeBits() const { return IIntEntryAdapt::getSizeBits(); }
 	virtual int      getNelms();
 
 	virtual unsigned getVal(uint8_t  *, unsigned, unsigned);
@@ -55,14 +51,25 @@ public:
 	virtual unsigned getVal(uint8_t  *, unsigned);
 };
 
-ScalVal_RO IScalVal_RO::create(Path p) {
-	return ScalVal_RO( new ScalVal_ROAdapt<IntEntry>( p ) );
+template <typename E, typename A> static ScalVal_RO check_interface(Path p)
+{
+const E *e = dynamic_cast<const E*>( p->tail() );
+	if ( e ) {
+		return ScalVal_RO( new A(p, e) );
+	}
+	throw InterfaceNotImplementedError( p );
 }
 
-template <typename E> int ScalVal_ROAdapt<E>::getNelms()
+ScalVal_RO IScalVal_RO::create(Path p)
+{
+	// could try other implementations of this interface here
+	return check_interface<IntEntry, ScalVal_ROAdapt>( p );
+}
+
+int ScalVal_ROAdapt::getNelms()
 {
 	if ( nelms < 0 ) {
-		CompositePathIterator it( & (IEntryAdapt<E>::p) );
+		CompositePathIterator it( & p );
 		while ( ! it.atEnd() )
 			++it;
 		nelms = it.getNelmsRight();
@@ -70,10 +77,9 @@ template <typename E> int ScalVal_ROAdapt<E>::getNelms()
 	return nelms;	
 }
 
-template <typename E> unsigned ScalVal_ROAdapt<E>::getVal(uint8_t *buf, unsigned nelms, unsigned elsz)
+unsigned ScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 {
-const    IntEntry *ie = IEntryAdapt<E>::ie;
-CompositePathIterator it( & (IEntryAdapt<E>::p) );
+CompositePathIterator it( & p );
 const Child       *cl = it->c_p;
 uint64_t         off = 0;
 unsigned         sbytes   = getSize();
@@ -148,7 +154,7 @@ ByteOrder        host     = hostByteOrder();
 		}
 		for ( n = nelms-1; n >= 0; n--, oidx += oinc, iidx += iinc ) {
 			if ( cl->getByteOrder() != host ) {
-				for ( int j = 0; j<sbytes/2; j++ ) {
+				for ( unsigned j = 0; j<sbytes/2; j++ ) {
 					uint8_t tmp = ibufp[iidx + j];
 					ibufp[iidx + j] = ibufp[iidx + sbytes - 1 - j];
 					ibufp[iidx + sbytes - 1 - j] = tmp;
@@ -178,7 +184,7 @@ ByteOrder        host     = hostByteOrder();
 					} else {
 						tmp16 = ibufp[iidx + ioff - 1];
 					}
-					for (  j = 0; j < (dbytes >= sbytes ? sbytes : dbytes); j++ ) {
+					for (  j = 0; j < (int)(dbytes >= sbytes ? sbytes : dbytes); j++ ) {
 						tmp16 = (tmp16<<8) | ibufp[iidx + ioff + j];
 //printf("j %i, oidx %i, iidx %i, tmp16 %04x\n", j, oidx, iidx, tmp16);
 						obufp[oidx+ooff+j] = (tmp16 >> lsb);
@@ -220,22 +226,22 @@ ByteOrder        host     = hostByteOrder();
 	return nelms;
 }
 
-template <typename E> unsigned ScalVal_ROAdapt<E>::getVal(uint8_t *buf, unsigned nelms)
+unsigned ScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms)
 {
-	return ScalVal_ROAdapt<E>::getVal(buf, nelms, sizeof(*buf));
+	return ScalVal_ROAdapt::getVal(buf, nelms, sizeof(*buf));
 }
 
-template <typename E> unsigned ScalVal_ROAdapt<E>::getVal(uint16_t *buf, unsigned nelms)
+unsigned ScalVal_ROAdapt::getVal(uint16_t *buf, unsigned nelms)
 {
-	return ScalVal_ROAdapt<E>::getVal((uint8_t*)buf, nelms, sizeof(*buf));
+	return ScalVal_ROAdapt::getVal((uint8_t*)buf, nelms, sizeof(*buf));
 }
 
-template <typename E> unsigned ScalVal_ROAdapt<E>::getVal(uint32_t *buf, unsigned nelms)
+unsigned ScalVal_ROAdapt::getVal(uint32_t *buf, unsigned nelms)
 {
-	return ScalVal_ROAdapt<E>::getVal((uint8_t*)buf, nelms, sizeof(*buf));
+	return ScalVal_ROAdapt::getVal((uint8_t*)buf, nelms, sizeof(*buf));
 }
 
-template <typename E> unsigned ScalVal_ROAdapt<E>::getVal(uint64_t *buf, unsigned nelms)
+unsigned ScalVal_ROAdapt::getVal(uint64_t *buf, unsigned nelms)
 {
-	return ScalVal_ROAdapt<E>::getVal((uint8_t*)buf, nelms, sizeof(*buf));
+	return ScalVal_ROAdapt::getVal((uint8_t*)buf, nelms, sizeof(*buf));
 }
