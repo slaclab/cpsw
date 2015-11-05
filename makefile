@@ -1,5 +1,5 @@
 
-LSRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc mmio_dev.cc cpsw_sval.cc
+LSRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc mmio_dev.cc cpsw_sval.cc cpsw_nossi_dev.cc
 TSRCS = cpsw_path_tst.cc cpsw_sval_tst.cc
 SRCS = $(LSRCS) $(TSRCS)
 
