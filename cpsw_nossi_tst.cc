@@ -5,7 +5,7 @@
 #include <string.h>
 #include <inttypes.h>
 
-#define VLEN 128
+#define VLEN 123
 #define ADCL 10
 
 #ifndef PRIx64
