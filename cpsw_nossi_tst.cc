@@ -97,7 +97,12 @@ uint32_t u32;
 
 	root.addAtAddr( &mmio, 8192 );
 
+#if 1
 	Path pre = IPath::create( &root );
+#else
+	// can use raw memory for testing instead of UDP
+	Path pre = IPath::create( &rmem );
+#endif
 
 
 	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
