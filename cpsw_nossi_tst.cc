@@ -23,8 +23,10 @@ class AXIV : public MMIODev {
 public:
 	AXIV(const char *name) : MMIODev(name, 0x1000, 0, LE)
 	{
-		addAtAddr(     new IntEntry("blds",  8, false, 0), 0x800, VLEN  );
-		addAtSWPWAddr( new IntEntry("sern", 64, false, 0), 0x10 );
+		addAtSWPWAddr( new IntEntry("dnaValue", 64, false, 0), 0x08 );
+		addAtSWPWAddr( new IntEntry("fdSerial", 64, false, 0), 0x10 );
+		addAtAddr(     new IntEntry("counter",  32, false, 0), 0x24 );
+		addAtAddr(     new IntEntry("bldStamp",  8, false, 0), 0x800, VLEN  );
 	}
 
 	virtual void addAtSWPWAddr(Entry *child, uint64_t offset, unsigned nelms = 1, uint64_t stride = -1ULL) {
@@ -71,7 +73,8 @@ MemDev    rmem("rmem", 0x100000);
 
 uint8_t str[VLEN];
 int16_t adcv[ADCL];
-uint64_t serialNo;
+uint64_t u64;
+uint32_t u32;
 
 	rmem.addAtAddr( &mmio );
 
@@ -90,17 +93,26 @@ uint64_t serialNo;
 	Path pre = IPath::create( &rmem );
 
 
-	ScalVal_RO blds = IScalVal_RO::create( pre->findByName("mmio/vers/blds") );
-	ScalVal_RO adcs = IScalVal_RO::create( pre->findByName("mmio/sysm/adcs") );
-	ScalVal_RO sern = IScalVal_RO::create( pre->findByName("mmio/vers/sern") );
+	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
+	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
+	ScalVal_RO dnaValue = IScalVal_RO::create( pre->findByName("mmio/vers/dnaValue") );
+	ScalVal_RO counter  = IScalVal_RO::create( pre->findByName("mmio/vers/counter" ) );
 
-	blds->getVal( str, sizeof(str)/sizeof(str[0]) );
-	adcs->getVal( (uint16_t*)adcv, sizeof(adcv)/sizeof(adcv[0]) );
-	sern->getVal( &serialNo, 1 );
+	ScalVal_RO adcs = IScalVal_RO::create( pre->findByName("mmio/sysm/adcs") );
+
+	bldStamp->getVal( str, sizeof(str)/sizeof(str[0]) );
 
 	printf("Build String:\n%s\n", (char*)str);
-	printf("Serial #: 0x%"PRIx64"\n", serialNo);
+	fdSerial->getVal( &u64, 1 );
+	printf("Serial #: 0x%"PRIx64"\n", u64);
+	dnaValue->getVal( &u64, 1 );
+	printf("DNA    #: 0x%"PRIx64"\n", u64);
+	counter->getVal( &u32, 1 );
+	printf("Counter : 0x%"PRIx64"\n", u64);
+	counter->getVal( &u32, 1 );
+	printf("Counter : 0x%"PRIx64"\n", u64);
 
+	adcs->getVal( (uint16_t*)adcv, sizeof(adcv)/sizeof(adcv[0]) );
 	printf("\n\nADC Values:\n");
 	for ( int i=0; i<ADCL; i++ ) {
 		printf("  %hd\n", adcv[i]);
