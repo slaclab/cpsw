@@ -3,16 +3,24 @@
 
 MMIOAddress::MMIOAddress(
 			MMIODev *owner,
+			Entry   *child,
 			uint64_t offset,
 			unsigned nelms,
 			uint64_t stride,
 			ByteOrder byteOrder)
 : Address(owner, nelms, UNKNOWN == byteOrder ? owner->getByteOrder() : byteOrder), offset(offset), stride(stride), owner(owner)
 {
-/*
-	if ( (owner->getLdWidth() - 1) & offset )
-		throw InvalidArgError("Misaligned offset");
-*/
+	/*
+	   if ( (owner->getLdWidth() - 1) & offset )
+	   throw InvalidArgError("Misaligned offset");
+	 */
+	if ( -1ULL == stride ) {
+		stride = child->getSize();
+	}
+
+	if ( offset + (nelms-1) * stride + child->getSize() > owner->getSize() ) {
+		throw AddrOutOfRangeError(child->getName());
+	}
 }
 
 int MMIOAddress::getLdWidth() const

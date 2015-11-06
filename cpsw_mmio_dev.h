@@ -19,6 +19,7 @@ class MMIOAddress : public Address {
 
 		MMIOAddress(
 			MMIODev *owner,
+			Entry   *child,
 			uint64_t offset   = 0,
 			unsigned nelms    = 1,
 			uint64_t stride   = -1ULL,
@@ -54,18 +55,12 @@ class MMIODev : public Dev {
 
 		virtual ByteOrder getByteOrder() const { return byteOrder; }
 
-		virtual void addAtAddr(Entry *child, uint64_t offset, unsigned nelms = 1, uint64_t stride = -1ULL) {
-
-			if ( -1ULL == stride ) {
-				stride = child->getSize();
-			}
-
-			if ( offset + (nelms-1) * stride + child->getSize() > getSize() ) {
-				throw AddrOutOfRangeError(child->getName());
-			}
-			Address *a = new MMIOAddress(this, offset, nelms, stride);
+		virtual void addAtAddr(Entry *child, uint64_t offset, unsigned nelms = 1, uint64_t stride = -1ULL)
+		{
+			Address *a = new MMIOAddress(this, child, offset, nelms, stride);
 			add(a, child);
 		}
+
 };
 
 #endif

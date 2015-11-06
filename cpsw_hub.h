@@ -112,7 +112,7 @@ class Dev : public IDev, public Entry {
 	public:
 		Dev(const char *name, uint64_t size= 0);
 		virtual ~Dev();
-		
+
 		// template: each (device-specific) address must be instantiated
 		// by it's creator device and then added.
 		virtual void addAtAddr(Entry *child, unsigned nelms = 1)
