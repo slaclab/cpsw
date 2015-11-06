@@ -8,6 +8,13 @@
 #define VLEN 128
 #define ADCL 10
 
+#ifndef PRIx64
+#define PRIx64 "lx"
+#endif
+#ifndef PRIx32
+#define PRIx32 "x"
+#endif
+
 class AXIV;
 
 class SWPWAddress : public MMIOAddress {
@@ -90,7 +97,7 @@ uint32_t u32;
 
 	root.addAtAddr( &mmio, 8192 );
 
-	Path pre = IPath::create( &rmem );
+	Path pre = IPath::create( &root );
 
 
 	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
@@ -108,9 +115,9 @@ uint32_t u32;
 	dnaValue->getVal( &u64, 1 );
 	printf("DNA    #: 0x%"PRIx64"\n", u64);
 	counter->getVal( &u32, 1 );
-	printf("Counter : 0x%"PRIx64"\n", u64);
+	printf("Counter : 0x%"PRIx32"\n", u32);
 	counter->getVal( &u32, 1 );
-	printf("Counter : 0x%"PRIx64"\n", u64);
+	printf("Counter : 0x%"PRIx32"\n", u32);
 
 	adcs->getVal( (uint16_t*)adcv, sizeof(adcv)/sizeof(adcv[0]) );
 	printf("\n\nADC Values:\n");
