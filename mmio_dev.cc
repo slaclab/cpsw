@@ -15,7 +15,7 @@ MMIOAddress::MMIOAddress(
 	   throw InvalidArgError("Misaligned offset");
 	 */
 	if ( -1ULL == stride ) {
-		stride = child->getSize();
+		this->stride = stride = child->getSize();
 	}
 
 	if ( offset + (nelms-1) * stride + child->getSize() > owner->getSize() ) {
@@ -30,7 +30,7 @@ int MMIOAddress::getLdWidth() const
 
 /* old RHEL compiler */
 #ifndef PRIx64
-#define PRIx64 "llx"
+#define PRIx64 "lx"
 #endif
 
 void MMIOAddress::dump(FILE *f) const
