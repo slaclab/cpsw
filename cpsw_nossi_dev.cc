@@ -73,22 +73,24 @@ uint64_t UdpAddress::read(CompositePathIterator *node, bool cacheable, uint8_t *
 uint32_t bufh[4];
 uint8_t  buft[4];
 uint32_t xbuf[4];
-int      i=0, j;
+uint32_t status;
+int      i, j, put;
 int      nw = (sbytes + 3)/4;
 struct msghdr mh;
-struct iovec  iov[3];
+struct iovec  iov[4];
 int      got;
 
 	if ( nw == 0 )
 		return 0;
 
-	xbuf[i++] = 0;
-	xbuf[i++] = (off >> 2) & 0x3fffffff;
-	xbuf[i++] = nw - 1;
-	xbuf[i++] = 0;
+	put = 0;
+	xbuf[put++] = 0;
+	xbuf[put++] = (off >> 2) & 0x3fffffff;
+	xbuf[put++] = nw - 1;
+	xbuf[put++] = 0;
 
 	if ( BE == hostByteOrder() ) {
-		for ( j=0; j<i; j++ ) {
+		for ( j=0; j<put; j++ ) {
 			swp( (uint8_t*)&xbuf[j], sizeof(xbuf[j]));
 		}
 	}
@@ -109,10 +111,15 @@ int      got;
 	i++;
 
 	if ( sbytes & 3 ) {
+		// padding if not word-aligned
 		iov[i].iov_base = buft;
 		iov[i].iov_len  = 4 - (sbytes & 3);
 		i++;
 	}
+
+	iov[i].iov_base = &status;
+	iov[i].iov_len  = 4;
+	i++;
 
 	mh.msg_iov        = iov;
 	mh.msg_iovlen     = i;
@@ -120,17 +127,27 @@ int      got;
 
 	unsigned attempt = 0;
 	do {
-		if ( (int)sizeof(xbuf[0])*i != write( sd, xbuf, sizeof(xbuf[0])*i ) ) {
+		if ( (int)sizeof(xbuf[0])*put != write( sd, xbuf, sizeof(xbuf[0])*put ) ) {
 			throw InternalError("FIXME -- need I/O Error here");
 		}
 
 		if ( (got = recvmsg( sd, &mh, 0 )) > 0 ) {
-			//	printf("got %i bytes\n", got);
-			//	for (i=0; i<2; i++ )
-			//		printf("header[%i]: %x\n", i, bufh[i]);
+#if 0
+			printf("got %i bytes, sbytes %i, nw %i\n", got, sbytes, nw);
+				printf("got %i bytes\n", got);
+				for (i=0; i<2; i++ )
+					printf("header[%i]: %x\n", i, bufh[i]);
 
-			//	for ( i=0; i<sbytes; i++ )
-			//		printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
+				for ( i=0; i<sbytes; i++ )
+					printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
+#endif
+			if ( got != (int)sizeof(bufh[0])*(nw + 3) ) {
+				throw InternalError("FIXME -- need I/O Error here");
+			}
+			if ( BE == hostByteOrder() ) {
+				swp( (uint8_t*)&status, sizeof(status) );
+			}
+			// TODO: check status word here
 			return sbytes;
 		}
 	} while ( ++attempt <= retryCnt );
