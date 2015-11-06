@@ -1,8 +1,8 @@
 #include <cpsw_nossi_dev.h>
 #include <stdint.h>
 
-UdpAddress::UdpAddress(NoSsiDev *owner, unsigned short dport)
-:Address(owner), dport(dport), sd(-1)
+UdpAddress::UdpAddress(NoSsiDev *owner, unsigned short dport, unsigned timeoutUs, unsigned retryCnt)
+:Address(owner), dport(dport), sd(-1), timeoutUs(timeoutUs), retryCnt(retryCnt)
 {
 struct sockaddr_in dst, me;
 	dst.sin_family      = AF_INET;
@@ -24,6 +24,8 @@ struct sockaddr_in dst, me;
 	if ( connect( sd, (struct sockaddr*)&dst, sizeof( dst ) ) ) {
 		throw InvalidArgError("Unable to connect socket");
 	}
+
+	setTimeoutUs( timeoutUs );
 }
 
 UdpAddress::~UdpAddress()
@@ -32,11 +34,28 @@ UdpAddress::~UdpAddress()
 		close( sd );
 }
 
-NoSsiDev::NoSsiDev(const char *name, const char *ip) : Dev(name)
+NoSsiDev::NoSsiDev(const char *name, const char *ip)
+: Dev(name)
 {
 	if ( INADDR_NONE == ( d_ip = inet_addr( ip ) ) ) {
 		throw InvalidArgError( ip );
 	}
+}
+
+void UdpAddress::setTimeoutUs(unsigned timeoutUs)
+{
+struct timeval t;
+	t.tv_sec  = timeoutUs / 1000000;
+	t.tv_usec = timeoutUs % 1000000;
+	if ( setsockopt( sd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(t) ) ) {
+		throw InternalError("setsocktop(SO_RECVTIMEO) failed");
+	}
+	this->timeoutUs = timeoutUs;
+}
+
+void UdpAddress::setRetryCount(unsigned retryCnt)
+{
+	this->retryCnt = retryCnt;
 }
 
 static void swp(uint8_t *buf, size_t sz)
@@ -51,29 +70,27 @@ unsigned int k;
 	
 uint64_t UdpAddress::read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
-uint32_t bufh[10];
+uint32_t bufh[4];
 uint8_t  buft[4];
+uint32_t xbuf[4];
 int      i=0, j;
 int      nw = (sbytes + 3)/4;
 struct msghdr mh;
 struct iovec  iov[3];
+int      got;
 
 	if ( nw == 0 )
 		return 0;
 
-	bufh[i++] = 0;
-	bufh[i++] = (off >> 2) & 0x3fffffff;
-	bufh[i++] = nw - 1;
-	bufh[i++] = 0;
+	xbuf[i++] = 0;
+	xbuf[i++] = (off >> 2) & 0x3fffffff;
+	xbuf[i++] = nw - 1;
+	xbuf[i++] = 0;
 
 	if ( BE == hostByteOrder() ) {
 		for ( j=0; j<i; j++ ) {
-			swp( (uint8_t*)&bufh[j], sizeof(bufh[j]));
+			swp( (uint8_t*)&xbuf[j], sizeof(xbuf[j]));
 		}
-	}
-
-	if ( (int)sizeof(bufh[0])*i != write( sd, bufh, sizeof(bufh[0])*i ) ) {
-		throw InternalError("FIXME -- need I/O Error here");
 	}
 
 	mh.msg_name       = 0;
@@ -100,21 +117,23 @@ struct iovec  iov[3];
 	mh.msg_iov        = iov;
 	mh.msg_iovlen     = i;
 
-	int got;
 
-	bufh[0] = 0xdeadbeef;
-	bufh[1] = 0xdeadbeef;
+	unsigned attempt = 0;
+	do {
+		if ( (int)sizeof(xbuf[0])*i != write( sd, xbuf, sizeof(xbuf[0])*i ) ) {
+			throw InternalError("FIXME -- need I/O Error here");
+		}
 
-	if ( (got = recvmsg( sd, &mh, 0 )) < 0 ) {
-		throw InternalError("FIXME -- need I/O Error here");
-	}
+		if ( (got = recvmsg( sd, &mh, 0 )) > 0 ) {
+			//	printf("got %i bytes\n", got);
+			//	for (i=0; i<2; i++ )
+			//		printf("header[%i]: %x\n", i, bufh[i]);
 
-//	printf("got %i bytes\n", got);
-//	for (i=0; i<2; i++ )
-//		printf("header[%i]: %x\n", i, bufh[i]);
+			//	for ( i=0; i<sbytes; i++ )
+			//		printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
+			return sbytes;
+		}
+	} while ( ++attempt <= retryCnt );
 
-//	for ( i=0; i<sbytes; i++ )
-//		printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
-	
-	return sbytes;
+	throw InternalError("FIXME -- need I/O Error here");
 }
