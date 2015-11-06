@@ -7,7 +7,7 @@
 #include <inttypes.h>
 
 #ifndef PRIx64
-#define PRIx64 "llx"
+#define PRIx64 "lx"
 #endif
 
 #ifndef PRIx8
@@ -59,7 +59,8 @@ template <typename EL> void tst(MemDev *mmp, ScalVal_RO val, ByteOrder mbo, int 
 {
 	int bo;
 	ByteOrder native = hostByteOrder();
-	int i, got, j;
+	unsigned int i;
+	int got, j;
 	EL ui[NELMS];
 	uint64_t uo[NELMS];
 
