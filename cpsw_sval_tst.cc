@@ -2,6 +2,7 @@
 #include <cpsw_hub.h>
 #include <cpsw_path.h>
 #include <cpsw_mmio_dev.h>
+#include <cpsw_mem_dev.h>
 #include <stdlib.h>
 #include <inttypes.h>
 
@@ -13,54 +14,7 @@
 #define PRIx8 "hhx"
 #endif
 
-class MemDev;
-
 extern void _setHostByteOrder(ByteOrder);
-
-class MemDevAddress : public Address {
-	protected:
-		MemDevAddress(MemDev *owner, unsigned nelms = 1);
-
-		friend class MemDev;
-
-	public:
-		virtual uint64_t read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
-};
-
-class MemDev : public Dev {
-	public:
-		uint8_t *buf;
-
-		MemDev(const char *name, uint64_t size) : Dev(name, size)
-		{
-			buf = new uint8_t[size];
-		}
-
-		virtual ~MemDev()
-		{
-			delete [] buf;
-		}
-
-		virtual void addAtAddr(Entry *child, unsigned nelms = 1) {
-			Address *a = new MemDevAddress(this, nelms);
-			add(a, child);
-		}
-};
-
-MemDevAddress::MemDevAddress(MemDev *owner, unsigned nelms) : Address(owner, nelms) {}
-
-uint64_t MemDevAddress::read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
-{
-const MemDev *owner = static_cast<const MemDev*>(getOwner());
-	if ( off + dbytes > owner->getSize() ) {
-//printf("off %lu, dbytes %lu, size %lu\n", off, dbytes, owner->getSize());
-		throw ConfigurationError("MemDevAddress: read out of range");
-	}
-	memcpy(dst, owner->buf + off, dbytes);
-//printf("MemDev read from off %lli", off);
-//for ( int ii=0; ii<dbytes; ii++) printf(" 0x%02x", dst[ii]); printf("\n");
-	return dbytes;
-}
 
 #define NELMS  10
 #define STRIDE 9
