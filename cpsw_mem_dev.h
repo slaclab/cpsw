@@ -15,7 +15,7 @@ class MemDevAddress : public Address {
 		friend class MemDev;
 
 	public:
-		virtual uint64_t read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
+		virtual uint64_t read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 };
 
 class MemDev : public Dev {

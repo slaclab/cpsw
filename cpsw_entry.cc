@@ -5,7 +5,7 @@
 Entry::Entry(const char *cname, uint64_t size)
 : name( cname ),
   size( size),
-  cacheableSet( false ),
+  cacheable( UNKNOWN_CACHEABLE ),
   locked( false )
 {
 const char *cptr;
@@ -17,14 +17,13 @@ const char *cptr;
 	}
 }
 
-void Entry::setCacheable(bool cacheable) const
+void Entry::setCacheable(Cacheable cacheable) const
 {
-	if ( cacheableSet && locked ) {
+	if ( UNKNOWN_CACHEABLE != getCacheable() && locked ) {
 	printf("%s\n", getName());
 		throw ConfigurationError("Configuration Error - cannot modify attached device");
 	}
 	this->cacheable    = cacheable;
-	this->cacheableSet = true;
 }
 
 void Entry::accept(Visitor *v, bool depthFirst) const

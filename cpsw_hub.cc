@@ -23,7 +23,7 @@ Address::Address(Dev *owner, unsigned nelms, ByteOrder byteOrder)
 		byteOrder = hostByteOrder();
 }
 
-uint64_t  Address::read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t  Address::read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 	const Child *c;
 #ifdef HUB_DEBUG
@@ -75,14 +75,14 @@ public:
 		if ( ! parent ) {
 			throw InternalError("InternalError: AddChildVisitor has no parent");
 		}
-		if ( parent->getCacheableSet() && ! child->getCacheableSet() ) {
+		if ( UNKNOWN_CACHEABLE != parent->getCacheable() && UNKNOWN_CACHEABLE == child->getCacheable() ) {
 //			printf("setting cacheable\n");
 			child->setCacheable( parent->getCacheable() );
 		}
 	}
 
 	virtual void visit(const Dev *child) {
-		if ( ! child->getCacheableSet() )
+		if ( UNKNOWN_CACHEABLE == child->getCacheable() )
 			visit( (const Entry*) child );
 		parent = child;
 //		printf("setting parent to %s\n", child->getName());
@@ -120,8 +120,8 @@ const Child *Dev::getChild(const char *name) const
 Dev::Dev(const char *name, uint64_t size)
 : Entry(name, size)
 {
-	// by default - mark containers as cacheable; user may still override
-	setCacheable( true );
+	// by default - mark containers as write-through cacheable; user may still override
+	setCacheable( WT_CACHEABLE );
 }
 
 Path Dev::findByName(const char *s) const

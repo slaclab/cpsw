@@ -68,7 +68,7 @@ unsigned int k;
 	}
 }
 	
-uint64_t UdpAddress::read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t UdpAddress::read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 uint32_t bufh[4];
 uint8_t  buft[4];

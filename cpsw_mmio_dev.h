@@ -36,7 +36,7 @@ class MMIOAddress : public Address {
 		using Address::dump;
 
 		virtual void dump(FILE *f) const;
-		virtual uint64_t  read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
+		virtual uint64_t  read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 		virtual void attach(Entry *child);
 };
 

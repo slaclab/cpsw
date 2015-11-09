@@ -24,7 +24,7 @@ void MemDev::addAtAddr(Entry *child, unsigned nelms)
 
 MemDevAddress::MemDevAddress(MemDev *owner, unsigned nelms) : Address(owner, nelms) {}
 
-uint64_t MemDevAddress::read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t MemDevAddress::read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 const MemDev *owner = static_cast<const MemDev*>(getOwner());
 	if ( off + dbytes > owner->getSize() ) {

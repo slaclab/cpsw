@@ -38,7 +38,7 @@ void MMIOAddress::dump(FILE *f) const
 	Address::dump( f ); fprintf(f, "+0x%"PRIx64, offset);
 }
 
-uint64_t MMIOAddress::read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t MMIOAddress::read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 int        rval      = 0, to;
 uintptr_t  dstStride = node->getNelmsRight() * dbytes;

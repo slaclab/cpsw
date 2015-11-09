@@ -53,7 +53,7 @@ class Address : public Child {
 			return byteOrder;
 		}
 
-		virtual uint64_t read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
+		virtual uint64_t read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 
 		virtual void dump(FILE *f) const;
 

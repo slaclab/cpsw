@@ -22,7 +22,7 @@ class SWPWAddress : public MMIOAddress {
 		SWPWAddress(AXIV *owner, Entry *child, uint64_t offset, unsigned nelms, unsigned stride);
 		friend class AXIV;
 	public:
-		virtual uint64_t  read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
+		virtual uint64_t  read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 };
 
 class AXIV : public MMIODev {
@@ -47,7 +47,7 @@ SWPWAddress::SWPWAddress(AXIV *owner, Entry *child, uint64_t offset, unsigned ne
 {
 }
 
-uint64_t  SWPWAddress::read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t  SWPWAddress::read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 int wlen = 4;
 int nw = sbytes / wlen;

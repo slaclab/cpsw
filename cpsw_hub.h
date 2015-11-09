@@ -9,6 +9,7 @@
 #include <ctype.h>
 
 typedef enum ByteOrder { UNKNOWN = 0, LE = 12, BE = 21 } ByteOrder;
+typedef enum Cacheable { UNKNOWN_CACHEABLE = 0, NOT_CACHEABLE, WT_CACHEABLE, WB_CACHEABLE } Cacheable;
 
 ByteOrder hostByteOrder();
 
@@ -24,8 +25,7 @@ class Entry: public virtual IEntry {
 private:
 	const std::string	name;
 	const uint64_t    	size;
-	mutable bool        cacheable;
-	mutable bool        cacheableSet;
+	mutable Cacheable   cacheable;
 	mutable bool        locked;
 
 public:
@@ -41,19 +41,14 @@ public:
 		return size;
 	}
 
-	virtual bool getCacheable() const
+	virtual Cacheable getCacheable() const
 	{
 		return cacheable;
 	}
 
-	virtual bool getCacheableSet() const
-	{
-		return cacheableSet;
-	}
-
 	// may throw exception if modified after
 	// being attached
-	virtual void setCacheable(bool cacheable) const;
+	virtual void setCacheable(Cacheable cacheable) const;
 
 	virtual ~Entry() {}
 
@@ -88,7 +83,7 @@ class Child {
 		virtual const Entry   *getEntry()     const = 0;
 		virtual       unsigned getNelms()     const = 0;
 		virtual ByteOrder  getByteOrder()     const = 0;
-		virtual uint64_t       read(CompositePathIterator *node, bool cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
+		virtual uint64_t       read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
 		virtual ~Child() {}
 };
 

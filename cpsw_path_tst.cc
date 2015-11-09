@@ -25,7 +25,7 @@ Entry  c4("leaf1", 8);
 	c2.addAtAddr(&c3);
 	c2.addAtAddr(&c4, 4);
 
-	c2.setCacheable( true );
+	c2.setCacheable( WT_CACHEABLE );
 	c1.addAtAddr(&c2, 4);
 	r.addAtAddr(&c1,2);
 	p = r.findByName("outer/inner/leaf");
