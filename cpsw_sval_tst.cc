@@ -1,8 +1,6 @@
-#include <api_user.h>
-#include <cpsw_hub.h>
-#include <cpsw_path.h>
-#include <cpsw_mmio_dev.h>
-#include <cpsw_mem_dev.h>
+#include <api_builder.h>
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
 
@@ -40,8 +38,9 @@ void swp(uint8_t* b, unsigned sz, ByteOrder nat)
 	}
 }
 
-template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL got, EL exp, int elsz, MemDev *m)
+template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL got, EL exp, int elsz, MemDev m)
 {
+uint8_t *buf = m->getBufp();
 	swp( (uint8_t*)&got, sizeof(got), nat);
 	printf("Mismatch (width %li, mem: %sE, host: %s, %ssigned) @%i, got 0x%04"PRIx64", exp 0x%04"PRIx64"\n",
 			sizeof(EL),
@@ -50,13 +49,14 @@ template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL
 			s ? "" : "un",
 			i, (uint64_t)got, (uint64_t)exp);
 	for ( int j=0; j<elsz; j++ )
-		printf("m[%i]: %01"PRIx8" ", j, m->buf[i*STRIDE+j]);
+		printf("m[%i]: %01"PRIx8" ", j, buf[i*STRIDE+j]);
 	printf("\n");
 }
 
 
-template <typename EL> void tst(MemDev *mmp, ScalVal_RO val, ByteOrder mbo, int shft)
+template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int shft)
 {
+	uint8_t *buf = mmp->getBufp();
 	int bo;
 	ByteOrder native = hostByteOrder();
 	unsigned int i;
@@ -69,7 +69,7 @@ template <typename EL> void tst(MemDev *mmp, ScalVal_RO val, ByteOrder mbo, int 
 	for ( bo = 0; bo < 2; bo++ ) {
 
 		for ( i=0; i<mmp->getSize(); i++ )
-			mmp->buf[i] = rrr();
+			buf[i] = rrr();
 
 		uint64_t msk = val->getSizeBits() >= 64 ? -1ULL : ((1ULL<<val->getSizeBits()) - 1);
 		uint64_t smsk = msk << shft;
@@ -85,7 +85,7 @@ template <typename EL> void tst(MemDev *mmp, ScalVal_RO val, ByteOrder mbo, int 
 //printf("val[%i]: 0x%"PRIx64"\n", i, v);
 
 			for ( j=jbeg; j != jend; j+=jinc ) {
-				mmp->buf[i*STRIDE + j] = v;
+				buf[i*STRIDE + j] = v;
 				v = v>>8;
 			}
 		}
@@ -116,10 +116,10 @@ template <typename EL> void tst(MemDev *mmp, ScalVal_RO val, ByteOrder mbo, int 
 int
 main()
 {
-MemDev  mm("mem",2048);
-MMIODev mmio("mmio",2048, 0, UNKNOWN);
-MMIODev mmio_le("le", 1024, 0, LE);
-MMIODev mmio_be("be", 1024, 0, BE);
+MemDev  mm      = IMemDev::create("mem",2048);
+MMIODev mmio    = IMMIODev::create("mmio",2048, UNKNOWN);
+MMIODev mmio_le = IMMIODev::create("le", 1024, LE);
+MMIODev mmio_be = IMMIODev::create("be", 1024, BE);
 Path p_be, p_le;
 
 int  bits[] = { 4, 13, 16, 22, 32, 44, 64 };
@@ -128,12 +128,12 @@ bool sign[] = { true, false };
 
 unsigned bits_idx, shft_idx, sign_idx;
 
-	mm.addAtAddr( &mmio );
-	mmio.addAtAddr( &mmio_le,    0);
-	mmio.addAtAddr( &mmio_be,    0);
+	mm->addAtAddress( mmio );
+	mmio->addAtAddress( mmio_le,    0);
+	mmio->addAtAddress( mmio_be,    0);
 
-	p_be = mm.findByName("mmio/be");
-	p_le = mm.findByName("mmio/le");
+	p_be = mm->findByName("mmio/be");
+	p_le = mm->findByName("mmio/le");
 
 #if 1
 	try {
@@ -143,28 +143,28 @@ unsigned bits_idx, shft_idx, sign_idx;
 				for ( sign_idx = 0; sign_idx < sizeof(sign)/sizeof(sign[0]); sign_idx++ ) {
 					char nm[100];
 					sprintf(nm,"i%i-%i-%c", bits[bits_idx], shft[shft_idx], sign[sign_idx] ? 's' : 'u');
-					IntEntry *e = new IntEntry(nm, bits[bits_idx], sign[sign_idx], shft[shft_idx]);
+					IntField e = IIntField::create(nm, bits[bits_idx], sign[sign_idx], shft[shft_idx]);
 
-					mmio_le.addAtAddr( e, 0, NELMS, STRIDE );
-					mmio_be.addAtAddr( e, 0, NELMS, STRIDE );
+					mmio_le->addAtAddress( e, 0, NELMS, STRIDE );
+					mmio_be->addAtAddress( e, 0, NELMS, STRIDE );
 
 					ScalVal_RO v_le = IScalVal_RO::create( p_le->findByName( nm ) );
 					ScalVal_RO v_be = IScalVal_RO::create( p_be->findByName( nm ) );
 
 					try {
-						tst<uint8_t>( &mm, v_le, LE, shft[shft_idx] );
-						tst<uint8_t>( &mm, v_be, BE, shft[shft_idx] );
+						tst<uint8_t>( mm, v_le, LE, shft[shft_idx] );
+						tst<uint8_t>( mm, v_be, BE, shft[shft_idx] );
 
-						tst<uint16_t>( &mm, v_le, LE, shft[shft_idx] );
-						tst<uint16_t>( &mm, v_be, BE, shft[shft_idx] );
+						tst<uint16_t>( mm, v_le, LE, shft[shft_idx] );
+						tst<uint16_t>( mm, v_be, BE, shft[shft_idx] );
 
-						tst<uint32_t>( &mm, v_le, LE, shft[shft_idx] );
-						tst<uint32_t>( &mm, v_be, BE, shft[shft_idx] );
+						tst<uint32_t>( mm, v_le, LE, shft[shft_idx] );
+						tst<uint32_t>( mm, v_be, BE, shft[shft_idx] );
 
 						if ( bits[bits_idx] < 64 || shft[shft_idx] == 0 ) {
 							/* test code uses int64 internally and shift overflows */
-							tst<uint64_t>( &mm, v_le, LE, shft[shft_idx] );
-							tst<uint64_t>( &mm, v_be, BE, shft[shft_idx] );
+							tst<uint64_t>( mm, v_le, LE, shft[shft_idx] );
+							tst<uint64_t>( mm, v_be, BE, shft[shft_idx] );
 						}
 					} catch ( CPSWError &e ) {
 						printf("Error at %s\n", nm);

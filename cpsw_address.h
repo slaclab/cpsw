@@ -1,45 +1,52 @@
 #ifndef CPSW_ADDRESS_H
 #define CPSW_ADDRESS_H
 
-#include <api_user.h>
+#include <api_builder.h>
 #include <stdio.h>
 #include <cpsw_hub.h>
 
-class Dev;
+class AKey {
+private:
+	WContainer owner;
+	AKey(Container owner):owner(owner) {}
+public:
+	const Container get() const { return Container(owner); }
 
-class Address : public Child {
+	friend class DevImpl;
+};
+
+class AddressImpl : public IChild {
 	protected:
-		const Dev*     owner;
+		AKey           owner;
 	private:
-		const Entry*   child;
+		Entry          child;
 		unsigned       nelms;
 
 	protected:
 		ByteOrder      byteOrder;
-		Address(Dev *owner, unsigned nelms = 1, ByteOrder byteOrder = UNKNOWN);
-
-	// Only Dev and its subclasses may create addresses ...
-	friend class Dev;
 
 	public:
-		virtual ~Address() {}
-
-		virtual void attach(const Entry *child)
+		AddressImpl(AKey owner, unsigned nelms = 1, ByteOrder byteOrder = UNKNOWN);
+		virtual ~AddressImpl()
 		{
-			if ( this->child ) {
-				throw AddressAlreadyAttachedError( getName() );
+		}
+
+		virtual void attach(Entry child)
+		{
+			if ( this->child != NULL ) {
+				throw AddressAlreadyAttachedError( child->getName() );
 			}
 			this->child = child;
 		}
 
-		virtual const Entry *getEntry() const
+		virtual Entry getEntry() const
 		{
 			return child;
 		}
 
 		virtual const char *getName() const
 		{
-			const Entry *e = getEntry();
+			Entry e = getEntry();
 			return e ? e->getName() : NULL;
 		}
 
@@ -53,7 +60,7 @@ class Address : public Child {
 			return byteOrder;
 		}
 
-		virtual uint64_t read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
+		virtual uint64_t read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 
 		virtual void dump(FILE *f) const;
 
@@ -62,7 +69,7 @@ class Address : public Child {
 			dump( stdout );
 		}
 
-		virtual const IDev *getOwner() const;
+		virtual Container getOwner() const;
 };
 
 #endif

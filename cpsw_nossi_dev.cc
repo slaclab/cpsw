@@ -1,13 +1,14 @@
 #include <cpsw_nossi_dev.h>
 #include <stdint.h>
 
-UdpAddress::UdpAddress(NoSsiDev *owner, unsigned short dport, unsigned timeoutUs, unsigned retryCnt)
-:Address(owner), dport(dport), sd(-1), timeoutUs(timeoutUs), retryCnt(retryCnt)
+UdpAddressImpl::UdpAddressImpl(AKey k, unsigned short dport, unsigned timeoutUs, unsigned retryCnt)
+:AddressImpl(k), dport(dport), sd(-1), timeoutUs(timeoutUs), retryCnt(retryCnt)
 {
 struct sockaddr_in dst, me;
+shared_ptr<NoSsiDevImpl> owner( getOwner()->getSelfAs< shared_ptr<NoSsiDevImpl> >() );
 	dst.sin_family      = AF_INET;
 	dst.sin_port        = htons( dport );
-	dst.sin_addr.s_addr = owner->getIp();
+	dst.sin_addr.s_addr = owner->getIpAddress();
 
 	me.sin_family       = AF_INET;
 	me.sin_port         = htons( 0 );
@@ -28,21 +29,21 @@ struct sockaddr_in dst, me;
 	setTimeoutUs( timeoutUs );
 }
 
-UdpAddress::~UdpAddress()
+UdpAddressImpl::~UdpAddressImpl()
 {
 	if ( -1 != sd )
 		close( sd );
 }
 
-NoSsiDev::NoSsiDev(const char *name, const char *ip)
-: Dev(name)
+NoSsiDevImpl::NoSsiDevImpl(FKey k, const char *ip)
+: DevImpl(k), ip_str(ip)
 {
 	if ( INADDR_NONE == ( d_ip = inet_addr( ip ) ) ) {
 		throw InvalidArgError( ip );
 	}
 }
 
-void UdpAddress::setTimeoutUs(unsigned timeoutUs)
+void UdpAddressImpl::setTimeoutUs(unsigned timeoutUs)
 {
 struct timeval t;
 	t.tv_sec  = timeoutUs / 1000000;
@@ -53,7 +54,7 @@ struct timeval t;
 	this->timeoutUs = timeoutUs;
 }
 
-void UdpAddress::setRetryCount(unsigned retryCnt)
+void UdpAddressImpl::setRetryCount(unsigned retryCnt)
 {
 	this->retryCnt = retryCnt;
 }
@@ -68,7 +69,7 @@ unsigned int k;
 	}
 }
 	
-uint64_t UdpAddress::read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t UdpAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 uint32_t bufh[4];
 uint8_t  buft[4];
@@ -153,4 +154,15 @@ int      got;
 	} while ( ++attempt <= retryCnt );
 
 	throw InternalError("FIXME -- need I/O Error here");
+}
+
+void NoSsiDevImpl::addAtAddress(Field child, unsigned dport, unsigned timeoutUs, unsigned retryCnt)
+{
+AKey k = getAKey();
+	add( make_shared<UdpAddressImpl>(k, dport, timeoutUs, retryCnt), child );
+}
+
+NoSsiDev INoSsiDev::create(const char *name, const char *ipaddr)
+{
+	return EntryImpl::create<NoSsiDevImpl>(name, ipaddr);
 }

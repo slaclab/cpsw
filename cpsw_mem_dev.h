@@ -1,32 +1,29 @@
 #ifndef CPSW_MEM_TST_DEV_H
 #define CPSW_MEM_TST_DEV_H
 
-#include <api_user.h>
 #include <cpsw_hub.h>
 
 // pseudo-device with memory backing (for testing)
 
-class MemDev;
-
-class MemDevAddress : public Address {
-	protected:
-		MemDevAddress(MemDev *owner, unsigned nelms = 1);
-
-		friend class MemDev;
-
+class MemDevAddressImpl : public AddressImpl {
 	public:
-		virtual uint64_t read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
+		MemDevAddressImpl(AKey key, unsigned nelms = 1);
+
+		virtual uint64_t read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 };
 
-class MemDev : public Dev {
+class MemDevImpl : public DevImpl, public virtual IMemDev {
+	private:
+		uint8_t * const buf;
 	public:
-		uint8_t *buf;
 
-		MemDev(const char *name, uint64_t size);
+		virtual uint8_t * const getBufp() { return buf; }
 
-		virtual ~MemDev();
+		MemDevImpl(FKey k, uint64_t size);
 
-		virtual void addAtAddr(Entry *child, unsigned nelms = 1);
+		virtual void addAtAddress(Field child, unsigned nelms = 1);
+
+		virtual ~MemDevImpl();
 };
 
 #endif

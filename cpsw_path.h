@@ -5,14 +5,11 @@
 #include <api_user.h>
 #include <cstdarg>
 
-class Address;
-class Dev;
-
 struct PathEntry {
-	const Child *c_p;
+	const Child  c_p;
 	int    idxf, idxt;
 
-	PathEntry(const Child *a, int idxf = 0, int idxt = -1);
+	PathEntry(const Child a, int idxf = 0, int idxt = -1);
 };
 
 // NOTE: all paths supplied to the constructor(s) must remain valid

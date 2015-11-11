@@ -1,31 +1,18 @@
 #include <cpsw_mmio_dev.h>
 #include <inttypes.h>
 
-MMIOAddress::MMIOAddress(
-			MMIODev *owner,
-			Entry   *child,
+MMIOAddressImpl::MMIOAddressImpl(
+			AKey     key,
 			uint64_t offset,
 			unsigned nelms,
 			uint64_t stride,
 			ByteOrder byteOrder)
-: Address(owner, nelms, UNKNOWN == byteOrder ? owner->getByteOrder() : byteOrder), offset(offset), stride(stride), owner(owner)
+: AddressImpl(key,
+              nelms,
+              UNKNOWN == byteOrder ? static_pointer_cast<MMIODevImpl, DevImpl>(key.get())->getByteOrder() : byteOrder ),
+              offset(offset),
+              stride(stride)
 {
-	/*
-	   if ( (owner->getLdWidth() - 1) & offset )
-	   throw InvalidArgError("Misaligned offset");
-	 */
-	if ( -1ULL == stride ) {
-		this->stride = stride = child->getSize();
-	}
-
-	if ( offset + (nelms-1) * stride + child->getSize() > owner->getSize() ) {
-		throw AddrOutOfRangeError(child->getName());
-	}
-}
-
-int MMIOAddress::getLdWidth() const
-{
-	return owner->getLdWidth();
 }
 
 /* old RHEL compiler */
@@ -33,12 +20,12 @@ int MMIOAddress::getLdWidth() const
 #define PRIx64 "lx"
 #endif
 
-void MMIOAddress::dump(FILE *f) const
+void MMIOAddressImpl::dump(FILE *f) const
 {
-	Address::dump( f ); fprintf(f, "+0x%"PRIx64, offset);
+	AddressImpl::dump( f ); fprintf(f, "+0x%"PRIx64, offset);
 }
 
-uint64_t MMIOAddress::read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t MMIOAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 int        rval      = 0, to;
 uintptr_t  dstStride = node->getNelmsRight() * dbytes;
@@ -53,7 +40,7 @@ uintptr_t  dstStride = node->getNelmsRight() * dbytes;
 	}
 	for ( int i = (*node)->idxf; i <= to; i++ ) {
 		CompositePathIterator it = *node;
-		rval += Address::read(&it, cacheable, dst, dbytes, off + this->offset + stride *i, sbytes);
+		rval += AddressImpl::read(&it, cacheable, dst, dbytes, off + this->offset + stride *i, sbytes);
 
 		dst  += dstStride;
 	}
@@ -61,10 +48,30 @@ uintptr_t  dstStride = node->getNelmsRight() * dbytes;
 	return rval;
 }
 
-void MMIOAddress::attach(Entry *child)
+void MMIOAddressImpl::attach(Entry child)
 {
-	if ( stride == -1ULL ) {
+	if ( IMMIODev::STRIDE_AUTO == stride ) {
 		stride = child->getSize();
 	}
-	Address::attach(child);
+
+	if ( getOffset() + (getNelms()-1) * getStride() + child->getSize() > getOwner()->getSize() ) {
+		throw AddrOutOfRangeError(child->getName());
+	}
+
+	AddressImpl::attach(child);
 }
+
+MMIODev IMMIODev::create(const char *name, uint64_t size, ByteOrder byteOrder)
+{
+	return EntryImpl::create<MMIODevImpl>(name, size, byteOrder);
+}
+
+void MMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, uint64_t stride, ByteOrder byteOrder)
+{
+	AKey k = getAKey();
+	add(
+			make_shared<MMIOAddressImpl>(k, offset, nelms, stride, byteOrder),
+			child
+	   );
+}
+

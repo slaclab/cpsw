@@ -9,15 +9,18 @@
 using std::list;
 using boost::shared_ptr;
 
-class IDev;
-class Child;
+class IEntry;
+class IHub;
+class IChild;
 class IPath;
 class IScalVal_RO;
 class IScalVal;
 class CompositePathIterator;
-typedef shared_ptr<IPath>  Path;
-typedef shared_ptr<IScalVal_RO> ScalVal_RO;
-typedef shared_ptr<IScalVal>    ScalVal;
+typedef shared_ptr<const IHub>   Hub;
+typedef shared_ptr<const IChild> Child;
+typedef shared_ptr<IPath>        Path;
+typedef shared_ptr<IScalVal_RO>  ScalVal_RO;
+typedef shared_ptr<IScalVal>     ScalVal;
 class EventListener;
 
 #include <cpsw_error.h>
@@ -37,29 +40,27 @@ public:
 	// lookup 'name' under this path and return new 'full' path
 	virtual Path        findByName(const char *name) const = 0;
 	// strip last element of this path and return child at tail (or NULL if none)
-	virtual const Child *up()                        = 0;
+	virtual Child       up()                         = 0;
 	// test if this path is empty
 	virtual bool        empty()                const = 0;
 	virtual void        clear()                      = 0; // absolute; reset to root
-	virtual void        clear(const IDev *)          = 0; // relative; reset to passed arg
-	// return IDev at the tip of this path (if any -- NULL otherwise)
-	virtual const IDev *origin()               const = 0;
-	// return parent IDev (if any -- NULL otherwise )
-	virtual const IDev *parent()               const = 0;
-	// return Entry at the end of this path (if any -- NULL otherwise)
-	virtual const IEntry *tail()               const = 0;
+	virtual void        clear(Hub)                   = 0; // relative; reset to passed arg
+	// return Hub at the tip of this path (if any -- NULL otherwise)
+	virtual       Hub   origin()               const = 0;
+	// return parent Hub (if any -- NULL otherwise )
+	virtual       Hub   parent()               const = 0;
 	// return Child at the end of this path (if any -- NULL otherwise)
-	virtual const Child *getChildAtTail()      const = 0;
+	virtual Child       tail()                 const = 0;
 	virtual std::string toString()             const = 0;
 	virtual void        dump(FILE *)           const = 0;
 	// verify the 'hub' is at the tail of this path
-	virtual bool        verifyAtTail(const IDev *)   = 0;
+	virtual bool        verifyAtTail(Hub)            = 0;
 	// append a copy of another path to this one.
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
 	virtual void        append(Path p)               = 0;
 	// append to this path
 	// Note: an exception is thrown if this->verifyAtTail( child->owner() ) evaluates to 'false'.
-	virtual void        append(Child *c)             = 0;
+	virtual void        append(Child c)              = 0;
 	
 	// append a copy of another path to a copy of this one and return the new copy
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
@@ -67,18 +68,18 @@ public:
 
 	// create an empty path
 	static  Path        create();             // absolute; starting at root
-	static  Path        create(const IDev *);  // relative; starting at passed arg
+	static  Path        create(Hub);          // relative; starting at passed arg
 
 	virtual ~IPath() {}
 };
 
 // A collection of nodes
-class IDev : public virtual IEntry {
+class IHub : public virtual IEntry {
 public:
 	// find all entries matching 'path' in or underneath this hub
-	virtual Path           findByName(const char *path)   const = 0;
+	virtual Path           findByName(const char *path)         = 0;
 
-	virtual const Child   *getChild(const char *name)     const = 0;
+		virtual Child      getChild(const char *name)     const = 0;
 };
 
 // Read-only interface to an integral value.

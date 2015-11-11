@@ -1,23 +1,23 @@
-#include <api_user.h>
+#include <api_builder.h>
 #include <cpsw_hub.h>
 #include <ctype.h>
 
-Entry::Entry(const char *cname, uint64_t size)
-: name( cname ),
+EntryImpl::EntryImpl(FKey k, uint64_t size)
+: name( k.getName() ),
   size( size),
   cacheable( UNKNOWN_CACHEABLE ),
   locked( false )
 {
 const char *cptr;
-	for ( cptr = cname; *cptr; cptr++ ) {
+	for ( cptr = name.c_str(); *cptr; cptr++ ) {
 		if ( ! isalnum( *cptr )
                      && '_' != *cptr 
                      && '-' != *cptr  )
-					throw InvalidIdentError(cname);
+					throw InvalidIdentError(name);
 	}
 }
 
-void Entry::setCacheable(Cacheable cacheable) const
+void EntryImpl::setCacheable(Cacheable cacheable)
 {
 	if ( UNKNOWN_CACHEABLE != getCacheable() && locked ) {
 	printf("%s\n", getName());
@@ -26,7 +26,7 @@ void Entry::setCacheable(Cacheable cacheable) const
 	this->cacheable    = cacheable;
 }
 
-void Entry::accept(Visitor *v, bool depthFirst) const
+void EntryImpl::accept(IVisitor *v, RecursionOrder order, int depth)
 {
-	v->visit( this );
+	v->visit( getSelf() );
 }

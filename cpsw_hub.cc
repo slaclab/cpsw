@@ -4,6 +4,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+using boost::static_pointer_cast;
+
 static ByteOrder hbo()
 {
 union { uint16_t i; uint8_t c[2]; } tst = { i:1 };
@@ -16,16 +18,16 @@ ByteOrder hostByteOrder() {  return _hostByteOrder; }
 
 void _setHostByteOrder(ByteOrder o) { _hostByteOrder = o; }
 
-Address::Address(Dev *owner, unsigned nelms, ByteOrder byteOrder)
-:owner(owner), child(NULL), nelms(nelms), byteOrder(byteOrder)
+AddressImpl::AddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
+:owner(owner), child( static_cast<EntryImpl*>(NULL) ), nelms(nelms), byteOrder(byteOrder)
 {
 	if ( UNKNOWN == byteOrder )
-		byteOrder = hostByteOrder();
+		this->byteOrder = hostByteOrder();
 }
 
-uint64_t  Address::read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t  AddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
-	const Child *c;
+	Child c;
 #ifdef HUB_DEBUG
 	printf("Reading %s", getName());
 	if ( getNelms() > 1 ) {
@@ -50,100 +52,125 @@ uint64_t  Address::read(CompositePathIterator *node, Cacheable cacheable, uint8_
 	}
 }
 
-const IDev *Address::getOwner() const 
+Container AddressImpl::getOwner() const
 {
-	return owner;
+	return owner.get();
 }
 
-void Address::dump(FILE *f) const
+void AddressImpl::dump(FILE *f) const
 {
-	fprintf(f, "@%s:%s[%i]", owner->getName(), child->getName(), nelms);
+	fprintf(f, "@%s:%s[%i]", getOwner()->getName(), child->getName(), nelms);
 }
 
-class AddChildVisitor: public Visitor {
+class AddChildVisitor: public IVisitor {
 private:
-	const Dev *parent;
+	Dev parent;
 
 public:
-	AddChildVisitor(Dev *top, Entry *child) : parent(top)
+	AddChildVisitor(Dev top, Field child) : parent(top)
 	{
-		child->accept( this, false );
+		child->accept( this, IVisitable::RECURSE_DEPTH_AFTER, IVisitable::DEPTH_INDEFINITE );
 	}
 
-	virtual void visit(const Entry *child) {
+	virtual void visit(Field child) {
 //		printf("considering propagating atts to %s\n", child->getName());
 		if ( ! parent ) {
 			throw InternalError("InternalError: AddChildVisitor has no parent");
 		}
-		if ( UNKNOWN_CACHEABLE != parent->getCacheable() && UNKNOWN_CACHEABLE == child->getCacheable() ) {
+		if ( IField::UNKNOWN_CACHEABLE != parent->getCacheable() && IField::UNKNOWN_CACHEABLE == child->getCacheable() ) {
 //			printf("setting cacheable\n");
 			child->setCacheable( parent->getCacheable() );
 		}
 	}
 
-	virtual void visit(const Dev *child) {
-		if ( UNKNOWN_CACHEABLE == child->getCacheable() )
-			visit( (const Entry*) child );
+	virtual void visit(Dev child) {
+		if ( IField::UNKNOWN_CACHEABLE == child->getCacheable() )
+			visit( static_pointer_cast<IField, IDev>( child ) );
 		parent = child;
 //		printf("setting parent to %s\n", child->getName());
 	}
+
 };
 
-void Dev::add(Address *a, Entry *child)
+void DevImpl::add(shared_ptr<AddressImpl> a, Field child)
 {
-	AddChildVisitor propagateAttributes( this, child );
+Entry e = child->getSelf();
 
-	child->Entry::setLocked(); //printf("locking %s\n", child->getName());
-	a->attach( child );
-	std::pair<Children::iterator,bool> ret = children.insert( std::pair<const char *, Address*>(a->getName(), a) );
+	AddChildVisitor propagateAttributes( getSelfAs<Container>(), child );
+
+	e->setLocked(); //printf("locking %s\n", child->getName());
+	a->attach( e );
+	std::pair<Children::iterator,bool> ret = children.insert( std::pair<const char *, shared_ptr<AddressImpl> >(child->getName(), a) );
 	if ( ! ret.second ) {
-		delete a;
+		/* Address object should be automatically deleted by smart pointer */
 		throw DuplicateNameError(child->getName());
 	}
 }
 
-Dev::~Dev()
+DevImpl::~DevImpl()
 {
-Children::iterator it;
-
-	while ( (it = children.begin()) != children.end() ) {
-		children.erase( it );
-		delete( it->second );
-	}
 }
 
-const Child *Dev::getChild(const char *name) const
+Child DevImpl::getChild(const char *name) const
 {
 	return children[name];
 }
 
-Dev::Dev(const char *name, uint64_t size)
-: Entry(name, size)
+DevImpl::DevImpl(FKey k, uint64_t size)
+: EntryImpl(k, size)
 {
 	// by default - mark containers as write-through cacheable; user may still override
-	setCacheable( WT_CACHEABLE );
+	EntryImpl::setCacheable( WT_CACHEABLE );
 }
 
-Path Dev::findByName(const char *s) const
+Dev IDev::create(const char *name, uint64_t size)
 {
-	Path p = IPath::create( this );
+	return EntryImpl::create<DevImpl>(name, size);
+}
+
+Field IField::create(const char *name, uint64_t size)
+{
+	return EntryImpl::create<EntryImpl>(name, size);
+}
+
+Path DevImpl::findByName(const char *s)
+{
+	Hub  h( getSelfAs<Container>() );
+	Path p = IPath::create( h );
 	return p->findByName( s );
 }
 
-void Dev::accept(Visitor *v, bool depthFirst) const
+void DevImpl::accept(IVisitor    *v, RecursionOrder order, int recursionDepth)
 {
 Children::iterator it;
+Dev       meAsDev( getSelfAs<Container>() );
 
-	if ( ! depthFirst ) {
-		v->visit( this );
+	if ( RECURSE_DEPTH_FIRST != order ) {
+		v->visit( meAsDev );
 	}
 
-	for ( it = children.begin(); it != children.end(); ++it ) {
-		const Entry *e = it->second->getEntry();
-		e->accept( v, depthFirst );
+	if ( DEPTH_NONE != recursionDepth ) {
+		if ( IField::DEPTH_INDEFINITE != recursionDepth ) {
+			recursionDepth--;
+		}
+		for ( it = children.begin(); it != children.end(); ++it ) {
+			Entry e = it->second->getEntry();
+			e->accept( v, order, recursionDepth );
+		}
 	}
 
-	if ( depthFirst ) {
-		v->visit( this );
+	if ( RECURSE_DEPTH_FIRST == order ) {
+		v->visit( meAsDev );
 	}
 }
+
+IntEntryImpl::IntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit, int wordSwap)
+: EntryImpl(k, (sizeBits + lsBit + 7)/8), is_signed(is_signed), ls_bit(lsBit), size_bits(sizeBits), wordSwap(wordSwap)
+{
+}
+
+IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, int wordSwap)
+{
+	return EntryImpl::create<IntEntryImpl>(name, sizeBits, is_signed, lsBit, wordSwap);
+}
+

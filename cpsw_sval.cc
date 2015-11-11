@@ -4,27 +4,28 @@
 
 class IEntryAdapt : public virtual IEntry {
 protected:
-	const IntEntry *ie;
+	shared_ptr<const IntEntryImpl> ie;
 	Path     p;
 
-	IEntryAdapt(Path p, const IntEntry *ie)
+	IEntryAdapt(Path p, shared_ptr<const IntEntryImpl> ie)
 	:ie(ie), p(p)
 	{
 		if ( p->empty() )
 			throw InvalidPathError("<EMPTY>");
-		if ( p->tail() != ie )
+		if ( p->tail()->getEntry() != ie )
 			throw InternalError("inconsistent args passed to IEntryAdapt");
-		if ( UNKNOWN == p->getChildAtTail()->getByteOrder() ) {
+		if ( UNKNOWN == p->tail()->getByteOrder() ) {
 			throw ConfigurationError("Configuration Error: byte-order not set");
 		}
 	}
+public:
 	virtual const char *getName()  const { return ie->getName(); }
 	virtual uint64_t    getSize() const { return ie->getSize(); }
 };
 
 class IIntEntryAdapt : public IEntryAdapt {
 public:
-	IIntEntryAdapt(Path p, const IntEntry *ie) : IEntryAdapt(p, ie) {}
+	IIntEntryAdapt(Path p, shared_ptr<const IntEntryImpl> ie) : IEntryAdapt(p, ie) {}
 	virtual bool     isSigned()    const { return ie->isSigned();    }
 	virtual int      getLsBit()    const { return ie->getLsBit();    }
 	virtual uint64_t getSizeBits() const { return ie->getSizeBits(); }
@@ -34,7 +35,7 @@ class ScalVal_ROAdapt : public IScalVal_RO, public IIntEntryAdapt {
 private:
 	int nelms;
 public:
-	ScalVal_ROAdapt(Path p, const IntEntry *ie)
+	ScalVal_ROAdapt(Path p, shared_ptr<const IntEntryImpl> ie)
 	: IIntEntryAdapt(p, ie), nelms(-1)
 	{
 	}
@@ -53,9 +54,10 @@ public:
 
 template <typename E, typename A> static ScalVal_RO check_interface(Path p)
 {
-const E *e = dynamic_cast<const E*>( p->tail() );
+shared_ptr<const E> e = boost::dynamic_pointer_cast<const E, EntryImpl>( p->tail()->getEntry() );
 	if ( e ) {
-		return ScalVal_RO( new A(p, e) );
+		A *a_p = new A(p, e);
+		return ScalVal_RO( a_p );
 	}
 	throw InterfaceNotImplementedError( p );
 }
@@ -63,7 +65,7 @@ const E *e = dynamic_cast<const E*>( p->tail() );
 ScalVal_RO IScalVal_RO::create(Path p)
 {
 	// could try other implementations of this interface here
-	return check_interface<IntEntry, ScalVal_ROAdapt>( p );
+	return check_interface<IntEntryImpl, ScalVal_ROAdapt>( p );
 }
 
 int ScalVal_ROAdapt::getNelms()
@@ -80,9 +82,9 @@ int ScalVal_ROAdapt::getNelms()
 unsigned ScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 {
 CompositePathIterator it( & p );
-const Child       *cl = it->c_p;
+Child            cl = it->c_p;
 uint64_t         off = 0;
-unsigned         sbytes   = getSize();
+unsigned         sbytes   = IEntryAdapt::getSize();
 unsigned         dbytes   = elsz;
 unsigned         ibuf_nchars;
 int              lsb      = getLsBit();

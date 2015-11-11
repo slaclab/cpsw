@@ -3,19 +3,25 @@
 #include <string>
 
 #include <stdio.h>
+#include <iostream>
 
-const Dev * const theRootDev = new Dev("ROOT", 0);
+#undef PATH_DEBUG
+
+using boost::dynamic_pointer_cast;
+using std::cout;
+
+Hub const theRootDev( EntryImpl::create<DevImpl>("ROOT") );
 
 class PathImpl : public std::list<PathEntry>, public IPath {
 private:
-	const IDev *originDev;
+	Hub originDev;
 
 public:
 	PathImpl();
-	PathImpl(const IDev *);
+	PathImpl(Hub);
 
 	virtual void clear();
-	virtual void clear(const IDev *);
+	virtual void clear(Hub);
 
 	virtual void dump(FILE *f) const;
 
@@ -33,9 +39,9 @@ public:
 	static bool hasParent(PathImpl::const_reverse_iterator &i);
 	static bool hasParent(PathImpl::reverse_iterator &i);
 
-	virtual const Child * up() 
+	virtual Child up() 
 	{
-	const Child *rval = NULL;
+	Child rval = NULLCHILD;
 		if ( ! empty() ) {
 			rval = back().c_p;
 			pop_back();
@@ -43,32 +49,35 @@ public:
 		return rval;
 	}
 
-	virtual const Child *getChildAtTail() const
+	virtual Child tail() const
 	{
 		if ( ! empty() )
 			return back().c_p;
-		return NULL;
+		return NULLCHILD;
 	}
 
-	virtual bool verifyAtTail(const IDev *h);
+	virtual bool verifyAtTail(Hub h);
 
 	virtual void append(Path p);
-	virtual void append(Child *);
-	virtual void append(Child *, int, int);
+	virtual void append(Child);
+	virtual void append(Child, int, int);
 
 	virtual Path concat(Path p) const;
 
-	virtual const IEntry *tail() const;
+	virtual Hub parent() const;
 
-	virtual const IDev *parent() const;
-
-	virtual	const IDev *origin() const
+	virtual	Hub origin() const
 	{
 		return originDev;
 	}
+
+	virtual ~PathImpl()
+	{
+		// printf("deleting %s\n", toString().c_str());
+	}
 };
 
-PathEntry::PathEntry(const Child *a, int idxf, int idxt) : c_p(a), idxf(idxf), idxt(idxt)
+PathEntry::PathEntry(const Child a, int idxf, int idxt) : c_p(a), idxf(idxf), idxt(idxt)
 {
 	if ( idxf < 0 )
 		idxf = 0;
@@ -98,14 +107,14 @@ PathImpl::PathImpl() : std::list<PathEntry>(), originDev(theRootDev)
 {
 	// maintain an empty marker element so that the back iterator
 	// can easily detect the end of the list
-	push_back( PathEntry(0) );
+	push_back( PathEntry(NULLCHILD) );
 }
 
-PathImpl::PathImpl(const IDev *h) : std::list<PathEntry>(), originDev(h ? h : theRootDev)
+PathImpl::PathImpl(Hub h) : std::list<PathEntry>(), originDev(h ? h : theRootDev)
 {
 	// maintain an empty marker element so that the back iterator
 	// can easily detect the end of the list
-	push_back( PathEntry(0) );
+	push_back( PathEntry(NULLCHILD) );
 }
 
 
@@ -132,10 +141,10 @@ PathImpl::const_iterator & PathImpl::begin() const
 	return ++i;
 }
 
-void PathImpl::clear(const IDev *h)
+void PathImpl::clear(Hub h)
 {
 	std::list<PathEntry>::clear();
-	push_back( PathEntry(0) );
+	push_back( PathEntry(NULLCHILD) );
 	originDev = h ? h : theRootDev;
 }
 
@@ -193,7 +202,7 @@ Path IPath::create()
 	return Path( new PathImpl() );
 }
 
-Path IPath::create(const IDev *h)
+Path IPath::create(Hub h)
 {
 	return Path( new PathImpl( h ) );
 }
@@ -214,24 +223,34 @@ int rval;
 
 Path PathImpl::findByName(const char *s) const
 {
-const Child *found;
-const IDev   *h;
+Child found;
+Hub h;
 PathImpl    *p = new PathImpl( *this );
 const char  *sl;
 
+#ifdef PATH_DEBUG
+cout<<"checking: "<< s <<"\n";
+#endif
+
 	if ( empty() ) {
 		if ( (h = origin()) ) {
+#ifdef PATH_DEBUG
+cout<<"using origin\n";
+#endif
 			goto use_origin;
 		} else {
 			throw InternalError();
 		} 
 	} else {
 		found = back().c_p;
+#ifdef PATH_DEBUG
+cout<<"starting at: "<<found->getName() << "\n";
+#endif
 	}
 
 	do {
 
-		if ( ! (h = dynamic_cast<const IDev*>( found->getEntry() )) ) {
+		if ( ! (h = dynamic_pointer_cast<IDev, IEntry>( found->getEntry() )) ) {
 			throw NotDevError( found->getName() );
 		}
 
@@ -272,6 +291,10 @@ use_origin:
 
 		std::string key(s, (op ? op - s : ( sl ? sl - s : strlen(s) ) ) );
 
+#ifdef PATH_DEBUG
+cout<<"looking for: " << key << " in: " << h->getName() << "\n";
+#endif
+
 		found = h->getChild( key.c_str() );
 
 		if ( ! found ) {
@@ -294,32 +317,25 @@ use_origin:
 	return Path(p);
 }
 
-const IEntry * PathImpl::tail() const
-{
-	if ( empty() )
-		return originDev;
-	return back().c_p->getEntry();
-}
-
-const IDev *PathImpl::parent() const
+Hub PathImpl::parent() const
 {
 
 	if ( empty() )
-		return NULL;
+		return NULLHUB;
 
 PathImpl::const_reverse_iterator it = rend();
 	++it; // rend points after last el
 	++it; // if empty this points at the NULL marker element
-	return hasParent( it ) ? dynamic_cast<const IDev *>(it->c_p) : NULL;
+	return hasParent( it ) ? boost::dynamic_pointer_cast<const IHub, const IChild>(it->c_p) : NULLHUB;
 }
 
-bool PathImpl::verifyAtTail(const IDev *h)
+bool PathImpl::verifyAtTail(Hub h)
 {
 	if ( empty() ) {
 		originDev = h;
 		return true;
 	} 
-	return static_cast<const IEntry*>(h) == back().c_p->getEntry();
+	return (void*)h.get() == (void*)back().c_p->getEntry().get();
 }
 
 static void append2(PathImpl *h, PathImpl *t)
@@ -351,7 +367,7 @@ void PathImpl::append(Path p)
 	append2(this, toPathImpl(p));
 }
 
-void PathImpl::append(Child *c, int f, int t)
+void PathImpl::append(Child c, int f, int t)
 {
 	if ( ! verifyAtTail( c->getOwner() ) ) {
 		throw InvalidPathError( Path( this ) );
@@ -359,7 +375,7 @@ void PathImpl::append(Child *c, int f, int t)
 	push_back( PathEntry(c, f, t) );
 }
 
-void PathImpl::append(Child *c)
+void PathImpl::append(Child c)
 {
 	append(c, 0, -1);
 }
@@ -371,7 +387,7 @@ bool CompositePathIterator::validConcatenation(Path p)
 		return true;
 	if ( p->empty() )
 		return false;
-	return ( (*this)->c_p->getEntry() == static_cast<const IEntry*>( p->origin() ) );
+	return ( (void*)(*this)->c_p->getEntry().get() == (void*)p->origin().get() );
 }
 
 static PathImpl::reverse_iterator rbegin(Path p)

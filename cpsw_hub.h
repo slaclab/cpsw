@@ -1,92 +1,170 @@
 #ifndef CPSW_HUB_H
 #define CPSW_HUB_H
 
-#include <api_user.h>
+#include <api_builder.h>
 #include <map>
 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
-typedef enum ByteOrder { UNKNOWN = 0, LE = 12, BE = 21 } ByteOrder;
-typedef enum Cacheable { UNKNOWN_CACHEABLE = 0, NOT_CACHEABLE, WT_CACHEABLE, WB_CACHEABLE } Cacheable;
+#include <boost/weak_ptr.hpp>
+#include <boost/make_shared.hpp>
 
-ByteOrder hostByteOrder();
+using boost::weak_ptr;
+using boost::make_shared;
 
-class Visitor;
+class   Visitor;
+class   ImplVisitor;
 
-class Visitable {
-public:
-	virtual void accept(Visitor *v, bool depthFirst) const = 0;
-	virtual ~Visitable();
-};
+class   EntryImpl;
+typedef shared_ptr<EntryImpl> Entry;
+typedef weak_ptr<EntryImpl>   WEntry;
 
-class Entry: public virtual IEntry {
+class   DevImpl;
+typedef shared_ptr<DevImpl>   Container;
+typedef weak_ptr<DevImpl>     WContainer;
+
+class FKey {
 private:
-	const std::string	name;
-	const uint64_t    	size;
-	mutable Cacheable   cacheable;
-	mutable bool        locked;
-
+	const char *name;
+	FKey(const char *name):name(name){}
 public:
-	Entry(const char *name, uint64_t size);
-
-	virtual const char *getName() const
-	{
-		return name.c_str();
-	}
-
-	virtual uint64_t getSize() const
-	{
-		return size;
-	}
-
-	virtual Cacheable getCacheable() const
-	{
-		return cacheable;
-	}
-
-	// may throw exception if modified after
-	// being attached
-	virtual void setCacheable(Cacheable cacheable) const;
-
-	virtual ~Entry() {}
-
-	void setLocked()
-	{
-		locked = true;
-	}
-
-	virtual void accept(Visitor *v, bool depthFirst) const;
+	const char *getName() const { return name; }
+	friend class EntryImpl;
 };
 
-class IntEntry : public Entry {
+class EntryImpl: public virtual IField {
+	private:
+		const std::string	name;
+		const uint64_t    	size;
+		mutable Cacheable   cacheable;
+		mutable bool        locked;
+		WEntry              self;
+
+	protected:
+		virtual void  setSelf(Entry sp) { self = sp; }
+
+	public:
+		EntryImpl(FKey k, uint64_t size);
+
+		virtual const char *getName() const
+		{
+			return name.c_str();
+		}
+
+		virtual uint64_t getSize() const
+		{
+			return size;
+		}
+
+		virtual Cacheable getCacheable() const
+		{
+			return cacheable;
+		}
+
+		// may throw exception if modified after
+		// being attached
+		virtual void setCacheable(Cacheable cacheable);
+
+		virtual ~EntryImpl()
+		{
+			//printf("Deleting %s\n", getName());			
+		}
+
+		virtual void setLocked()
+		{
+			locked = true;
+		}
+
+		virtual void accept(IVisitor    *v, RecursionOrder order, int recursionDepth);
+
+		virtual Entry getSelf() { return Entry( self ); }
+
+		template <typename T> T getSelfAs()
+		{
+			return T( static_pointer_cast< typename T::element_type, EntryImpl>( getSelf() ) );
+		}
+
+		// factory for derived types T
+		template<typename T>
+			static shared_ptr<T>
+			create(const char *name)
+			{
+				shared_ptr<T> self( new T( FKey(name) ) );
+				self->setSelf(self);
+				return self;
+			}
+		template<typename T, typename A1>
+			static shared_ptr<T>
+			create(const char *name, A1 a1)
+			{
+				shared_ptr<T> self( new T( FKey(name), a1 ) );
+				self->setSelf(self);
+				return self;
+			}
+		template<typename T, typename A1, typename A2>
+			static shared_ptr<T>
+			create(const char *name, A1 a1, A2 a2)
+			{
+				shared_ptr<T> self( new T( FKey(name), a1, a2 ) );
+				self->setSelf(self);
+				return self;
+			}
+		template<typename T, typename A1, typename A2, typename A3>
+			static shared_ptr<T>
+			create(const char *name, A1 a1, A2 a2, A3 a3)
+			{
+				shared_ptr<T> self( new T( FKey(name), a1, a2, a3 ) );
+				self->setSelf(self);
+				return self;
+			}
+		template<typename T, typename A1, typename A2, typename A3, typename A4>
+			static shared_ptr<T>
+			create(const char *name, A1 a1, A2 a2, A3 a3, A4 a4)
+			{
+				shared_ptr<T> self( new T( FKey(name), a1, a2, a3, a4 ) );
+				self->setSelf(self);
+				return self;
+			}
+		template<typename T, typename A1, typename A2, typename A3, typename A4, typename A5>
+			static shared_ptr<T>
+			create(const char *name, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
+			{
+				shared_ptr<T> self( new T( FKey(name), a1, a2, a3, a4, a5 ) );
+				self->setSelf(self);
+				return self;
+			}
+};
+
+class IntEntryImpl : public EntryImpl, public virtual IIntField {
 private:
 	bool     is_signed;
 	int      ls_bit;
 	uint64_t size_bits;
+	int      wordSwap;
 public:
-	IntEntry(const char *name, uint64_t sizeBits, bool is_signed, int lsBit = 0)
-	: Entry(name, (sizeBits + lsBit + 7)/8), is_signed(is_signed), ls_bit(lsBit), size_bits(sizeBits)
-	{
-	}
+	IntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit = 0, int wordSwap = 0);
 
-	bool isSigned() const { return is_signed; }
-	int  getLsBit() const { return ls_bit;    }
-	uint64_t getSizeBits() const { return size_bits; }
+	virtual bool     isSigned()    const { return is_signed; }
+	virtual int      getLsBit()    const { return ls_bit;    }
+	virtual uint64_t getSizeBits() const { return size_bits; }
+	virtual int      getWordSwap() const { return wordSwap;  }
 };
 
-class Child {
+class IChild {
 	public:
-		virtual const IDev    *getOwner()     const = 0;
-		virtual const char     *getName()     const = 0;
-		virtual const Entry   *getEntry()     const = 0;
-		virtual       unsigned getNelms()     const = 0;
-		virtual ByteOrder  getByteOrder()     const = 0;
-		virtual uint64_t       read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
-		virtual ~Child() {}
+		virtual       Container getOwner()     const = 0;
+		virtual const char      *getName()     const = 0;
+		virtual       Entry     getEntry()     const = 0;
+		virtual       unsigned  getNelms()     const = 0;
+		virtual ByteOrder   getByteOrder()     const = 0;
+		virtual uint64_t       read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
+		virtual ~IChild() {}
 };
 
+#define NULLCHILD Child( static_cast<IChild *>(NULL) )
+#define NULLHUB   Hub( static_cast<IHub *>(NULL) )
 
 #include <cpsw_address.h>
 
@@ -96,39 +174,34 @@ struct StrCmp {
     }
 };
 
-class Dev : public IDev, public Entry {
+class DevImpl : public EntryImpl, public virtual IDev {
 	private:
-		typedef  std::map<const char*, Address *, StrCmp> Children;
+		typedef  std::map<const char*, shared_ptr<AddressImpl>, StrCmp> Children;
 		mutable  Children children; // only by 'add' method
 
 	protected:
-		virtual void add(Address *a, Entry *child);
+		virtual void add(shared_ptr<AddressImpl> a, Field child);
+
+		virtual AKey getAKey()       { return AKey( getSelfAs<Container>() );       }
 
 	public:
-		Dev(const char *name, uint64_t size= 0);
-		virtual ~Dev();
+		DevImpl(FKey k, uint64_t size= 0);
+		virtual ~DevImpl();
 
 		// template: each (device-specific) address must be instantiated
 		// by it's creator device and then added.
-		virtual void addAtAddr(Entry *child, unsigned nelms = 1)
+		virtual void addAtAddress(Field child, unsigned nelms)
 		{
-			Address *a = new Address(this, nelms);
-			add(a, child);
+		    AKey k = getAKey();
+			add( make_shared<AddressImpl>(k, nelms), child->getSelf() );
 		}
 
-		virtual Path findByName(const char *s) const;
+		virtual Path findByName(const char *s);
 
-		virtual const Child *getChild(const char *name) const;
+		virtual Child getChild(const char *name) const;
 	
-		virtual void accept(Visitor *v, bool depthFirst) const;
+		virtual void accept(IVisitor *v, RecursionOrder order, int recursionDepth);
 };
 
-class Visitor {
-public:
-	virtual void visit(const Entry * e)  { visit( (const Visitable *) e ); }
-	virtual void visit(const Dev   * d)  { visit( (const Entry*) d );      }
-	virtual void visit(const Visitable *){ throw InternalError("Unimplemented Visitor"); }
-	virtual ~Visitor() {}
-};
 
 #endif

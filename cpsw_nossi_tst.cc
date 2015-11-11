@@ -1,9 +1,10 @@
-#include <api_user.h>
-#include <cpsw_nossi_dev.h>
+#include <api_builder.h>
 #include <cpsw_mmio_dev.h>
-#include <cpsw_mem_dev.h>
+
 #include <string.h>
+#include <stdio.h>
 #include <inttypes.h>
+#include <getopt.h>
 
 #define VLEN 123
 #define ADCL 10
@@ -15,39 +16,59 @@
 #define PRIx32 "x"
 #endif
 
-class AXIV;
+class   IAXIVers;
+typedef shared_ptr<IAXIVers> AXIVers;
 
-class SWPWAddress : public MMIOAddress {
-	protected:
-		SWPWAddress(AXIV *owner, Entry *child, uint64_t offset, unsigned nelms, unsigned stride);
-		friend class AXIV;
-	public:
-		virtual uint64_t  read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
+class IAXIVers : public virtual IMMIODev {
+public:
+	virtual void addAtAddress(Field child, uint64_t offset, unsigned nelms = 1, uint64_t stride = STRIDE_AUTO) = 0;
+
+	static AXIVers create(const char *name);
 };
 
-class AXIV : public MMIODev {
+class SWPWAddressImpl : public MMIOAddressImpl {
+	public:
+		SWPWAddressImpl(AKey key, uint64_t offset, unsigned nelms, unsigned stride);
+		virtual uint64_t  read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
+};
+
+class AXIVersImpl : public MMIODevImpl, public virtual IAXIVers {
 
 public:
-	AXIV(const char *name) : MMIODev(name, 0x1000, 0, LE)
-	{
-		addAtSWPWAddr( new IntEntry("dnaValue", 64, false, 0), 0x08 );
-		addAtSWPWAddr( new IntEntry("fdSerial", 64, false, 0), 0x10 );
-		addAtAddr(     new IntEntry("counter",  32, false, 0), 0x24 );
-		addAtAddr(     new IntEntry("bldStamp",  8, false, 0), 0x800, VLEN  );
+	AXIVersImpl(FKey);
+
+	virtual void addAtAddress(Field child, uint64_t offset, unsigned nelms = 1, uint64_t stride = STRIDE_AUTO) {
+		AKey key = getAKey();
+		add( make_shared<SWPWAddressImpl>(key, offset, nelms, stride), child );
 	}
 
-	virtual void addAtSWPWAddr(Entry *child, uint64_t offset, unsigned nelms = 1, uint64_t stride = -1ULL) {
-		Address *a = new SWPWAddress(this, child, offset, nelms, stride);
-		add( a, child );
-	}
 };
 
-SWPWAddress::SWPWAddress(AXIV *owner, Entry *child, uint64_t offset, unsigned nelms, unsigned stride)
-:MMIOAddress(owner, child, offset, nelms, stride)
+AXIVers IAXIVers::create(const char *name)
+{
+shared_ptr<AXIVersImpl> v = EntryImpl::create<AXIVersImpl>(name);
+Field f;
+	f = IIntField::create("dnaValue", 64, false, 0);
+	v->AXIVersImpl::addAtAddress( f , 0x08 );
+	f = IIntField::create("fdSerial", 64, false, 0);
+	v->AXIVersImpl::addAtAddress( f, 0x10 );
+	f = IIntField::create("counter",  32, false, 0);
+	v->MMIODevImpl::addAtAddress( f, 0x24 );
+	f = IIntField::create("bldStamp",  8, false, 0);
+	v->MMIODevImpl::addAtAddress( f, 0x800, VLEN  );
+	return v;	
+}
+
+AXIVersImpl::AXIVersImpl(FKey key) : MMIODevImpl(key, 0x1000, LE)
 {
 }
 
-uint64_t  SWPWAddress::read(CompositePathIterator *node, Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+SWPWAddressImpl::SWPWAddressImpl(AKey key, uint64_t offset, unsigned nelms, unsigned stride)
+:MMIOAddressImpl(key, offset, nelms, stride)
+{
+}
+
+uint64_t  SWPWAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 int wlen = 4;
 int nw = sbytes / wlen;
@@ -57,7 +78,7 @@ uint8_t tmp[wlen];
 	if ( (sbytes % wlen) != 0 )
 		throw ConfigurationError("misaligned address");
 
-	MMIOAddress::read(node, cacheable, dst, dbytes ,off, sbytes);
+	MMIOAddressImpl::read(node, cacheable, dst, dbytes ,off, sbytes);
 
 	/* word-swap */
 	for ( iind=i=0; i<nw/2; i++, iind+=wlen ) {
@@ -70,40 +91,48 @@ uint8_t tmp[wlen];
 }
 
 int
-main()
+main(int argc, char **argv)
 {
-NoSsiDev  root("fpga","192.168.2.10");
-MMIODev   mmio("mmio",0x100000,0,UNKNOWN);
-AXIV      axiv("vers");
-MMIODev   sysm("sysm",0x1000,  0,LE);
-MemDev    rmem("rmem", 0x100000);
+NoSsiDev  root = INoSsiDev::create("fpga","192.168.2.10");
+MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
+AXIVers   axiv = IAXIVers::create("vers");
+MMIODev   sysm = IMMIODev::create ("sysm",0x1000, LE);
+MemDev    rmem = IMemDev::create  ("rmem", 0x100000);
+
+int       use_mem = 0;
+int       ch;
 
 uint8_t str[VLEN];
 int16_t adcv[ADCL];
 uint64_t u64;
 uint32_t u32;
 
-	rmem.addAtAddr( &mmio );
+	while ( (ch = getopt(argc, argv, "m")) > 0 ) {
+		switch (ch) {
+			case 'm': use_mem = 1; break;
+			default:
+				printf("Unknown option '%c'\n", ch);
+				exit(1);
+		}
+	}
 
+	rmem->addAtAddress( mmio );
+
+	uint8_t *buf = rmem->getBufp();
 	for (int i=16; i<24; i++ )
-		rmem.buf[i]=i-16;
+		buf[i]=i-16;
 
 
-	sysm.addAtAddr( new IntEntry("adcs", 16, true, 0), 0x400, ADCL, 4 );
+	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
 
-	mmio.addAtAddr( &axiv, 0x00000 );
+	mmio->addAtAddress( axiv, 0x00000 );
 
-	mmio.addAtAddr( &sysm, 0x10000 );
+	mmio->addAtAddress( sysm, 0x10000 );
 
-	root.addAtAddr( &mmio, 8192 );
+	root->addAtAddress( mmio, 8192 );
 
-#if 1
-	Path pre = IPath::create( &root );
-#else
 	// can use raw memory for testing instead of UDP
-	Path pre = IPath::create( &rmem );
-#endif
-
+	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );
 
 	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
 	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
@@ -131,4 +160,5 @@ uint32_t u32;
 	}
 
 // 8192
+	return 0;
 }

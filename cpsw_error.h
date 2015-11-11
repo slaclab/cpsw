@@ -3,15 +3,17 @@
 
 #include <string>
 
+using std::string;
+
 class CPSWError {
 	private:
-		std::string name;
+		string name;
 	public:
-		CPSWError(std::string &s):name(s) {}
+		CPSWError(const string &s):name(s) {}
 		CPSWError(const char *n):name(n)  {}
 		CPSWError(const Path p):name("FIXME") {}
 
-		virtual std::string &getInfo() { return name; }
+		virtual string &getInfo() { return name; }
 };
 
 class DuplicateNameError : public CPSWError {
@@ -38,7 +40,8 @@ class InvalidPathError : public CPSWError {
 
 class InvalidIdentError: public CPSWError {
 	public:
-		InvalidIdentError(const char *n) : CPSWError(n) {}
+		InvalidIdentError(const char   *n) : CPSWError(n) {}
+		InvalidIdentError(const string &n) : CPSWError(n) {}
 };
 
 class InvalidArgError: public CPSWError {
