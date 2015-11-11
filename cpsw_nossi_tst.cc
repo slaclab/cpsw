@@ -156,7 +156,7 @@ uint32_t u32;
 	adcs->getVal( (uint16_t*)adcv, sizeof(adcv)/sizeof(adcv[0]) );
 	printf("\n\nADC Values:\n");
 	for ( int i=0; i<ADCL; i++ ) {
-		printf("  %hd\n", adcv[i]);
+		printf("  %6hd\n", adcv[i]);
 	}
 
 // 8192
