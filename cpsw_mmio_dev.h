@@ -28,6 +28,7 @@ class MMIOAddressImpl : public AddressImpl {
 
 		virtual void dump(FILE *f) const;
 		virtual uint64_t  read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
+		virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 		virtual void attach(Entry child);
 };
 

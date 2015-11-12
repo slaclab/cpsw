@@ -128,11 +128,11 @@ int      got;
 
 	unsigned attempt = 0;
 	do {
-		if ( (int)sizeof(xbuf[0])*put != write( sd, xbuf, sizeof(xbuf[0])*put ) ) {
+		if ( (int)sizeof(xbuf[0])*put != ::write( sd, xbuf, sizeof(xbuf[0])*put ) ) {
 			throw InternalError("FIXME -- need I/O Error here");
 		}
 
-		if ( (got = recvmsg( sd, &mh, 0 )) > 0 ) {
+		if ( (got = ::recvmsg( sd, &mh, 0 )) > 0 ) {
 #if 0
 			printf("got %i bytes, sbytes %i, nw %i\n", got, sbytes, nw);
 				printf("got %i bytes\n", got);
@@ -154,6 +154,13 @@ int      got;
 	} while ( ++attempt <= retryCnt );
 
 	throw InternalError("FIXME -- need I/O Error here");
+}
+
+uint64_t UdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+{
+#warning "UDP write not implemented"
+	throw InternalError("FIXME -- not implemented yet");
+	return dbytes;
 }
 
 void NoSsiDevImpl::addAtAddress(Field child, unsigned dport, unsigned timeoutUs, unsigned retryCnt)

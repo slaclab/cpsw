@@ -30,7 +30,7 @@ uint64_t MMIOAddressImpl::read(CompositePathIterator *node, IField::Cacheable ca
 int        rval      = 0, to;
 uintptr_t  dstStride = node->getNelmsRight() * dbytes;
 
-	if ( sbytes == getStride()  && dbytes == sbytes && getEntry()->getCacheable() ) {
+	if ( sbytes == getStride()  && dbytes == sbytes && getEntry()->getCacheable() >= IField::WT_CACHEABLE ) {
 		// if strides == size then we can try to read all in one chunk
 		sbytes *= (*node)->idxt - (*node)->idxf + 1;
 		dbytes  = sbytes;
@@ -43,6 +43,29 @@ uintptr_t  dstStride = node->getNelmsRight() * dbytes;
 		rval += AddressImpl::read(&it, cacheable, dst, dbytes, off + this->offset + stride *i, sbytes);
 
 		dst  += dstStride;
+	}
+
+	return rval;
+}
+
+uint64_t MMIOAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+{
+int        rval      = 0, to;
+uintptr_t  srcStride = node->getNelmsRight() * sbytes;
+
+	if ( dbytes == getStride()  && sbytes == dbytes && getEntry()->getCacheable() >= IField::WT_CACHEABLE ) {
+		// if strides == size then we can try to read all in one chunk
+		dbytes *= (*node)->idxt - (*node)->idxf + 1;
+		sbytes  = dbytes;
+		to      = (*node)->idxf;
+	} else {
+		to      = (*node)->idxt;
+	}
+	for ( int i = (*node)->idxf; i <= to; i++ ) {
+		CompositePathIterator it = *node;
+		rval += AddressImpl::write(&it, cacheable, src, sbytes, off + this->offset + stride *i, dbytes, msk1, mskn);
+
+		src  += srcStride;
 	}
 
 	return rval;

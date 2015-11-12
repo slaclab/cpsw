@@ -47,7 +47,22 @@ uint64_t  AddressImpl::read(CompositePathIterator *node, IField::Cacheable cache
 		c = (*node)->c_p;
 		return c->read(node, cacheable, dst, dbytes, off, sbytes);
 	} else {
-		throw ConfigurationError("Configuration Error: -- unable to route I/O");
+		throw ConfigurationError("Configuration Error: -- unable to route I/O for read");
+		return 0;
+	}
+}
+
+uint64_t AddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+{
+	Child c;
+
+	// chain through parent
+	++(*node);
+	if ( ! node->atEnd() ) {
+		c = (*node)->c_p;
+		return c->write(node, cacheable, src, sbytes, off, dbytes, msk1, mskn);
+	} else {
+		throw ConfigurationError("Configuration Error: -- unable to route I/O for write");
 		return 0;
 	}
 }
@@ -164,12 +179,33 @@ Dev       meAsDev( getSelfAs<Container>() );
 	}
 }
 
-IntEntryImpl::IntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit, int wordSwap)
-: EntryImpl(k, (sizeBits + lsBit + 7)/8), is_signed(is_signed), ls_bit(lsBit), size_bits(sizeBits), wordSwap(wordSwap)
+static uint64_t b2B(uint64_t bits)
 {
+	return (bits + 7)/8;
 }
 
-IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, int wordSwap)
+IntEntryImpl::IntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit, unsigned wordSwap)
+: EntryImpl(
+		k,
+		wordSwap > 0 && wordSwap != b2B(sizeBits) ? b2B(sizeBits) + (lsBit ? 1 : 0) : b2B(sizeBits + lsBit)
+	),
+	is_signed(is_signed),
+	ls_bit(lsBit), size_bits(sizeBits),
+	wordSwap(wordSwap)
+{
+unsigned byteSize = b2B(sizeBits);
+
+	if ( wordSwap == byteSize )
+		wordSwap = this->wordSwap = 0;
+
+	if ( wordSwap > 0 ) {
+		if ( ( byteSize % wordSwap ) != 0 ) {
+			throw InvalidArgError("wordSwap does not divide size");
+		}
+	}
+}
+
+IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, unsigned wordSwap)
 {
 	return EntryImpl::create<IntEntryImpl>(name, sizeBits, is_signed, lsBit, wordSwap);
 }

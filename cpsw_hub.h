@@ -142,14 +142,14 @@ private:
 	bool     is_signed;
 	int      ls_bit;
 	uint64_t size_bits;
-	int      wordSwap;
+	unsigned wordSwap;
 public:
-	IntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit = 0, int wordSwap = 0);
+	IntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit = 0, unsigned wordSwap = 0);
 
 	virtual bool     isSigned()    const { return is_signed; }
 	virtual int      getLsBit()    const { return ls_bit;    }
 	virtual uint64_t getSizeBits() const { return size_bits; }
-	virtual int      getWordSwap() const { return wordSwap;  }
+	virtual unsigned getWordSwap() const { return wordSwap;  }
 };
 
 class IChild {
@@ -159,7 +159,8 @@ class IChild {
 		virtual       Entry     getEntry()     const = 0;
 		virtual       unsigned  getNelms()     const = 0;
 		virtual ByteOrder   getByteOrder()     const = 0;
-		virtual uint64_t       read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
+		virtual uint64_t        read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
+		virtual uint64_t        write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const = 0;
 		virtual ~IChild() {}
 };
 

@@ -29,6 +29,7 @@ public:
 	virtual bool     isSigned()    const { return ie->isSigned();    }
 	virtual int      getLsBit()    const { return ie->getLsBit();    }
 	virtual uint64_t getSizeBits() const { return ie->getSizeBits(); }
+	virtual unsigned getWordSwap() const { return ie->getWordSwap(); }
 };
 
 class ScalVal_ROAdapt : public IScalVal_RO, public IIntEntryAdapt {
@@ -84,7 +85,8 @@ unsigned ScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 CompositePathIterator it( & p );
 Child            cl = it->c_p;
 uint64_t         off = 0;
-unsigned         sbytes   = IEntryAdapt::getSize();
+unsigned         sbytes   = IEntryAdapt::getSize(); // byte-size including lsb shift
+unsigned         nbytes   = (getSizeBits() + 7)/8;  // byte-size w/o lsb shift
 unsigned         dbytes   = elsz;
 unsigned         ibuf_nchars;
 int              lsb      = getLsBit();
@@ -118,14 +120,19 @@ ByteOrder        host     = hostByteOrder();
 	bool sign_extend = getSizeBits() < 8*dbytes;
 	bool truncate    = getSizeBits() > 8*dbytes;
 
+	unsigned wlen    = getWordSwap();
+
 	if (   cl->getByteOrder() != host
 		|| lsb                != 0
 	    || sign_extend
-		|| truncate ) {
+		|| truncate
+		|| wlen               >  0 ) {
 
 		// transformation necessary
 
+		int nwrds   = wlen ? nbytes/wlen : 0;
 		int ioff = (BE == host ? sbytes - dbytes : 0 );
+		int noff = (BE == host ? sbytes - nbytes : 0 );
 		int ooff;
 		int iidx, oidx, n, iinc, oinc;
 		if ( ioff < 0 ) {
@@ -155,6 +162,7 @@ ByteOrder        host     = hostByteOrder();
 			oinc = -dbytes;
 		}
 		for ( n = nelms-1; n >= 0; n--, oidx += oinc, iidx += iinc ) {
+
 			if ( cl->getByteOrder() != host ) {
 				for ( unsigned j = 0; j<sbytes/2; j++ ) {
 					uint8_t tmp = ibufp[iidx + j];
@@ -167,38 +175,44 @@ ByteOrder        host     = hostByteOrder();
                 uint16_t tmp16;
 				int      j;
 				if ( LE == host ) {
-					if ( dbytes >= sbytes ) {
-						j     = sbytes - 1;
-						tmp16 = 0;
-					} else {
-						j     = dbytes - 1;
-						tmp16 = ibufp[iidx + j + 1];
-					}
-					while ( j >= 0 ) {
+					tmp16 = 0;
+					for ( j = sbytes - 1; j >= 0; j-- ) {
 						tmp16 = (tmp16<<8) | ibufp[iidx + j];
 //printf("j %i, oidx %i, iidx %i, tmp16 %04x\n", j, oidx, iidx, tmp16);
-						obufp[oidx+j] = (tmp16 >> lsb);
-						j--;
+						ibufp[iidx+j] = (tmp16 >> lsb);
 					}
 				} else {
-					if ( dbytes >= sbytes ) {
-						tmp16 = 0;
-					} else {
-						tmp16 = ibufp[iidx + ioff - 1];
-					}
-					for (  j = 0; j < (int)(dbytes >= sbytes ? sbytes : dbytes); j++ ) {
-						tmp16 = (tmp16<<8) | ibufp[iidx + ioff + j];
+					tmp16 = 0;
+					for (  j = 0; j < (int)sbytes; j++ ) {
+						tmp16 = (tmp16<<8) | ibufp[iidx + j];
 //printf("j %i, oidx %i, iidx %i, tmp16 %04x\n", j, oidx, iidx, tmp16);
-						obufp[oidx+ooff+j] = (tmp16 >> lsb);
+						ibufp[iidx + j] = (tmp16 >> lsb);
 					}
 				}
-			} else {
-				// truncate with lsb == 0
+			}
+
+			if ( wlen  > 0 ) {
+				int j, jinc;
+//printf("pre-wswap (nbytes %i, iidx %i): ", nbytes, iidx);
+//for(j=0;j<sbytes;j++)
+//	printf("%02x ", ibufp[iidx+j]);
+//printf("\n");
+				for ( j=jinc=0; j<nwrds/2; j++, jinc+=wlen  ) {
+					uint8_t tmp[wlen];
+					memcpy(tmp,                                        ibufp + iidx + noff + jinc, wlen);
+					memcpy(ibufp + iidx + noff + jinc, ibufp + iidx + noff + nbytes - wlen - jinc, wlen);
+					memcpy(ibufp + iidx + noff + nbytes - wlen - jinc,                        tmp, wlen);
+				}
+//printf("pst-wswap: ");
+//for(j=0;j<sbytes;j++)
+//	printf("%02x ", ibufp[iidx+j]);
+//printf("\n");
+			}
+
 //printf("TRUNC oidx %i, ooff %i,  iidx %i, ioff %i, dbytes %i, sbytes %i\n", oidx, ooff, iidx, ioff, dbytes, sbytes);
 //for ( int j=0; j <sbytes; j++ ) printf("ibuf[%i] 0x%02x ", j, ibufp[iidx+ioff+j]);  printf("\n");
-				memmove( obufp + oidx + ooff, ibufp + iidx + ioff, dbytes >= sbytes ? sbytes : dbytes );
+			memmove( obufp + oidx + ooff, ibufp + iidx + ioff, dbytes >= sbytes ? sbytes : dbytes );
 //for ( int j=0; j <sbytes; j++ ) printf("obuf[%i] 0x%02x ", j, obufp[oidx+ooff+j]);  printf("\n");
-			}
 
 			// sign-extend
 			if ( sign_extend ) {

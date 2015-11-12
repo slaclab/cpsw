@@ -36,6 +36,42 @@ shared_ptr<MemDevImpl> owner( getOwner()->getSelfAs< shared_ptr<MemDevImpl> >() 
 	return dbytes;
 }
 
+uint64_t MemDevAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const 
+{
+shared_ptr<MemDevImpl> owner( getOwner()->getSelfAs< shared_ptr<MemDevImpl> >() );
+uint8_t *buf = owner->getBufp();
+unsigned put = dbytes;
+
+	if ( off + dbytes > owner->getSize() ) {
+		throw ConfigurationError("MemDevAddress: write out of range");
+	}
+
+	if ( (msk1 || mskn) && put == 1 ) {
+		msk1 |= mskn;
+		mskn  = 0;
+	}
+
+	if ( msk1 ) {
+		/* merge 1st byte */
+		buf[off] = ( (buf[off]) & msk1 ) | ( src[0] & ~msk1 ) ;
+		off++;
+		put--;
+		src++;
+	}
+
+	if ( mskn ) {
+		put--;
+	}
+	if ( put ) {
+		memcpy(owner->getBufp() + off, src, put);
+	}
+	if ( mskn ) {
+		/* merge last byte */
+		buf[off+put] = (buf[off+put] & mskn ) | ( src[put] & ~mskn );
+	}
+	return dbytes;
+}
+
 MemDev IMemDev::create(const char *name, uint64_t size)
 {
 	return EntryImpl::create<MemDevImpl>(name, size);
