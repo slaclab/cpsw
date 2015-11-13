@@ -19,6 +19,10 @@ private:
 public:
 	PathImpl();
 	PathImpl(Hub);
+#define HAVE_CC
+#ifdef HAVE_CC
+	PathImpl(const PathImpl&);
+#endif
 
 	virtual void clear();
 	virtual void clear(Hub);
@@ -71,10 +75,7 @@ public:
 		return originDev;
 	}
 
-	virtual ~PathImpl()
-	{
-		// printf("deleting %s\n", toString().c_str());
-	}
+	virtual ~PathImpl();
 };
 
 PathEntry::PathEntry(const Child a, int idxf, int idxt) : c_p(a), idxf(idxf), idxt(idxt)
@@ -108,13 +109,32 @@ PathImpl::PathImpl() : std::list<PathEntry>(), originDev(theRootDev)
 	// maintain an empty marker element so that the back iterator
 	// can easily detect the end of the list
 	push_back( PathEntry(NULLCHILD) );
+#ifdef HAVE_CC
+	cpsw_obj_count++;
+#endif
 }
+
+PathImpl::~PathImpl()
+{
+#ifdef HAVE_CC
+	cpsw_obj_count--;
+#endif
+}
+
+#ifdef HAVE_CC
+PathImpl::PathImpl(const PathImpl &in)
+: std::list<PathEntry>(in), originDev(in.originDev)
+{
+	cpsw_obj_count++;
+}
+#endif
 
 PathImpl::PathImpl(Hub h) : std::list<PathEntry>(), originDev(h ? h : theRootDev)
 {
 	// maintain an empty marker element so that the back iterator
 	// can easily detect the end of the list
 	push_back( PathEntry(NULLCHILD) );
+	cpsw_obj_count++;
 }
 
 

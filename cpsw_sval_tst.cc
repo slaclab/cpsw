@@ -136,6 +136,8 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 int
 main()
 {
+
+{
 MemDev  mm      = IMemDev::create("mem",2048);
 MMIODev mmio    = IMMIODev::create("mmio",2048, UNKNOWN);
 MMIODev mmio_le = IMMIODev::create("le", 1024, LE);
@@ -236,7 +238,13 @@ printf("%s\n", e->getName());
 		printf("%02x ", *(mm->getBufp()+i));
 	printf("\n");
 
-	printf("CPSW_SVAL test PASSED\n");
+}
 
+	if ( cpsw_obj_count != 1 ) {
+		// the default 'root' device node is still alive
+		printf("CPSW object count %i (expected 1)\n", cpsw_obj_count);
+	}
+
+	printf("CPSW_SVAL test PASSED\n");
 	return 0;
 }

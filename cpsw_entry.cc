@@ -2,6 +2,8 @@
 #include <cpsw_hub.h>
 #include <ctype.h>
 
+int cpsw_obj_count = 0;
+
 EntryImpl::EntryImpl(FKey k, uint64_t size)
 : name( k.getName() ),
   size( size),
@@ -15,6 +17,12 @@ const char *cptr;
                      && '-' != *cptr  )
 					throw InvalidIdentError(name);
 	}
+	cpsw_obj_count++;
+}
+
+EntryImpl::~EntryImpl()
+{
+	cpsw_obj_count--;
 }
 
 void EntryImpl::setCacheable(Cacheable cacheable)

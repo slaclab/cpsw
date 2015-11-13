@@ -34,6 +34,9 @@ public:
 	friend class EntryImpl;
 };
 
+// debugging
+extern int cpsw_obj_count;
+
 class EntryImpl: public virtual IField {
 	private:
 		const std::string	name;
