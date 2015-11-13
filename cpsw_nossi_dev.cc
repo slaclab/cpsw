@@ -141,7 +141,7 @@ int      nw;
 	unsigned attempt = 0;
 	do {
 		if ( (int)sizeof(xbuf[0])*put != ::write( sd, xbuf, sizeof(xbuf[0])*put ) ) {
-			throw InternalError("FIXME -- need I/O Error here");
+			throw IOError("Unable to send (complete) message");
 		}
 
 		if ( (got = ::recvmsg( sd, &mh, 0 )) > 0 ) {
@@ -155,7 +155,7 @@ int      nw;
 					printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
 #endif
 			if ( got != (int)sizeof(bufh[0])*(nw + 3) ) {
-				throw InternalError("FIXME -- need I/O Error here");
+				throw IOError("Received message truncated");
 			}
 			if ( BE == hostByteOrder() ) {
 				swp( (uint8_t*)&status, sizeof(status) );
@@ -165,7 +165,7 @@ int      nw;
 		}
 	} while ( ++attempt <= retryCnt );
 
-	throw InternalError("FIXME -- need I/O Error here");
+	throw IOError("No response -- timeout");
 }
 
 uint64_t UdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const

@@ -76,4 +76,9 @@ class InterfaceNotImplementedError: public CPSWError {
 		InterfaceNotImplementedError( Path p ) : CPSWError( p ) {}
 };
 
+class IOError: public CPSWError {
+	public:
+		IOError( const char *s ) : CPSWError( s ) {}
+};
+
 #endif
