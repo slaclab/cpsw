@@ -36,6 +36,7 @@ ByteOrder hostByteOrder();
 
 class IField : public virtual IEntry, public virtual IVisitable {
 public:
+	// the enum is ordered in increasing 'loosenes' of the cacheable attribute
 	typedef enum Cacheable { UNKNOWN_CACHEABLE = 0, NOT_CACHEABLE, WT_CACHEABLE, WB_CACHEABLE } Cacheable;
 public:
 	virtual Cacheable getCacheable()           const = 0;
