@@ -88,8 +88,7 @@ template <typename EIMPL, typename IMPL, typename IFAC> static IFAC check_interf
 {
 shared_ptr<const EIMPL> e = boost::dynamic_pointer_cast<const EIMPL, EntryImpl>( p->tail()->getEntry() );
 	if ( e ) {
-		IMPL *a_p = new IMPL(p, e);
-		return IFAC( a_p );
+		return IFAC( make_shared<IMPL>(p, e) );
 	}
 	throw InterfaceNotImplementedError( p );
 }

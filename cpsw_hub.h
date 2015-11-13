@@ -94,7 +94,7 @@ class EntryImpl: public virtual IField {
 			static shared_ptr<T>
 			create(const char *name)
 			{
-				shared_ptr<T> self( new T( FKey(name) ) );
+				shared_ptr<T> self( make_shared<T>( FKey(name) ) );
 				self->setSelf(self);
 				return self;
 			}
@@ -102,7 +102,7 @@ class EntryImpl: public virtual IField {
 			static shared_ptr<T>
 			create(const char *name, A1 a1)
 			{
-				shared_ptr<T> self( new T( FKey(name), a1 ) );
+				shared_ptr<T> self( make_shared<T>( FKey(name), a1 ) );
 				self->setSelf(self);
 				return self;
 			}
@@ -110,7 +110,7 @@ class EntryImpl: public virtual IField {
 			static shared_ptr<T>
 			create(const char *name, A1 a1, A2 a2)
 			{
-				shared_ptr<T> self( new T( FKey(name), a1, a2 ) );
+				shared_ptr<T> self( make_shared<T>( FKey(name), a1, a2 ) );
 				self->setSelf(self);
 				return self;
 			}
@@ -118,7 +118,7 @@ class EntryImpl: public virtual IField {
 			static shared_ptr<T>
 			create(const char *name, A1 a1, A2 a2, A3 a3)
 			{
-				shared_ptr<T> self( new T( FKey(name), a1, a2, a3 ) );
+				shared_ptr<T> self( make_shared<T>( FKey(name), a1, a2, a3 ) );
 				self->setSelf(self);
 				return self;
 			}
@@ -126,7 +126,7 @@ class EntryImpl: public virtual IField {
 			static shared_ptr<T>
 			create(const char *name, A1 a1, A2 a2, A3 a3, A4 a4)
 			{
-				shared_ptr<T> self( new T( FKey(name), a1, a2, a3, a4 ) );
+				shared_ptr<T> self( make_shared<T>( FKey(name), a1, a2, a3, a4 ) );
 				self->setSelf(self);
 				return self;
 			}
@@ -134,7 +134,7 @@ class EntryImpl: public virtual IField {
 			static shared_ptr<T>
 			create(const char *name, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
 			{
-				shared_ptr<T> self( new T( FKey(name), a1, a2, a3, a4, a5 ) );
+				shared_ptr<T> self( make_shared<T>( FKey(name), a1, a2, a3, a4, a5 ) );
 				self->setSelf(self);
 				return self;
 			}

@@ -219,12 +219,12 @@ std::string rval;
 
 Path IPath::create()
 {
-	return Path( new PathImpl() );
+	return Path( make_shared<PathImpl>() );
 }
 
 Path IPath::create(Hub h)
 {
-	return Path( new PathImpl( h ) );
+	return Path( make_shared<PathImpl>( h ) );
 }
 
 
@@ -245,7 +245,8 @@ Path PathImpl::findByName(const char *s) const
 {
 Child found;
 Hub h;
-PathImpl    *p = new PathImpl( *this );
+Path         rval = make_shared<PathImpl>( *this );
+PathImpl    *p    = toPathImpl( rval );
 const char  *sl;
 
 #ifdef PATH_DEBUG
@@ -334,7 +335,7 @@ cout<<"looking for: " << key << " in: " << h->getName() << "\n";
 
 	} while ( (s = sl) != NULL );
 
-	return Path(p);
+	return rval;
 }
 
 Hub PathImpl::parent() const
@@ -372,12 +373,11 @@ static void append2(PathImpl *h, PathImpl *t)
 
 Path PathImpl::concat(Path p) const
 {
-PathImpl *h = new PathImpl( *this );
+Path rval = make_shared<PathImpl>( *this );
+PathImpl *h = toPathImpl(rval);
 PathImpl *t = toPathImpl(p);
 
 	append2(h, t);
-
-Path rval = Path( h );
 
 	return rval;
 }
