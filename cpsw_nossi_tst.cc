@@ -94,9 +94,12 @@ uint8_t tmp[wlen];
 	return sbytes;
 }
 
+struct TestFailed {};
+
 int
 main(int argc, char **argv)
 {
+int rval = 0;
 const char *ip_addr = "192.168.2.10";
 
 	for ( int opt; (opt = getopt(argc, argv, "a:")) > 0; ) {
@@ -183,6 +186,14 @@ uint16_t u16;
 	bits->setVal( &u16, 1 );
 	scratchPad->getVal( &u32, 1 );
 	printf("ScratchPad: 0x%"PRIx32"\n", u32);
+
+	if ( u32 == 0xfc06765f ) {
+		printf("Readback of merged bits (expected 0xfc06765f) PASSED\n");
+	} else {
+		printf("Readback of merged bits (expected 0xfc06765f) FAILED\n");
+		throw TestFailed();	
+		rval = 1;
+	}
 
 // 8192
 	return 0;
