@@ -56,6 +56,10 @@ Field f;
 	v->MMIODevImpl::addAtAddress( f, 0x24 );
 	f = IIntField::create("bldStamp",  8, false, 0);
 	v->MMIODevImpl::addAtAddress( f, 0x800, VLEN  );
+	f = IIntField::create("scratchPad",32,true,  0);
+	v->MMIODevImpl::addAtAddress( f,   4 );
+	f = IIntField::create("bits",22,true, 4);
+	v->MMIODevImpl::addAtAddress( f,   4 );
 	return v;	
 }
 
@@ -93,7 +97,17 @@ uint8_t tmp[wlen];
 int
 main(int argc, char **argv)
 {
-NoSsiDev  root = INoSsiDev::create("fpga","192.168.2.10");
+const char *ip_addr = "192.168.2.10";
+
+	for ( int opt; (opt = getopt(argc, argv, "a:")) > 0; ) {
+		switch ( opt ) {
+			case 'a': ip_addr = optarg; break;
+			default:
+				fprintf(stderr,"Unknown option '%c'\n", opt);
+		}
+	}
+
+NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
 MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
 AXIVers   axiv = IAXIVers::create("vers");
 MMIODev   sysm = IMMIODev::create ("sysm",0x1000, LE);
@@ -106,6 +120,7 @@ uint8_t str[VLEN];
 int16_t adcv[ADCL];
 uint64_t u64;
 uint32_t u32;
+uint16_t u16;
 
 	while ( (ch = getopt(argc, argv, "m")) > 0 ) {
 		switch (ch) {
@@ -138,8 +153,11 @@ uint32_t u32;
 	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
 	ScalVal_RO dnaValue = IScalVal_RO::create( pre->findByName("mmio/vers/dnaValue") );
 	ScalVal_RO counter  = IScalVal_RO::create( pre->findByName("mmio/vers/counter" ) );
+	ScalVal  scratchPad = IScalVal::create   ( pre->findByName("mmio/vers/scratchPad") );
+	ScalVal        bits = IScalVal::create   ( pre->findByName("mmio/vers/bits") );
 
 	ScalVal_RO adcs = IScalVal_RO::create( pre->findByName("mmio/sysm/adcs") );
+
 
 	bldStamp->getVal( str, sizeof(str)/sizeof(str[0]) );
 
@@ -158,6 +176,13 @@ uint32_t u32;
 	for ( int i=0; i<ADCL; i++ ) {
 		printf("  %6hd\n", adcv[i]);
 	}
+
+	u16=0x6765;
+	u32=0xffffffff;
+	scratchPad->setVal( &u32, 1 );
+	bits->setVal( &u16, 1 );
+	scratchPad->getVal( &u32, 1 );
+	printf("ScratchPad: 0x%"PRIx32"\n", u32);
 
 // 8192
 	return 0;

@@ -143,7 +143,7 @@ MMIODev mmio_be = IMMIODev::create("be", 1024, BE);
 Path p_be, p_le;
 
 int  bits[] = { 4, 13, 16, 22, 32, 44, 64 };
-int  shft[] = { 0, 3, 7 };
+int  shft[] = { 0, 3, 4, 7 };
 bool sign[] = { true, false };
 
 unsigned bits_idx, shft_idx, sign_idx;
@@ -155,7 +155,6 @@ unsigned bits_idx, shft_idx, sign_idx;
 	p_be = mm->findByName("mmio/be");
 	p_le = mm->findByName("mmio/le");
 
-#if 1
 	try {
 
 		for ( bits_idx = 0; bits_idx < sizeof(bits)/sizeof(bits[0]); bits_idx++ ) {
@@ -182,9 +181,10 @@ unsigned bits_idx, shft_idx, sign_idx;
 
 						mmio_le->addAtAddress( e, 0, NELMS, STRIDE );
 						mmio_be->addAtAddress( e, 0, NELMS, STRIDE );
+printf("%s\n", e->getName());
 
-						ScalVal_RO v_le = IScalVal_RO::create( p_le->findByName( nm ) );
-						ScalVal_RO v_be = IScalVal_RO::create( p_be->findByName( nm ) );
+						ScalVal v_le = IScalVal::create( p_le->findByName( nm ) );
+						ScalVal v_be = IScalVal::create( p_be->findByName( nm ) );
 
 						try {
 							tst<uint8_t>( mm, v_le, LE, shft[shft_idx], wswap);
@@ -215,84 +215,26 @@ unsigned bits_idx, shft_idx, sign_idx;
 		throw ;
 	}
 
-#else
-int got, i, bo;
-ByteOrder native = hostByteOrder();
-
-uint16_t ui16[NELMS], uo16[NELMS];
-IntEntry e12_2_s("i12-2-s", BITS16, true,  SHFT16);
-IntEntry e12_2_u("i12-2-u", BITS16, false, SHFT16);
-IntEntry e12_0_s("i12-0-s", BITS16, true,  0);
-IntEntry e12_0_u("i12-0-u", BITS16, false, 0);
+	uint64_t  vl = 0x0001020304050607UL;
+	uint16_t  vs = 0x8123;
 
 
-	mmio_le.addAtAddr( &e12_2_s, 0, NELMS, STRIDE );
-	mmio_le.addAtAddr( &e12_2_u, 0, NELMS, STRIDE );
-	mmio_be.addAtAddr( &e12_2_s, 0, NELMS, STRIDE );
-	mmio_be.addAtAddr( &e12_2_u, 0, NELMS, STRIDE );
+	ScalVal v_le = IScalVal::create( p_le->findByName( "i32-4-s-2[0]" ) );
+	ScalVal v_be = IScalVal::create( p_be->findByName( "i32-4-s-2[0]" ) );
 
-	mmio_le.addAtAddr( &e12_0_s, 0, NELMS, STRIDE );
-	mmio_le.addAtAddr( &e12_0_u, 0, NELMS, STRIDE );
-	mmio_be.addAtAddr( &e12_0_s, 0, NELMS, STRIDE );
-	mmio_be.addAtAddr( &e12_0_u, 0, NELMS, STRIDE );
+	for (int i=0; i<9; i++ ) *(mm->getBufp()+i)=0xaa;
+	v_le->setVal( &vs, 1 );
 
-	try {
+	for (int i=0; i<9; i++ )
+		printf("%02x ", *(mm->getBufp()+i));
+	printf("\n***\n");
 
-		ScalVal_RO v_le_12_2_s = IScalVal_RO::create( mm.findByName("mmio/le/i12-2-s") );
-		ScalVal_RO v_le_12_2_u = IScalVal_RO::create( mm.findByName("mmio/le/i12-2-u") );
-		ScalVal_RO v_be_12_2_s = IScalVal_RO::create( mm.findByName("mmio/be/i12-2-s") );
-		ScalVal_RO v_be_12_2_u = IScalVal_RO::create( mm.findByName("mmio/be/i12-2-u") );
+	for (int i=0; i<9; i++ ) *(mm->getBufp()+i)=0xaa;
+	v_be->setVal( &vs, 1 );
 
-		ScalVal_RO v_le_12_0_s = IScalVal_RO::create( mm.findByName("mmio/le/i12-0-s") );
-		ScalVal_RO v_le_12_0_u = IScalVal_RO::create( mm.findByName("mmio/le/i12-0-u") );
-		ScalVal_RO v_be_12_0_s = IScalVal_RO::create( mm.findByName("mmio/be/i12-0-s") );
-		ScalVal_RO v_be_12_0_u = IScalVal_RO::create( mm.findByName("mmio/be/i12-0-u") );
-
-		tst<uint16_t>( &mm, v_le_12_2_s, LE, SHFT16 );
-		tst<uint16_t>( &mm, v_le_12_2_u, LE, SHFT16 );
-		tst<uint16_t>( &mm, v_be_12_2_s, BE, SHFT16 );
-		tst<uint16_t>( &mm, v_be_12_2_u, BE, SHFT16 );
-
-		tst<uint32_t>( &mm, v_le_12_2_s, LE, SHFT16 );
-		tst<uint32_t>( &mm, v_le_12_2_u, LE, SHFT16 );
-		tst<uint32_t>( &mm, v_be_12_2_s, BE, SHFT16 );
-		tst<uint32_t>( &mm, v_be_12_2_u, BE, SHFT16 );
-
-		tst<uint64_t>( &mm, v_le_12_2_s, LE, SHFT16 );
-		tst<uint64_t>( &mm, v_le_12_2_u, LE, SHFT16 );
-		tst<uint64_t>( &mm, v_be_12_2_s, BE, SHFT16 );
-		tst<uint64_t>( &mm, v_be_12_2_u, BE, SHFT16 );
-
-		tst<uint8_t>( &mm, v_le_12_2_s, LE, SHFT16 );
-		tst<uint8_t>( &mm, v_le_12_2_u, LE, SHFT16 );
-		tst<uint8_t>( &mm, v_be_12_2_s, BE, SHFT16 );
-		tst<uint8_t>( &mm, v_be_12_2_u, BE, SHFT16 );
-
-		tst<uint16_t>( &mm, v_le_12_0_s, LE, 0 );
-		tst<uint16_t>( &mm, v_le_12_0_u, LE, 0 );
-		tst<uint16_t>( &mm, v_be_12_0_s, BE, 0 );
-		tst<uint16_t>( &mm, v_be_12_0_u, BE, 0 );
-
-		tst<uint32_t>( &mm, v_le_12_0_s, LE, 0 );
-		tst<uint32_t>( &mm, v_le_12_0_u, LE, 0 );
-		tst<uint32_t>( &mm, v_be_12_0_s, BE, 0 );
-		tst<uint32_t>( &mm, v_be_12_0_u, BE, 0 );
-
-		tst<uint64_t>( &mm, v_le_12_0_s, LE, 0 );
-		tst<uint64_t>( &mm, v_le_12_0_u, LE, 0 );
-		tst<uint64_t>( &mm, v_be_12_0_s, BE, 0 );
-		tst<uint64_t>( &mm, v_be_12_0_u, BE, 0 );
-
-		tst<uint8_t>( &mm, v_le_12_0_s, LE, 0 );
-		tst<uint8_t>( &mm, v_le_12_0_u, LE, 0 );
-		tst<uint8_t>( &mm, v_be_12_0_s, BE, 0 );
-		tst<uint8_t>( &mm, v_be_12_0_u, BE, 0 );
-
-	} catch ( CPSWError &e ) {
-		printf("Error: %s\n", e.getInfo().c_str());
-		throw ;
-	}
-#endif
+	for (int i=0; i<9; i++ )
+		printf("%02x ", *(mm->getBufp()+i));
+	printf("\n");
 
 	printf("CPSW_SVAL test PASSED\n");
 

@@ -14,12 +14,14 @@ class IHub;
 class IChild;
 class IPath;
 class IScalVal_RO;
+class IScalVal_WO;
 class IScalVal;
 class CompositePathIterator;
 typedef shared_ptr<const IHub>   Hub;
 typedef shared_ptr<const IChild> Child;
 typedef shared_ptr<IPath>        Path;
 typedef shared_ptr<IScalVal_RO>  ScalVal_RO;
+typedef shared_ptr<IScalVal_WO>  ScalVal_WO;
 typedef shared_ptr<IScalVal>     ScalVal;
 class EventListener;
 
@@ -82,38 +84,49 @@ public:
 		virtual Child      getChild(const char *name)     const = 0;
 };
 
+// Base interface to integral values
+class IScalVal_Base : public virtual IEntry {
+public:
+	virtual unsigned getNelms()               = 0; // if array
+	virtual uint64_t getSizeBits()      const = 0; // size in bits
+	virtual bool     isSigned()         const = 0;
+	virtual ~IScalVal_Base () {}
+};
+
 // Read-only interface to an integral value.
 // Any size (1..64 bits) is represented by
 // a (sign-extended) uint.
 
-class IScalVal_RO : public virtual IEntry {
+class IScalVal_RO : public virtual IScalVal_Base {
 public:
-	virtual int      getNelms()                               = 0; // if array
-	virtual uint64_t getSizeBits()      const                 = 0; // size in bits
 	virtual unsigned getVal(uint64_t *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into 64-bit (array)
 	virtual unsigned getVal(uint32_t *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into 32-bit (array)
 	virtual unsigned getVal(uint16_t *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into 16-bit (array)
 	virtual unsigned getVal(uint8_t  *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into  8-bit (array)
-	virtual bool     isSigned()         const = 0;
 	virtual ~IScalVal_RO () {}
 
 	// Throws an exception if path doesn't point to an object which supports this interface
 	static ScalVal_RO create(Path p);
 };
 
-// Write-only: not provided ATM; caching may be required anyways
-
-// Read-write
-class IScalVal : public IScalVal_RO {
+// Write-only:
+class IScalVal_WO : public virtual IScalVal_Base {
 public:
-	virtual void     setVal(uint64_t *p) = 0; // (possibly truncating) write from 64-bit value(s)
-	virtual void     setVal(uint32_t *p) = 0; // (possibly truncating) write from 32-bit value(s)
-	virtual void     setVal(uint16_t *p) = 0; // (possibly truncating) write from 16-bit value(s)
-	virtual void     setVal(uint8_t  *p) = 0; // (possibly truncating) write from  8-bit value(s)
-	virtual void     setVal(uint64_t  v) = 0; // set all elements to same value
-	virtual ~IScalVal () {}
+	virtual unsigned setVal(uint64_t *p, unsigned nelms) = 0; // (possibly truncating) write from 64-bit value(s)
+	virtual unsigned setVal(uint32_t *p, unsigned nelms) = 0; // (possibly truncating) write from 32-bit value(s)
+	virtual unsigned setVal(uint16_t *p, unsigned nelms) = 0; // (possibly truncating) write from 16-bit value(s)
+	virtual unsigned setVal(uint8_t  *p, unsigned nelms) = 0; // (possibly truncating) write from  8-bit value(s)
+	virtual unsigned setVal(uint64_t  v) = 0; // set all elements to same value
+	virtual ~IScalVal_WO () {}
 
 	// Throws an exception if path doesn't point to an object which supports this interface
+	static ScalVal_WO create(Path p);
+};
+
+// Read-write:
+class IScalVal: public virtual IScalVal_RO, public virtual IScalVal_WO {
+public:
+	virtual ~IScalVal () {}
 	static ScalVal create(Path p);
 };
 
