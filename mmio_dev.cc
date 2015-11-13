@@ -1,6 +1,8 @@
 #include <cpsw_mmio_dev.h>
 #include <inttypes.h>
 
+typedef shared_ptr<MMIODevImpl> MMIODevImplP;
+
 MMIOAddressImpl::MMIOAddressImpl(
 			AKey     key,
 			uint64_t offset,
@@ -9,7 +11,7 @@ MMIOAddressImpl::MMIOAddressImpl(
 			ByteOrder byteOrder)
 : AddressImpl(key,
               nelms,
-              UNKNOWN == byteOrder ? static_pointer_cast<MMIODevImpl, DevImpl>(key.get())->getByteOrder() : byteOrder ),
+              UNKNOWN == byteOrder ? key.getAs<MMIODevImplP>()->getByteOrder() : byteOrder ),
               offset(offset),
               stride(stride)
 {

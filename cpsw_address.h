@@ -12,6 +12,11 @@ private:
 public:
 	const Container get() const { return Container(owner); }
 
+	template <typename T> T getAs() const
+	{
+		return static_pointer_cast<typename T::element_type, Container::element_type>( get() );
+	}
+
 	friend class DevImpl;
 };
 
@@ -71,6 +76,11 @@ class AddressImpl : public IChild {
 		}
 
 		virtual Container getOwner() const;
+
+		template <typename T> T getOwnerAs() const
+		{
+			return static_pointer_cast<typename T::element_type, Container::element_type>( this->getOwner() );
+		}
 };
 
 #endif
