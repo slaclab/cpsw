@@ -89,7 +89,7 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 			if ( wlen > 0 ) {
 				uint64_t vout = 0;
 				uint64_t vswp = v;
-				for ( j = 0; j<(val->getSizeBits() + 7)/wbits; j++ ) {
+				for ( j = 0; j<(int)((val->getSizeBits() + 7)/wbits); j++ ) {
 					vout = (vout<<wbits) | ( vswp & ((1ULL<<wbits)-1) );
 					vswp >>= wbits;
 				}
