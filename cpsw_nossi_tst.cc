@@ -99,7 +99,6 @@ struct TestFailed {};
 int
 main(int argc, char **argv)
 {
-int rval = 0;
 const char *ip_addr = "192.168.2.10";
 
 	for ( int opt; (opt = getopt(argc, argv, "a:")) > 0; ) {
@@ -192,7 +191,6 @@ uint16_t u16;
 	} else {
 		printf("Readback of merged bits (expected 0xfc06765f) FAILED\n");
 		throw TestFailed();	
-		rval = 1;
 	}
 
 // 8192
