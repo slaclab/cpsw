@@ -235,7 +235,6 @@ public:
 
 	void shiftLeft(uint8_t *bufp)
 	{
-printf("SL\n");
 		uint16_t tmp16_1, tmp16_2;
 		int      j;
 		if ( ! littleEndian ) {
@@ -243,7 +242,6 @@ printf("SL\n");
 			for ( j = sbytes - 1; j >= 0; j-- ) {
 				tmp16_1 = bufp[j];
 				tmp16_2 = (tmp16_2>>8) | (tmp16_1 << shift);
-printf("tmp2 %04x\n", tmp16_2);
 				bufp[j] = tmp16_2;
 			}
 		} else {
@@ -373,6 +371,7 @@ ByteOrder        targetEndian= cl->getByteOrder();
 	return nelms;
 }
 
+#if 0
 static void prib(uint8_t *b)
 {
 for (int i=0; i<9; i++ ) {
@@ -380,6 +379,7 @@ for (int i=0; i<9; i++ ) {
 }
 	printf("\n");
 }
+#endif
 
 unsigned ScalVal_WOAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 {
@@ -464,24 +464,20 @@ uint8_t          mskn     = 0x00;
 
 		for ( n = nelms-1; n >= 0; n--, oidx += oinc, iidx += iinc ) {
 
-prib(ibufp+iidx);
 			memcpy( obufp + oidx + ooff, ibufp + iidx + ioff, dbytes >= sbytes ? sbytes : dbytes );
 
 			if ( sign_extend ) {
 				signExtend.work(obufp + oidx + ooff, obufp + oidx + ooff);
 			}
-prib(obufp+oidx);
 
 			if ( wlen  > 0 ) {
 				wordSwap.work( obufp + oidx + noff );
 			}
-prib(obufp+oidx);
 
 			if ( lsb != 0 ) {
 				bits.shiftLeft( obufp + oidx );
 			}
 
-prib(obufp+oidx);
 			if ( targetEndian != hostEndian ) {
 				byteSwap.work( obufp + oidx );
 			}
