@@ -1,4 +1,5 @@
 #include <api_builder.h>
+#include <cpsw_hub.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,12 @@ extern void _setHostByteOrder(ByteOrder);
 #define STRIDE 9
 #define BITS16 12
 #define SHFT16 2
+
+class TestFailed {
+public:
+	const char *info;
+	TestFailed(const char *info):info(info){}
+};
 
 int64_t rrr()
 {
@@ -113,7 +120,7 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 		got = val->getVal(ui, sizeof(ui)/sizeof(ui[0]));
 
 		if ( got != NELMS )
-			throw CPSWError("unexpected number of elements read");
+			throw TestFailed("unexpected number of elements read");
 
 		for ( i=0; i<NELMS; i++ ) {
 			EL v = uo[i];
@@ -122,7 +129,7 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 			swp((uint8_t*)&ui[i], sizeof(ui[0]), native);
 			if ( v != ui[i] ) {
 				perr<EL>(mbo, native, val->isSigned(), i, ui[i], v, val->getSize(), mmp, wlen);
-				throw CPSWError("mismatch (le, signed)");
+				throw TestFailed("mismatch (le, signed)");
 			}
 		}
 
@@ -206,6 +213,9 @@ printf("%s\n", e->getName());
 						} catch ( CPSWError &e ) {
 							printf("Error at %s\n", nm);
 							throw;
+						} catch ( TestFailed &e ) {
+							printf("Test Failure (%s) at %s\n", e.info, nm);
+							throw;
 						}
 					}
 				}
@@ -243,6 +253,7 @@ printf("%s\n", e->getName());
 	if ( cpsw_obj_count != 1 ) {
 		// the default 'root' device node is still alive
 		printf("CPSW object count %i (expected 1)\n", cpsw_obj_count);
+		throw TestFailed("Unexpected object count");
 	}
 
 	printf("CPSW_SVAL test PASSED\n");
