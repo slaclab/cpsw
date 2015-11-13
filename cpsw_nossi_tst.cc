@@ -48,10 +48,10 @@ AXIVers IAXIVers::create(const char *name)
 {
 shared_ptr<AXIVersImpl> v = EntryImpl::create<AXIVersImpl>(name);
 Field f;
-	f = IIntField::create("dnaValue", 64, false, 0);
-	v->AXIVersImpl::addAtAddress( f , 0x08 );
-	f = IIntField::create("fdSerial", 64, false, 0);
-	v->AXIVersImpl::addAtAddress( f, 0x10 );
+	f = IIntField::create("dnaValue", 64, false, 0, 4);
+	v->MMIODevImpl::addAtAddress( f , 0x08 );
+	f = IIntField::create("fdSerial", 64, false, 0, 4);
+	v->MMIODevImpl::addAtAddress( f, 0x10 );
 	f = IIntField::create("counter",  32, false, 0);
 	v->MMIODevImpl::addAtAddress( f, 0x24 );
 	f = IIntField::create("bldStamp",  8, false, 0);
