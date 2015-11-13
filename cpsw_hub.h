@@ -39,8 +39,11 @@ extern int cpsw_obj_count;
 
 class EntryImpl: public virtual IField {
 	private:
-		const std::string	name;
-		const uint64_t    	size;
+		// WARNING -- when modifying fields you might need to
+		//            modify 'operator=' as well as the copy
+		//            constructor!
+		std::string	        name;
+		uint64_t    	    size;
 		mutable Cacheable   cacheable;
 		mutable bool        locked;
 		WEntry              self;
@@ -48,8 +51,31 @@ class EntryImpl: public virtual IField {
 	protected:
 		virtual void  setSelf(Entry sp) { self = sp; }
 
+	protected:
+		// prevent copy construction -- cannot copy the 'self' member
+		EntryImpl(const EntryImpl &ei)
+		: name(ei.name),
+		  size(ei.size),
+		  cacheable(ei.cacheable),
+		  locked(ei.locked)
+		{
+		  self.reset();
+		}
+
 	public:
 		EntryImpl(FKey k, uint64_t size);
+
+		EntryImpl &operator=(const EntryImpl &in)
+		{
+			if ( this != &in ) {
+				name      = in.name;
+				size      = in.size;
+				cacheable = in.cacheable;
+				locked    = in.locked;
+				// do NOT copy 'self' but leave alone !!
+			}
+			return *this;
+		}
 
 		virtual const char *getName() const
 		{
@@ -70,10 +96,7 @@ class EntryImpl: public virtual IField {
 		// being attached
 		virtual void setCacheable(Cacheable cacheable);
 
-		virtual ~EntryImpl()
-		{
-			//printf("Deleting %s\n", getName());			
-		}
+		virtual ~EntryImpl();
 
 		virtual void setLocked()
 		{
@@ -138,6 +161,13 @@ class EntryImpl: public virtual IField {
 				self->setSelf(self);
 				return self;
 			}
+
+		template<typename T> static shared_ptr<T> clone(shared_ptr<T> in)
+		{
+			shared_ptr<T> self( make_shared<T>( *in ) );
+			self->setSelf( self );
+			return self;
+		}
 };
 
 class IntEntryImpl : public EntryImpl, public virtual IIntField {
