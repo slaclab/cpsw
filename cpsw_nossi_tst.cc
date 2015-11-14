@@ -21,27 +21,12 @@ typedef shared_ptr<IAXIVers> AXIVers;
 
 class IAXIVers : public virtual IMMIODev {
 public:
-	virtual void addAtAddress(Field child, uint64_t offset, unsigned nelms = 1, uint64_t stride = STRIDE_AUTO) = 0;
-
 	static AXIVers create(const char *name);
 };
 
-class SWPWAddressImpl : public MMIOAddressImpl {
-	public:
-		SWPWAddressImpl(AKey key, uint64_t offset, unsigned nelms, unsigned stride);
-		virtual uint64_t  read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
-};
-
 class AXIVersImpl : public MMIODevImpl, public virtual IAXIVers {
-
 public:
 	AXIVersImpl(FKey);
-
-	virtual void addAtAddress(Field child, uint64_t offset, unsigned nelms = 1, uint64_t stride = STRIDE_AUTO) {
-		AKey key = getAKey();
-		add( make_shared<SWPWAddressImpl>(key, offset, nelms, stride), child );
-	}
-
 };
 
 AXIVers IAXIVers::create(const char *name)
@@ -67,34 +52,7 @@ AXIVersImpl::AXIVersImpl(FKey key) : MMIODevImpl(key, 0x1000, LE)
 {
 }
 
-SWPWAddressImpl::SWPWAddressImpl(AKey key, uint64_t offset, unsigned nelms, unsigned stride)
-:MMIOAddressImpl(key, offset, nelms, stride)
-{
-}
-
-uint64_t  SWPWAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
-{
-int wlen = 4;
-int nw = sbytes / wlen;
-int i,iind;
-uint8_t tmp[wlen];
-
-	if ( (sbytes % wlen) != 0 )
-		throw ConfigurationError("misaligned address");
-
-	MMIOAddressImpl::read(node, cacheable, dst, dbytes ,off, sbytes);
-
-	/* word-swap */
-	for ( iind=i=0; i<nw/2; i++, iind+=wlen ) {
-		memcpy( tmp                     , dst + iind              , wlen);
-		memcpy( dst + iind              , dst + (sbytes-wlen-iind), wlen);
-		memcpy( dst + (sbytes-wlen-iind), tmp                     , wlen);
-	}
-
-	return sbytes;
-}
-
-struct TestFailed {};
+class TestFailed {};
 
 int
 main(int argc, char **argv)
@@ -108,6 +66,8 @@ const char *ip_addr = "192.168.2.10";
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 		}
 	}
+
+try {
 
 NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
 MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
@@ -192,6 +152,10 @@ uint16_t u16;
 		printf("Readback of merged bits (expected 0xfc06765f) FAILED\n");
 		throw TestFailed();	
 	}
+} catch (CPSWError &e) {
+	printf("CPSW Error: %s\n", e.getInfo().c_str());
+	throw;
+}
 
 // 8192
 	return 0;
