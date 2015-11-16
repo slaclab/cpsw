@@ -107,11 +107,14 @@ class EntryImpl: public virtual IField {
 
 		virtual Entry getSelf() { return Entry( self ); }
 
+		// Template for up-casting derived classes' 'self' pointer
+	protected:
 		template <typename T> T getSelfAs()
 		{
 			return T( static_pointer_cast< typename T::element_type, EntryImpl>( getSelf() ) );
 		}
 
+	public:
 		// factory for derived types T
 		template<typename T>
 			static shared_ptr<T>

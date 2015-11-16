@@ -77,6 +77,7 @@ class AddressImpl : public IChild {
 
 		virtual Container getOwner() const;
 
+	protected:
 		template <typename T> T getOwnerAs() const
 		{
 			return static_pointer_cast<typename T::element_type, Container::element_type>( this->getOwner() );

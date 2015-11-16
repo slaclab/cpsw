@@ -1,11 +1,13 @@
 #include <cpsw_nossi_dev.h>
 #include <stdint.h>
 
+typedef shared_ptr<NoSsiDevImpl> NoSsiDevImplP;
+
 UdpAddressImpl::UdpAddressImpl(AKey k, unsigned short dport, unsigned timeoutUs, unsigned retryCnt)
 :AddressImpl(k), dport(dport), sd(-1), timeoutUs(timeoutUs), retryCnt(retryCnt)
 {
 struct sockaddr_in dst, me;
-shared_ptr<NoSsiDevImpl> owner( getOwner()->getSelfAs< shared_ptr<NoSsiDevImpl> >() );
+NoSsiDevImplP owner( getOwnerAs<NoSsiDevImplP>() );
 	dst.sin_family      = AF_INET;
 	dst.sin_port        = htons( dport );
 	dst.sin_addr.s_addr = owner->getIpAddress();

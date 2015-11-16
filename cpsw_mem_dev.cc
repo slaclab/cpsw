@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 
+typedef shared_ptr<MemDevImpl> MemDevImplP;
+
 MemDevImpl::MemDevImpl(FKey k, uint64_t size)
 : DevImpl(k, size), buf( new uint8_t[size] )
 {
@@ -25,7 +27,7 @@ MemDevAddressImpl::MemDevAddressImpl(AKey k, unsigned nelms) : AddressImpl(k, ne
 
 uint64_t MemDevAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
-shared_ptr<MemDevImpl> owner( getOwner()->getSelfAs< shared_ptr<MemDevImpl> >() );
+MemDevImplP owner( getOwnerAs<MemDevImplP>() );
 int toget = dbytes < sbytes ? dbytes : sbytes;
 	if ( off + toget > owner->getSize() ) {
 //printf("off %lu, dbytes %lu, size %lu\n", off, dbytes, owner->getSize());
@@ -39,7 +41,7 @@ int toget = dbytes < sbytes ? dbytes : sbytes;
 
 uint64_t MemDevAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const 
 {
-shared_ptr<MemDevImpl> owner( getOwner()->getSelfAs< shared_ptr<MemDevImpl> >() );
+MemDevImplP owner( getOwnerAs<MemDevImplP>() );
 uint8_t *buf  = owner->getBufp();
 unsigned put  = dbytes < sbytes ? dbytes : sbytes;
 unsigned rval = put;
