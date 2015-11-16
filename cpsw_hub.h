@@ -50,7 +50,7 @@ class EntryImpl: public virtual IField {
 		uint64_t    	    size;
 		mutable Cacheable   cacheable;
 		mutable bool        locked;
-		WEntry              self;
+		mutable WEntry      self;
 
 	protected:
 		virtual void  setSelf(Entry sp) { self = sp; }
@@ -181,7 +181,7 @@ public:
 
 class IChild {
 	public:
-		virtual       Container getOwner()     const = 0;
+		virtual       Hub       getOwner()     const = 0;
 		virtual const char      *getName()     const = 0;
 		virtual       Entry     getEntry()     const = 0;
 		virtual       unsigned  getNelms()     const = 0;

@@ -81,7 +81,7 @@ typedef shared_ptr<IMemDev> MemDev;
 class IMemDev : public virtual IDev {
 public:
 	virtual void            addAtAddress(Field child, unsigned nelms = 1) = 0;
-	virtual uint8_t * const getBufp() = 0;
+	virtual uint8_t * const getBufp() const = 0;
 
 	static MemDev create(const char *name, uint64_t size);
 };

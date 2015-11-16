@@ -18,7 +18,7 @@ class MemDevImpl : public DevImpl, public virtual IMemDev {
 		uint8_t * const buf;
 	public:
 
-		virtual uint8_t * const getBufp() { return buf; }
+		virtual uint8_t * const getBufp() const { return buf; }
 
 		MemDevImpl(FKey k, uint64_t size);
 

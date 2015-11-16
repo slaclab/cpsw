@@ -22,9 +22,9 @@ public:
 
 class AddressImpl : public IChild {
 	protected:
-		AKey           owner;
+		mutable AKey   owner;
 	private:
-		Entry          child;
+		mutable Entry  child;
 		unsigned       nelms;
 
 	protected:
@@ -51,8 +51,7 @@ class AddressImpl : public IChild {
 
 		virtual const char *getName() const
 		{
-			Entry e = getEntry();
-			return e ? e->getName() : NULL;
+			return child ? child->getName() : NULL;
 		}
 
 		virtual unsigned getNelms() const
@@ -75,12 +74,13 @@ class AddressImpl : public IChild {
 			dump( stdout );
 		}
 
-		virtual Container getOwner() const;
+		virtual Hub getOwner()                  const;
+		virtual Container getOwnerAsContainer() const;
 
 	protected:
 		template <typename T> T getOwnerAs() const
 		{
-			return static_pointer_cast<typename T::element_type, Container::element_type>( this->getOwner() );
+			return static_pointer_cast<typename T::element_type, Container::element_type>( this->getOwnerAsContainer() );
 		}
 };
 

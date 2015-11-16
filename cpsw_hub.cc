@@ -67,10 +67,16 @@ uint64_t AddressImpl::write(CompositePathIterator *node, IField::Cacheable cache
 	}
 }
 
-Container AddressImpl::getOwner() const
+Hub AddressImpl::getOwner() const
 {
 	return owner.get();
 }
+
+Container AddressImpl::getOwnerAsContainer() const
+{
+	return owner.get();
+}
+
 
 void AddressImpl::dump(FILE *f) const
 {
