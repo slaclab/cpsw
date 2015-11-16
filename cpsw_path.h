@@ -2,26 +2,35 @@
 #define CPSW_PATH_H
 
 #include <list>
+#include <vector>
 #include <api_user.h>
 #include <cstdarg>
 
 struct PathEntry {
-	const Child  c_p;
+	Child  c_p;
 	int    idxf, idxt;
 
-	PathEntry(const Child a, int idxf = 0, int idxt = -1);
+	PathEntry(Child a, int idxf = 0, int idxt = -1);
 };
 
+typedef std::vector<PathEntry>  PathEntryContainer;
+
 // NOTE: all paths supplied to the constructor(s) must remain valid
-// and unmodified while an iterator is in use!
-class CompositePathIterator : public std::list<PathEntry>::reverse_iterator {
+// and unmodified (at least from the beginning up to the node which
+// was at the tail at the time this iterator was created) while an
+// iterator is in use!
+class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 	private:
 		bool                                  at_end;
-		// FIXME: using a list (with dynamically allocated nodes) should be revisited.
-		std::list<std::list<PathEntry>::reverse_iterator> l;
+		std::vector<PathEntryContainer::reverse_iterator> l;
 		unsigned                              nelmsRight;
 
 	public:
+		// construct from a single path 
+		CompositePathIterator(Path *p);
+		// construct from a NULL-terminated list of paths
+		CompositePathIterator(Path *p0, Path *p, ...);
+
 		unsigned getNelmsRight()
 		{
 			return nelmsRight;
@@ -32,17 +41,14 @@ class CompositePathIterator : public std::list<PathEntry>::reverse_iterator {
 			return at_end;
 		}
 
+		// can path 'p' be concatenated with this one, i.e.,
+		// is the origin of 'p' identical with this' tail?
 		bool validConcatenation(Path p);
 
 		void append(Path p);
 
-		// construct from a single path 
-		CompositePathIterator(Path *p);
-		// construct from a NULL-terminated list of paths
-		CompositePathIterator(Path *p0, Path *p, ...);
-
 		CompositePathIterator & operator++();
-		CompositePathIterator operator++(int);
+		CompositePathIterator   operator++(int);
 
 		// -- not implemented; will throw an exception
 		CompositePathIterator &operator--();

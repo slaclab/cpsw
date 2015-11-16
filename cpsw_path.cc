@@ -12,7 +12,7 @@ using std::cout;
 
 Hub const theRootDev( EntryImpl::create<DevImpl>("ROOT") );
 
-class PathImpl : public std::list<PathEntry>, public IPath {
+class PathImpl : public PathEntryContainer, public IPath {
 private:
 	Hub originDev;
 
@@ -78,7 +78,7 @@ public:
 	virtual ~PathImpl();
 };
 
-PathEntry::PathEntry(const Child a, int idxf, int idxt) : c_p(a), idxf(idxf), idxt(idxt)
+PathEntry::PathEntry(Child a, int idxf, int idxt) : c_p(a), idxf(idxf), idxt(idxt)
 {
 	if ( idxf < 0 )
 		idxf = 0;
@@ -104,7 +104,7 @@ static PathImpl * toPathImpl(Path p)
 	return static_cast<PathImpl*>( p.get() );
 }
 
-PathImpl::PathImpl() : std::list<PathEntry>(), originDev(theRootDev)
+PathImpl::PathImpl() : PathEntryContainer(), originDev(theRootDev)
 {
 	// maintain an empty marker element so that the back iterator
 	// can easily detect the end of the list
@@ -123,13 +123,13 @@ PathImpl::~PathImpl()
 
 #ifdef HAVE_CC
 PathImpl::PathImpl(const PathImpl &in)
-: std::list<PathEntry>(in), originDev(in.originDev)
+: PathEntryContainer(in), originDev(in.originDev)
 {
 	cpsw_obj_count++;
 }
 #endif
 
-PathImpl::PathImpl(Hub h) : std::list<PathEntry>(), originDev(h ? h : theRootDev)
+PathImpl::PathImpl(Hub h) : PathEntryContainer(), originDev(h ? h : theRootDev)
 {
 	// maintain an empty marker element so that the back iterator
 	// can easily detect the end of the list
@@ -141,7 +141,7 @@ PathImpl::PathImpl(Hub h) : std::list<PathEntry>(), originDev(h ? h : theRootDev
 int PathImpl::size() const
 {
 	// not counting the marker element
-	return std::list<PathEntry>::size() - 1;
+	return PathEntryContainer::size() - 1;
 }
 
 bool PathImpl::empty() const
@@ -151,19 +151,19 @@ bool PathImpl::empty() const
 
 PathImpl::iterator & PathImpl::begin()
 {
-	PathImpl::iterator i = std::list<PathEntry>::begin();
+	PathImpl::iterator i = PathEntryContainer::begin();
 	return ++i;
 }
 
 PathImpl::const_iterator & PathImpl::begin() const
 {
-	PathImpl::const_iterator i = std::list<PathEntry>::begin();
+	PathImpl::const_iterator i = PathEntryContainer::begin();
 	return ++i;
 }
 
 void PathImpl::clear(Hub h)
 {
-	std::list<PathEntry>::clear();
+	PathEntryContainer::clear();
 	push_back( PathEntry(NULLCHILD) );
 	originDev = h ? h : theRootDev;
 }
