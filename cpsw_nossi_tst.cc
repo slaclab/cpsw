@@ -58,12 +58,15 @@ int
 main(int argc, char **argv)
 {
 const char *ip_addr = "192.168.2.10";
+bool        use_mem = false;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:m")) > 0; ) {
 		switch ( opt ) {
 			case 'a': ip_addr = optarg; break;
+			case 'm': use_mem = true;   break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
+				exit(1);
 		}
 	}
 
@@ -75,23 +78,11 @@ AXIVers   axiv = IAXIVers::create("vers");
 MMIODev   sysm = IMMIODev::create ("sysm",0x1000, LE);
 MemDev    rmem = IMemDev::create  ("rmem", 0x100000);
 
-int       use_mem = 0;
-int       ch;
-
 uint8_t str[VLEN];
 int16_t adcv[ADCL];
 uint64_t u64;
 uint32_t u32;
 uint16_t u16;
-
-	while ( (ch = getopt(argc, argv, "m")) > 0 ) {
-		switch (ch) {
-			case 'm': use_mem = 1; break;
-			default:
-				printf("Unknown option '%c'\n", ch);
-				exit(1);
-		}
-	}
 
 	rmem->addAtAddress( mmio );
 
