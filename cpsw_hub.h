@@ -25,6 +25,10 @@ class   DevImpl;
 typedef shared_ptr<DevImpl>   Container;
 typedef weak_ptr<DevImpl>     WContainer;
 
+// "Key" class to prevent the public from
+// directly instantiating EntryImpl (and derived)
+// objects since we want the public to 
+// access EntryImpl via shared pointers only.
 class FKey {
 private:
 	const char *name;
@@ -52,30 +56,17 @@ class EntryImpl: public virtual IField {
 		virtual void  setSelf(Entry sp) { self = sp; }
 
 	protected:
-		// prevent copy construction -- cannot copy the 'self' member
-		EntryImpl(const EntryImpl &ei)
-		: name(ei.name),
-		  size(ei.size),
-		  cacheable(ei.cacheable),
-		  locked(ei.locked)
-		{
-		  self.reset();
-		}
+		// prevent public copy construction -- cannot copy the 'self'
+		// member this constructor is intended be used by the 'clone'
+		// template which takes care of setting 'self'.
+		EntryImpl(const EntryImpl &ei);
 
 	public:
 		EntryImpl(FKey k, uint64_t size);
 
-		EntryImpl &operator=(const EntryImpl &in)
-		{
-			if ( this != &in ) {
-				name      = in.name;
-				size      = in.size;
-				cacheable = in.cacheable;
-				locked    = in.locked;
-				// do NOT copy 'self' but leave alone !!
-			}
-			return *this;
-		}
+		// need to override operator= to properly take care
+		// of 'self'.
+		EntryImpl &operator=(const EntryImpl &in);
 
 		virtual const char *getName() const
 		{

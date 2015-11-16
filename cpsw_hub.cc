@@ -107,6 +107,29 @@ public:
 
 };
 
+EntryImpl & EntryImpl::operator=(const EntryImpl &in)
+{
+	if ( this != &in ) {
+		name      = in.name;
+		size      = in.size;
+		cacheable = in.cacheable;
+		locked    = in.locked;
+		// do NOT copy 'self' but leave alone !!
+	}
+	return *this;
+}
+
+
+EntryImpl::EntryImpl(const EntryImpl &ei)
+: name(ei.name),
+  size(ei.size),
+  cacheable(ei.cacheable),
+  locked(ei.locked)
+{
+	self.reset();
+}
+
+
 void DevImpl::add(shared_ptr<AddressImpl> a, Field child)
 {
 Entry e = child->getSelf();
