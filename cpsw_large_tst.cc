@@ -53,16 +53,18 @@ int  elsz = 32;
 int  elszb;
 int  *i_p;
 int  lsb  = 0;
+int  nelms = NELMS;
 
 bool is_signed = true;
 
-	for ( int opt; (opt=getopt(argc, argv, "s:S:")) > 0; ) {
+	for ( int opt; (opt=getopt(argc, argv, "s:S:n:")) > 0; ) {
 		i_p = 0;
 		switch (opt) {
-			case 's': i_p = &elsz; break;
-			case 'S': i_p = &lsb;  break;
+			case 's': i_p = &elsz;  break;
+			case 'S': i_p = &lsb;   break;
+			case 'n': i_p = &nelms; break;
 			default:
-				fprintf(stderr,"Unknown option '-%c' -- usage %s [-s element_size_in_bits] [-S lsb_shift]\n", opt, argv[0]);
+				fprintf(stderr,"Unknown option '-%c' -- usage %s [-s element_size_in_bits] [-S lsb_shift] [-n nelms]\n", opt, argv[0]);
 				throw TestFailed();
 		}
 		if ( i_p && 1 != sscanf(optarg,"%i",i_p) ) {
@@ -86,20 +88,25 @@ bool is_signed = true;
 		throw TestFailed();
 	}
 
+	if ( nelms <= 0 ) {
+		fprintf(stderr,"nelms must be > 0\n");
+		throw TestFailed();
+	}
+
 	elszb = (elsz + lsb + 7)/8;
 
 try {
 
-MMIODev   mmio = IMMIODev::create ("mmio", elszb*NELMS, BE);
+MMIODev   mmio = IMMIODev::create ("mmio", elszb*nelms, BE);
 MemDev    rmem = IMemDev::create  ("rmem", mmio->getSize());
-ScalVal_RO vals[NELMS];
+ScalVal_RO vals[nelms];
 uint64_t   uv;
 
 	rmem->addAtAddress( mmio );
 
 	uint8_t *bufp = rmem->getBufp();
 
-	for (int i=0; i<NELMS; i++) {
+	for (int i=0; i<nelms; i++) {
 		::sprintf(nm,"r-%i",i);
 		mmio->addAtAddress( IIntField::create(nm, elsz, is_signed, lsb), 0x00+elszb*i );
 		int j;
@@ -116,7 +123,7 @@ uint64_t   uv;
 
 	Path pre = IPath::create( rmem );
 
-	for (int i=0; i<NELMS; i++) {
+	for (int i=0; i<nelms; i++) {
 		::sprintf(nm,"mmio/r-%i",i);
 		vals[i] = IScalVal_RO::create( pre->findByName(nm) );
 	}
@@ -126,7 +133,7 @@ uint64_t   uv;
 	uint32_t msk = elsz >= 32 ? 0xffffffff : (1<<elsz) - 1;
 	uint32_t sgn = elsz >= 32 || !is_signed ? 0 : (1<<(elsz-1)); 
 
-	for (int i=0; i<NELMS; i++) {
+	for (int i=0; i<nelms; i++) {
 		uint32_t v;
 		uint32_t e = (uint32_t)i & msk;
 		if ( e & sgn )
@@ -144,7 +151,7 @@ uint64_t   uv;
 	throw;
 }
 
-	printf("Large test successful; read %i registers of size %u-bits\n", NELMS, (unsigned)elsz);
+	printf("Large test successful; read %i registers of size %u-bits\n", nelms, (unsigned)elsz);
 	printf("Building hierarchy:                 %8"PRIu64"us\n", build_us);
 	printf("Name lookup:                        %8"PRIu64"us\n", lkup_us);
 	printf("Reading (from memory pseudo device) %8"PRIu64"us\n", read_us);
