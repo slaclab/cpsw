@@ -33,6 +33,10 @@ class EventListener;
 //
 // The same entity can be referenced from different places
 // in the hierarchy.
+
+// NOTE: the strings returned by 'getName()', 'getDescription()'
+//       are only valid while a shared pointer to containing object
+//       is held.
 class IEntry {
 public:
 	virtual const char *getName()        const = 0;
