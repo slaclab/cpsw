@@ -1,17 +1,15 @@
 #include <cpsw_mmio_dev.h>
 #include <inttypes.h>
 
-typedef shared_ptr<MMIODevImpl> MMIODevImplP;
-
-MMIOAddressImpl::MMIOAddressImpl(
+CMMIOAddressImpl::CMMIOAddressImpl(
 			AKey     key,
 			uint64_t offset,
 			unsigned nelms,
 			uint64_t stride,
 			ByteOrder byteOrder)
-: AddressImpl(key,
+: CAddressImpl(key,
               nelms,
-              UNKNOWN == byteOrder ? key.getAs<MMIODevImplP>()->getByteOrder() : byteOrder ),
+              UNKNOWN == byteOrder ? key.getAs<MMIODevImpl>()->getByteOrder() : byteOrder ),
               offset(offset),
               stride(stride)
 {
@@ -22,17 +20,17 @@ MMIOAddressImpl::MMIOAddressImpl(
 #define PRIx64 "lx"
 #endif
 
-void MMIOAddressImpl::dump(FILE *f) const
+void CMMIOAddressImpl::dump(FILE *f) const
 {
-	AddressImpl::dump( f ); fprintf(f, "+0x%"PRIx64, offset);
+	CAddressImpl::dump( f ); fprintf(f, "+0x%"PRIx64, offset);
 }
 
-uint64_t MMIOAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t CMMIOAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 int        rval      = 0, to;
 uintptr_t  dstStride = node->getNelmsRight() * dbytes;
 
-	if ( sbytes == getStride()  && dbytes == sbytes && getEntry()->getCacheable() >= IField::WT_CACHEABLE ) {
+	if ( sbytes == getStride()  && dbytes == sbytes && getEntryImpl()->getCacheable() >= IField::WT_CACHEABLE ) {
 		// if strides == size then we can try to read all in one chunk
 		sbytes *= (*node)->idxt - (*node)->idxf + 1;
 		dbytes  = sbytes;
@@ -42,7 +40,7 @@ uintptr_t  dstStride = node->getNelmsRight() * dbytes;
 	}
 	for ( int i = (*node)->idxf; i <= to; i++ ) {
 		CompositePathIterator it = *node;
-		rval += AddressImpl::read(&it, cacheable, dst, dbytes, off + this->offset + stride *i, sbytes);
+		rval += CAddressImpl::read(&it, cacheable, dst, dbytes, off + this->offset + stride *i, sbytes);
 
 		dst  += dstStride;
 	}
@@ -50,12 +48,12 @@ uintptr_t  dstStride = node->getNelmsRight() * dbytes;
 	return rval;
 }
 
-uint64_t MMIOAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+uint64_t CMMIOAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
 int        rval      = 0, to;
 uintptr_t  srcStride = node->getNelmsRight() * sbytes;
 
-	if ( dbytes == getStride()  && sbytes == dbytes && getEntry()->getCacheable() >= IField::WT_CACHEABLE ) {
+	if ( dbytes == getStride()  && sbytes == dbytes && getEntryImpl()->getCacheable() >= IField::WT_CACHEABLE ) {
 		// if strides == size then we can try to read all in one chunk
 		dbytes *= (*node)->idxt - (*node)->idxf + 1;
 		sbytes  = dbytes;
@@ -65,7 +63,7 @@ uintptr_t  srcStride = node->getNelmsRight() * sbytes;
 	}
 	for ( int i = (*node)->idxf; i <= to; i++ ) {
 		CompositePathIterator it = *node;
-		rval += AddressImpl::write(&it, cacheable, src, sbytes, off + this->offset + stride *i, dbytes, msk1, mskn);
+		rval += CAddressImpl::write(&it, cacheable, src, sbytes, off + this->offset + stride *i, dbytes, msk1, mskn);
 
 		src  += srcStride;
 	}
@@ -73,7 +71,7 @@ uintptr_t  srcStride = node->getNelmsRight() * sbytes;
 	return rval;
 }
 
-void MMIOAddressImpl::attach(Entry child)
+void CMMIOAddressImpl::attach(EntryImpl child)
 {
 	if ( IMMIODev::STRIDE_AUTO == stride ) {
 		stride = child->getSize();
@@ -83,19 +81,19 @@ void MMIOAddressImpl::attach(Entry child)
 		throw AddrOutOfRangeError(child->getName());
 	}
 
-	AddressImpl::attach(child);
+	CAddressImpl::attach(child);
 }
 
 MMIODev IMMIODev::create(const char *name, uint64_t size, ByteOrder byteOrder)
 {
-	return EntryImpl::create<MMIODevImpl>(name, size, byteOrder);
+	return CEntryImpl::create<CMMIODevImpl>(name, size, byteOrder);
 }
 
-void MMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, uint64_t stride, ByteOrder byteOrder)
+void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, uint64_t stride, ByteOrder byteOrder)
 {
 	AKey k = getAKey();
 	add(
-			make_shared<MMIOAddressImpl>(k, offset, nelms, stride, byteOrder),
+			make_shared<CMMIOAddressImpl>(k, offset, nelms, stride, byteOrder),
 			child
 	   );
 }

@@ -18,16 +18,29 @@ ByteOrder hostByteOrder() {  return _hostByteOrder; }
 
 void _setHostByteOrder(ByteOrder o) { _hostByteOrder = o; }
 
-AddressImpl::AddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
-:owner(owner), child( static_cast<EntryImpl*>(NULL) ), nelms(nelms), byteOrder(byteOrder)
+CAddressImpl::CAddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
+:owner(owner), child( static_cast<CEntryImpl*>(NULL) ), nelms(nelms), byteOrder(byteOrder)
 {
 	if ( UNKNOWN == byteOrder )
 		this->byteOrder = hostByteOrder();
 }
 
-uint64_t  AddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+void CAddressImpl::attach(EntryImpl child)
 {
-	Child c;
+	if ( this->child != NULL ) {
+		throw AddressAlreadyAttachedError( child->getName() );
+	}
+	this->child = child;
+}
+
+const char * CAddressImpl::getName() const
+{
+	return child ? child->getName() : NULL;
+}
+
+uint64_t  CAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+{
+	Address c;
 #ifdef HUB_DEBUG
 	printf("Reading %s", getName());
 	if ( getNelms() > 1 ) {
@@ -52,9 +65,9 @@ uint64_t  AddressImpl::read(CompositePathIterator *node, IField::Cacheable cache
 	}
 }
 
-uint64_t AddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+uint64_t CAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
-	Child c;
+	Address c;
 
 	// chain through parent
 	++(*node);
@@ -67,18 +80,18 @@ uint64_t AddressImpl::write(CompositePathIterator *node, IField::Cacheable cache
 	}
 }
 
-Hub AddressImpl::getOwner() const
+Hub CAddressImpl::getOwner() const
 {
 	return owner.get();
 }
 
-Container AddressImpl::getOwnerAsContainer() const
+DevImpl CAddressImpl::getOwnerAsDevImpl() const
 {
 	return owner.get();
 }
 
 
-void AddressImpl::dump(FILE *f) const
+void CAddressImpl::dump(FILE *f) const
 {
 	fprintf(f, "@%s:%s[%i]", getOwner()->getName(), child->getName(), nelms);
 }
@@ -113,81 +126,58 @@ public:
 
 };
 
-EntryImpl & EntryImpl::operator=(const EntryImpl &in)
+void CDevImpl::add(AddressImpl a, Field child)
 {
-	if ( this != &in ) {
-		name      = in.name;
-		size      = in.size;
-		cacheable = in.cacheable;
-		locked    = in.locked;
-		// do NOT copy 'self' but leave alone !!
-	}
-	return *this;
-}
+EntryImpl e = child->getSelf();
 
-
-EntryImpl::EntryImpl(const EntryImpl &ei)
-: name(ei.name),
-  size(ei.size),
-  cacheable(ei.cacheable),
-  locked(ei.locked)
-{
-	self.reset();
-}
-
-
-void DevImpl::add(shared_ptr<AddressImpl> a, Field child)
-{
-Entry e = child->getSelf();
-
-	AddChildVisitor propagateAttributes( getSelfAs<Container>(), child );
+	AddChildVisitor propagateAttributes( getSelfAs<DevImpl>(), child );
 
 	e->setLocked(); //printf("locking %s\n", child->getName());
 	a->attach( e );
-	std::pair<Children::iterator,bool> ret = children.insert( std::pair<const char *, shared_ptr<AddressImpl> >(child->getName(), a) );
+	std::pair<Children::iterator,bool> ret = children.insert( std::pair<const char *, AddressImpl>(child->getName(), a) );
 	if ( ! ret.second ) {
 		/* Address object should be automatically deleted by smart pointer */
 		throw DuplicateNameError(child->getName());
 	}
 }
 
-DevImpl::~DevImpl()
+CDevImpl::~CDevImpl()
 {
 }
 
-Child DevImpl::getChild(const char *name) const
+Address CDevImpl::getAddress(const char *name) const
 {
 	return children[name];
 }
 
-DevImpl::DevImpl(FKey k, uint64_t size)
-: EntryImpl(k, size)
+CDevImpl::CDevImpl(FKey k, uint64_t size)
+: CEntryImpl(k, size)
 {
 	// by default - mark containers as write-through cacheable; user may still override
-	EntryImpl::setCacheable( WT_CACHEABLE );
+	CEntryImpl::setCacheable( WT_CACHEABLE );
 }
 
 Dev IDev::create(const char *name, uint64_t size)
 {
-	return EntryImpl::create<DevImpl>(name, size);
+	return CEntryImpl::create<CDevImpl>(name, size);
 }
 
 Field IField::create(const char *name, uint64_t size)
 {
-	return EntryImpl::create<EntryImpl>(name, size);
+	return CEntryImpl::create<CEntryImpl>(name, size);
 }
 
-Path DevImpl::findByName(const char *s)
+Path CDevImpl::findByName(const char *s)
 {
-	Hub  h( getSelfAs<Container>() );
+	Hub  h( getSelfAs<DevImpl>() );
 	Path p = IPath::create( h );
 	return p->findByName( s );
 }
 
-void DevImpl::accept(IVisitor    *v, RecursionOrder order, int recursionDepth)
+void CDevImpl::accept(IVisitor    *v, RecursionOrder order, int recursionDepth)
 {
 Children::iterator it;
-Dev       meAsDev( getSelfAs<Container>() );
+Dev       meAsDev( getSelfAs<DevImpl>() );
 
 	if ( RECURSE_DEPTH_FIRST != order ) {
 		v->visit( meAsDev );
@@ -198,7 +188,7 @@ Dev       meAsDev( getSelfAs<Container>() );
 			recursionDepth--;
 		}
 		for ( it = children.begin(); it != children.end(); ++it ) {
-			Entry e = it->second->getEntry();
+			EntryImpl e = it->second->getEntryImpl();
 			e->accept( v, order, recursionDepth );
 		}
 	}
@@ -213,8 +203,8 @@ static uint64_t b2B(uint64_t bits)
 	return (bits + 7)/8;
 }
 
-IntEntryImpl::IntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit, unsigned wordSwap)
-: EntryImpl(
+CIntEntryImpl::CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit, unsigned wordSwap)
+: CEntryImpl(
 		k,
 		wordSwap > 0 && wordSwap != b2B(sizeBits) ? b2B(sizeBits) + (lsBit ? 1 : 0) : b2B(sizeBits + lsBit)
 	),
@@ -236,6 +226,6 @@ unsigned byteSize = b2B(sizeBits);
 
 IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, unsigned wordSwap)
 {
-	return EntryImpl::create<IntEntryImpl>(name, sizeBits, is_signed, lsBit, wordSwap);
+	return CEntryImpl::create<CIntEntryImpl>(name, sizeBits, is_signed, lsBit, wordSwap);
 }
 

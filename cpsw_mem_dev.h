@@ -3,28 +3,30 @@
 
 #include <cpsw_hub.h>
 
+class CMemDevImpl;
+typedef shared_ptr<CMemDevImpl> MemDevImpl;
+
 // pseudo-device with memory backing (for testing)
 
-class MemDevAddressImpl : public AddressImpl {
+class CMemDevAddressImpl : public CAddressImpl {
 	public:
-		MemDevAddressImpl(AKey key, unsigned nelms = 1);
+		CMemDevAddressImpl(AKey key, unsigned nelms = 1);
 
 		virtual uint64_t read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 		virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 };
 
-class MemDevImpl : public DevImpl, public virtual IMemDev {
+class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	private:
 		uint8_t * const buf;
 	public:
-
-		virtual uint8_t * const getBufp() const { return buf; }
-
-		MemDevImpl(FKey k, uint64_t size);
+		CMemDevImpl(FKey k, uint64_t size);
 
 		virtual void addAtAddress(Field child, unsigned nelms = 1);
 
-		virtual ~MemDevImpl();
+		virtual uint8_t * const getBufp() const { return buf; }
+
+		virtual ~CMemDevImpl();
 };
 
 #endif

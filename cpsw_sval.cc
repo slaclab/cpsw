@@ -4,30 +4,34 @@
 
 class IEntryAdapt : public virtual IEntry {
 protected:
-	shared_ptr<const IntEntryImpl> ie;
+	shared_ptr<const CIntEntryImpl> ie;
 	Path     p;
 
-	IEntryAdapt(Path p, shared_ptr<const IntEntryImpl> ie)
-	:ie(ie), p(p)
+	IEntryAdapt(Path p, shared_ptr<const CIntEntryImpl> ie)
+	:ie(ie), p(p->clone())
 	{
 		if ( p->empty() )
 			throw InvalidPathError("<EMPTY>");
-		if ( p->tail()->getEntry() != ie )
+
+		Address  a = CompositePathIterator( &p )->c_p;
+
+		if ( a->getEntry() != ie )
 			throw InternalError("inconsistent args passed to IEntryAdapt");
-		if ( UNKNOWN == p->tail()->getByteOrder() ) {
+		if ( UNKNOWN == a->getByteOrder() ) {
 			throw ConfigurationError("Configuration Error: byte-order not set");
 		}
 	}
 public:
-	virtual const char *getName()  const { return ie->getName(); }
-	virtual uint64_t    getSize() const { return ie->getSize(); }
+	virtual const char *getName()        const { return ie->getName(); }
+	virtual const char *getDescription() const { return ie->getDescription(); }
+	virtual uint64_t    getSize()        const { return ie->getSize(); }
 };
 
 class IIntEntryAdapt : public IEntryAdapt, public virtual IScalVal_Base {
 private:
 	int nelms;
 public:
-	IIntEntryAdapt(Path p, shared_ptr<const IntEntryImpl> ie) : IEntryAdapt(p, ie), nelms(-1) {}
+	IIntEntryAdapt(Path p, shared_ptr<const CIntEntryImpl> ie) : IEntryAdapt(p, ie), nelms(-1) {}
 	virtual bool     isSigned()    const { return ie->isSigned();    }
 	virtual int      getLsBit()    const { return ie->getLsBit();    }
 	virtual uint64_t getSizeBits() const { return ie->getSizeBits(); }
@@ -37,7 +41,7 @@ public:
 
 class ScalVal_ROAdapt : public virtual IScalVal_RO, public virtual IIntEntryAdapt {
 public:
-	ScalVal_ROAdapt(Path p, shared_ptr<const IntEntryImpl> ie)
+	ScalVal_ROAdapt(Path p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(p, ie)
 	{
 	}
@@ -57,7 +61,7 @@ public:
 
 class ScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {
 public:
-	ScalVal_WOAdapt(Path p, shared_ptr<const IntEntryImpl> ie)
+	ScalVal_WOAdapt(Path p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(p, ie)
 	{
 	}
@@ -78,7 +82,7 @@ public:
 
 class ScalVal_Adapt : public virtual ScalVal_ROAdapt, public virtual ScalVal_WOAdapt, public virtual IScalVal {
 public:
-	ScalVal_Adapt(Path p, shared_ptr<const IntEntryImpl> ie)
+	ScalVal_Adapt(Path p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(p, ie), ScalVal_ROAdapt(p, ie), ScalVal_WOAdapt(p, ie)
 	{
 	}
@@ -86,7 +90,11 @@ public:
 
 template <typename EIMPL, typename IMPL, typename IFAC> static IFAC check_interface(Path p)
 {
-shared_ptr<const EIMPL> e = boost::dynamic_pointer_cast<const EIMPL, EntryImpl>( p->tail()->getEntry() );
+	if ( p->empty() )
+		throw InvalidArgError("Empty Path");
+
+	Address a = CompositePathIterator( &p )->c_p;
+	shared_ptr<const EIMPL> e = boost::dynamic_pointer_cast<const EIMPL, CEntryImpl>( a->getEntryImpl() );
 	if ( e ) {
 		return IFAC( make_shared<IMPL>(p, e) );
 	}
@@ -96,19 +104,19 @@ shared_ptr<const EIMPL> e = boost::dynamic_pointer_cast<const EIMPL, EntryImpl>(
 ScalVal_RO IScalVal_RO::create(Path p)
 {
 	// could try other implementations of this interface here
-	return check_interface<IntEntryImpl, ScalVal_ROAdapt, ScalVal_RO>( p );
+	return check_interface<CIntEntryImpl, ScalVal_ROAdapt, ScalVal_RO>( p );
 }
 
 ScalVal_WO IScalVal_WO::create(Path p)
 {
 	// could try other implementations of this interface here
-	return check_interface<IntEntryImpl, ScalVal_WOAdapt, ScalVal_WO>( p );
+	return check_interface<CIntEntryImpl, ScalVal_WOAdapt, ScalVal_WO>( p );
 }
 
 ScalVal IScalVal::create(Path p)
 {
 	// could try other implementations of this interface here
-	return check_interface<IntEntryImpl, ScalVal_Adapt, ScalVal>( p );
+	return check_interface<CIntEntryImpl, ScalVal_Adapt, ScalVal>( p );
 }
 
 
@@ -258,7 +266,7 @@ public:
 unsigned ScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 {
 CompositePathIterator it( & p );
-Child            cl        = it->c_p;
+Address          cl        = it->c_p;
 uint64_t         off       = 0;
 unsigned         sbytes    = IEntryAdapt::getSize(); // byte-size including lsb shift
 unsigned         nbytes    = (getSizeBits() + 7)/8;  // byte-size w/o lsb shift
@@ -383,7 +391,7 @@ for (int i=0; i<9; i++ ) {
 unsigned ScalVal_WOAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 {
 CompositePathIterator it( & p );
-Child            cl = it->c_p;
+Address          cl = it->c_p;
 uint64_t         off = 0;
 unsigned         dbytes   = IEntryAdapt::getSize(); // byte-size including lsb shift
 uint64_t         sizeBits = getSizeBits();

@@ -3,56 +3,97 @@
 
 #include <cpsw_api_builder.h>
 #include <stdio.h>
-#include <cpsw_hub.h>
+//#include <cpsw_hub.h>
+
+#include <boost/weak_ptr.hpp>
+using boost::weak_ptr;
+
+class   CDevImpl;
+class   CAddressImpl;
+class   CompositePathIterator;
+class   IAddress;
+
+typedef shared_ptr<CDevImpl> DevImpl;
+typedef weak_ptr<CDevImpl>   WDevImpl;
+typedef shared_ptr<const IAddress> Address;
+typedef shared_ptr<CAddressImpl> AddressImpl;
+
 
 class AKey {
 private:
-	WContainer owner;
-	AKey(Container owner):owner(owner) {}
+	WDevImpl owner;
+	AKey(DevImpl owner):owner(owner) {}
 public:
-	const Container get() const { return Container(owner); }
+	const DevImpl get() const { return DevImpl(owner); }
 
 	template <typename T> T getAs() const
 	{
-		return static_pointer_cast<typename T::element_type, Container::element_type>( get() );
+		return static_pointer_cast<typename T::element_type, DevImpl::element_type>( get() );
 	}
 
-	friend class DevImpl;
+	friend class CDevImpl;
 };
 
-class AddressImpl : public IChild {
+class IAddress : public IChild {
+	public:
+		virtual void attach(EntryImpl child) = 0;
+
+		virtual uint64_t read (CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
+		virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const = 0;
+
+		virtual void dump(FILE *f) const = 0;
+
+		virtual void dump()        const = 0;
+
+//		virtual Entry   getEntry() const = 0;
+
+		virtual EntryImpl getEntryImpl() const = 0;
+
+		virtual DevImpl getOwnerAsDevImpl() const = 0;
+
+		virtual ByteOrder getByteOrder() const = 0;
+
+		virtual ~IAddress() {}
+
+	protected:
+		template <typename T> T getOwnerAs() const
+		{
+			return static_pointer_cast<typename T::element_type, DevImpl::element_type>( this->getOwnerAsDevImpl() );
+		}
+};
+
+#define NULLCHILD Child( static_cast<IChild *>(NULL) )
+#define NULLADDR  Address( static_cast<IAddress *>(NULL) )
+
+class CAddressImpl : public IAddress {
 	protected:
 		mutable AKey   owner;
 	private:
-		mutable Entry  child;
+		mutable EntryImpl  child;
 		unsigned       nelms;
 
 	protected:
 		ByteOrder      byteOrder;
 
 	public:
-		AddressImpl(AKey owner, unsigned nelms = 1, ByteOrder byteOrder = UNKNOWN);
-		virtual ~AddressImpl()
+		CAddressImpl(AKey owner, unsigned nelms = 1, ByteOrder byteOrder = UNKNOWN);
+		virtual ~CAddressImpl()
 		{
 		}
 
-		virtual void attach(Entry child)
-		{
-			if ( this->child != NULL ) {
-				throw AddressAlreadyAttachedError( child->getName() );
-			}
-			this->child = child;
-		}
+		virtual void attach(EntryImpl child);
 
 		virtual Entry getEntry() const
 		{
 			return child;
 		}
 
-		virtual const char *getName() const
+		virtual EntryImpl getEntryImpl() const
 		{
-			return child ? child->getName() : NULL;
+			return child;
 		}
+
+		virtual const char *getName() const;
 
 		virtual unsigned getNelms() const
 		{
@@ -74,13 +115,13 @@ class AddressImpl : public IChild {
 			dump( stdout );
 		}
 
-		virtual Hub getOwner()                  const;
-		virtual Container getOwnerAsContainer() const;
+		virtual Hub     getOwner()          const;
+		virtual DevImpl getOwnerAsDevImpl() const;
 
 	protected:
 		template <typename T> T getOwnerAs() const
 		{
-			return static_pointer_cast<typename T::element_type, Container::element_type>( this->getOwnerAsContainer() );
+			return static_pointer_cast<typename T::element_type, DevImpl::element_type>( this->getOwnerAsDevImpl() );
 		}
 };
 

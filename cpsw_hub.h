@@ -15,15 +15,14 @@ using boost::weak_ptr;
 using boost::make_shared;
 
 class   Visitor;
-class   ImplVisitor;
 
-class   EntryImpl;
-typedef shared_ptr<EntryImpl> Entry;
-typedef weak_ptr<EntryImpl>   WEntry;
+class   CEntryImpl;
+typedef shared_ptr<CEntryImpl> EntryImpl;
+typedef weak_ptr<CEntryImpl>   WEntryImpl;
 
-class   DevImpl;
-typedef shared_ptr<DevImpl>   Container;
-typedef weak_ptr<DevImpl>     WContainer;
+class   CDevImpl;
+typedef shared_ptr<CDevImpl>    DevImpl;
+typedef weak_ptr<CDevImpl>     WDevImpl;
 
 // "Key" class to prevent the public from
 // directly instantiating EntryImpl (and derived)
@@ -35,43 +34,52 @@ private:
 	FKey(const char *name):name(name){}
 public:
 	const char *getName() const { return name; }
-	friend class EntryImpl;
+	friend class CEntryImpl;
 };
 
 // debugging
 extern int cpsw_obj_count;
 
-class EntryImpl: public virtual IField {
+class CEntryImpl: public virtual IField {
 	private:
 		// WARNING -- when modifying fields you might need to
 		//            modify 'operator=' as well as the copy
 		//            constructor!
 		std::string	        name;
+		std::string         description;
 		uint64_t    	    size;
 		mutable Cacheable   cacheable;
 		mutable bool        locked;
-		mutable WEntry      self;
+		mutable WEntryImpl  self;
 
 	protected:
-		virtual void  setSelf(Entry sp) { self = sp; }
+		virtual void  setSelf(EntryImpl sp) { self = sp; }
 
 	protected:
 		// prevent public copy construction -- cannot copy the 'self'
 		// member this constructor is intended be used by the 'clone'
 		// template which takes care of setting 'self'.
-		EntryImpl(const EntryImpl &ei);
+		CEntryImpl(const CEntryImpl &ei);
 
 	public:
-		EntryImpl(FKey k, uint64_t size);
+		CEntryImpl(FKey k, uint64_t size);
 
 		// need to override operator= to properly take care
 		// of 'self'.
-		EntryImpl &operator=(const EntryImpl &in);
+		CEntryImpl &operator=(const CEntryImpl &in);
 
 		virtual const char *getName() const
 		{
 			return name.c_str();
 		}
+
+		virtual const char *getDescription() const
+		{
+			return description.c_str();
+		}
+
+		virtual void setDescription(const char *);
+		virtual void setDescription(const std::string&);
 
 		virtual uint64_t getSize() const
 		{
@@ -87,7 +95,7 @@ class EntryImpl: public virtual IField {
 		// being attached
 		virtual void setCacheable(Cacheable cacheable);
 
-		virtual ~EntryImpl();
+		virtual ~CEntryImpl();
 
 		virtual void setLocked()
 		{
@@ -96,13 +104,13 @@ class EntryImpl: public virtual IField {
 
 		virtual void accept(IVisitor    *v, RecursionOrder order, int recursionDepth);
 
-		virtual Entry getSelf() { return Entry( self ); }
+		virtual EntryImpl getSelf() { return EntryImpl( self ); }
 
 		// Template for up-casting derived classes' 'self' pointer
 	protected:
 		template <typename T> T getSelfAs()
 		{
-			return T( static_pointer_cast< typename T::element_type, EntryImpl>( getSelf() ) );
+			return T( static_pointer_cast< typename T::element_type, CEntryImpl>( getSelf() ) );
 		}
 
 	public:
@@ -164,14 +172,14 @@ class EntryImpl: public virtual IField {
 		}
 };
 
-class IntEntryImpl : public EntryImpl, public virtual IIntField {
+class CIntEntryImpl : public CEntryImpl, public virtual IIntField {
 private:
 	bool     is_signed;
 	int      ls_bit;
 	uint64_t size_bits;
 	unsigned wordSwap;
 public:
-	IntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit = 0, unsigned wordSwap = 0);
+	CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit = 0, unsigned wordSwap = 0);
 
 	virtual bool     isSigned()    const { return is_signed; }
 	virtual int      getLsBit()    const { return ls_bit;    }
@@ -179,57 +187,46 @@ public:
 	virtual unsigned getWordSwap() const { return wordSwap;  }
 };
 
-class IChild {
-	public:
-		virtual       Hub       getOwner()     const = 0;
-		virtual const char      *getName()     const = 0;
-		virtual       Entry     getEntry()     const = 0;
-		virtual       unsigned  getNelms()     const = 0;
-		virtual ByteOrder   getByteOrder()     const = 0;
-		virtual uint64_t        read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
-		virtual uint64_t        write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const = 0;
-		virtual ~IChild() {}
-};
-
-#define NULLCHILD Child( static_cast<IChild *>(NULL) )
-#define NULLHUB   Hub( static_cast<IHub *>(NULL) )
-
-#include <cpsw_address.h>
-
 struct StrCmp {
     bool operator () (const char *a, const char *b ) const {
         return strcmp(a , b) < 0 ? true : false;
     }
 };
 
-class DevImpl : public EntryImpl, public virtual IDev {
+#include <cpsw_address.h>
+
+class CDevImpl : public CEntryImpl, public virtual IDev {
 	private:
-		typedef  std::map<const char*, shared_ptr<AddressImpl>, StrCmp> Children;
+		typedef  std::map<const char*, Address, StrCmp> Children;
 		mutable  Children children; // only by 'add' method
 
 	protected:
-		virtual void add(shared_ptr<AddressImpl> a, Field child);
+		virtual void add(AddressImpl a, Field child);
 
-		virtual AKey getAKey()       { return AKey( getSelfAs<Container>() );       }
+		virtual AKey getAKey()       { return AKey( getSelfAs<DevImpl>() );       }
 
 	public:
-		DevImpl(FKey k, uint64_t size= 0);
-		virtual ~DevImpl();
+		CDevImpl(FKey k, uint64_t size= 0);
+		virtual ~CDevImpl();
 
 		// template: each (device-specific) address must be instantiated
 		// by it's creator device and then added.
 		virtual void addAtAddress(Field child, unsigned nelms)
 		{
 		    AKey k = getAKey();
-			add( make_shared<AddressImpl>(k, nelms), child->getSelf() );
+			add( make_shared<CAddressImpl>(k, nelms), child->getSelf() );
 		}
 
 		virtual Path findByName(const char *s);
 
-		virtual Child getChild(const char *name) const;
+		virtual Child getChild(const char *name) const { return getAddress( name ); }
+		virtual Address getAddress(const char *name) const;
 	
 		virtual void accept(IVisitor *v, RecursionOrder order, int recursionDepth);
 };
+
+#define NULLHUB     Hub( static_cast<IHub *>(NULL) )
+#define NULLDEVIMPL DevImpl( static_cast<CDevImpl *>(NULL) )
 
 
 #endif

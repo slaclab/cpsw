@@ -17,38 +17,41 @@
 #endif
 
 class   IAXIVers;
+class   CAXIVersImpl;
 typedef shared_ptr<IAXIVers> AXIVers;
+typedef shared_ptr<CAXIVersImpl> AXIVersImpl;
 
 class IAXIVers : public virtual IMMIODev {
 public:
 	static AXIVers create(const char *name);
 };
 
-class AXIVersImpl : public MMIODevImpl, public virtual IAXIVers {
+class CAXIVersImpl : public CMMIODevImpl, public virtual IAXIVers {
 public:
-	AXIVersImpl(FKey);
+	CAXIVersImpl(FKey);
 };
 
 AXIVers IAXIVers::create(const char *name)
 {
-shared_ptr<AXIVersImpl> v = EntryImpl::create<AXIVersImpl>(name);
+AXIVersImpl v = CEntryImpl::create<CAXIVersImpl>(name);
 Field f;
 	f = IIntField::create("dnaValue", 64, false, 0, 4);
-	v->MMIODevImpl::addAtAddress( f , 0x08 );
+	v->addAtAddress( f , 0x08 );
 	f = IIntField::create("fdSerial", 64, false, 0, 4);
-	v->MMIODevImpl::addAtAddress( f, 0x10 );
+	v->addAtAddress( f, 0x10 );
 	f = IIntField::create("counter",  32, false, 0);
-	v->MMIODevImpl::addAtAddress( f, 0x24 );
+	v->addAtAddress( f, 0x24 );
 	f = IIntField::create("bldStamp",  8, false, 0);
-	v->MMIODevImpl::addAtAddress( f, 0x800, VLEN  );
+	v->addAtAddress( f, 0x800, VLEN  );
 	f = IIntField::create("scratchPad",32,true,  0);
-	v->MMIODevImpl::addAtAddress( f,   4 );
+	v->addAtAddress( f,   4 );
 	f = IIntField::create("bits",22,true, 4);
-	v->MMIODevImpl::addAtAddress( f,   4 );
+	v->addAtAddress( f,   4 );
 	return v;	
 }
 
-AXIVersImpl::AXIVersImpl(FKey key) : MMIODevImpl(key, 0x1000, LE)
+CAXIVersImpl::CAXIVersImpl(FKey key)
+: CMMIODevImpl(key, 0x1000, LE)
 {
 }
 

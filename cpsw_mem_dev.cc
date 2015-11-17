@@ -4,30 +4,31 @@
 #include <string.h>
 #include <stdio.h>
 
-typedef shared_ptr<MemDevImpl> MemDevImplP;
-
-MemDevImpl::MemDevImpl(FKey k, uint64_t size)
-: DevImpl(k, size), buf( new uint8_t[size] )
+CMemDevImpl::CMemDevImpl(FKey k, uint64_t size)
+: CDevImpl(k, size), buf( new uint8_t[size] )
 {
 }
 
-MemDevImpl::~MemDevImpl()
+CMemDevImpl::~CMemDevImpl()
 {
 	delete [] buf;
 }
 
-void MemDevImpl::addAtAddress(Field child, unsigned nelms)
+void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
 {
 AKey k = getAKey();
 
-	add( make_shared<MemDevAddressImpl>(k, nelms), child );
+	add( make_shared<CMemDevAddressImpl>(k, nelms), child );
 }
 
-MemDevAddressImpl::MemDevAddressImpl(AKey k, unsigned nelms) : AddressImpl(k, nelms) {}
-
-uint64_t MemDevAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+CMemDevAddressImpl::CMemDevAddressImpl(AKey k, unsigned nelms)
+: CAddressImpl(k, nelms)
 {
-MemDevImplP owner( getOwnerAs<MemDevImplP>() );
+}
+
+uint64_t CMemDevAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+{
+MemDevImpl owner( getOwnerAs<MemDevImpl>() );
 int toget = dbytes < sbytes ? dbytes : sbytes;
 	if ( off + toget > owner->getSize() ) {
 //printf("off %lu, dbytes %lu, size %lu\n", off, dbytes, owner->getSize());
@@ -39,9 +40,9 @@ int toget = dbytes < sbytes ? dbytes : sbytes;
 	return toget;
 }
 
-uint64_t MemDevAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const 
+uint64_t CMemDevAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const 
 {
-MemDevImplP owner( getOwnerAs<MemDevImplP>() );
+MemDevImpl owner( getOwnerAs<MemDevImpl>() );
 uint8_t *buf  = owner->getBufp();
 unsigned put  = dbytes < sbytes ? dbytes : sbytes;
 unsigned rval = put;
@@ -78,5 +79,5 @@ unsigned rval = put;
 
 MemDev IMemDev::create(const char *name, uint64_t size)
 {
-	return EntryImpl::create<MemDevImpl>(name, size);
+	return CEntryImpl::create<CMemDevImpl>(name, size);
 }

@@ -16,9 +16,9 @@ class IPath;
 class IScalVal_RO;
 class IScalVal_WO;
 class IScalVal;
-class CompositePathIterator;
 typedef shared_ptr<const IHub>   Hub;
 typedef shared_ptr<const IChild> Child;
+typedef shared_ptr<const IEntry> Entry;
 typedef shared_ptr<IPath>        Path;
 typedef shared_ptr<IScalVal_RO>  ScalVal_RO;
 typedef shared_ptr<IScalVal_WO>  ScalVal_WO;
@@ -29,12 +29,27 @@ class EventListener;
 
 // The hierarchy of things
 
-// A node 
+// An entity
+//
+// The same entity can be referenced from different places
+// in the hierarchy.
 class IEntry {
 public:
-	virtual const char *getName()  const = 0;
-	virtual uint64_t    getSize() const = 0;
+	virtual const char *getName()        const = 0;
+	virtual uint64_t    getSize()        const = 0;
+	virtual const char *getDescription() const = 0;
 	virtual ~IEntry() {}
+};
+
+// A node which connects an entry with a hub
+
+class IChild {
+	public:
+		virtual       Hub       getOwner()     const = 0;
+		virtual const char      *getName()     const = 0;
+		virtual       Entry     getEntry()     const = 0;
+		virtual       unsigned  getNelms()     const = 0;
+		virtual ~IChild() {}
 };
 
 class IPath {
@@ -55,18 +70,18 @@ public:
 	virtual Child       tail()                 const = 0;
 	virtual std::string toString()             const = 0;
 	virtual void        dump(FILE *)           const = 0;
-	// verify the 'hub' is at the tail of this path
-	virtual bool        verifyAtTail(Hub)            = 0;
+	// verify the 'head' of 'p' is identical with the tail of this path
+	virtual bool        verifyAtTail(Path p)         = 0;
 	// append a copy of another path to this one.
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
 	virtual void        append(Path p)               = 0;
-	// append to this path
-	// Note: an exception is thrown if this->verifyAtTail( child->owner() ) evaluates to 'false'.
-	virtual void        append(Child c)              = 0;
 	
 	// append a copy of another path to a copy of this one and return the new copy
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
 	virtual Path        concat(Path p)         const = 0;
+
+	// make a copy of this path
+	virtual Path        clone()                const = 0;
 
 	// create an empty path
 	static  Path        create();             // absolute; starting at root
@@ -79,9 +94,9 @@ public:
 class IHub : public virtual IEntry {
 public:
 	// find all entries matching 'path' in or underneath this hub
-	virtual Path           findByName(const char *path)         = 0;
+	virtual Path           findByName(const char *path) = 0;
 
-		virtual Child      getChild(const char *name)     const = 0;
+	virtual Child      getChild(const char *name)  const = 0;
 };
 
 // Base interface to integral values
@@ -131,7 +146,6 @@ public:
 };
 
 // Analogous to ScalVal there could be interfaces to double, enums, strings...
-
 
 // Event AKA Interrupt interface
 

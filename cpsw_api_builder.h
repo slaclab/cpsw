@@ -2,17 +2,13 @@
 #define CPSW_API_BUILDER_H
 
 #include <cpsw_api_user.h>
-#include <boost/interprocess/smart_ptr/unique_ptr.hpp>
 
-using boost::interprocess::unique_ptr;
 using boost::static_pointer_cast;
 
 class IVisitor;
 class IField;
-class IAddress;
 class IDev;
 
-typedef shared_ptr<IAddress> Address;
 typedef shared_ptr<IField>   Field;
 typedef shared_ptr<IDev>     Dev;
 
@@ -26,23 +22,24 @@ public:
 	virtual ~IVisitable() {}
 };
 
-class EntryImpl;
-typedef shared_ptr<EntryImpl> Entry;
+class   CEntryImpl;
+typedef shared_ptr<CEntryImpl> EntryImpl;
 
 typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21 } ByteOrder;
 
 ByteOrder hostByteOrder();
-
 
 class IField : public virtual IEntry, public virtual IVisitable {
 public:
 	// the enum is ordered in increasing 'loosenes' of the cacheable attribute
 	typedef enum Cacheable { UNKNOWN_CACHEABLE = 0, NOT_CACHEABLE, WT_CACHEABLE, WB_CACHEABLE } Cacheable;
 public:
-	virtual Cacheable getCacheable()           const = 0;
-	virtual void      setCacheable(Cacheable)        = 0;
+	virtual Cacheable getCacheable()                 const = 0;
+	virtual void      setCacheable(Cacheable)              = 0;
+	virtual void      setDescription(const char *)         = 0;
+	virtual void      setDescription(const std::string &)  = 0;
 	virtual ~IField() {}
-	virtual Entry     getSelf()                      = 0;
+	virtual EntryImpl getSelf()                            = 0;
 
 	static Field create(const char *name, uint64_t size = 0);
 };

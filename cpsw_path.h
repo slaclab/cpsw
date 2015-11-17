@@ -6,14 +6,27 @@
 #include <cpsw_api_user.h>
 #include <cstdarg>
 
-struct PathEntry {
-	Child  c_p;
-	int    idxf, idxt;
+class IAddress;
+typedef shared_ptr<const IAddress> Address;
 
-	PathEntry(Child a, int idxf = 0, int idxt = -1);
+class CDevImpl;
+typedef shared_ptr<const CDevImpl> ConstDevImpl;
+
+struct PathEntry {
+	Address  c_p;
+	int      idxf, idxt;
+
+	PathEntry(Address a, int idxf = 0, int idxt = -1);
 };
 
 typedef std::vector<PathEntry>  PathEntryContainer;
+
+class IPathImpl : public IPath {
+public:
+	virtual PathEntry    tailAsPathEntry() const = 0;
+	virtual ConstDevImpl originAsDevImpl() const = 0;
+	virtual ConstDevImpl parentAsDevImpl() const = 0;
+};
 
 // NOTE: all paths supplied to the constructor(s) must remain valid
 // and unmodified (at least from the beginning up to the node which
@@ -42,7 +55,8 @@ class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 		}
 
 		// can path 'p' be concatenated with this one, i.e.,
-		// is the origin of 'p' identical with this' tail?
+		// is the origin of 'p' identical with the element
+		// this iterator points to?
 		bool validConcatenation(Path p);
 
 		void append(Path p);
