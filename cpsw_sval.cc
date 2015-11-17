@@ -77,7 +77,7 @@ public:
 	virtual unsigned setVal(uint16_t *p, unsigned n) { return setVal<uint16_t>(p,n); }
 	virtual unsigned setVal(uint8_t  *p, unsigned n) { return setVal<uint8_t> (p,n); }
 
-	virtual unsigned setVal(uint64_t  v) { throw InternalError("FIXME"); }
+	virtual unsigned setVal(uint64_t  v);
 };
 
 class ScalVal_Adapt : public virtual ScalVal_ROAdapt, public virtual ScalVal_WOAdapt, public virtual IScalVal {
@@ -268,7 +268,7 @@ unsigned ScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 CompositePathIterator it( & p );
 Address          cl        = it->c_p;
 uint64_t         off       = 0;
-unsigned         sbytes    = IEntryAdapt::getSize(); // byte-size including lsb shift
+unsigned         sbytes    = getSize(); // byte-size including lsb shift
 unsigned         nbytes    = (getSizeBits() + 7)/8;  // byte-size w/o lsb shift
 unsigned         dbytes    = elsz;
 unsigned         ibuf_nchars;
@@ -393,7 +393,7 @@ unsigned ScalVal_WOAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 CompositePathIterator it( & p );
 Address          cl = it->c_p;
 uint64_t         off = 0;
-unsigned         dbytes   = IEntryAdapt::getSize(); // byte-size including lsb shift
+unsigned         dbytes   = getSize(); // byte-size including lsb shift
 uint64_t         sizeBits = getSizeBits();
 unsigned         nbytes   = (sizeBits + 7)/8;  // byte-size w/o lsb shift
 unsigned         sbytes   = elsz;
@@ -494,4 +494,31 @@ uint8_t          mskn     = 0x00;
 	cl->write( &it, ie->getCacheable(), obufp, dbytes, off, dbytes, msk1, mskn );
 
 	return nelms;
+}
+	
+unsigned ScalVal_WOAdapt::setVal(uint64_t  v)
+{
+unsigned nelms = getNelms();
+	// since reads may be collapsed at a lower layer we simply build an array here
+	if ( getSize() <= sizeof(uint8_t) ) {
+		uint8_t vals[nelms];
+		for ( unsigned i=0; i<nelms; i++ )
+			vals[i] = v;
+		return setVal(vals, nelms);
+	} else if ( getSize() <= sizeof(uint16_t) ) {
+		uint16_t vals[nelms];
+		for ( unsigned i=0; i<nelms; i++ )
+			vals[i] = v;
+		return setVal(vals, nelms);
+	} else if ( getSize() <= sizeof(uint32_t) ) {
+		uint32_t vals[nelms];
+		for ( unsigned i=0; i<nelms; i++ )
+			vals[i] = v;
+		return setVal(vals, nelms);
+	} else {
+		uint64_t vals[nelms];
+		for ( unsigned i=0; i<nelms; i++ )
+			vals[i] = v;
+		return setVal(vals, nelms);
+	}
 }
