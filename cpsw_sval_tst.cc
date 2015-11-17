@@ -45,16 +45,17 @@ void swp(uint8_t* b, unsigned sz, ByteOrder nat)
 	}
 }
 
-template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL got, EL exp, int elsz, MemDev m, int wlen)
+template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL got, EL exp, int elsz, MemDev m, int wlen, int writeback)
 {
 uint8_t *buf = m->getBufp();
 	swp( (uint8_t*)&got, sizeof(got), nat);
-	printf("Mismatch (width %li, swap len %i, mem: %sE, host: %s, %ssigned) @%i, got 0x%04"PRIx64", exp 0x%04"PRIx64"\n",
+	printf("Mismatch (width %li, swap len %i, mem: %sE, host: %s, %ssigned, %s-writeback) @%i, got 0x%04"PRIx64", exp 0x%04"PRIx64"\n",
 			sizeof(EL),
 			wlen,
 			LE == mem ? "L":"B",
 			nat == hostByteOrder() ? "NAT" : "INV",
 			s ? "" : "un",
+			writeback ? "post" : "pre",
 			i, (uint64_t)got, (uint64_t)exp);
 	for ( int j=0; j<elsz; j++ )
 		printf("m[%i]: %01"PRIx8" ", j, buf[i*STRIDE+j]);
@@ -62,7 +63,7 @@ uint8_t *buf = m->getBufp();
 }
 
 
-template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int shft, int wlen)
+template <typename EL> void tst(MemDev mmp, ScalVal val, ByteOrder mbo, int shft, int wlen)
 {
 	uint8_t *buf = mmp->getBufp();
 	int bo;
@@ -79,9 +80,10 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 		for ( i=0; i<mmp->getSize(); i++ )
 			buf[i] = rrr();
 
-		uint64_t msk   = val->getSizeBits() >= 64 ? -1ULL : ((1ULL<<val->getSizeBits()) - 1);
+		unsigned sizeBits = val->getSizeBits();
+		uint64_t msk   = sizeBits >= 64 ? -1ULL : ((1ULL<<sizeBits) - 1);
 
-		int sizeBytes  = (val->getSizeBits() + 7)/8;
+		int sizeBytes  = (sizeBits + 7)/8;
 
 		uint64_t bmsk  = sizeBytes >= 8 ? -1ULL : ((1ULL<<(8*sizeBytes)) - 1);
 		uint64_t smsk  = bmsk << shft;
@@ -89,14 +91,14 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 		unsigned wbits = 8*wlen;
 
 		for ( i=0; i<NELMS; i++ ) {
-			uo[i] = (rrr()>>(8*sizeof(r)-val->getSizeBits()));
+			uo[i] = (rrr()>>(8*sizeof(r)-sizeBits));
 
 			uint64_t v = uo[i];
 
 			if ( wlen > 0 ) {
 				uint64_t vout = 0;
 				uint64_t vswp = v;
-				for ( j = 0; j<(int)((val->getSizeBits() + 7)/wbits); j++ ) {
+				for ( j = 0; j<(int)((sizeBits + 7)/wbits); j++ ) {
 					vout = (vout<<wbits) | ( vswp & ((1ULL<<wbits)-1) );
 					vswp >>= wbits;
 				}
@@ -117,20 +119,40 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 			}
 		}
 
-		got = val->getVal(ui, sizeof(ui)/sizeof(ui[0]));
+		for ( int writeback = 0; writeback < (wlen && (sizeBits & 7) ? 1 : 2); writeback++ ) {
 
-		if ( got != NELMS )
-			throw TestFailed("unexpected number of elements read");
+			got = val->getVal(ui, sizeof(ui)/sizeof(ui[0]));
 
-		for ( i=0; i<NELMS; i++ ) {
-			EL v = uo[i];
-			if ( ! val->isSigned() )
-				v &= msk;
-			swp((uint8_t*)&ui[i], sizeof(ui[0]), native);
-			if ( v != ui[i] ) {
-				perr<EL>(mbo, native, val->isSigned(), i, ui[i], v, val->getSize(), mmp, wlen);
-				throw TestFailed("mismatch (le, signed)");
+			if ( got != NELMS )
+				throw TestFailed("unexpected number of elements read");
+
+			for ( i=0; i<NELMS; i++ ) {
+				EL v = uo[i];
+				if ( ! val->isSigned() )
+					v &= msk;
+				swp((uint8_t*)&ui[i], sizeof(ui[0]), native);
+				if ( v != ui[i] ) {
+					perr<EL>(mbo, native, val->isSigned(), i, ui[i], v, val->getSize(), mmp, wlen, writeback);
+					throw TestFailed("mismatch (le, signed)");
+				}
 			}
+
+			for ( i=0; i<mmp->getSize(); i++ )
+				buf[i] = rrr();
+
+			for ( i=0; i<NELMS; i++ ) {
+				swp((uint8_t*)&ui[i], sizeof(ui[0]), native);
+			}
+
+			got = val->setVal(ui, sizeof(ui)/sizeof(ui[0]));
+
+			for ( i=0; i<NELMS; i++ ) {
+				ui[i] = rrr();
+			}
+
+			if ( got != NELMS )
+				throw TestFailed("unexpected number of elements written");
+
 		}
 
 		_setHostByteOrder( BE == hostByteOrder() ? LE : BE );
@@ -227,8 +249,8 @@ printf("%s\n", e->getName());
 		throw ;
 	}
 
-	uint64_t  vl = 0x0001020304050607UL;
 	uint16_t  vs = 0x8123;
+	uint64_t  vl, vle;
 
 
 	ScalVal v_le = IScalVal::create( p_le->findByName( "i32-4-s-2[0]" ) );
@@ -236,6 +258,12 @@ printf("%s\n", e->getName());
 
 	for (int i=0; i<9; i++ ) *(mm->getBufp()+i)=0xaa;
 	v_le->setVal( &vs, 1 );
+	v_le->getVal( &vl, 1 );
+	vle = (int64_t)(int16_t)vs;
+	if ( vl != vle ) {
+		printf("Readback of written value FAILED (%s) got %"PRIx64" -- expected %"PRIx64"\n", v_le->getName(), vl, vle);
+		throw TestFailed("Readback failed");
+	}
 
 	for (int i=0; i<9; i++ )
 		printf("%02x ", *(mm->getBufp()+i));
@@ -243,6 +271,13 @@ printf("%s\n", e->getName());
 
 	for (int i=0; i<9; i++ ) *(mm->getBufp()+i)=0xaa;
 	v_be->setVal( &vs, 1 );
+	v_be->getVal( &vl, 1 );
+	vle = (int64_t)(int16_t)vs;
+	if ( vl != vle ) {
+		printf("Readback of written value FAILED (%s) got %"PRIx64" -- expected %"PRIx64"\n", v_le->getName(), vl, vle);
+		throw TestFailed("Readback failed");
+	}
+
 
 	for (int i=0; i<9; i++ )
 		printf("%02x ", *(mm->getBufp()+i));

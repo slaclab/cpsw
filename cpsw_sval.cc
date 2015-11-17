@@ -162,7 +162,9 @@ public:
 	{
 		int j           = signByte;
 
-		//printf("SE signByte %i, signBit %x\n", signByte, signBit);
+#ifdef SVAL_DEBUG
+printf("SE signByte %i, signBit %x\n", signByte, signBit);
+#endif
 		if ( isSigned && (ibufp[signByte] & signBit) != 0 ) {
 			obufp[j] = ibufp[j] | ~signMsk;
 			j += jinc;
@@ -378,9 +380,10 @@ ByteOrder        targetEndian= cl->getByteOrder();
 	return nelms;
 }
 
-#if 0
-static void prib(uint8_t *b)
+#ifdef SVAL_DEBUG
+static void prib(const char *pre, uint8_t *b)
 {
+printf("%s - ", pre);
 for (int i=0; i<9; i++ ) {
 	printf("%02x ", b[i]);
 }
@@ -469,24 +472,45 @@ uint8_t          mskn     = 0x00;
 			mskn = tmp;
 		}
 
+#ifdef SVAL_DEBUG
+printf("For NELMS %i, iinc %i, ioff %i, oinc %i, ooff %i, noff %i\n", nelms, iinc, ioff, oinc, ooff, noff);
+#endif
 		for ( n = nelms-1; n >= 0; n--, oidx += oinc, iidx += iinc ) {
 
+#ifdef SVAL_DEBUG
+prib("orig", ibufp+iidx);
+#endif
 			memcpy( obufp + oidx + ooff, ibufp + iidx + ioff, dbytes >= sbytes ? sbytes : dbytes );
+#ifdef SVAL_DEBUG
+prib("after memcpy", obufp + oidx);
+#endif
 
 			if ( sign_extend ) {
-				signExtend.work(obufp + oidx + ooff, obufp + oidx + ooff);
+				signExtend.work(obufp + oidx, obufp + oidx);
+#ifdef SVAL_DEBUG
+prib("sign-extended", obufp + oidx);
+#endif
 			}
 
 			if ( wlen  > 0 ) {
 				wordSwap.work( obufp + oidx + noff );
+#ifdef SVAL_DEBUG
+prib("word-swapped", obufp + oidx);
+#endif
 			}
 
 			if ( lsb != 0 ) {
 				bits.shiftLeft( obufp + oidx );
+#ifdef SVAL_DEBUG
+prib("shifted", obufp + oidx);
+#endif
 			}
 
 			if ( targetEndian != hostEndian ) {
 				byteSwap.work( obufp + oidx );
+#ifdef SVAL_DEBUG
+prib("byte-swapped", obufp + oidx);
+#endif
 			}
 		}
 	}
