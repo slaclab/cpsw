@@ -170,7 +170,7 @@ CDevImpl::CDevImpl(FKey k, uint64_t size)
 : CEntryImpl(k, size)
 {
 	// by default - mark containers as write-through cacheable; user may still override
-	CEntryImpl::setCacheable( WT_CACHEABLE );
+	setCacheable( WT_CACHEABLE );
 }
 
 Dev IDev::create(const char *name, uint64_t size)

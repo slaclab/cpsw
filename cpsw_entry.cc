@@ -25,19 +25,22 @@ CEntryImpl::CEntryImpl(const CEntryImpl &ei)
   description(ei.description),
   size(ei.size),
   cacheable(ei.cacheable),
-  locked(ei.locked)
+  locked( false )
 {
 	self.reset();
 }
 
 CEntryImpl & CEntryImpl::operator=(const CEntryImpl &in)
 {
+	if ( locked ) {
+		throw ConfigurationError("Must not assign to attached EntryImpl");
+	}
 	if ( this != &in ) {
 		name        = in.name;
 		description = in.description;
 		size        = in.size;
 		cacheable   = in.cacheable;
-		locked      = in.locked;
+		locked      = false;
 		// do NOT copy 'self' but leave alone !!
 	}
 	return *this;
