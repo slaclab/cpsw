@@ -43,11 +43,9 @@ public:
 
 // A node which connects an entry with a hub
 
-class IChild {
+class IChild : public virtual IEntry {
 	public:
 		virtual       Hub       getOwner()     const = 0;
-		virtual const char      *getName()     const = 0;
-		virtual       Entry     getEntry()     const = 0;
 		virtual       unsigned  getNelms()     const = 0;
 		virtual ~IChild() {}
 };
@@ -94,7 +92,7 @@ public:
 class IHub : public virtual IEntry {
 public:
 	// find all entries matching 'path' in or underneath this hub
-	virtual Path           findByName(const char *path) = 0;
+	virtual Path       findByName(const char *path)      = 0;
 
 	virtual Child      getChild(const char *name)  const = 0;
 };

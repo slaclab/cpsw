@@ -326,7 +326,7 @@ cout<<"starting at: "<<found->getName() << "\n";
 
 	do {
 
-		if ( ! (h = dynamic_pointer_cast<const DevImpl::element_type, const IEntry>( found->getEntry() )) ) {
+		if ( ! (h = dynamic_pointer_cast<const DevImpl::element_type, EntryImpl::element_type>( found->getEntryImpl() )) ) {
 			throw NotDevError( found->getName() );
 		}
 
@@ -418,7 +418,7 @@ bool PathImpl::verifyAtTail(ConstDevImpl h)
 		originDev = h;
 		return true;
 	} 
-	return (void*)h.get() == (void*)back().c_p->getEntry().get();
+	return (void*)h.get() == (void*)back().c_p->getEntryImpl().get();
 }
 
 
@@ -479,7 +479,7 @@ bool CompositePathIterator::validConcatenation(Path p)
 		return true;
 	if ( p->empty() )
 		return false;
-	return ( (void*)(*this)->c_p->getEntry().get() == (void*)p->origin().get() );
+	return ( (void*)(*this)->c_p->getEntryImpl().get() == (void*)p->origin().get() );
 }
 
 static PathImpl::reverse_iterator rbegin(Path p)

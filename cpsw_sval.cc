@@ -15,7 +15,7 @@ protected:
 
 		Address  a = CompositePathIterator( &p )->c_p;
 
-		if ( a->getEntry() != ie )
+		if ( a->getEntryImpl() != ie )
 			throw InternalError("inconsistent args passed to IEntryAdapt");
 		if ( UNKNOWN == a->getByteOrder() ) {
 			throw ConfigurationError("Configuration Error: byte-order not set");

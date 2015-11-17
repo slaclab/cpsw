@@ -35,7 +35,23 @@ void CAddressImpl::attach(EntryImpl child)
 
 const char * CAddressImpl::getName() const
 {
-	return child ? child->getName() : NULL;
+	if ( ! child )
+		throw InternalError("CAddressImpl: child pointer not set");
+	return child->getName();
+}
+
+const char * CAddressImpl::getDescription() const
+{
+	if ( ! child )
+		throw InternalError("CAddressImpl: child pointer not set");
+	return child->getDescription();
+}
+
+uint64_t CAddressImpl::getSize() const
+{
+	if ( ! child )
+		throw InternalError("CAddressImpl: child pointer not set");
+	return child->getSize();
 }
 
 uint64_t  CAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
