@@ -1,5 +1,6 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_mmio_dev.h>
+#include <cpsw_hub.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -87,9 +88,10 @@ bool is_signed = true;
 
 	elszb = (elsz + lsb + 7)/8;
 
+try {
+
 MMIODev   mmio = IMMIODev::create ("mmio", elszb*NELMS, BE);
 MemDev    rmem = IMemDev::create  ("rmem", mmio->getSize());
-try {
 ScalVal_RO vals[NELMS];
 uint64_t   uv;
 
@@ -146,6 +148,11 @@ uint64_t   uv;
 	printf("Building hierarchy:                 %8"PRIu64"us\n", build_us);
 	printf("Name lookup:                        %8"PRIu64"us\n", lkup_us);
 	printf("Reading (from memory pseudo device) %8"PRIu64"us\n", read_us);
+
+	if ( cpsw_obj_count != 1 ) {
+		fprintf(stderr,"FAILED -- %i Objects leaked!\n", cpsw_obj_count - 1);
+		throw TestFailed();
+	}
 
 	return 0;
 }
