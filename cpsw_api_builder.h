@@ -100,10 +100,11 @@ typedef shared_ptr<IIntField> IntField;
 
 class IIntField: public virtual IField {
 public:
+	typedef enum Mode { RO = 1, WO = 2, RW = 3 } Mode;
 	virtual bool     isSigned()    const = 0;
 	virtual int      getLsBit()    const = 0;
 	virtual uint64_t getSizeBits() const = 0;
 
-	static IntField create(const char *name, uint64_t sizeBits, bool is_Signed = false, int lsBit = 0, unsigned wordSwap=0);
+	static IntField create(const char *name, uint64_t sizeBits, bool is_Signed = false, int lsBit = 0, Mode mode = RW, unsigned wordSwap = 0);
 };
 #endif

@@ -219,13 +219,14 @@ static uint64_t b2B(uint64_t bits)
 	return (bits + 7)/8;
 }
 
-CIntEntryImpl::CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit, unsigned wordSwap)
+CIntEntryImpl::CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
 : CEntryImpl(
 		k,
 		wordSwap > 0 && wordSwap != b2B(sizeBits) ? b2B(sizeBits) + (lsBit ? 1 : 0) : b2B(sizeBits + lsBit)
 	),
 	is_signed(is_signed),
 	ls_bit(lsBit), size_bits(sizeBits),
+	mode(mode),
 	wordSwap(wordSwap)
 {
 unsigned byteSize = b2B(sizeBits);
@@ -240,8 +241,8 @@ unsigned byteSize = b2B(sizeBits);
 	}
 }
 
-IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, unsigned wordSwap)
+IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
 {
-	return CEntryImpl::create<CIntEntryImpl>(name, sizeBits, is_signed, lsBit, wordSwap);
+	return CEntryImpl::create<CIntEntryImpl>(name, sizeBits, is_signed, lsBit, mode, wordSwap);
 }
 

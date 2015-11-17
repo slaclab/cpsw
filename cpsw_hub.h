@@ -177,14 +177,16 @@ private:
 	bool     is_signed;
 	int      ls_bit;
 	uint64_t size_bits;
+	Mode     mode;
 	unsigned wordSwap;
 public:
-	CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit = 0, unsigned wordSwap = 0);
+	CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit = 0, Mode mode = RW, unsigned wordSwap = 0);
 
 	virtual bool     isSigned()    const { return is_signed; }
 	virtual int      getLsBit()    const { return ls_bit;    }
 	virtual uint64_t getSizeBits() const { return size_bits; }
 	virtual unsigned getWordSwap() const { return wordSwap;  }
+	virtual Mode     getMode()     const { return mode;      }
 };
 
 struct StrCmp {

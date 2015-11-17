@@ -63,7 +63,7 @@ uint8_t *buf = m->getBufp();
 }
 
 
-template <typename EL> void tst(MemDev mmp, ScalVal val, ByteOrder mbo, int shft, int wlen)
+template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int shft, int wlen)
 {
 	uint8_t *buf = mmp->getBufp();
 	int bo;
@@ -74,6 +74,8 @@ template <typename EL> void tst(MemDev mmp, ScalVal val, ByteOrder mbo, int shft
 	uint64_t uo[NELMS];
 
 	int64_t r;
+
+	ScalVal val_w = boost::dynamic_pointer_cast<ScalVal::element_type, ScalVal_RO::element_type>(val);
 
 	for ( bo = 0; bo < 2; bo++ ) {
 
@@ -119,7 +121,7 @@ template <typename EL> void tst(MemDev mmp, ScalVal val, ByteOrder mbo, int shft
 			}
 		}
 
-		for ( int writeback = 0; writeback < (wlen && (sizeBits & 7) ? 1 : 2); writeback++ ) {
+		for ( int writeback = 0; 1; writeback++ ) {
 
 			got = val->getVal(ui, sizeof(ui)/sizeof(ui[0]));
 
@@ -137,6 +139,9 @@ template <typename EL> void tst(MemDev mmp, ScalVal val, ByteOrder mbo, int shft
 				}
 			}
 
+	if ( writeback >= (val_w ? 1 : 0) )
+		break;
+
 			for ( i=0; i<mmp->getSize(); i++ )
 				buf[i] = rrr();
 
@@ -144,7 +149,7 @@ template <typename EL> void tst(MemDev mmp, ScalVal val, ByteOrder mbo, int shft
 				swp((uint8_t*)&ui[i], sizeof(ui[0]), native);
 			}
 
-			got = val->setVal(ui, sizeof(ui)/sizeof(ui[0]));
+			got = val_w->setVal(ui, sizeof(ui)/sizeof(ui[0]));
 
 			for ( i=0; i<NELMS; i++ ) {
 				ui[i] = rrr();
@@ -208,14 +213,26 @@ unsigned bits_idx, shft_idx, sign_idx;
 
 
 						sprintf(nm,"i%i-%i-%c-%i", bits[bits_idx], shft[shft_idx], sign[sign_idx] ? 's' : 'u', wswap);
-						IntField e = IIntField::create(nm, bits[bits_idx], sign[sign_idx], shft[shft_idx], wswap);
+
+						IntField e = IIntField::create(nm, bits[bits_idx], sign[sign_idx], shft[shft_idx], IIntField::RW, wswap);
 
 						mmio_le->addAtAddress( e, 0, NELMS, STRIDE );
 						mmio_be->addAtAddress( e, 0, NELMS, STRIDE );
 printf("%s\n", e->getName());
 
-						ScalVal v_le = IScalVal::create( p_le->findByName( nm ) );
-						ScalVal v_be = IScalVal::create( p_be->findByName( nm ) );
+						ScalVal_RO v_le, v_be;
+						try {
+							v_le = IScalVal::create( p_le->findByName( nm ) );
+							v_be = IScalVal::create( p_be->findByName( nm ) );
+						} catch ( InvalidArgError &e ) {
+							// cannot be writable if word-swap and bits % 8 != 0
+							if ( wswap && (bits[bits_idx] & 7) ) {
+								v_le = IScalVal_RO::create( p_le->findByName( nm ) );
+								v_be = IScalVal_RO::create( p_be->findByName( nm ) );
+							} else {
+								throw;
+							}
+						}
 
 						try {
 							tst<uint8_t>( mm, v_le, LE, shft[shft_idx], wswap);

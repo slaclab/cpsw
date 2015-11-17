@@ -35,9 +35,9 @@ AXIVers IAXIVers::create(const char *name)
 {
 AXIVersImpl v = CEntryImpl::create<CAXIVersImpl>(name);
 Field f;
-	f = IIntField::create("dnaValue", 64, false, 0, 4);
+	f = IIntField::create("dnaValue", 64, false, 0, IIntField::RO, 4);
 	v->addAtAddress( f , 0x08 );
-	f = IIntField::create("fdSerial", 64, false, 0, 4);
+	f = IIntField::create("fdSerial", 64, false, 0, IIntField::RO, 4);
 	v->addAtAddress( f, 0x10 );
 	f = IIntField::create("counter",  32, false, 0);
 	v->addAtAddress( f, 0x24 );

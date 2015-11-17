@@ -64,6 +64,11 @@ public:
 	ScalVal_WOAdapt(Path p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(p, ie)
 	{
+		// merging a word-swapped entity with a bit-size that is
+		// not a multiple of 8 would require more complex bitmasks
+		// than what our current 'write' method supports.
+		if ( (ie->getSizeBits() % 8) && ie->getWordSwap() )
+			throw InvalidArgError("Word-swap only supported if size % 8 == 0");
 	}
 
 	template <typename E> unsigned setVal(E *e, unsigned nelms) {
