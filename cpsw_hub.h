@@ -24,23 +24,24 @@ class   CDevImpl;
 typedef shared_ptr<CDevImpl>    DevImpl;
 typedef weak_ptr<CDevImpl>     WDevImpl;
 
-// "Key" class to prevent the public from
-// directly instantiating EntryImpl (and derived)
-// objects since we want the public to 
-// access EntryImpl via shared pointers only.
-class FKey {
-private:
-	const char *name;
-	FKey(const char *name):name(name){}
-public:
-	const char *getName() const { return name; }
-	friend class CEntryImpl;
-};
-
 // debugging
 extern int cpsw_obj_count;
 
 class CEntryImpl: public virtual IField {
+	public:
+		// "Key" class to prevent the public from
+		// directly instantiating EntryImpl (and derived)
+		// objects since we want the public to 
+		// access EntryImpl via shared pointers only.
+		class FKey {
+		private:
+			const char *name;
+			FKey(const char *name):name(name){}
+		public:
+			const char *getName() const { return name; }
+			friend class CEntryImpl;
+		};
+
 	private:
 		// WARNING -- when modifying fields you might need to
 		//            modify 'operator=' as well as the copy
@@ -205,7 +206,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 	protected:
 		virtual void add(AddressImpl a, Field child);
 
-		virtual AKey getAKey()       { return AKey( getSelfAs<DevImpl>() );       }
+		virtual IAddress::AKey getAKey()  { return IAddress::AKey( getSelfAs<DevImpl>() );       }
 
 	public:
 		CDevImpl(FKey k, uint64_t size= 0);
@@ -215,7 +216,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		// by it's creator device and then added.
 		virtual void addAtAddress(Field child, unsigned nelms)
 		{
-		    AKey k = getAKey();
+		    IAddress::AKey k = getAKey();
 			add( make_shared<CAddressImpl>(k, nelms), child->getSelf() );
 		}
 

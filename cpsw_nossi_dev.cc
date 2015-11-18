@@ -326,7 +326,7 @@ int      nw;
 
 void CNoSsiDevImpl::addAtAddress(Field child, unsigned dport, unsigned timeoutUs, unsigned retryCnt)
 {
-AKey k = getAKey();
+IAddress::AKey k = getAKey();
 	add( make_shared<CUdpAddressImpl>(k, dport, timeoutUs, retryCnt), child );
 }
 

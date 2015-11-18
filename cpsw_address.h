@@ -19,47 +19,39 @@ typedef shared_ptr<const IAddress> Address;
 typedef shared_ptr<CAddressImpl> AddressImpl;
 
 
-class AKey {
-private:
-	WDevImpl owner;
-	AKey(DevImpl owner):owner(owner) {}
-public:
-	const DevImpl get() const { return DevImpl(owner); }
-
-	template <typename T> T getAs() const
-	{
-		return static_pointer_cast<typename T::element_type, DevImpl::element_type>( get() );
-	}
-
-	friend class CDevImpl;
-};
-
 class IAddress : public IChild {
 	public:
+		class AKey {
+			private:
+				WDevImpl owner;
+				AKey(DevImpl owner):owner(owner) {}
+			public:
+				const DevImpl get() const { return DevImpl(owner); }
+
+				template <typename T> T getAs() const
+				{
+					return static_pointer_cast<typename T::element_type, DevImpl::element_type>( get() );
+				}
+
+				friend class CDevImpl;
+		};
+
 		virtual void attach(EntryImpl child) = 0;
 
 		virtual uint64_t read (CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
 		virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const = 0;
 
-		virtual void dump(FILE *f) const = 0;
+		virtual void dump(FILE *f)           const = 0;
 
-		virtual void dump()        const = 0;
+		virtual void dump()                  const = 0;
 
-//		virtual Entry   getEntry() const = 0;
+		virtual EntryImpl getEntryImpl()     const = 0;
 
-		virtual EntryImpl getEntryImpl() const = 0;
+		virtual DevImpl getOwnerAsDevImpl()  const = 0;
 
-		virtual DevImpl getOwnerAsDevImpl() const = 0;
-
-		virtual ByteOrder getByteOrder() const = 0;
+		virtual ByteOrder getByteOrder()     const = 0;
 
 		virtual ~IAddress() {}
-
-	protected:
-		template <typename T> T getOwnerAs() const
-		{
-			return static_pointer_cast<typename T::element_type, DevImpl::element_type>( this->getOwnerAsDevImpl() );
-		}
 };
 
 #define NULLCHILD Child( static_cast<IChild *>(NULL) )

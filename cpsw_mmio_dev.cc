@@ -2,10 +2,10 @@
 #include <inttypes.h>
 
 CMMIOAddressImpl::CMMIOAddressImpl(
-			AKey     key,
-			uint64_t offset,
-			unsigned nelms,
-			uint64_t stride,
+			AKey      key,
+			uint64_t  offset,
+			unsigned  nelms,
+			uint64_t  stride,
 			ByteOrder byteOrder)
 : CAddressImpl(key,
               nelms,
@@ -91,7 +91,7 @@ MMIODev IMMIODev::create(const char *name, uint64_t size, ByteOrder byteOrder)
 
 void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, uint64_t stride, ByteOrder byteOrder)
 {
-	AKey k = getAKey();
+	IAddress::AKey k = getAKey();
 	add(
 			make_shared<CMMIOAddressImpl>(k, offset, nelms, stride, byteOrder),
 			child

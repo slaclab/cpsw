@@ -16,7 +16,7 @@ CMemDevImpl::~CMemDevImpl()
 
 void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
 {
-AKey k = getAKey();
+IAddress::AKey k = getAKey();
 
 	add( make_shared<CMemDevAddressImpl>(k, nelms), child );
 }
