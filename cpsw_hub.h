@@ -60,14 +60,16 @@ class CEntryImpl: public virtual IField {
 		// prevent public copy construction -- cannot copy the 'self'
 		// member this constructor is intended be used by the 'clone'
 		// template which takes care of setting 'self'.
-		CEntryImpl(const CEntryImpl &ei);
+		CEntryImpl(CEntryImpl &ei);
 
 	public:
 		CEntryImpl(FKey k, uint64_t size);
 
 		// need to override operator= to properly take care
 		// of 'self'.
-		CEntryImpl &operator=(const CEntryImpl &in);
+		CEntryImpl &operator=(CEntryImpl &in);
+
+		virtual CEntryImpl *clone(FKey k) { return new CEntryImpl( *this ); }
 
 		virtual const char *getName() const
 		{
@@ -167,7 +169,12 @@ class CEntryImpl: public virtual IField {
 
 		template<typename T> static shared_ptr<T> clone(shared_ptr<T> in)
 		{
-			shared_ptr<T> self( make_shared<T>( *in ) );
+			typename T::element_type *p = in->clone(FKey(0));
+			if ( typeid( *p ) != typeid( *in ) ) {
+				delete( p );
+				throw InternalError("Some subclass of EntryImpl doesn't implement 'clone'");
+			}
+			shared_ptr<T> self( p );
 			self->setSelf( self );
 			return self;
 		}
@@ -211,6 +218,8 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 	public:
 		CDevImpl(FKey k, uint64_t size= 0);
 		virtual ~CDevImpl();
+
+		virtual CDevImpl *clone(FKey k) { return new CDevImpl( *this ); }
 
 		// template: each (device-specific) address must be instantiated
 		// by it's creator device and then added.

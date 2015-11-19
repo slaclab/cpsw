@@ -25,6 +25,8 @@ class CMMIOAddressImpl : public CAddressImpl {
 		virtual uint64_t getOffset() const   { return offset; }
 		virtual uint64_t getStride() const   { return stride; }
 
+		// ANY subclass must implement clone(AKey) !
+		virtual CMMIOAddressImpl *clone(AKey k) { return new CMMIOAddressImpl( *this ); }
 		virtual void dump(FILE *f) const;
 		virtual uint64_t  read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 		virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
@@ -40,6 +42,8 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 		CMMIODevImpl(FKey k, uint64_t size, ByteOrder byteOrder) : CDevImpl(k, size), byteOrder(byteOrder)
 		{
 		}
+
+		virtual CMMIODevImpl *clone(FKey k) { return new CMMIODevImpl( *this ); }
 
 		virtual ByteOrder getByteOrder() const { return byteOrder; }
 

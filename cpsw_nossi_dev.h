@@ -25,6 +25,8 @@ public:
 	uint64_t read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 	virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 
+	// ANY subclass must implement clone(AKey) !
+	virtual CUdpAddressImpl *clone(AKey k) { return new CUdpAddressImpl( *this ); }
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
 	virtual unsigned getTimeoutUs()  const { return timeoutUs; }
@@ -41,8 +43,9 @@ public:
 	virtual const char *getIpAddressString() const { return ip_str.c_str(); }
 	virtual in_addr_t   getIpAddress()       const { return d_ip; }
 
+	virtual CNoSsiDevImpl *clone(FKey k) { return new CNoSsiDevImpl( *this ); }
+
 	virtual void addAtAddress(Field child, unsigned dport, unsigned timeoutUs, unsigned retryCnt);
 };
-
 
 #endif

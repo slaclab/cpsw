@@ -25,6 +25,33 @@ CAddressImpl::CAddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
 		this->byteOrder = hostByteOrder();
 }
 
+// The current implementation allows us to just 
+// copy references. But that might change in the
+// future if we decide to build a full copy of
+// everything.
+CAddressImpl::CAddressImpl(CAddressImpl &orig)
+:owner(orig.owner),
+ child(orig.child),
+ nelms(orig.nelms),
+ byteOrder(orig.byteOrder)
+{
+}
+
+CAddressImpl & CAddressImpl::operator=(CAddressImpl &orig)
+{
+	return (*this = orig);
+}
+
+Address CAddressImpl::clone(DevImpl new_owner)
+{
+IAddress *p = clone( AKey( new_owner ) );
+	if ( typeid(*p) != typeid(*this) ) {
+		delete ( p );
+		throw InternalError("Some subclass of IAddress doesn't implement 'clone(AKey)'");
+	}
+	return Address(p);
+}
+
 void CAddressImpl::attach(EntryImpl child)
 {
 	if ( this->child != NULL ) {

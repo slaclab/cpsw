@@ -7,6 +7,7 @@ using boost::static_pointer_cast;
 
 class IVisitor;
 class IField;
+class FKey;
 class IDev;
 
 typedef shared_ptr<IField>   Field;

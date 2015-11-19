@@ -9,30 +9,46 @@ CMemDevImpl::CMemDevImpl(FKey k, uint64_t size)
 {
 }
 
+CMemDevImpl::CMemDevImpl(CMemDevImpl &orig)
+: CDevImpl(orig),
+  buf( new uint8_t[orig.getSize()] )
+{
+	memcpy( buf, orig.buf, orig.getSize() );
+}
+
 CMemDevImpl::~CMemDevImpl()
 {
 	delete [] buf;
+}
+
+CMemDevImpl & CMemDevImpl::operator=(CMemDevImpl &orig)
+{
+	delete [] buf;
+	*this = orig;
+	buf = new uint8_t[orig.getSize()];
+	memcpy( buf, orig.buf, orig.getSize() );
+	return *this;
 }
 
 void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
 {
 IAddress::AKey k = getAKey();
 
-	add( make_shared<CMemDevAddressImpl>(k, nelms), child );
+	add( make_shared<CMemAddressImpl>(k, nelms), child );
 }
 
-CMemDevAddressImpl::CMemDevAddressImpl(AKey k, unsigned nelms)
+CMemAddressImpl::CMemAddressImpl(AKey k, unsigned nelms)
 : CAddressImpl(k, nelms)
 {
 }
 
-uint64_t CMemDevAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t CMemAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
 {
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
 int toget = dbytes < sbytes ? dbytes : sbytes;
 	if ( off + toget > owner->getSize() ) {
 //printf("off %lu, dbytes %lu, size %lu\n", off, dbytes, owner->getSize());
-		throw ConfigurationError("MemDevAddress: read out of range");
+		throw ConfigurationError("MemAddress: read out of range");
 	}
 	memcpy(dst, owner->getBufp() + off, toget);
 //printf("MemDev read from off %lli", off);
@@ -40,7 +56,7 @@ int toget = dbytes < sbytes ? dbytes : sbytes;
 	return toget;
 }
 
-uint64_t CMemDevAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const 
+uint64_t CMemAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const 
 {
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
 uint8_t *buf  = owner->getBufp();
@@ -48,7 +64,7 @@ unsigned put  = dbytes < sbytes ? dbytes : sbytes;
 unsigned rval = put;
 
 	if ( off + put > owner->getSize() ) {
-		throw ConfigurationError("MemDevAddress: write out of range");
+		throw ConfigurationError("MemAddress: write out of range");
 	}
 
 	if ( (msk1 || mskn) && put == 1 ) {

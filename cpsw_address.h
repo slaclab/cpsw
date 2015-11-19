@@ -34,6 +34,7 @@ class IAddress : public IChild {
 				}
 
 				friend class CDevImpl;
+				friend class CAddressImpl;
 		};
 
 		virtual void attach(EntryImpl child) = 0;
@@ -51,6 +52,15 @@ class IAddress : public IChild {
 
 		virtual ByteOrder getByteOrder()     const = 0;
 
+		// EVERY subclass 'XAddr' MUST implement
+		//
+		// private:
+		//    virtual XAddr *clone() { return new XAddr( *this ); }
+		//
+		virtual IAddress * clone(AKey) = 0;
+
+		virtual Address clone(DevImpl) = 0;
+
 		virtual ~IAddress() {}
 };
 
@@ -59,16 +69,21 @@ class IAddress : public IChild {
 
 class CAddressImpl : public IAddress {
 	protected:
-		mutable AKey   owner;
+		mutable AKey       owner;
 	private:
 		mutable EntryImpl  child;
-		unsigned       nelms;
-
+		unsigned           nelms;
 	protected:
 		ByteOrder      byteOrder;
 
+	protected:
+
+		CAddressImpl(CAddressImpl&);
+		CAddressImpl & operator=(CAddressImpl &);
+
 	public:
 		CAddressImpl(AKey owner, unsigned nelms = 1, ByteOrder byteOrder = UNKNOWN);
+
 		virtual ~CAddressImpl()
 		{
 		}
@@ -112,6 +127,11 @@ class CAddressImpl : public IAddress {
 
 		virtual Hub     getOwner()          const;
 		virtual DevImpl getOwnerAsDevImpl() const;
+
+		virtual CAddressImpl *clone(AKey k) { return new CAddressImpl( *this ); }
+
+		// This should NOT be overridden unless you know what you are doing!
+		virtual Address clone(DevImpl);
 
 	protected:
 		template <typename T> T getOwnerAs() const

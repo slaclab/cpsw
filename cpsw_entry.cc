@@ -20,7 +20,7 @@ const char *cptr;
 	cpsw_obj_count++;
 }
 
-CEntryImpl::CEntryImpl(const CEntryImpl &ei)
+CEntryImpl::CEntryImpl(CEntryImpl &ei)
 : name(ei.name),
   description(ei.description),
   size(ei.size),
@@ -30,7 +30,7 @@ CEntryImpl::CEntryImpl(const CEntryImpl &ei)
 	self.reset();
 }
 
-CEntryImpl & CEntryImpl::operator=(const CEntryImpl &in)
+CEntryImpl & CEntryImpl::operator=(CEntryImpl &in)
 {
 	if ( locked ) {
 		throw ConfigurationError("Must not assign to attached EntryImpl");
