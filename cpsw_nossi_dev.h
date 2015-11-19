@@ -11,13 +11,16 @@
 class NoSsiDevImpl;
 
 class UdpAddressImpl : public AddressImpl {
-protected:
-	unsigned short dport;
-	int            sd;
-	unsigned       timeoutUs;
-	unsigned       retryCnt;
+private:            
+	INoSsiDev::ProtocolVersion protoVersion;
+	unsigned short  dport;
+	int             sd;
+	unsigned        timeoutUs;
+	unsigned        retryCnt;
+	uint8_t         vc;
+	bool            needSwap;
 public:
-	UdpAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned retryCnt);
+	UdpAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
 	virtual ~UdpAddressImpl();
 	virtual unsigned short getDport() const { return dport; }
 	uint64_t read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
@@ -25,8 +28,11 @@ public:
 
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
-	virtual unsigned getTimeoutUs()  const { return timeoutUs; }
-	virtual unsigned getRetryCount() const { return retryCnt;  }
+	virtual unsigned getTimeoutUs()                      const { return timeoutUs; }
+	virtual unsigned getRetryCount()                     const { return retryCnt;  }
+	virtual INoSsiDev::ProtocolVersion getProtoVersion() const { return protoVersion; }
+	virtual uint8_t  getVC()                             const { return vc; }
+	virtual unsigned short getDport()                    const { return dport; }
 };
 
 class NoSsiDevImpl : public DevImpl, public virtual INoSsiDev {
@@ -39,7 +45,7 @@ public:
 	virtual const char *getIpAddressString() const { return ip_str.c_str(); }
 	virtual in_addr_t   getIpAddress()       const { return d_ip; }
 
-	virtual void addAtAddress(Field child, unsigned dport, unsigned timeoutUs, unsigned retryCnt);
+	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 100, unsigned retryCnt = 5, uint8_t vc = 0);
 };
 
 

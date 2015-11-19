@@ -97,7 +97,7 @@ uint16_t u16;
 
 	mmio->addAtAddress( sysm, 0x10000 );
 
-	root->addAtAddress( mmio, 8192 );
+	root->addAtAddress( mmio, INoSsiDev::SRP_UDP_V2, 8192 );
 
 	// can use raw memory for testing instead of UDP
 	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );

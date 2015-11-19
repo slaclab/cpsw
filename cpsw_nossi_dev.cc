@@ -3,8 +3,14 @@
 
 typedef shared_ptr<NoSsiDevImpl> NoSsiDevImplP;
 
-UdpAddressImpl::UdpAddressImpl(AKey k, unsigned short dport, unsigned timeoutUs, unsigned retryCnt)
-:AddressImpl(k), dport(dport), sd(-1), timeoutUs(timeoutUs), retryCnt(retryCnt)
+UdpAddressImpl::UdpAddressImpl(AKey k, NoSsiDevImpl::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
+:AddressImpl(k),
+ protoVersion(version),
+ dport(dport),
+ sd(-1),
+ timeoutUs(timeoutUs),
+ retryCnt(retryCnt),
+ vc(vc)
 {
 struct sockaddr_in dst, me;
 NoSsiDevImplP owner( getOwnerAs<NoSsiDevImplP>() );
@@ -78,7 +84,7 @@ uint64_t UdpAddressImpl::read(CompositePathIterator *node, IField::Cacheable cac
 {
 uint32_t bufh[4];
 uint8_t  buft[4];
-uint32_t xbuf[4];
+uint32_t xbuf[5];
 uint32_t status;
 int      i, j, put;
 int      headbytes = (off & 3);
@@ -87,6 +93,7 @@ struct msghdr mh;
 struct iovec  iov[4];
 int      got;
 int      nw;
+int      expected = 0;
 
 	if ( dbytes < sbytes )
 		sbytes = dbytes;
@@ -98,13 +105,19 @@ int      nw;
 
 	nw = (totbytes + 3)/4;
 
-	put = 0;
+	put = expected = 0;
+	if ( protoVersion == SRP_UDP_V1 ) {
+		xbuf[put++] = vc << 24;
+		expected++;
+	}
 	xbuf[put++] = 0;
 	xbuf[put++] = (off >> 2) & 0x3fffffff;
 	xbuf[put++] = nw - 1;
 	xbuf[put++] = 0;
+	expected += 3;
 
-	if ( BE == hostByteOrder() ) {
+	// V2 uses LE, V1 network (aka BE) layout
+	if ( ( protoVersion == SRP_UDP_V2 ? BE : LE ) == hostByteOrder() ) {
 		for ( j=0; j<put; j++ ) {
 			swp( (uint8_t*)&xbuf[j], sizeof(xbuf[j]));
 		}
@@ -156,10 +169,10 @@ int      nw;
 				for ( i=0; i<sbytes; i++ )
 					printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
 #endif
-			if ( got != (int)sizeof(bufh[0])*(nw + 3) ) {
+			if ( got != (int)sizeof(bufh[0])*(nw + expected) ) {
 				throw IOError("Received message truncated");
 			}
-			if ( BE == hostByteOrder() ) {
+			if ( ( protoVersion == SRP_UDP_V2 ? BE : LE ) == hostByteOrder() ) {
 				swp( (uint8_t*)&status, sizeof(status) );
 			}
 			// TODO: check status word here
@@ -245,10 +258,13 @@ int      nw;
 	}
 
 	put = 0;
+	if ( protoVersion == SRP_UDP_V1 ) {
+		xbuf[put++] = vc << 24;
+	}
 	xbuf[put++] = 0;
 	xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
 
-	if ( BE == hostByteOrder() ) {
+	if ( (protoVersion == SRP_UDP_V2 ? BE : LE) == hostByteOrder() ) {
 		for ( j=0; j<put; j++ ) {
 			swp( (uint8_t*)&xbuf[j], sizeof(xbuf[j]));
 		}
@@ -264,7 +280,7 @@ int      nw;
 
 	i = 0;
 	iov[i].iov_base = xbuf;
-	iov[i].iov_len  = 8;
+	iov[i].iov_len  = sizeof(xbuf[0])*put;
 	i++;
 
 	if ( merge_first ) {
@@ -326,10 +342,10 @@ int      nw;
 	throw InternalError("FIXME -- need I/O Error here");
 }
 
-void NoSsiDevImpl::addAtAddress(Field child, unsigned dport, unsigned timeoutUs, unsigned retryCnt)
+void NoSsiDevImpl::addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
 {
 AKey k = getAKey();
-	add( make_shared<UdpAddressImpl>(k, dport, timeoutUs, retryCnt), child );
+	add( make_shared<UdpAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc), child );
 }
 
 NoSsiDev INoSsiDev::create(const char *name, const char *ipaddr)
