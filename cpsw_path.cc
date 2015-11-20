@@ -73,6 +73,11 @@ public:
 		return pe.c_p;
 	}
 
+	virtual unsigned    getNelms() const
+	{
+		return tailAsPathEntry().nelmsLeft;
+	}
+
 	virtual bool verifyAtTail(Path p);
 	virtual bool verifyAtTail(ConstDevImpl c);
 
@@ -81,7 +86,6 @@ public:
 	virtual void append(Address, int, int);
 
 	virtual Path concat(Path p) const;
-
 
 	virtual ConstDevImpl parentAsDevImpl() const;
 
@@ -100,7 +104,8 @@ public:
 	virtual ~PathImpl();
 };
 
-PathEntry::PathEntry(Address a, int idxf, int idxt) : c_p(a), idxf(idxf), idxt(idxt)
+PathEntry::PathEntry(Address a, int idxf, int idxt, unsigned nelmsLeft)
+: c_p(a), idxf(idxf), idxt(idxt), nelmsLeft( nelmsLeft )
 {
 	if ( idxf < 0 )
 		idxf = 0;
@@ -112,6 +117,7 @@ PathEntry::PathEntry(Address a, int idxf, int idxt) : c_p(a), idxf(idxf), idxt(i
 			idxt = n;
 		if ( idxt < idxf )
 			idxt = idxf;
+		this->nelmsLeft *= idxt - idxf + 1;
 	} else {
 		idxt = -1;
 	}
@@ -386,7 +392,7 @@ cout<<"looking for: " << key << " in: " << h->getName() << "\n";
 			throw InvalidPathError( s );
 		}
 
-		p->push_back( PathEntry(found, idxf, idxt) );
+		p->push_back( PathEntry(found, idxf, idxt, p->getNelms()) );
 
 	} while ( (s = sl) != NULL );
 
@@ -429,8 +435,11 @@ static void append2(PathImpl *h, PathImpl *t)
 
 	PathImpl::iterator it = t->begin();
 
+	unsigned nelmsLeft = h->getNelms();
 	for ( ++it /* skip marker */;  it != t->end(); ++it ) {
-		h->push_back( *it );
+		PathEntry e = *it;
+		e.nelmsLeft *= nelmsLeft;
+		h->push_back( e );
 	}
 }
 
@@ -464,7 +473,7 @@ void PathImpl::append(Address a, int f, int t)
 	if ( ! verifyAtTail( a->getOwnerAsDevImpl() ) ) {
 		throw InvalidPathError( Path( this ) );
 	}
-	push_back( PathEntry(a, f, t) );
+	push_back( PathEntry(a, f, t, getNelms()) );
 }
 
 void PathImpl::append(Address a)
@@ -495,8 +504,13 @@ void CompositePathIterator::append(Path p)
 	if ( ! validConcatenation( p ) ) {
 		throw InvalidPathError(p);
 	}
-	if ( ! atEnd() )
+	if ( ! atEnd() ) {
 		l.push_back( *this );
+		nelmsLeft *= (*this)->nelmsLeft;
+	} else {
+		if ( nelmsLeft != 1 )
+			throw InternalError("assertion failed: nelmsLeft should == 1 at this point");
+	}
 	PathImpl::reverse_iterator::operator=( rbegin(p) );
 	at_end     = false;
 	nelmsRight = 1;
@@ -506,6 +520,7 @@ CompositePathIterator::CompositePathIterator(Path *p0, Path *p, ...)
 {
 	va_list ap;
 	va_start(ap, p);
+	nelmsLeft = 1;
 	if ( ! (at_end = (*p0)->empty()) ) {
 		PathImpl::reverse_iterator::operator=( rbegin(*p0) );
 	}
@@ -519,6 +534,7 @@ CompositePathIterator::CompositePathIterator(Path *p0, Path *p, ...)
 
 CompositePathIterator::CompositePathIterator(Path *p)
 {
+	nelmsLeft  = 1;
 	if ( ! (at_end = (*p)->empty()) ) {
 		PathImpl::reverse_iterator::operator=( rbegin(*p) );
 	}
@@ -533,8 +549,12 @@ CompositePathIterator & CompositePathIterator::operator++()
 		if ( ! l.empty() ) {
 			PathImpl::reverse_iterator::operator=(l.back());
 			l.pop_back();
+			nelmsLeft /= (*this)->nelmsLeft;
 		} else {
 			at_end = true;
+			if ( nelmsLeft != 1 ) {
+				throw InternalError("assertion failed: nelmsLeft should equal 1");
+			}
 		}
 	}
 	return *this;
@@ -561,7 +581,7 @@ void CompositePathIterator::dump(FILE *f) const
 {
 CompositePathIterator tmp = *this;
 	while ( ! tmp.atEnd() ) {
-		fprintf(f, "%s<", tmp->c_p->getName());
+		fprintf(f, "%s[%i-%i]<", tmp->c_p->getName(), tmp->idxf, tmp->idxt);
 		++tmp;
 	}
 	fprintf(f, "\n");

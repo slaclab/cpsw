@@ -85,6 +85,8 @@ public:
 	// make a copy of this path
 	virtual Path        clone()                const = 0;
 
+	virtual unsigned    getNelms()             const = 0;
+
 	// create an empty path
 	static  Path        create();             // absolute; starting at root
 	static  Path        create(Hub);          // relative; starting at passed arg
