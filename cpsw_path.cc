@@ -424,7 +424,8 @@ bool PathImpl::verifyAtTail(ConstDevImpl h)
 		originDev = h;
 		return true;
 	} 
-	return (void*)h.get() == (void*)back().c_p->getEntryImpl().get();
+	return (    static_pointer_cast<Entry::element_type, ConstDevImpl::element_type>( h )
+             == static_pointer_cast<Entry::element_type, EntryImpl::element_type>( back().c_p->getEntryImpl() ) );
 }
 
 
@@ -436,7 +437,7 @@ static void append2(PathImpl *h, PathImpl *t)
 	PathImpl::iterator it = t->begin();
 
 	unsigned nelmsLeft = h->getNelms();
-	for ( ++it /* skip marker */;  it != t->end(); ++it ) {
+	for ( ;  it != t->end(); ++it ) {
 		PathEntry e = *it;
 		e.nelmsLeft *= nelmsLeft;
 		h->push_back( e );
@@ -488,7 +489,8 @@ bool CompositePathIterator::validConcatenation(Path p)
 		return true;
 	if ( p->empty() )
 		return false;
-	return ( (void*)(*this)->c_p->getEntryImpl().get() == (void*)p->origin().get() );
+	return (    static_pointer_cast<Entry::element_type, Hub::element_type      >( p->origin() )
+             == static_pointer_cast<Entry::element_type, EntryImpl::element_type>( (*this)->c_p->getEntryImpl() ) );
 }
 
 static PathImpl::reverse_iterator rbegin(Path p)
