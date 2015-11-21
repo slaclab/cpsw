@@ -59,24 +59,43 @@ main(int argc, char **argv)
 {
 const char *ip_addr = "192.168.2.10";
 bool        use_mem = false;
+int        *i_p;
+int         vers    = 2;
+bool        use_srv = false;
+unsigned sizes[]    = { 1, 4, 8, 12, 16, 22, 32, 45 };
+unsigned lsbs[]     = { 0, 3 };
+unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 
-	for ( int opt; (opt = getopt(argc, argv, "a:m")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S")) > 0; ) {
+		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg; break;
 			case 'm': use_mem = true;   break;
+			case 'V': i_p     = &vers;  break;
+			case 'S': use_srv = true;   break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
-				exit(1);
+				throw TestFailed();
 		}
+		if ( i_p && 1 != sscanf(optarg, "%i", i_p) ) {
+			fprintf(stderr,"Unable to scan argument to option '-%c'\n", opt);
+			throw TestFailed();
+		}
+	}
+
+	if ( vers != 1 && vers != 2 ) {
+		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
+		throw TestFailed();
 	}
 
 try {
 
 NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
 MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
-AXIVers   axiv = IAXIVers::create("vers");
+AXIVers   axiv = IAXIVers::create ("vers");
 MMIODev   sysm = IMMIODev::create ("sysm",0x1000, LE);
 MemDev    rmem = IMemDev::create  ("rmem", 0x100000);
+MMIODev   srvm = IMMIODev::create ("srvm",0x1000, LE);
 
 uint8_t str[VLEN];
 int16_t adcv[ADCL];
@@ -94,10 +113,15 @@ uint16_t u16;
 	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
 
 	mmio->addAtAddress( axiv, 0x00000 );
+	if ( use_srv ) {
+		mmio->addAtAddress( srvm, 0x1000 );
+	}
 
 	mmio->addAtAddress( sysm, 0x10000 );
 
-	root->addAtAddress( mmio, INoSsiDev::SRP_UDP_V2, 8192 );
+
+
+	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, 8192 );
 
 	// can use raw memory for testing instead of UDP
 	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );
@@ -109,8 +133,45 @@ uint16_t u16;
 	ScalVal  scratchPad = IScalVal::create   ( pre->findByName("mmio/vers/scratchPad") );
 	ScalVal        bits = IScalVal::create   ( pre->findByName("mmio/vers/bits") );
 
+
 	ScalVal_RO adcs = IScalVal_RO::create( pre->findByName("mmio/sysm/adcs") );
 
+	Path pre1 = pre->findByName("mmio/srvm");
+
+	if ( use_srv ) {
+		uint64_t v_expect = 0x0123456789abcdefUL;
+		uint64_t v_got, v;
+		unsigned size_idx, lsb_idx, off_idx;
+		char nam[100];
+		for ( size_idx = 0; size_idx < sizeof(sizes)/sizeof(sizes[0]); size_idx++ ) {
+			for ( lsb_idx = 0; lsb_idx < sizeof(lsbs)/sizeof(lsbs[0]); lsb_idx++ ) {
+				for ( off_idx = 0; off_idx < sizeof(offs)/sizeof(offs[0]); off_idx++ ) {
+					if ( offs[off_idx] + (sizes[size_idx] + lsbs[lsb_idx] + 7)/8 > 8 )
+						continue;
+					sprintf(nam,"v-%i-%i-%i-be",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
+					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx]    , 1, IMMIODev::STRIDE_AUTO, BE ); 
+					ScalVal_RO v_be = IScalVal_RO::create( pre1->findByName(nam) );
+					sprintf(nam,"v-%i-%i-%i-le",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
+					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx] + 8, 1, IMMIODev::STRIDE_AUTO, LE ); 
+					ScalVal_RO v_le = IScalVal_RO::create( pre1->findByName(nam) );
+
+					v_le->getVal( &v_got, 1 );
+					uint64_t shft_le = (offs[off_idx]*8 + lsbs[lsb_idx]);
+					if ( v_got != (v = ((v_expect >> shft_le) & ((((uint64_t)1)<<sizes[size_idx]) - 1 ))) ) {
+						fprintf(stderr,"Mismatch (%s - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_le->getName(), v_le->getSizeBits(), sizes[size_idx], v_got, v);
+						throw TestFailed();
+					}
+
+					v_be->getVal( &v_got, 1 );
+					uint64_t shft_be = ((sizeof(v_expect) - (offs[off_idx] + v_be->getSize()))*8 + lsbs[lsb_idx]);
+					if ( v_got != (v = ((v_expect >> shft_be) & ((((uint64_t)1)<<sizes[size_idx]) - 1 ))) ) {
+						fprintf(stderr,"Mismatch (%s - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_be->getName(), v_be->getSizeBits(), sizes[size_idx], v_got, v);
+						throw TestFailed();
+					}
+				}
+			}
+		}
+	}
 
 	bldStamp->getVal( str, sizeof(str)/sizeof(str[0]) );
 
@@ -148,6 +209,5 @@ uint16_t u16;
 	throw;
 }
 
-// 8192
 	return 0;
 }

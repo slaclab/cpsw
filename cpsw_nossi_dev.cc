@@ -1,5 +1,5 @@
 #include <cpsw_nossi_dev.h>
-#include <stdint.h>
+#include <inttypes.h>
 
 typedef shared_ptr<NoSsiDevImpl> NoSsiDevImplP;
 
@@ -77,6 +77,7 @@ unsigned int k;
 	}
 }
 
+
 #define CMD_READ  0x00000000
 #define CMD_WRITE 0x40000000
 	
@@ -85,12 +86,14 @@ uint64_t UdpAddressImpl::read(CompositePathIterator *node, IField::Cacheable cac
 uint32_t bufh[4];
 uint8_t  buft[4];
 uint32_t xbuf[5];
+uint32_t header;
 uint32_t status;
 int      i, j, put;
 int      headbytes = (off & 3);
+int      tailbytes = 0;
 int      totbytes;
 struct msghdr mh;
-struct iovec  iov[4];
+struct iovec  iov[5];
 int      got;
 int      nw;
 int      expected = 0;
@@ -101,12 +104,15 @@ int      expected = 0;
 	if ( sbytes == 0 )
 		return 0;
 
+	bool doSwapV1 = (INoSsiDev::SRP_UDP_V1 == protoVersion);
+	bool doSwap   =	( ( protoVersion == INoSsiDev::SRP_UDP_V2 ? BE : LE ) == hostByteOrder() );
+
 	totbytes = headbytes + sbytes;
 
 	nw = (totbytes + 3)/4;
 
 	put = expected = 0;
-	if ( protoVersion == SRP_UDP_V1 ) {
+	if ( protoVersion == INoSsiDev::SRP_UDP_V1 ) {
 		xbuf[put++] = vc << 24;
 		expected++;
 	}
@@ -117,7 +123,7 @@ int      expected = 0;
 	expected += 3;
 
 	// V2 uses LE, V1 network (aka BE) layout
-	if ( ( protoVersion == SRP_UDP_V2 ? BE : LE ) == hostByteOrder() ) {
+	if ( doSwap ) {
 		for ( j=0; j<put; j++ ) {
 			swp( (uint8_t*)&xbuf[j], sizeof(xbuf[j]));
 		}
@@ -130,6 +136,11 @@ int      expected = 0;
 	mh.msg_flags      = 0;
 
 	i = 0;
+	if ( protoVersion == INoSsiDev::SRP_UDP_V1 ) {
+		iov[i].iov_base = &header;
+		iov[i].iov_len  = sizeof( header );
+		i++;
+	}
 	iov[i].iov_base = bufh;
 	iov[i].iov_len  = 8 + headbytes;
 	i++;
@@ -139,9 +150,10 @@ int      expected = 0;
 	i++;
 
 	if ( totbytes & 3 ) {
+		tailbytes = sizeof(uint32_t) - (totbytes & 3);
 		// padding if not word-aligned
 		iov[i].iov_base = buft;
-		iov[i].iov_len  = 4 - (totbytes & 3);
+		iov[i].iov_len  = tailbytes;
 		i++;
 	}
 
@@ -160,20 +172,72 @@ int      expected = 0;
 		}
 
 		if ( (got = ::recvmsg( sd, &mh, 0 )) > 0 ) {
-#if 0
-			printf("got %i bytes, sbytes %i, nw %i\n", got, sbytes, nw);
+#ifdef NOSSI_DEBUG
+			printf("got %i bytes, off 0x%"PRIx64", sbytes %i, nw %i\n", got, off, sbytes, nw);
 				printf("got %i bytes\n", got);
 				for (i=0; i<2; i++ )
 					printf("header[%i]: %x\n", i, bufh[i]);
-
-				for ( i=0; i<sbytes; i++ )
+				for ( i=0; i<headbytes; i++ ) {
+					printf("headbyte[%i]: %x\n", i, ((uint8_t*)&bufh[2])[i]);
+				}
+			
+				for ( i=0; (unsigned)i<sbytes; i++ ) {
 					printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
+				}
+
+				for ( i=0; i < tailbytes; i++ ) {
+					printf("tailbyte[%i]: %x\n", i, buft[i]);
+				}
 #endif
 			if ( got != (int)sizeof(bufh[0])*(nw + expected) ) {
 				throw IOError("Received message truncated");
 			}
-			if ( ( protoVersion == SRP_UDP_V2 ? BE : LE ) == hostByteOrder() ) {
+			if ( doSwapV1 ) {
+				// switch payload back to LE
+				uint8_t tmp[4];
+				unsigned hoff = 0;
+				if ( headbytes ) {
+					hoff += sizeof(uint32_t) - headbytes;
+					memcpy(tmp, &bufh[2], headbytes);
+					if ( hoff > sbytes ) {
+						// special case where a single word covers bufh, dst and buft
+						memcpy(tmp+headbytes,        dst , sbytes);
+						// note: since headbytes < 4 -> hoff < 4
+						//       and since sbytes < hoff -> sbytes < 4 -> sbytes == sbytes % 4
+						//       then we have: headbytes = off % 4
+						//                     totbytes  = off % 4 + sbytes  and totbytes % 4 == (off + sbytes) % 4 == headbytes + sbytes
+						//                     tailbytes =  4 - (totbytes % 4)
+						//       and thus: headbytes + tailbytes + sbytes  == 4
+						memcpy(tmp+headbytes+sbytes, buft, tailbytes);
+					} else {
+						memcpy(tmp+headbytes, dst, hoff);
+					}
+#ifdef NOSSI_DEBUG
+for (i=0; i<4; i++) printf("headbytes tmp[%i]: %x\n", i, tmp[i]);
+#endif
+					swp(tmp, sizeof(tmp));
+					memcpy(dst, tmp+headbytes, hoff);
+				}
+				int jend =(((int)(sbytes - hoff)) & ~(sizeof(uint32_t)-1));
+				for ( j = 0; j < jend; j+=sizeof(uint32_t) ) {
+					swp(dst + hoff + j, sizeof(uint32_t));
+				}
+				if ( tailbytes && (hoff <= sbytes) ) { // cover the special case mentioned above
+					memcpy(tmp, dst + hoff + j, sizeof(uint32_t) - tailbytes);
+					memcpy(tmp + sizeof(uint32_t) - tailbytes, buft, tailbytes);
+#ifdef NOSSI_DEBUG
+for (i=0; i<4; i++) printf("tailbytes tmp[%i]: %"PRIx8"\n", i, tmp[i]);
+#endif
+					swp(tmp, sizeof(uint32_t));
+					memcpy(dst + hoff + j, tmp, sizeof(uint32_t) - tailbytes);
+				}
+#ifdef NOSSI_DEBUG
+for ( i=0; i< (int)sbytes; i++ ) printf("swapped dst[%i]: %x\n", i, dst[i]);
+#endif
+			}
+			if ( doSwap ) {
 				swp( (uint8_t*)&status, sizeof(status) );
+				swp( (uint8_t*)&header, sizeof(header) );
 			}
 			// TODO: check status word here
 			return sbytes;
@@ -187,6 +251,7 @@ uint64_t UdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable ca
 {
 uint32_t xbuf[4];
 uint32_t status;
+uint32_t header;
 uint32_t zero = 0;
 uint8_t  first_word[4];
 uint8_t  last_word[4];
@@ -194,7 +259,7 @@ int      i, j, put;
 int      headbytes = (off & 3);
 int      totbytes;
 struct msghdr mh;
-struct iovec  iov[4];
+struct iovec  iov[5];
 int      got;
 int      nw;
 
@@ -203,6 +268,10 @@ int      nw;
 
 	if ( dbytes == 0 )
 		return 0;
+
+	// these look similar but are different...
+	bool doSwapV1 = (protoVersion == INoSsiDev::SRP_UDP_V1);
+	bool doSwap   = ((protoVersion == INoSsiDev::SRP_UDP_V2 ? BE : LE) == hostByteOrder() );
 
 	totbytes = headbytes + dbytes;
 
@@ -223,6 +292,9 @@ int      nw;
 		int first_byte = headbytes;
 
 		read(node, cacheable, first_word, sizeof(first_word), off & ~3ULL, sizeof(first_word));
+
+		if ( doSwapV1 )
+			swp( first_word, sizeof(first_word) );
 
 		first_word[ first_byte  ] = (first_word[ first_byte ] & msk1) | (src[0] & ~msk1);
 
@@ -245,7 +317,12 @@ int      nw;
 		}
 
 		if ( merge_last ) {
+
 			read(node, cacheable, last_word, sizeof(last_word), (off + dbytes) & ~3ULL, sizeof(last_word));
+
+			if ( doSwapV1 )
+				swp( last_word, sizeof(last_word) );
+
 			int last_byte = (totbytes-1) & 3;
 			last_word[ last_byte  ] = (last_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
 			toput--;
@@ -258,13 +335,13 @@ int      nw;
 	}
 
 	put = 0;
-	if ( protoVersion == SRP_UDP_V1 ) {
+	if ( protoVersion == INoSsiDev::SRP_UDP_V1 ) {
 		xbuf[put++] = vc << 24;
 	}
 	xbuf[put++] = 0;
 	xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
 
-	if ( (protoVersion == SRP_UDP_V2 ? BE : LE) == hostByteOrder() ) {
+	if ( doSwap ) {
 		for ( j=0; j<put; j++ ) {
 			swp( (uint8_t*)&xbuf[j], sizeof(xbuf[j]));
 		}
@@ -284,6 +361,8 @@ int      nw;
 	i++;
 
 	if ( merge_first ) {
+		if ( doSwapV1 ) 
+			swp( first_word, sizeof(first_word) );
 		iov[i].iov_base = first_word;
 		iov[i].iov_len  = 4;
 		i++;
@@ -292,10 +371,18 @@ int      nw;
 	if ( toput > 0 ) {
 		iov[i].iov_base = src + (merge_first ? 4 - headbytes : 0);
 		iov[i].iov_len  = toput;
+
+		if ( doSwapV1 ) {
+			for ( j = 0; j<toput; j += sizeof(uint32_t) ) {
+				swp( (uint8_t*)iov[i].iov_base + j, sizeof(uint32_t));
+			}
+		}
 		i++;
 	}
 
 	if ( merge_last ) {
+		if ( doSwapV1 )
+			swp( last_word, sizeof(last_word) );
 		iov[i].iov_base = last_word;
 		iov[i].iov_len  = 4;
 		i++;
@@ -312,6 +399,9 @@ int      nw;
 	unsigned attempt = 0;
 	do {
 		int     bufsz = (nw+3)*4;
+		if ( protoVersion == INoSsiDev::SRP_UDP_V1 ) {
+			bufsz += sizeof(uint32_t);
+		}
 		uint8_t rbuf[bufsz];
 		if ( bufsz != ::sendmsg( sd, &mh, 0 ) ) {
 			throw InternalError("FIXME -- need I/O Error here");
@@ -330,10 +420,18 @@ int      nw;
 			if ( got != bufsz ) {
 				throw InternalError("FIXME -- need I/O Error here");
 			}
-			if ( BE == hostByteOrder() ) {
-				swp( rbuf-4, 4 );
+			if ( protoVersion == INoSsiDev::SRP_UDP_V1 ) {
+				if ( LE == hostByteOrder() ) {
+					swp( rbuf, 4 );
+				}
+				memcpy( &header, rbuf,  4 );
+			} else {
+				header = 0;
 			}
-			memcpy( &status, rbuf-4, 4 );
+			if ( doSwap ) {
+				swp( rbuf + got - 4, 4 );
+			}
+			memcpy( &status, rbuf + got - 4, 4 );
 			// TODO: check status word here
 			return dbytes;
 		}

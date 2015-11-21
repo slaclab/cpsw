@@ -31,16 +31,24 @@ union { uint16_t s; uint8_t c[2]; } u = { .s = 1 };
 }
 
 // protocol wants LE
-#define bs32(x) swp32(LE, x)
+#define bs32(v1, x) swp32(v1 ? BE : LE, x)
 
-				fprintf(stderr, "usage: %s -a <inet_addr> -p <port>\n", argv[0]);
 
 uint8_t mem[1024*1024] = {0};
 
 static void usage(const char *nm)
 {
-	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-1]\n", nm);
-	fprintf(stderr, "        -1   : protocol version V1 (V2 default)\n");
+	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-V <protoVersion>]\n", nm);
+	fprintf(stderr, "        -V version  : protocol version V1 (V2 default)\n");
+}
+
+static void payload_swap(int v1, uint32_t *buf, int nelms)
+{
+int i;
+	if ( ! v1 )
+		return;
+	for ( i=0; i<nelms; i++ )
+		buf[i] = __builtin_bswap32( buf[i] );
 }
 
 int
@@ -50,7 +58,7 @@ int sd = -1;
 int rval = 1;
 struct   sockaddr_in me, you;
 uint32_t rbuf[2048];
-int      n, got;
+int      n, got, put;
 uint32_t addr = 0;
 uint32_t size = 16;
 char *c_a;
@@ -59,16 +67,28 @@ int        port = 0;
 const char *ina = 0;
 socklen_t  youlen;
 unsigned off;
-int      v1 = 0;
+int      vers = 2;
+int      v1;
+uint32_t header = 0;
 
-	while ( (got = getopt(argc, argv, "p:a:1h")) > 0 ) {
+struct msghdr mh;
+struct iovec  iov[2];
+int    niov = 0;
+int    i;
+int    expected;
+
+	memset( &mh, 0, sizeof(mh) );
+
+	sprintf(mem + 0x800, "Hello");
+
+	while ( (got = getopt(argc, argv, "p:a:V:h")) > 0 ) {
 		c_a = 0;
 		i_a = 0;
 		switch ( got ) {
 			case 'h': usage(argv[0]); return 0;
 			case 'p': i_a = &port;    break;
 			case 'a': ina = optarg;   break;
-			case '1': v1 = 1;         break;
+			case 'V': i_a = &vers;    break;
 			default:
 				fprintf(stderr, "unknown option '%c'\n", got);
 				usage(argv[0]);
@@ -76,11 +96,18 @@ int      v1 = 0;
 		}
 		if ( i_a ) {
 			if ( 1 != sscanf(optarg,"%i",i_a) ) {
-				fprintf(stderr,"Unable to scan option '-%c' argument '%s'\n", opt, optarg);
+				fprintf(stderr,"Unable to scan option '-%c' argument '%s'\n", got, optarg);
 				return 1;
 			}
 		}
 	}
+
+	if ( vers != 1 && vers != 2 ) {
+		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
+		return 1;
+	}
+
+	v1 = (vers == 1);
 
 	if ( (sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
 		perror("socket");
@@ -100,23 +127,49 @@ int      v1 = 0;
 		goto bail;
 	}
 
+	expected = 12;
+
+	if ( v1 ) {
+		header = bs32( v1, 0 );
+		iov[niov].iov_base = &header;
+		iov[niov].iov_len  = sizeof(header);
+		expected += 4;
+		niov++;
+	}
+
+	for ( i=0; i<16; i+=2 ) {
+		mem[0x1000+i/2]    = (i<<4)|(i+1);
+		mem[0x1000+15-i/2] = (i<<4)|(i+1);
+	}
+
 	while ( 1 ) {
 
 		youlen = sizeof(you);
-		got = recvfrom(sd, (void*)rbuf, sizeof(rbuf), 0, (struct sockaddr*)&you, &youlen );
+
+		memset( &mh, 0, sizeof(mh) );
+		mh.msg_name    = (struct sockaddr*)&you;
+		mh.msg_namelen = sizeof(you);
+
+		iov[niov].iov_base = rbuf;
+		iov[niov].iov_len  = sizeof(rbuf);
+
+		mh.msg_iov    = iov;
+		mh.msg_iovlen = niov + 1;
+
+		got = recvmsg(sd, &mh, 0);
 		if ( got < 0 ) {
 			perror("read");
 			goto bail;
 		}
 
-		addr = bs32(  rbuf[1] );
+		addr = bs32(v1,  rbuf[1] );
 
 		off = CMD_ADDR(addr);
 
 		if ( CMD_IS_RD(addr) ) {
-			size = bs32(  rbuf[2] ) + 1;
+			size = bs32(v1,  rbuf[2] ) + 1;
 		} else {
-			size = (got - 12)/4;
+			size = (got - expected)/4;
 		}
 
 		if ( off + 4*size > sizeof(mem) ) {
@@ -126,8 +179,10 @@ int      v1 = 0;
 		} else {
 			if ( CMD_IS_RD(addr) ) {
 				memcpy((void*) &rbuf[2], mem+off, size*4);
+				payload_swap( v1, &rbuf[2], size );
 			} else {
-				memcpy(mem + off, (void*)&rbuf[2], got-12);
+				payload_swap( v1, &rbuf[2], (got-expected)/4 );
+				memcpy(mem + off, (void*)&rbuf[2], got-expected);
 			}
 			memset((void*) &rbuf[2+size], 0, 4);
 
@@ -145,12 +200,15 @@ int      v1 = 0;
 			if ( n & 15 )
 				printf("\n");
 		}
-		bs32( rbuf[2+size] );
+		bs32(v1, rbuf[2+size] );
 
-		if ( sendto( sd, (void*)rbuf, (size+3)*4, 0, (struct sockaddr*)&you, sizeof(you) ) < 0 ) {
+		iov[niov].iov_len = (size+3)*4;
+
+		if ( (put = sendmsg( sd, &mh, 0 )) < 0 ) {
 			perror("unable to send");
 			goto bail;
 		}
+printf("put %i\n", put);
 
 	}
 
