@@ -347,7 +347,7 @@ Hub PathImpl::parent() const
 PathImpl::const_reverse_iterator it = rend();
 	++it; // rend points after last el
 	++it; // if empty this points at the NULL marker element
-	return hasParent( it ) ? boost::dynamic_pointer_cast<const IHub, const IChild>(it->c_p) : NULLHUB;
+	return hasParent( it ) ? dynamic_pointer_cast<const IHub, const IChild>(it->c_p) : NULLHUB;
 }
 
 bool PathImpl::verifyAtTail(Hub h)

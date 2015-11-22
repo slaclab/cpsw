@@ -13,12 +13,13 @@ class NoSsiDevImpl;
 class UdpAddressImpl : public AddressImpl {
 private:            
 	INoSsiDev::ProtocolVersion protoVersion;
-	unsigned short  dport;
-	int             sd;
-	unsigned        timeoutUs;
-	unsigned        retryCnt;
-	uint8_t         vc;
-	bool            needSwap;
+	unsigned short   dport;
+	int              sd;
+	unsigned         timeoutUs;
+	unsigned         retryCnt;
+	uint8_t          vc;
+	bool             needSwap;
+	mutable uint32_t tid;
 public:
 	UdpAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
 	virtual ~UdpAddressImpl();
@@ -32,6 +33,7 @@ public:
 	virtual INoSsiDev::ProtocolVersion getProtoVersion() const { return protoVersion; }
 	virtual uint8_t  getVC()                             const { return vc; }
 	virtual unsigned short getDport()                    const { return dport; }
+	virtual uint32_t getTid()                            const { return ++tid; }
 };
 
 class NoSsiDevImpl : public DevImpl, public virtual INoSsiDev {

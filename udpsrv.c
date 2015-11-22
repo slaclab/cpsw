@@ -15,6 +15,13 @@
 #define CMD_IS_WR(x) (((x)&0xc0000000) == 0x40000000)
 #define CMD_ADDR(x)  ( (x)<<2 )
 
+#define REGBASE 0x1000 /* pseudo register space */
+#define REG_RO_OFF 0
+#define REG_RO_SZ 16
+#define REG_CLR_OFF REG_RO_SZ
+#define REG_SCR_OFF REG_CLR_OFF + 8
+#define REG_SCR_SZ  32
+
 // byte swap ? 
 #define bsl(x) (x)
 
@@ -63,8 +70,8 @@ uint32_t addr = 0;
 uint32_t size = 16;
 char *c_a;
 int  *i_a;
-int        port = 0;
-const char *ina = 0;
+int        port = 8192;
+const char *ina = "127.0.0.1";
 socklen_t  youlen;
 unsigned off;
 int      vers = 2;
@@ -138,8 +145,8 @@ int    expected;
 	}
 
 	for ( i=0; i<16; i+=2 ) {
-		mem[0x1000+i/2]    = (i<<4)|(i+1);
-		mem[0x1000+15-i/2] = (i<<4)|(i+1);
+		mem[REGBASE+i/2]    = (i<<4)|(i+1);
+		mem[REGBASE+15-i/2] = (i<<4)|(i+1);
 	}
 
 	while ( 1 ) {
@@ -182,7 +189,33 @@ int    expected;
 				payload_swap( v1, &rbuf[2], size );
 			} else {
 				payload_swap( v1, &rbuf[2], (got-expected)/4 );
-				memcpy(mem + off, (void*)&rbuf[2], got-expected);
+				if ( off <= REGBASE + REG_RO_OFF && off + 4*size >= REGBASE + REG_RO_OFF + REG_RO_SZ ) {
+					/* disallow write; set status */
+					memset(&rbuf[2+size], 0xff, 4);
+#ifdef DEBUG
+printf("Rejecting write to read-only region\n");
+#endif
+				} else {
+					memcpy(mem + off, (void*)&rbuf[2], got-expected);
+					if ( off <= REGBASE + REG_CLR_OFF && off + 4*size >= REGBASE + REG_CLR_OFF + 4 ) {
+						if (    mem[REGBASE + REG_CLR_OFF]
+						     || mem[REGBASE + REG_CLR_OFF + 1]
+						     || mem[REGBASE + REG_CLR_OFF + 2]
+						     || mem[REGBASE + REG_CLR_OFF + 3]
+						   ) {
+							memset( mem + REGBASE + REG_SCR_OFF, 0xff, REG_SCR_SZ );
+#ifdef DEBUG
+printf("Setting\n");
+#endif
+						} else {
+							memset( mem + REGBASE + REG_SCR_OFF, 0x00, REG_SCR_SZ );
+#ifdef DEBUG
+printf("Clearing\n");
+#endif
+						}
+						memset( mem + REGBASE + REG_CLR_OFF, 0xaa, 4 );
+					}
+				}
 			}
 			memset((void*) &rbuf[2+size], 0, 4);
 
