@@ -2,6 +2,8 @@
 #define CPSW_ADDRESS_H
 
 #include <cpsw_api_builder.h>
+#include <cpsw_entry.h>
+
 #include <stdio.h>
 //#include <cpsw_hub.h>
 
@@ -62,6 +64,7 @@ class IAddress : public IChild {
 		virtual Address clone(DevImpl) = 0;
 
 		virtual ~IAddress() {}
+
 };
 
 #define NULLCHILD Child( static_cast<IChild *>(NULL) )

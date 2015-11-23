@@ -4,6 +4,7 @@
 #include <list>
 #include <vector>
 #include <cpsw_api_user.h>
+
 #include <cstdarg>
 
 class IAddress;
@@ -21,13 +22,6 @@ struct PathEntry {
 };
 
 typedef std::vector<PathEntry>  PathEntryContainer;
-
-class IPathImpl : public IPath {
-public:
-	virtual PathEntry    tailAsPathEntry() const = 0;
-	virtual ConstDevImpl originAsDevImpl() const = 0;
-	virtual ConstDevImpl parentAsDevImpl() const = 0;
-};
 
 // NOTE: all paths supplied to the constructor(s) must remain valid
 // and unmodified (at least from the beginning up to the node which
@@ -77,5 +71,14 @@ class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 
 		void dump(FILE *f) const;
 };
+
+class IPathImpl : public IPath {
+public:
+	virtual PathEntry    tailAsPathEntry() const = 0;
+	virtual ConstDevImpl originAsDevImpl() const = 0;
+	virtual ConstDevImpl parentAsDevImpl() const = 0;
+
+};
+
 
 #endif

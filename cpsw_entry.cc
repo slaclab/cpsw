@@ -1,6 +1,9 @@
 #include <cpsw_api_builder.h>
-#include <cpsw_hub.h>
+#include <cpsw_path.h>
+#include <cpsw_entry.h>
 #include <ctype.h>
+
+#include <stdint.h>
 
 int cpsw_obj_count = 0;
 
@@ -65,7 +68,6 @@ void CEntryImpl::setDescription(const std::string &desc)
 void CEntryImpl::setCacheable(Cacheable cacheable)
 {
 	if ( UNKNOWN_CACHEABLE != getCacheable() && locked ) {
-	printf("%s\n", getName());
 		throw ConfigurationError("Configuration Error - cannot modify attached device");
 	}
 	this->cacheable    = cacheable;
@@ -81,35 +83,4 @@ Field IField::create(const char *name, uint64_t size)
 	return CEntryImpl::create<CEntryImpl>(name, size);
 }
 
-static uint64_t b2B(uint64_t bits)
-{
-	return (bits + 7)/8;
-}
-
-CIntEntryImpl::CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
-: CEntryImpl(
-		k,
-		wordSwap > 0 && wordSwap != b2B(sizeBits) ? b2B(sizeBits) + (lsBit ? 1 : 0) : b2B(sizeBits + lsBit)
-	),
-	is_signed(is_signed),
-	ls_bit(lsBit), size_bits(sizeBits),
-	mode(mode),
-	wordSwap(wordSwap)
-{
-unsigned byteSize = b2B(sizeBits);
-
-	if ( wordSwap == byteSize )
-		wordSwap = this->wordSwap = 0;
-
-	if ( wordSwap > 0 ) {
-		if ( ( byteSize % wordSwap ) != 0 ) {
-			throw InvalidArgError("wordSwap does not divide size");
-		}
-	}
-}
-
-IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
-{
-	return CEntryImpl::create<CIntEntryImpl>(name, sizeBits, is_signed, lsBit, mode, wordSwap);
-}
 

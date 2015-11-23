@@ -107,6 +107,7 @@ public:
 	virtual bool     isSigned()    const = 0;
 	virtual int      getLsBit()    const = 0;
 	virtual uint64_t getSizeBits() const = 0;
+	virtual Mode     getMode()     const = 0;
 
 	static IntField create(const char *name, uint64_t sizeBits, bool is_Signed = false, int lsBit = 0, Mode mode = RW, unsigned wordSwap = 0);
 };
