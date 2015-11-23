@@ -6,8 +6,7 @@
 #include <inttypes.h>
 #include <getopt.h>
 
-#define VLEN 123
-#define ADCL 10
+// Run this test program together with the 'udpsrv' program using matching IP address and port parameters
 
 #ifndef PRIx64
 #define PRIx64 "lx"
@@ -16,141 +15,204 @@
 #define PRIx32 "x"
 #endif
 
-class   IAXIVers;
-class   CAXIVersImpl;
-typedef shared_ptr<IAXIVers> AXIVers;
-typedef shared_ptr<CAXIVersImpl> AXIVersImpl;
+#define REGBASE 0x1000 /* pseudo register space */
+#define REG_RO_OFF 0
+#define REG_RO_SZ 16
+#define REG_CLR_OFF REG_RO_SZ
+#define REG_SCR_OFF REG_CLR_OFF + 8
+#define REG_SCR_SZ  32
 
-class IAXIVers : public virtual IMMIODev {
-public:
-	static AXIVers create(const char *name);
-};
-
-class CAXIVersImpl : public CMMIODevImpl, public virtual IAXIVers {
-public:
-	CAXIVersImpl(FKey);
-};
-
-AXIVers IAXIVers::create(const char *name)
-{
-AXIVersImpl v = CEntryImpl::create<CAXIVersImpl>(name);
-Field f;
-	f = IIntField::create("dnaValue", 64, false, 0, IIntField::RO, 4);
-	v->addAtAddress( f , 0x08 );
-	f = IIntField::create("fdSerial", 64, false, 0, IIntField::RO, 4);
-	v->addAtAddress( f, 0x10 );
-	f = IIntField::create("counter",  32, false, 0);
-	v->addAtAddress( f, 0x24 );
-	f = IIntField::create("bldStamp",  8, false, 0);
-	v->addAtAddress( f, 0x800, VLEN  );
-	f = IIntField::create("scratchPad",32,true,  0);
-	v->addAtAddress( f,   4 );
-	f = IIntField::create("bits",22,true, 4);
-	v->addAtAddress( f,   4 );
-	return v;	
-}
-
-CAXIVersImpl::CAXIVersImpl(FKey key)
-: CMMIODevImpl(key, 0x1000, LE)
-{
-}
+using boost::dynamic_pointer_cast;
 
 class TestFailed {};
+
+class Clr {
+private:
+	ScalVal v;
+	ScalVal vsbe, vsle;
+public:
+	Clr(Path where, MMIODev h)
+	{
+	char nam[100];
+		if ( ! h )
+			throw ConfigurationError("Clr: tail of 'where' path is not a Hub!");
+		sprintf(nam,"clr");
+		h->addAtAddress( IIntField::create(nam, 32), REG_CLR_OFF );
+		v = IScalVal::create( where->findByName( nam ) );
+
+		sprintf(nam,"scratch-be");
+		h->addAtAddress( IIntField::create(nam, 64), REG_SCR_OFF, 1, IMMIODev::STRIDE_AUTO, BE );
+		vsbe = IScalVal::create( where->findByName( nam ) );
+
+		sprintf(nam,"scratch-le");
+		h->addAtAddress( IIntField::create(nam, 64), REG_SCR_OFF, 1, IMMIODev::STRIDE_AUTO, LE );
+		vsle = IScalVal::create( where->findByName( nam ) );
+	}
+
+	uint64_t getScratch(ByteOrder bo)
+	{
+	uint64_t rval;
+		if ( BE == bo ) {
+			vsbe->getVal( &rval, 1 );
+		} else {
+			vsle->getVal( &rval, 1 );
+		}
+		if ( bo != hostByteOrder() && 0 ) {
+#ifdef __GNUC__
+			rval = __builtin_bswap64( rval );
+#else
+#error      "64bit byte-swap needs to be implemented"
+#endif
+		}
+		return rval;
+	}
+
+	void clr(uint32_t val)
+	{
+	uint64_t v64;
+		v->setVal( &val, 1 );
+
+		vsbe->getVal( &v64, 1 );
+		if ( v64 != (val ? 0xffffffffffffffffUL : 0x000000000000UL ) ) {
+			fprintf(stderr,"Unable to %s pseudo registers\n", val ? "set" : "clear");
+			throw TestFailed();
+		}
+	}
+
+};
 
 int
 main(int argc, char **argv)
 {
-const char *ip_addr = "192.168.2.10";
-bool        use_mem = false;
+const char *ip_addr = "127.0.0.1";
+int        *i_p;
+int         vers    = 2;
+int         port    = 8192;
+unsigned sizes[]    = { 1, 4, 8, 12, 16, 22, 32, 45 };
+unsigned lsbs[]     = { 0, 3 };
+unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 
-	for ( int opt; (opt = getopt(argc, argv, "a:m")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:V:p:")) > 0; ) {
+		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg; break;
-			case 'm': use_mem = true;   break;
+			case 'V': i_p     = &vers;  break;
+			case 'p': i_p     = &port;  break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
-				exit(1);
+				throw TestFailed();
+		}
+		if ( i_p && 1 != sscanf(optarg, "%i", i_p) ) {
+			fprintf(stderr,"Unable to scan argument to option '-%c'\n", opt);
+			throw TestFailed();
 		}
 	}
 
-try {
-
-NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
-MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
-AXIVers   axiv = IAXIVers::create("vers");
-MMIODev   sysm = IMMIODev::create ("sysm",0x1000, LE);
-MemDev    rmem = IMemDev::create  ("rmem", 0x100000);
-
-uint8_t str[VLEN];
-int16_t adcv[ADCL];
-uint64_t u64;
-uint32_t u32;
-uint16_t u16;
-
-	rmem->addAtAddress( mmio );
-
-	uint8_t *buf = rmem->getBufp();
-	for (int i=16; i<24; i++ )
-		buf[i]=i-16;
-
-
-	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
-
-	mmio->addAtAddress( axiv, 0x00000 );
-
-	mmio->addAtAddress( sysm, 0x10000 );
-
-	root->addAtAddress( mmio, 8192 );
-
-	// can use raw memory for testing instead of UDP
-	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );
-
-	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
-	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
-	ScalVal_RO dnaValue = IScalVal_RO::create( pre->findByName("mmio/vers/dnaValue") );
-	ScalVal_RO counter  = IScalVal_RO::create( pre->findByName("mmio/vers/counter" ) );
-	ScalVal  scratchPad = IScalVal::create   ( pre->findByName("mmio/vers/scratchPad") );
-	ScalVal        bits = IScalVal::create   ( pre->findByName("mmio/vers/bits") );
-
-	ScalVal_RO adcs = IScalVal_RO::create( pre->findByName("mmio/sysm/adcs") );
-
-
-	bldStamp->getVal( str, sizeof(str)/sizeof(str[0]) );
-
-	printf("Build String:\n%s\n", (char*)str);
-	fdSerial->getVal( &u64, 1 );
-	printf("Serial #: 0x%"PRIx64"\n", u64);
-	dnaValue->getVal( &u64, 1 );
-	printf("DNA    #: 0x%"PRIx64"\n", u64);
-	counter->getVal( &u32, 1 );
-	printf("Counter : 0x%"PRIx32"\n", u32);
-	counter->getVal( &u32, 1 );
-	printf("Counter : 0x%"PRIx32"\n", u32);
-
-	adcs->getVal( (uint16_t*)adcv, sizeof(adcv)/sizeof(adcv[0]) );
-	printf("\n\nADC Values:\n");
-	for ( int i=0; i<ADCL; i++ ) {
-		printf("  %6hd\n", adcv[i]);
+	if ( vers != 1 && vers != 2 ) {
+		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
+		throw TestFailed();
 	}
 
-	u16=0x6765;
-	u32=0xffffffff;
-	scratchPad->setVal( &u32, 1 );
-	bits->setVal( &u16, 1 );
-	scratchPad->getVal( &u32, 1 );
-	printf("ScratchPad: 0x%"PRIx32"\n", u32);
+	try {
 
-	if ( u32 == 0xfc06765f ) {
-		printf("Readback of merged bits (expected 0xfc06765f) PASSED\n");
-	} else {
-		printf("Readback of merged bits (expected 0xfc06765f) FAILED\n");
-		throw TestFailed();	
+		NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
+		MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
+		MMIODev   srvm = IMMIODev::create ("srvm",0x1000, LE);
+
+		mmio->addAtAddress( srvm, REGBASE );
+
+		root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, (unsigned short)port );
+
+		Path pre = root->findByName("mmio/srvm");
+
+		uint64_t v_expect = 0x0123456789abcdefUL;
+		uint64_t v_got, v;
+		unsigned size_idx, lsb_idx, off_idx;
+		char nam[100];
+		for ( size_idx = 0; size_idx < sizeof(sizes)/sizeof(sizes[0]); size_idx++ ) {
+			for ( lsb_idx = 0; lsb_idx < sizeof(lsbs)/sizeof(lsbs[0]); lsb_idx++ ) {
+				for ( off_idx = 0; off_idx < sizeof(offs)/sizeof(offs[0]); off_idx++ ) {
+					if ( offs[off_idx] + (sizes[size_idx] + lsbs[lsb_idx] + 7)/8 > 8 )
+						continue;
+					sprintf(nam,"vro-%i-%i-%i-be",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
+					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx]    , 1, IMMIODev::STRIDE_AUTO, BE ); 
+					ScalVal_RO v_be = IScalVal_RO::create( pre->findByName(nam) );
+					sprintf(nam,"vro-%i-%i-%i-le",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
+					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx] + 8, 1, IMMIODev::STRIDE_AUTO, LE ); 
+					ScalVal_RO v_le = IScalVal_RO::create( pre->findByName(nam) );
+
+					v_le->getVal( &v_got, 1 );
+					uint64_t shft_le = (offs[off_idx]*8 + lsbs[lsb_idx]);
+					if ( v_got != (v = ((v_expect >> shft_le) & ((((uint64_t)1)<<sizes[size_idx]) - 1 ))) ) {
+						fprintf(stderr,"Mismatch (%s - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_le->getName(), v_le->getSizeBits(), sizes[size_idx], v_got, v);
+						throw TestFailed();
+					}
+
+					v_be->getVal( &v_got, 1 );
+					uint64_t shft_be = ((sizeof(v_expect) - (offs[off_idx] + v_be->getSize()))*8 + lsbs[lsb_idx]);
+					if ( v_got != (v = ((v_expect >> shft_be) & ((((uint64_t)1)<<sizes[size_idx]) - 1 ))) ) {
+						fprintf(stderr,"Mismatch (%s - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_be->getName(), v_be->getSizeBits(), sizes[size_idx], v_got, v);
+						throw TestFailed();
+					}
+				}
+			}
+		}
+
+		Clr clr( pre, srvm );
+
+		clr.clr( 0 );
+		clr.clr( 1 );
+
+		for ( size_idx = 0; size_idx < sizeof(sizes)/sizeof(sizes[0]); size_idx++ ) {
+			for ( lsb_idx = 0; lsb_idx < sizeof(lsbs)/sizeof(lsbs[0]); lsb_idx++ ) {
+				for ( off_idx = 0; off_idx < sizeof(offs)/sizeof(offs[0]); off_idx++ ) {
+					if ( offs[off_idx] + (sizes[size_idx] + lsbs[lsb_idx] + 7)/8 > 8 )
+						continue;
+					sprintf(nam,"vrw-%i-%i-%i-be",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
+					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx] + REG_SCR_OFF, 1, IMMIODev::STRIDE_AUTO, BE ); 
+					ScalVal v_be = IScalVal::create( pre->findByName(nam) );
+					sprintf(nam,"vrw-%i-%i-%i-le",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
+					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx] + REG_SCR_OFF, 1, IMMIODev::STRIDE_AUTO, LE ); 
+					ScalVal v_le = IScalVal::create( pre->findByName(nam) );
+
+					uint64_t shft_le = (offs[off_idx]*8 + lsbs[lsb_idx]);
+					uint64_t shft_be = ((sizeof(v_expect) - (offs[off_idx] + v_be->getSize()))*8 + lsbs[lsb_idx]);
+					uint64_t msk_le  = ((((uint64_t)1)<<sizes[size_idx]) - 1 ) << shft_le;
+					uint64_t msk_be  = ((((uint64_t)1)<<sizes[size_idx]) - 1 ) << shft_be;
+
+					for (int patt=0; patt < 2; patt++ ) {
+						clr.clr( patt );
+						v_le->setVal( &v_expect, 1 );
+						v_got = clr.getScratch( LE );
+
+						v = ((patt ? -1UL : 0UL) & ~msk_le) | ((v_expect << shft_le) & msk_le);
+
+						if ( v_got != v ) {
+							fprintf(stderr,"Mismatch (%s patt %i - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_le->getName(), patt, v_le->getSizeBits(), sizes[size_idx], v_got, v);
+							throw TestFailed();
+						}
+
+						clr.clr( patt );
+						v_be->setVal( &v_expect, 1 );
+						v_got = clr.getScratch( BE );
+
+						v = ((patt ? -1UL : 0UL) & ~msk_be) | ((v_expect << shft_be) & msk_be);
+
+						if ( v_got != v ) {
+							fprintf(stderr,"Mismatch (%s patt %i - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_be->getName(), patt, v_be->getSizeBits(), sizes[size_idx], v_got, v);
+							throw TestFailed();
+						}
+					}
+				}
+			}
+		}
+
+	} catch (CPSWError &e) {
+		printf("CPSW Error: %s\n", e.getInfo().c_str());
+		throw;
 	}
-} catch (CPSWError &e) {
-	printf("CPSW Error: %s\n", e.getInfo().c_str());
-	throw;
-}
 
-// 8192
+	printf("SRP - UDP test PASSED\n");
+
 	return 0;
 }

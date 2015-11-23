@@ -13,15 +13,18 @@ class CNoSsiDevImpl;
 typedef shared_ptr<CNoSsiDevImpl> NoSsiDevImpl;
 
 class CUdpAddressImpl : public CAddressImpl {
-protected:
-	unsigned short dport;
-	int            sd;
-	unsigned       timeoutUs;
-	unsigned       retryCnt;
+private:            
+	INoSsiDev::ProtocolVersion protoVersion;
+	unsigned short   dport;
+	int              sd;
+	unsigned         timeoutUs;
+	unsigned         retryCnt;
+	uint8_t          vc;
+	bool             needSwap;
+	mutable uint32_t tid;
 public:
-	CUdpAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned retryCnt);
+	CUdpAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
 	virtual ~CUdpAddressImpl();
-	virtual unsigned short getDport() const { return dport; }
 	uint64_t read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
 	virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 
@@ -29,8 +32,12 @@ public:
 	virtual CUdpAddressImpl *clone(AKey k) { return new CUdpAddressImpl( *this ); }
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
-	virtual unsigned getTimeoutUs()  const { return timeoutUs; }
-	virtual unsigned getRetryCount() const { return retryCnt;  }
+	virtual unsigned getTimeoutUs()                      const { return timeoutUs; }
+	virtual unsigned getRetryCount()                     const { return retryCnt;  }
+	virtual INoSsiDev::ProtocolVersion getProtoVersion() const { return protoVersion; }
+	virtual uint8_t  getVC()                             const { return vc; }
+	virtual unsigned short getDport()                    const { return dport; }
+	virtual uint32_t getTid()                            const { return ++tid; }
 };
 
 class CNoSsiDevImpl : public CDevImpl, public virtual INoSsiDev {
@@ -45,7 +52,7 @@ public:
 
 	virtual CNoSsiDevImpl *clone(FKey k) { return new CNoSsiDevImpl( *this ); }
 
-	virtual void addAtAddress(Field child, unsigned dport, unsigned timeoutUs, unsigned retryCnt);
+	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 100, unsigned retryCnt = 5, uint8_t vc = 0);
 };
 
 #endif

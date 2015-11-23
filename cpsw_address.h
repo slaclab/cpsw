@@ -15,7 +15,7 @@ class   IAddress;
 
 typedef shared_ptr<CDevImpl> DevImpl;
 typedef weak_ptr<CDevImpl>   WDevImpl;
-typedef shared_ptr<const IAddress> Address;
+typedef shared_ptr<IAddress> Address;
 typedef shared_ptr<CAddressImpl> AddressImpl;
 
 

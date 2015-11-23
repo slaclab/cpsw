@@ -7,7 +7,7 @@
 #include <cstdarg>
 
 class IAddress;
-typedef shared_ptr<const IAddress> Address;
+typedef shared_ptr<IAddress> Address;
 
 class CDevImpl;
 typedef shared_ptr<const CDevImpl> ConstDevImpl;
