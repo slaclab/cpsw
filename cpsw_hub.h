@@ -32,7 +32,7 @@ struct StrCmp {
 class CDevImpl : public CEntryImpl, public virtual IDev {
 	private:
 		typedef  std::map<const char*, Address, StrCmp> MyChildren;
-		mutable  MyChildren children; // only by 'add' method
+		mutable  MyChildren children_; // only by 'add' method
 
 	protected:
 		virtual void add(AddressImpl a, Field child);

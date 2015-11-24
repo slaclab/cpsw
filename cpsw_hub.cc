@@ -187,7 +187,7 @@ EntryImpl e = child->getSelf();
 
 	e->setLocked(); //printf("locking %s\n", child->getName());
 	a->attach( e );
-	std::pair<MyChildren::iterator,bool> ret = children.insert( std::pair<const char *, AddressImpl>(child->getName(), a) );
+	std::pair<MyChildren::iterator,bool> ret = children_.insert( std::pair<const char *, AddressImpl>(child->getName(), a) );
 	if ( ! ret.second ) {
 		/* Address object should be automatically deleted by smart pointer */
 		throw DuplicateNameError(child->getName());
@@ -206,7 +206,7 @@ CDevImpl::~CDevImpl()
 
 Address CDevImpl::getAddress(const char *name) const
 {
-	return children[name];
+	return children_[name];
 }
 
 CDevImpl::CDevImpl(FKey k, uint64_t size)
@@ -241,7 +241,7 @@ Dev       meAsDev( getSelfAs<DevImpl>() );
 		if ( IField::DEPTH_INDEFINITE != recursionDepth ) {
 			recursionDepth--;
 		}
-		for ( it = children.begin(); it != children.end(); ++it ) {
+		for ( it = children_.begin(); it != children_.end(); ++it ) {
 			EntryImpl e = it->second->getEntryImpl();
 			e->accept( v, order, recursionDepth );
 		}
@@ -254,12 +254,12 @@ Dev       meAsDev( getSelfAs<DevImpl>() );
 
 Children CDevImpl::getChildren() const
 {
-Children rval( make_shared<Children::element_type>( children.size() ) );
+Children rval( make_shared<Children::element_type>( children_.size() ) );
 
 MyChildren::iterator it;
 
 	// copy into a vector
-	for ( it = children.begin(); it != children.end(); ++it ) {
+	for ( it = children_.begin(); it != children_.end(); ++it ) {
 		rval->push_back( it->second );
 	}
 
