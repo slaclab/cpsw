@@ -540,3 +540,94 @@ unsigned nelms = getNelms();
 		return setVal(vals, nelms);
 	}
 }
+
+CIntEntryImpl::CBuilder::CBuilder()
+{
+	init();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::name(const char *name)
+{
+	name_ = name ? std::string(name) : std::string();
+	return getSelf<Builder>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::sizeBits(uint64_t sizeBits)
+{
+	sizeBits_ = sizeBits;
+	return getSelf<Builder>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::isSigned(bool isSigned)
+{
+	isSigned_ = isSigned;
+	return getSelf<Builder>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::lsBit(int lsBit)
+{
+	lsBit_    = lsBit;
+	return getSelf<Builder>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::mode(Mode mode)
+{
+	mode_     = mode;
+	return getSelf<Builder>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::wordSwap(unsigned wordSwap)
+{
+	wordSwap_ = wordSwap;
+	return getSelf<Builder>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::reset()
+{
+	init();
+	return getSelf<Builder>();
+}
+
+void CIntEntryImpl::CBuilder::init()
+{
+	name_     = std::string();
+	sizeBits_ = 32;
+	lsBit_    = 0;
+	isSigned_ = false;
+	mode_     = RW;
+    wordSwap_ = 0;
+}
+
+IntField CIntEntryImpl::CBuilder::build()
+{
+	return build( name_.c_str() );
+}
+
+IntField CIntEntryImpl::CBuilder::build(const char *name)
+{
+	return CEntryImpl::create<CIntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_);
+}
+
+IIntField::Builder  CIntEntryImpl::CBuilder::clone()
+{
+shared_ptr<CIntEntryImpl::CBuilder> rval( doClone() );
+		rval->setSelf( rval );
+
+		if ( typeid( *rval ) != typeid( *this ) )
+			throw InternalError("Some subclass of CIntEntryImpl::CBuilder doesn't implement doClone()");
+
+		return rval;
+}
+
+IIntField::Builder  CIntEntryImpl::CBuilder::create()
+{
+CBuilder *p = new CBuilder();
+shared_ptr<CIntEntryImpl::CBuilder> rval( p );
+	rval->setSelf( rval );
+	return rval;
+}
+
+IIntField::Builder IIntField::IBuilder::create()
+{
+	return CIntEntryImpl::CBuilder::create();
+}

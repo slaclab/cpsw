@@ -193,10 +193,22 @@ unsigned bits_idx, shft_idx, sign_idx;
 
 	try {
 
+		IIntField::Builder bldr = IIntField::IBuilder::create();
+
+		bldr->mode( IIntField::RW );
+
 		for ( bits_idx = 0; bits_idx < sizeof(bits)/sizeof(bits[0]); bits_idx++ ) {
+
+			bldr->sizeBits( bits[bits_idx] );
+
 			for ( shft_idx = 0; shft_idx < sizeof(shft)/sizeof(shft[0]); shft_idx++ ) {
+
+				bldr->lsBit( shft[shft_idx] );
+
 				for ( sign_idx = 0; sign_idx < sizeof(sign)/sizeof(sign[0]); sign_idx++ ) {
 					char nm[100];
+
+					bldr->isSigned( sign[sign_idx] );
 
 					unsigned wswap;
 					unsigned wswape = (bits[bits_idx] + 7)/8; 
@@ -211,10 +223,11 @@ unsigned bits_idx, shft_idx, sign_idx;
 						if ( wswap > 0 && ( (wswape % wswap) != 0 || wswap == wswape ) ) 
 							continue;
 
+						bldr->wordSwap( wswap );
 
 						sprintf(nm,"i%i-%i-%c-%i", bits[bits_idx], shft[shft_idx], sign[sign_idx] ? 's' : 'u', wswap);
 
-						IntField e = IIntField::create(nm, bits[bits_idx], sign[sign_idx], shft[shft_idx], IIntField::RW, wswap);
+						IntField e = bldr->build( nm );
 
 						mmio_le->addAtAddress( e, 0, NELMS, STRIDE );
 						mmio_be->addAtAddress( e, 0, NELMS, STRIDE );

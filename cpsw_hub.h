@@ -31,8 +31,8 @@ struct StrCmp {
 
 class CDevImpl : public CEntryImpl, public virtual IDev {
 	private:
-		typedef  std::map<const char*, Address, StrCmp> Children;
-		mutable  Children children; // only by 'add' method
+		typedef  std::map<const char*, Address, StrCmp> MyChildren;
+		mutable  MyChildren children; // only by 'add' method
 
 	protected:
 		virtual void add(AddressImpl a, Field child);
@@ -59,6 +59,11 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual Address getAddress(const char *name) const;
 	
 		virtual void accept(IVisitor *v, RecursionOrder order, int recursionDepth);
+
+		virtual Children getChildren() const;
+
+		virtual Hub isHub() const;
+
 };
 
 #define NULLHUB     Hub( static_cast<IHub *>(NULL) )

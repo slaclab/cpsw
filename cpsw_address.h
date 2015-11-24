@@ -128,6 +128,8 @@ class CAddressImpl : public IAddress {
 			dump( stdout );
 		}
 
+		virtual Hub     isHub()             const;
+
 		virtual Hub     getOwner()          const;
 		virtual DevImpl getOwnerAsDevImpl() const;
 

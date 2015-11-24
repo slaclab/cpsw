@@ -32,7 +32,7 @@ ByteOrder hostByteOrder();
 
 class IField : public virtual IEntry, public virtual IVisitable {
 public:
-	// the enum is ordered in increasing 'loosenes' of the cacheable attribute
+	// the enum is ordered in increasing 'looseness' of the cacheable attribute
 	typedef enum Cacheable { UNKNOWN_CACHEABLE = 0, NOT_CACHEABLE, WT_CACHEABLE, WB_CACHEABLE } Cacheable;
 public:
 	virtual Cacheable getCacheable()                 const = 0;
@@ -104,6 +104,28 @@ typedef shared_ptr<IIntField> IntField;
 class IIntField: public virtual IField {
 public:
 	typedef enum Mode { RO = 1, WO = 2, RW = 3 } Mode;
+
+	class IBuilder;
+	typedef shared_ptr<IBuilder> Builder;
+
+	class IBuilder {
+	public:
+		virtual Builder name(const char *)    = 0;
+		virtual Builder sizeBits(uint64_t)    = 0;
+		virtual Builder isSigned(bool)        = 0;
+		virtual Builder lsBit(int)            = 0;
+		virtual Builder mode(Mode)            = 0;
+		virtual Builder wordSwap(unsigned)    = 0;
+		virtual Builder reset()               = 0;
+
+		virtual IntField build()              = 0;
+		virtual IntField build(const char*)   = 0;
+
+		virtual Builder clone() = 0;	
+
+		static Builder create();
+	};
+
 	virtual bool     isSigned()    const = 0;
 	virtual int      getLsBit()    const = 0;
 	virtual uint64_t getSizeBits() const = 0;
@@ -111,4 +133,7 @@ public:
 
 	static IntField create(const char *name, uint64_t sizeBits, bool is_Signed = false, int lsBit = 0, Mode mode = RW, unsigned wordSwap = 0);
 };
+
+
+
 #endif

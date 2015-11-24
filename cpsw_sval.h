@@ -5,6 +5,7 @@
 #include <cpsw_entry.h>
 
 using boost::static_pointer_cast;
+using boost::weak_ptr;
 
 class CIntEntryImpl;
 typedef shared_ptr<CIntEntryImpl> IntEntryImpl;
@@ -28,9 +29,46 @@ public:
 	virtual const char *getName()        const { return ie->getName(); }
 	virtual const char *getDescription() const { return ie->getDescription(); }
 	virtual uint64_t    getSize()        const { return ie->getSize(); }
+	virtual Hub         isHub()          const { return ie->isHub();   }
 };
 
 class CIntEntryImpl : public CEntryImpl, public virtual IIntField {
+public:
+	class CBuilder : public virtual IBuilder {
+	private:
+		std::string name_;
+		uint64_t    sizeBits_;
+		bool        isSigned_;
+		int         lsBit_;	
+		Mode        mode_;
+        unsigned    wordSwap_;
+		
+		weak_ptr<CBuilder> self_;
+	protected:
+		CBuilder();
+		template<typename AS> AS getSelf() { return static_pointer_cast<typename AS::element_type, CBuilder>( shared_ptr<CBuilder>(self_) ); }
+
+		// all subclasses must implement
+		virtual CBuilder *doClone() { return new CBuilder( *this ); }
+
+		virtual void    setSelf(shared_ptr<CBuilder> in) { self_ = in; }
+	public:
+		virtual void    init();
+		virtual Builder name(const char *);
+		virtual Builder sizeBits(uint64_t);
+		virtual Builder isSigned(bool);
+		virtual Builder lsBit(int);
+		virtual Builder mode(Mode);
+		virtual Builder wordSwap(unsigned);
+		virtual Builder reset();
+
+		virtual IntField build();
+		virtual IntField build(const char*);
+
+		virtual Builder clone();
+
+		static  Builder create();
+	};
 private:
 	bool     is_signed;
 	int      ls_bit;
@@ -38,8 +76,11 @@ private:
 	Mode     mode;
 	unsigned wordSwap;
 public:
+
+
 	CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit = 0, Mode mode = RW, unsigned wordSwap = 0);
 
+	virtual CIntEntryImpl *clone(FKey k) { return new CIntEntryImpl( *this ); }
 	virtual bool     isSigned()    const { return is_signed; }
 	virtual int      getLsBit()    const { return ls_bit;    }
 	virtual uint64_t getSizeBits() const { return size_bits; }

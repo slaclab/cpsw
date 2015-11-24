@@ -5,6 +5,7 @@
 #include <list>
 #include <string.h>
 #include <boost/shared_ptr.hpp>
+#include <vector>
 
 using std::list;
 using boost::shared_ptr;
@@ -25,6 +26,8 @@ typedef shared_ptr<IScalVal_WO>  ScalVal_WO;
 typedef shared_ptr<IScalVal>     ScalVal;
 class EventListener;
 
+typedef shared_ptr< std::vector<Child> > Children;
+
 #include <cpsw_error.h>
 
 // The hierarchy of things
@@ -42,6 +45,7 @@ public:
 	virtual const char *getName()        const = 0;
 	virtual uint64_t    getSize()        const = 0;
 	virtual const char *getDescription() const = 0;
+	virtual Hub         isHub()          const = 0;
 	virtual ~IEntry() {}
 };
 
@@ -101,6 +105,8 @@ public:
 	virtual Path       findByName(const char *path)      = 0;
 
 	virtual Child      getChild(const char *name)  const = 0;
+
+	virtual Children   getChildren()               const = 0;
 };
 
 // Base interface to integral values

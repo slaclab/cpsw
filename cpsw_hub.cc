@@ -1,3 +1,4 @@
+#include <cpsw_api_builder.h>
 #include <cpsw_hub.h>
 #include <cpsw_path.h>
 
@@ -5,6 +6,7 @@
 #include <stdio.h>
 
 using boost::static_pointer_cast;
+using boost::make_shared;
 
 static ByteOrder hbo()
 {
@@ -50,6 +52,14 @@ IAddress *p = clone( AKey( new_owner ) );
 		throw InternalError("Some subclass of IAddress doesn't implement 'clone(AKey)'");
 	}
 	return Address(p);
+}
+
+Hub CAddressImpl::isHub() const
+{
+	if ( this->child == 0 )
+		return NULLHUB;
+	else	
+		return this->child->isHub();
 }
 
 void CAddressImpl::attach(EntryImpl child)
@@ -177,12 +187,18 @@ EntryImpl e = child->getSelf();
 
 	e->setLocked(); //printf("locking %s\n", child->getName());
 	a->attach( e );
-	std::pair<Children::iterator,bool> ret = children.insert( std::pair<const char *, AddressImpl>(child->getName(), a) );
+	std::pair<MyChildren::iterator,bool> ret = children.insert( std::pair<const char *, AddressImpl>(child->getName(), a) );
 	if ( ! ret.second ) {
 		/* Address object should be automatically deleted by smart pointer */
 		throw DuplicateNameError(child->getName());
 	}
 }
+
+Hub CDevImpl::isHub() const
+{
+	return getSelfAs<const DevImpl>();
+}
+
 
 CDevImpl::~CDevImpl()
 {
@@ -214,7 +230,7 @@ Path CDevImpl::findByName(const char *s)
 
 void CDevImpl::accept(IVisitor    *v, RecursionOrder order, int recursionDepth)
 {
-Children::iterator it;
+MyChildren::iterator it;
 Dev       meAsDev( getSelfAs<DevImpl>() );
 
 	if ( RECURSE_DEPTH_FIRST != order ) {
@@ -236,4 +252,16 @@ Dev       meAsDev( getSelfAs<DevImpl>() );
 	}
 }
 
+Children CDevImpl::getChildren() const
+{
+Children rval( make_shared<Children::element_type>( children.size() ) );
 
+MyChildren::iterator it;
+
+	// copy into a vector
+	for ( it = children.begin(); it != children.end(); ++it ) {
+		rval->push_back( it->second );
+	}
+
+	return rval;
+}

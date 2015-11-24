@@ -98,13 +98,16 @@ class CEntryImpl: public virtual IField {
 
 		virtual void accept(IVisitor    *v, RecursionOrder order, int recursionDepth);
 
-		virtual EntryImpl getSelf() { return EntryImpl( self ); }
+		virtual EntryImpl getSelf()            { return EntryImpl( self ); }
+		virtual EntryImpl getConstSelf() const { return EntryImpl( self ); }
+
+		virtual Hub isHub() const   { return Hub( static_cast<Hub::element_type *>(NULL) ); }
 
 		// Template for up-casting derived classes' 'self' pointer
 	protected:
-		template <typename T> T getSelfAs()
+		template <typename T> T getSelfAs() const
 		{
-			return T( static_pointer_cast< typename T::element_type, CEntryImpl>( getSelf() ) );
+			return T( static_pointer_cast< typename T::element_type, CEntryImpl>( getConstSelf() ) );
 		}
 
 	public:
