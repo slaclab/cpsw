@@ -21,7 +21,7 @@ class CMemAddressImpl : public CAddressImpl {
 
 class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	private:
-		uint8_t * buf;
+		uint8_t * buf_;
 	protected:
 		CMemDevImpl(CMemDevImpl &orig);
 
@@ -32,7 +32,7 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 
 		virtual void addAtAddress(Field child, unsigned nelms = 1);
 
-		virtual uint8_t * const getBufp() const { return buf; }
+		virtual uint8_t * const getBufp() const { return buf_; }
 
 		virtual CMemDevImpl *clone(FKey k) { return new CMemDevImpl( *this ); }
 

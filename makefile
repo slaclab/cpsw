@@ -4,7 +4,7 @@ LSRCS+= cpsw_mem_dev.cc
 TSRCS = cpsw_path_tst.cc cpsw_sval_tst.cc cpsw_large_tst.cc cpsw_nossi_tst.cc cpsw_axiv_udp_tst.cc
 SRCS = $(LSRCS) $(TSRCS)
 
-CXXFLAGS = -I. -g -Wall
+CXXFLAGS = -I. -g -Wall -O4
 CFLAGS=-O2 -g
 
 test: $(patsubst %.cc,%,$(wildcard *_tst.cc))

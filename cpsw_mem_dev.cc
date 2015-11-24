@@ -5,28 +5,28 @@
 #include <stdio.h>
 
 CMemDevImpl::CMemDevImpl(FKey k, uint64_t size)
-: CDevImpl(k, size), buf( new uint8_t[size] )
+: CDevImpl(k, size), buf_( new uint8_t[size] )
 {
 }
 
 CMemDevImpl::CMemDevImpl(CMemDevImpl &orig)
 : CDevImpl(orig),
-  buf( new uint8_t[orig.getSize()] )
+  buf_( new uint8_t[orig.getSize()] )
 {
-	memcpy( buf, orig.buf, orig.getSize() );
+	memcpy( buf_, orig.buf_, orig.getSize() );
 }
 
 CMemDevImpl::~CMemDevImpl()
 {
-	delete [] buf;
+	delete [] buf_;
 }
 
 CMemDevImpl & CMemDevImpl::operator=(CMemDevImpl &orig)
 {
-	delete [] buf;
+	delete [] buf_;
 	*this = orig;
-	buf = new uint8_t[orig.getSize()];
-	memcpy( buf, orig.buf, orig.getSize() );
+	buf_ = new uint8_t[orig.getSize()];
+	memcpy( buf_, orig.buf_, orig.getSize() );
 	return *this;
 }
 
