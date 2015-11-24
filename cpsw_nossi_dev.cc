@@ -9,33 +9,33 @@ typedef uint32_t SRPWord;
 
 CUdpAddressImpl::CUdpAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
 :CAddressImpl(k),
- protoVersion(version),
- dport(dport),
- sd(-1),
- timeoutUs(timeoutUs),
- retryCnt(retryCnt),
- vc(vc),
- tid(0)
+ protoVersion_(version),
+ dport_(dport),
+ sd_(-1),
+ timeoutUs_(timeoutUs),
+ retryCnt_(retryCnt),
+ vc_(vc),
+ tid_(0)
 {
 struct sockaddr_in dst, me;
 NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 	dst.sin_family      = AF_INET;
-	dst.sin_port        = htons( dport );
+	dst.sin_port        = htons( dport_ );
 	dst.sin_addr.s_addr = owner->getIpAddress();
 
 	me.sin_family       = AF_INET;
 	me.sin_port         = htons( 0 );
 	me.sin_addr.s_addr  = INADDR_ANY;
 
-	if ( (sd = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 ) {
+	if ( (sd_ = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 ) {
 		throw InvalidArgError("Unable to create socket");
 	}
 
-	if ( bind( sd, (struct sockaddr*)&me, sizeof( me ) ) ) {
+	if ( bind( sd_, (struct sockaddr*)&me, sizeof( me ) ) ) {
 		throw InternalError("Unable to bind socket");
 	}
 
-	if ( connect( sd, (struct sockaddr*)&dst, sizeof( dst ) ) ) {
+	if ( connect( sd_, (struct sockaddr*)&dst, sizeof( dst ) ) ) {
 		throw InvalidArgError("Unable to connect socket");
 	}
 
@@ -44,14 +44,14 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 
 CUdpAddressImpl::~CUdpAddressImpl()
 {
-	if ( -1 != sd )
-		close( sd );
+	if ( -1 != sd_ )
+		close( sd_ );
 }
 
 CNoSsiDevImpl::CNoSsiDevImpl(FKey k, const char *ip)
-: CDevImpl(k), ip_str(ip)
+: CDevImpl(k), ip_str_(ip)
 {
-	if ( INADDR_NONE == ( d_ip = inet_addr( ip ) ) ) {
+	if ( INADDR_NONE == ( d_ip_ = inet_addr( ip ) ) ) {
 		throw InvalidArgError( ip );
 	}
 }
@@ -61,15 +61,15 @@ void CUdpAddressImpl::setTimeoutUs(unsigned timeoutUs)
 struct timeval t;
 	t.tv_sec  = timeoutUs / 1000000;
 	t.tv_usec = timeoutUs % 1000000;
-	if ( setsockopt( sd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(t) ) ) {
+	if ( setsockopt( sd_, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(t) ) ) {
 		throw InternalError("setsocktop(SO_RECVTIMEO) failed");
 	}
-	this->timeoutUs = timeoutUs;
+	this->timeoutUs_ = timeoutUs;
 }
 
 void CUdpAddressImpl::setRetryCount(unsigned retryCnt)
 {
-	this->retryCnt = retryCnt;
+	this->retryCnt_ = retryCnt;
 }
 
 static void swp32(SRPWord *buf)
@@ -123,17 +123,17 @@ uint32_t tid = getTid();
 
 	// V1 sends payload in network byte order. We want to transform to restore
 	// the standard AXI layout which is little-endian
-	bool doSwapV1 = (INoSsiDev::SRP_UDP_V1 == protoVersion);
+	bool doSwapV1 = (INoSsiDev::SRP_UDP_V1 == protoVersion_);
 	// header info needs to be swapped to host byte order since we interpret it
-	bool doSwap   =	( ( protoVersion == INoSsiDev::SRP_UDP_V2 ? BE : LE ) == hostByteOrder() );
+	bool doSwap   =	( ( protoVersion_ == INoSsiDev::SRP_UDP_V2 ? BE : LE ) == hostByteOrder() );
 
 	totbytes = headbytes + sbytes;
 
 	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
 	put = expected = 0;
-	if ( protoVersion == INoSsiDev::SRP_UDP_V1 ) {
-		xbuf[put++] = vc << 24;
+	if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
+		xbuf[put++] = vc_ << 24;
 		expected++;
 	}
 	xbuf[put++] = tid;
@@ -156,7 +156,7 @@ uint32_t tid = getTid();
 	mh.msg_flags      = 0;
 
 	i = 0;
-	if ( protoVersion == INoSsiDev::SRP_UDP_V1 ) {
+	if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
 		iov[i].iov_base = &header;
 		iov[i].iov_len  = sizeof( header );
 		i++;
@@ -187,12 +187,12 @@ uint32_t tid = getTid();
 
 	unsigned attempt = 0;
 	do {
-		if ( (int)sizeof(xbuf[0])*put != ::write( sd, xbuf, sizeof(xbuf[0])*put ) ) {
+		if ( (int)sizeof(xbuf[0])*put != ::write( sd_, xbuf, sizeof(xbuf[0])*put ) ) {
 			throw IOError("Unable to send (complete) message");
 		}
 
 		do {
-			if ( (got = ::recvmsg( sd, &mh, 0 )) < 0 ) {
+			if ( (got = ::recvmsg( sd_, &mh, 0 )) < 0 ) {
 				goto retry;
 			}
 #ifdef NOSSI_DEBUG
@@ -272,7 +272,7 @@ uint32_t tid = getTid();
 		return sbytes;
 
 retry: ;
-	} while ( ++attempt <= retryCnt );
+	} while ( ++attempt <= retryCnt_ );
 
 	throw IOError("No response -- timeout");
 }
@@ -301,8 +301,8 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 		return 0;
 
 	// these look similar but are different...
-	bool doSwapV1 = (protoVersion == INoSsiDev::SRP_UDP_V1);
-	bool doSwap   = ((protoVersion == INoSsiDev::SRP_UDP_V2 ? BE : LE) == hostByteOrder() );
+	bool doSwapV1 =  (protoVersion_ == INoSsiDev::SRP_UDP_V1);
+	bool doSwap   = ((protoVersion_ == INoSsiDev::SRP_UDP_V2 ? BE : LE) == hostByteOrder() );
 
 	totbytes = headbytes + dbytes;
 
@@ -365,8 +365,8 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 	}
 
 	put = 0;
-	if ( protoVersion == INoSsiDev::SRP_UDP_V1 ) {
-		xbuf[put++] = vc << 24;
+	if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
+		xbuf[put++] = vc_ << 24;
 	}
 	xbuf[put++] = tid;
 	xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
@@ -431,17 +431,17 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 
 	do {
 		int     bufsz = (nWords + 3)*sizeof(SRPWord);
-		if ( protoVersion == INoSsiDev::SRP_UDP_V1 ) {
+		if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
 			bufsz += sizeof(SRPWord);
 		}
 		uint8_t rbuf[bufsz];
 
-		if ( bufsz != ::sendmsg( sd, &mh, 0 )) {
+		if ( bufsz != ::sendmsg( sd_, &mh, 0 )) {
 			throw InternalError("FIXME -- need I/O Error here");
 		}
 
 		do {
-			if ( (got = ::read( sd, &rbuf, bufsz )) < 0 ) {
+			if ( (got = ::read( sd_, &rbuf, bufsz )) < 0 ) {
 				goto retry;
 			}
 #if 0
@@ -453,7 +453,7 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 			for ( i=0; i<sbytes; i++ )
 				printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
 #endif
-			memcpy( &got_tid, rbuf + ( protoVersion == INoSsiDev::SRP_UDP_V1 ? sizeof(SRPWord) : 0 ), sizeof(SRPWord) );
+			memcpy( &got_tid, rbuf + ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ? sizeof(SRPWord) : 0 ), sizeof(SRPWord) );
 			if ( doSwap ) {
 				swp32( &got_tid ); 
 			}
@@ -462,7 +462,7 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 		if ( got != bufsz ) {
 			throw InternalError("FIXME -- need I/O Error here");
 		}
-		if ( protoVersion == INoSsiDev::SRP_UDP_V1 ) {
+		if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
 			if ( LE == hostByteOrder() ) {
 				swpw( rbuf );
 			}
@@ -477,7 +477,7 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 		// TODO: check status word here
 		return dbytes;
 retry: ;
-	} while ( ++attempt <= retryCnt );
+	} while ( ++attempt <= retryCnt_ );
 
 	throw InternalError("FIXME -- need I/O Error here");
 }
