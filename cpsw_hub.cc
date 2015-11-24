@@ -97,9 +97,9 @@ uint64_t  CAddressImpl::read(CompositePathIterator *node, IField::Cacheable cach
 #ifdef HUB_DEBUG
 	printf("Reading %s", getName());
 	if ( getNelms() > 1 ) {
-		printf("[%i", (*node)->idxf);
-		if ( (*node)->idxt > (*node)->idxf )
-			printf("-%i", (*node)->idxt);
+		printf("[%i", (*node)->idxf_);
+		if ( (*node)->idxt_ > (*node)->idxf_ )
+			printf("-%i", (*node)->idxt_);
 		printf("]");
 	}
 	printf(" @%"PRIx64, off);
@@ -110,7 +110,7 @@ uint64_t  CAddressImpl::read(CompositePathIterator *node, IField::Cacheable cach
 	// chain through parent
 	++(*node);
 	if ( ! node->atEnd() ) {
-		c = (*node)->c_p;
+		c = (*node)->c_p_;
 		return c->read(node, cacheable, dst, dbytes, off, sbytes);
 	} else {
 		throw ConfigurationError("Configuration Error: -- unable to route I/O for read");
@@ -125,7 +125,7 @@ uint64_t CAddressImpl::write(CompositePathIterator *node, IField::Cacheable cach
 	// chain through parent
 	++(*node);
 	if ( ! node->atEnd() ) {
-		c = (*node)->c_p;
+		c = (*node)->c_p_;
 		return c->write(node, cacheable, src, sbytes, off, dbytes, msk1, mskn);
 	} else {
 		throw ConfigurationError("Configuration Error: -- unable to route I/O for write");

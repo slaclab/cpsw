@@ -13,7 +13,7 @@ IEntryAdapt::IEntryAdapt(Path p, shared_ptr<const CEntryImpl> ie)
 	if ( p->empty() )
 		throw InvalidPathError("<EMPTY>");
 
-	Address  a = CompositePathIterator( &p )->c_p;
+	Address  a = CompositePathIterator( &p )->c_p_;
 
 	if ( a->getEntryImpl() != ie )
 		throw InternalError("inconsistent args passed to IEntryAdapt");
@@ -27,7 +27,7 @@ template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p)
 	if ( p->empty() )
 		throw InvalidArgError("Empty Path");
 
-	Address a = CompositePathIterator( &p )->c_p;
+	Address a = CompositePathIterator( &p )->c_p_;
 	shared_ptr<const typename IMPL::element_type> e = dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
 	if ( e ) {
 		return make_shared<typename ADAPT::element_type>(p, e);
@@ -262,7 +262,7 @@ public:
 unsigned CScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 {
 CompositePathIterator it( & p );
-Address          cl           = it->c_p;
+Address          cl           = it->c_p_;
 uint64_t         off          = 0;
 unsigned         sbytes       = getSize(); // byte-size including lsb shift
 unsigned         nbytes       = (getSizeBits() + 7)/8;  // byte-size w/o lsb shift
@@ -388,7 +388,7 @@ for (int i=0; i<9; i++ ) {
 unsigned CScalVal_WOAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 {
 CompositePathIterator it( & p );
-Address          cl = it->c_p;
+Address          cl = it->c_p_;
 uint64_t         off = 0;
 unsigned         dbytes   = getSize(); // byte-size including lsb shift
 uint64_t         sizeBits = getSizeBits();

@@ -14,9 +14,9 @@ class CDevImpl;
 typedef shared_ptr<const CDevImpl> ConstDevImpl;
 
 struct PathEntry {
-	Address  c_p;
-	int      idxf, idxt;
-	unsigned nelmsLeft;
+	Address  c_p_;
+	int      idxf_, idxt_;
+	unsigned nelmsLeft_;
 
 	PathEntry(Address a, int idxf = 0, int idxt = -1, unsigned nelmsLeft = 1);
 };
@@ -29,10 +29,10 @@ typedef std::vector<PathEntry>  PathEntryContainer;
 // iterator is in use!
 class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 	private:
-		bool                                  at_end;
-		std::vector<PathEntryContainer::reverse_iterator> l;
-		unsigned                              nelmsRight;
-		unsigned                              nelmsLeft;
+		bool                                  at_end_;
+		std::vector<PathEntryContainer::reverse_iterator> l_;
+		unsigned                              nelmsRight_;
+		unsigned                              nelmsLeft_;
 
 	public:
 		// construct from a single path 
@@ -42,17 +42,17 @@ class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 
 		unsigned getNelmsRight()
 		{
-			return nelmsRight;
+			return nelmsRight_;
 		}
 
 		unsigned getNelmsLeft()
 		{
-			return nelmsLeft * (atEnd() ? 1 : (*this)->nelmsLeft);
+			return nelmsLeft_ * (atEnd() ? 1 : (*this)->nelmsLeft_);
 		}
 
 		bool atEnd()
 		{
-			return at_end;
+			return at_end_;
 		}
 
 		// can path 'p' be concatenated with this one, i.e.,

@@ -32,13 +32,13 @@ uintptr_t  dstStride = node->getNelmsRight() * dbytes;
 
 	if ( sbytes == getStride()  && dbytes == sbytes && getEntryImpl()->getCacheable() >= IField::WT_CACHEABLE ) {
 		// if strides == size then we can try to read all in one chunk
-		sbytes *= (*node)->idxt - (*node)->idxf + 1;
+		sbytes *= (*node)->idxt_ - (*node)->idxf_ + 1;
 		dbytes  = sbytes;
-		to      = (*node)->idxf;
+		to      = (*node)->idxf_;
 	} else {
-		to      = (*node)->idxt;
+		to      = (*node)->idxt_;
 	}
-	for ( int i = (*node)->idxf; i <= to; i++ ) {
+	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		CompositePathIterator it = *node;
 		rval += CAddressImpl::read(&it, cacheable, dst, dbytes, off + this->offset + stride *i, sbytes);
 
@@ -55,13 +55,13 @@ uintptr_t  srcStride = node->getNelmsRight() * sbytes;
 
 	if ( dbytes == getStride()  && sbytes == dbytes && getEntryImpl()->getCacheable() >= IField::WT_CACHEABLE ) {
 		// if strides == size then we can try to read all in one chunk
-		dbytes *= (*node)->idxt - (*node)->idxf + 1;
+		dbytes *= (*node)->idxt_ - (*node)->idxf_ + 1;
 		sbytes  = dbytes;
-		to      = (*node)->idxf;
+		to      = (*node)->idxf_;
 	} else {
-		to      = (*node)->idxt;
+		to      = (*node)->idxt_;
 	}
-	for ( int i = (*node)->idxf; i <= to; i++ ) {
+	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		CompositePathIterator it = *node;
 		rval += CAddressImpl::write(&it, cacheable, src, sbytes, off + this->offset + stride *i, dbytes, msk1, mskn);
 
