@@ -26,10 +26,10 @@ class CEntryImpl: public virtual IField {
 		// access EntryImpl via shared pointers only.
 		class FKey {
 		private:
-			const char *name;
-			FKey(const char *name):name(name){}
+			const char *name_;
+			FKey(const char *name):name_(name){}
 		public:
-			const char *getName() const { return name; }
+			const char *getName() const { return name_; }
 			friend class CEntryImpl;
 		};
 
@@ -37,15 +37,15 @@ class CEntryImpl: public virtual IField {
 		// WARNING -- when modifying fields you might need to
 		//            modify 'operator=' as well as the copy
 		//            constructor!
-		std::string	        name;
-		std::string         description;
-		uint64_t    	    size;
-		mutable Cacheable   cacheable;
-		mutable bool        locked;
-		mutable WEntryImpl  self;
+		std::string	        name_;
+		std::string         description_;
+		uint64_t    	    size_;
+		mutable Cacheable   cacheable_;
+		mutable bool        locked_;
+		mutable WEntryImpl  self_;
 
 	protected:
-		virtual void  setSelf(EntryImpl sp) { self = sp; }
+		virtual void  setSelf(EntryImpl sp) { self_ = sp; }
 
 	protected:
 		// prevent public copy construction -- cannot copy the 'self'
@@ -64,12 +64,12 @@ class CEntryImpl: public virtual IField {
 
 		virtual const char *getName() const
 		{
-			return name.c_str();
+			return name_.c_str();
 		}
 
 		virtual const char *getDescription() const
 		{
-			return description.c_str();
+			return description_.c_str();
 		}
 
 		virtual void setDescription(const char *);
@@ -77,12 +77,12 @@ class CEntryImpl: public virtual IField {
 
 		virtual uint64_t getSize() const
 		{
-			return size;
+			return size_;
 		}
 
 		virtual Cacheable getCacheable() const
 		{
-			return cacheable;
+			return cacheable_;
 		}
 
 		// may throw exception if modified after
@@ -93,13 +93,13 @@ class CEntryImpl: public virtual IField {
 
 		virtual void setLocked()
 		{
-			locked = true;
+			locked_ = true;
 		}
 
 		virtual void accept(IVisitor    *v, RecursionOrder order, int recursionDepth);
 
-		virtual EntryImpl getSelf()            { return EntryImpl( self ); }
-		virtual EntryImpl getConstSelf() const { return EntryImpl( self ); }
+		virtual EntryImpl getSelf()            { return EntryImpl( self_ ); }
+		virtual EntryImpl getConstSelf() const { return EntryImpl( self_ ); }
 
 		virtual Hub isHub() const   { return Hub( static_cast<Hub::element_type *>(NULL) ); }
 

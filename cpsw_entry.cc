@@ -8,42 +8,42 @@
 int cpsw_obj_count = 0;
 
 CEntryImpl::CEntryImpl(FKey k, uint64_t size)
-: name( k.getName() ),
-  size( size),
-  cacheable( UNKNOWN_CACHEABLE ),
-  locked( false )
+: name_( k.getName() ),
+  size_( size),
+  cacheable_( UNKNOWN_CACHEABLE ),
+  locked_( false )
 {
 const char *cptr;
-	for ( cptr = name.c_str(); *cptr; cptr++ ) {
+	for ( cptr = name_.c_str(); *cptr; cptr++ ) {
 		if ( ! isalnum( *cptr )
                      && '_' != *cptr 
                      && '-' != *cptr  )
-					throw InvalidIdentError(name);
+					throw InvalidIdentError(name_);
 	}
 	cpsw_obj_count++;
 }
 
 CEntryImpl::CEntryImpl(CEntryImpl &ei)
-: name(ei.name),
-  description(ei.description),
-  size(ei.size),
-  cacheable(ei.cacheable),
-  locked( false )
+: name_(ei.name_),
+  description_(ei.description_),
+  size_(ei.size_),
+  cacheable_(ei.cacheable_),
+  locked_( false )
 {
-	self.reset();
+	self_.reset();
 }
 
 CEntryImpl & CEntryImpl::operator=(CEntryImpl &in)
 {
-	if ( locked ) {
+	if ( locked_ ) {
 		throw ConfigurationError("Must not assign to attached EntryImpl");
 	}
 	if ( this != &in ) {
-		name        = in.name;
-		description = in.description;
-		size        = in.size;
-		cacheable   = in.cacheable;
-		locked      = false;
+		name_       = in.name_;
+		description_= in.description_;
+		size_       = in.size_;
+		cacheable_  = in.cacheable_;
+		locked_     = false;
 		// do NOT copy 'self' but leave alone !!
 	}
 	return *this;
@@ -56,21 +56,21 @@ CEntryImpl::~CEntryImpl()
 
 void CEntryImpl::setDescription(const char *desc)
 {
-	description = desc;
+	description_ = desc;
 }
 
 void CEntryImpl::setDescription(const std::string &desc)
 {
-	description = desc;
+	description_ = desc;
 }
 
 
 void CEntryImpl::setCacheable(Cacheable cacheable)
 {
-	if ( UNKNOWN_CACHEABLE != getCacheable() && locked ) {
+	if ( UNKNOWN_CACHEABLE != getCacheable() && locked_ ) {
 		throw ConfigurationError("Configuration Error - cannot modify attached device");
 	}
-	this->cacheable    = cacheable;
+	this->cacheable_   = cacheable;
 }
 
 void CEntryImpl::accept(IVisitor *v, RecursionOrder order, int depth)
