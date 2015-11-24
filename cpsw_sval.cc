@@ -8,7 +8,7 @@
 using boost::dynamic_pointer_cast;
 
 IEntryAdapt::IEntryAdapt(Path p, shared_ptr<const CEntryImpl> ie)
-	:ie(ie), p(p->clone())
+	:ie_(ie), p_(p->clone())
 {
 	if ( p->empty() )
 		throw InvalidPathError("<EMPTY>");
@@ -45,15 +45,16 @@ CIntEntryImpl::CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBi
 		k,
 		wordSwap > 0 && wordSwap != b2B(sizeBits) ? b2B(sizeBits) + (lsBit ? 1 : 0) : b2B(sizeBits + lsBit)
 	),
-	is_signed(is_signed),
-	ls_bit(lsBit), size_bits(sizeBits),
-	mode(mode),
-	wordSwap(wordSwap)
+	is_signed_(is_signed),
+	ls_bit_(lsBit),
+	size_bits_(sizeBits),
+	mode_(mode),
+	wordSwap_(wordSwap)
 {
 unsigned byteSize = b2B(sizeBits);
 
 	if ( wordSwap == byteSize )
-		wordSwap = this->wordSwap = 0;
+		wordSwap = this->wordSwap_ = 0;
 
 	if ( wordSwap > 0 ) {
 		if ( ( byteSize % wordSwap ) != 0 ) {
@@ -116,13 +117,13 @@ ScalVal_Adapt rval = check_interface<ScalVal_Adapt, IntEntryImpl>( p );
 
 unsigned IIntEntryAdapt::getNelms()
 {
-	if ( nelms < 0 ) {
-		CompositePathIterator it( & p );
+	if ( nelms_ < 0 ) {
+		CompositePathIterator it( & p_ );
 		while ( ! it.atEnd() )
 			++it;
-		nelms = it.getNelmsRight();
+		nelms_ = it.getNelmsRight();
 	}
-	return nelms;	
+	return nelms_;	
 }
 
 class SignExtender {
@@ -261,7 +262,7 @@ public:
 
 unsigned CScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 {
-CompositePathIterator it( & p );
+CompositePathIterator it( & p_ );
 Address          cl           = it->c_p_;
 uint64_t         off          = 0;
 unsigned         sbytes       = getSize(); // byte-size including lsb shift
@@ -295,7 +296,7 @@ unsigned         ibuf_nchars;
 		}
 	}
 	
-	cl->read( &it, ie->getCacheable(), ibufp, sbytes, off, sbytes );
+	cl->read( &it, ie_->getCacheable(), ibufp, sbytes, off, sbytes );
 
 	bool sign_extend = getSizeBits() < 8*dbytes;
 	bool truncate    = getSizeBits() > 8*dbytes;
@@ -387,7 +388,7 @@ for (int i=0; i<9; i++ ) {
 
 unsigned CScalVal_WOAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz)
 {
-CompositePathIterator it( & p );
+CompositePathIterator it( & p_ );
 Address          cl = it->c_p_;
 uint64_t         off = 0;
 unsigned         dbytes   = getSize(); // byte-size including lsb shift
@@ -509,7 +510,7 @@ prib("byte-swapped", obufp + oidx);
 		}
 	}
 
-	cl->write( &it, ie->getCacheable(), obufp, dbytes, off, dbytes, msk1, mskn );
+	cl->write( &it, ie_->getCacheable(), obufp, dbytes, off, dbytes, msk1, mskn );
 
 	return nelms;
 }

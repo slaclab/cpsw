@@ -19,17 +19,17 @@ typedef shared_ptr<CScalVal_Adapt>   ScalVal_Adapt;
 
 class IEntryAdapt : public virtual IEntry {
 protected:
-	shared_ptr<const CEntryImpl> ie;
-	Path     p;
+	shared_ptr<const CEntryImpl> ie_;
+	Path                         p_;
 
 protected:
 	IEntryAdapt(Path p, shared_ptr<const CEntryImpl> ie);
 
 public:
-	virtual const char *getName()        const { return ie->getName(); }
-	virtual const char *getDescription() const { return ie->getDescription(); }
-	virtual uint64_t    getSize()        const { return ie->getSize(); }
-	virtual Hub         isHub()          const { return ie->isHub();   }
+	virtual const char *getName()        const { return ie_->getName(); }
+	virtual const char *getDescription() const { return ie_->getDescription(); }
+	virtual uint64_t    getSize()        const { return ie_->getSize(); }
+	virtual Hub         isHub()          const { return ie_->isHub();   }
 };
 
 class CIntEntryImpl : public CEntryImpl, public virtual IIntField {
@@ -70,29 +70,29 @@ public:
 		static  Builder create();
 	};
 private:
-	bool     is_signed;
-	int      ls_bit;
-	uint64_t size_bits;
-	Mode     mode;
-	unsigned wordSwap;
+	bool     is_signed_;
+	int      ls_bit_;
+	uint64_t size_bits_;
+	Mode     mode_;
+	unsigned wordSwap_;
 public:
 
 
 	CIntEntryImpl(FKey k, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP);
 
 	virtual CIntEntryImpl *clone(FKey k) { return new CIntEntryImpl( *this ); }
-	virtual bool     isSigned()    const { return is_signed; }
-	virtual int      getLsBit()    const { return ls_bit;    }
-	virtual uint64_t getSizeBits() const { return size_bits; }
-	virtual unsigned getWordSwap() const { return wordSwap;  }
-	virtual Mode     getMode()     const { return mode;      }
+	virtual bool     isSigned()    const { return is_signed_; }
+	virtual int      getLsBit()    const { return ls_bit_;    }
+	virtual uint64_t getSizeBits() const { return size_bits_; }
+	virtual unsigned getWordSwap() const { return wordSwap_;  }
+	virtual Mode     getMode()     const { return mode_;      }
 };
 
 class IIntEntryAdapt : public IEntryAdapt, public virtual IScalVal_Base {
 private:
-	int nelms;
+	int nelms_;
 public:
-	IIntEntryAdapt(Path p, shared_ptr<const CIntEntryImpl> ie) : IEntryAdapt(p, ie), nelms(-1) {}
+	IIntEntryAdapt(Path p, shared_ptr<const CIntEntryImpl> ie) : IEntryAdapt(p, ie), nelms_(-1) {}
 	virtual bool     isSigned()    const { return asIntEntry()->isSigned();    }
 	virtual int      getLsBit()    const { return asIntEntry()->getLsBit();    }
 	virtual uint64_t getSizeBits() const { return asIntEntry()->getSizeBits(); }
@@ -101,7 +101,7 @@ public:
 	virtual unsigned getNelms();
 
 protected:
-	virtual shared_ptr<const CIntEntryImpl> asIntEntry() const { return static_pointer_cast<const CIntEntryImpl, const CEntryImpl>(ie); }
+	virtual shared_ptr<const CIntEntryImpl> asIntEntry() const { return static_pointer_cast<const CIntEntryImpl, const CEntryImpl>(ie_); }
 
 };
 
