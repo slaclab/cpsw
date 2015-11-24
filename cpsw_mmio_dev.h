@@ -11,8 +11,8 @@ typedef shared_ptr<CMMIODevImpl> MMIODevImpl;
 
 class CMMIOAddressImpl : public CAddressImpl {
 	private:
-		uint64_t offset;    // in bytes
-		uint64_t stride;    // in bytes
+		uint64_t offset_;    // in bytes
+		uint64_t stride_;    // in bytes
 
 	public:
 		CMMIOAddressImpl(
@@ -22,8 +22,8 @@ class CMMIOAddressImpl : public CAddressImpl {
 			uint64_t stride   = IMMIODev::STRIDE_AUTO,
 			ByteOrder byteOrder = UNKNOWN );
 
-		virtual uint64_t getOffset() const   { return offset; }
-		virtual uint64_t getStride() const   { return stride; }
+		virtual uint64_t getOffset() const   { return offset_; }
+		virtual uint64_t getStride() const   { return stride_; }
 
 		// ANY subclass must implement clone(AKey) !
 		virtual CMMIOAddressImpl *clone(AKey k) { return new CMMIOAddressImpl( *this ); }
@@ -36,16 +36,16 @@ class CMMIOAddressImpl : public CAddressImpl {
 
 class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 	private:
-		ByteOrder byteOrder;
+		ByteOrder byteOrder_;
 
 	public:
-		CMMIODevImpl(FKey k, uint64_t size, ByteOrder byteOrder) : CDevImpl(k, size), byteOrder(byteOrder)
+		CMMIODevImpl(FKey k, uint64_t size, ByteOrder byteOrder) : CDevImpl(k, size), byteOrder_(byteOrder)
 		{
 		}
 
 		virtual CMMIODevImpl *clone(FKey k) { return new CMMIODevImpl( *this ); }
 
-		virtual ByteOrder getByteOrder() const { return byteOrder; }
+		virtual ByteOrder getByteOrder() const { return byteOrder_; }
 
 		virtual void addAtAddress(Field child, uint64_t offset, unsigned nelms = 1, uint64_t stride = STRIDE_AUTO, ByteOrder byteOrder = UNKNOWN);
 

@@ -10,8 +10,8 @@ CMMIOAddressImpl::CMMIOAddressImpl(
 : CAddressImpl(key,
               nelms,
               UNKNOWN == byteOrder ? key.getAs<MMIODevImpl>()->getByteOrder() : byteOrder ),
-              offset(offset),
-              stride(stride)
+              offset_(offset),
+              stride_(stride)
 {
 }
 
@@ -22,7 +22,7 @@ CMMIOAddressImpl::CMMIOAddressImpl(
 
 void CMMIOAddressImpl::dump(FILE *f) const
 {
-	CAddressImpl::dump( f ); fprintf(f, "+0x%"PRIx64, offset);
+	CAddressImpl::dump( f ); fprintf(f, "+0x%"PRIx64" (stride %"PRId64")", offset_, stride_);
 }
 
 uint64_t CMMIOAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
@@ -40,7 +40,7 @@ uintptr_t  dstStride = node->getNelmsRight() * dbytes;
 	}
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		CompositePathIterator it = *node;
-		rval += CAddressImpl::read(&it, cacheable, dst, dbytes, off + this->offset + stride *i, sbytes);
+		rval += CAddressImpl::read(&it, cacheable, dst, dbytes, off + this->offset_ + stride_ *i, sbytes);
 
 		dst  += dstStride;
 	}
@@ -63,7 +63,7 @@ uintptr_t  srcStride = node->getNelmsRight() * sbytes;
 	}
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		CompositePathIterator it = *node;
-		rval += CAddressImpl::write(&it, cacheable, src, sbytes, off + this->offset + stride *i, dbytes, msk1, mskn);
+		rval += CAddressImpl::write(&it, cacheable, src, sbytes, off + this->offset_ + stride_ *i, dbytes, msk1, mskn);
 
 		src  += srcStride;
 	}
@@ -73,8 +73,8 @@ uintptr_t  srcStride = node->getNelmsRight() * sbytes;
 
 void CMMIOAddressImpl::attach(EntryImpl child)
 {
-	if ( IMMIODev::STRIDE_AUTO == stride ) {
-		stride = child->getSize();
+	if ( IMMIODev::STRIDE_AUTO == stride_ ) {
+		stride_ = child->getSize();
 	}
 
 	if ( getOffset() + (getNelms()-1) * getStride() + child->getSize() > getOwner()->getSize() ) {
