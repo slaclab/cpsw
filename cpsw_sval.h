@@ -78,7 +78,7 @@ private:
 public:
 
 
-	CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit = 0, Mode mode = RW, unsigned wordSwap = 0);
+	CIntEntryImpl(FKey k, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP);
 
 	virtual CIntEntryImpl *clone(FKey k) { return new CIntEntryImpl( *this ); }
 	virtual bool     isSigned()    const { return is_signed; }

@@ -591,11 +591,11 @@ IIntField::Builder CIntEntryImpl::CBuilder::reset()
 void CIntEntryImpl::CBuilder::init()
 {
 	name_     = std::string();
-	sizeBits_ = 32;
-	lsBit_    = 0;
-	isSigned_ = false;
-	mode_     = RW;
-    wordSwap_ = 0;
+	sizeBits_ = DFLT_SIZE_BITS;
+	lsBit_    = DFLT_LS_BIT;
+	isSigned_ = DFLT_IS_SIGNED;
+	mode_     = DFLT_MODE;
+    wordSwap_ = DFLT_WORD_SWAP;
 }
 
 IntField CIntEntryImpl::CBuilder::build()

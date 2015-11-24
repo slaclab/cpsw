@@ -105,6 +105,12 @@ class IIntField: public virtual IField {
 public:
 	typedef enum Mode { RO = 1, WO = 2, RW = 3 } Mode;
 
+	static const uint64_t DFLT_SIZE_BITS = 32;
+	static const bool     DFLT_IS_SIGNED = false;
+	static const int      DFLT_LS_BIT    =  0;
+	static const Mode     DFLT_MODE      = RW;
+	static const unsigned DFLT_WORD_SWAP =  0;
+
 	class IBuilder;
 	typedef shared_ptr<IBuilder> Builder;
 
@@ -131,7 +137,7 @@ public:
 	virtual uint64_t getSizeBits() const = 0;
 	virtual Mode     getMode()     const = 0;
 
-	static IntField create(const char *name, uint64_t sizeBits, bool is_Signed = false, int lsBit = 0, Mode mode = RW, unsigned wordSwap = 0);
+	static IntField create(const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_Signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP);
 };
 
 
