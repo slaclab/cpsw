@@ -21,10 +21,10 @@ ByteOrder hostByteOrder() {  return _hostByteOrder; }
 void _setHostByteOrder(ByteOrder o) { _hostByteOrder = o; }
 
 CAddressImpl::CAddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
-:owner(owner), child( static_cast<CEntryImpl*>(NULL) ), nelms(nelms), byteOrder(byteOrder)
+:owner_(owner), child_( static_cast<CEntryImpl*>(NULL) ), nelms_(nelms), byteOrder_(byteOrder)
 {
 	if ( UNKNOWN == byteOrder )
-		this->byteOrder = hostByteOrder();
+		this->byteOrder_ = hostByteOrder();
 }
 
 // The current implementation allows us to just 
@@ -32,10 +32,10 @@ CAddressImpl::CAddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
 // future if we decide to build a full copy of
 // everything.
 CAddressImpl::CAddressImpl(CAddressImpl &orig)
-:owner(orig.owner),
- child(orig.child),
- nelms(orig.nelms),
- byteOrder(orig.byteOrder)
+:owner_(orig.owner_),
+ child_(orig.child_),
+ nelms_(orig.nelms_),
+ byteOrder_(orig.byteOrder_)
 {
 }
 
@@ -56,39 +56,39 @@ IAddress *p = clone( AKey( new_owner ) );
 
 Hub CAddressImpl::isHub() const
 {
-	if ( this->child == 0 )
+	if ( this->child_ == 0 )
 		return NULLHUB;
 	else	
-		return this->child->isHub();
+		return this->child_->isHub();
 }
 
 void CAddressImpl::attach(EntryImpl child)
 {
-	if ( this->child != NULL ) {
+	if ( this->child_ != NULL ) {
 		throw AddressAlreadyAttachedError( child->getName() );
 	}
-	this->child = child;
+	this->child_ = child;
 }
 
 const char * CAddressImpl::getName() const
 {
-	if ( ! child )
+	if ( ! child_ )
 		throw InternalError("CAddressImpl: child pointer not set");
-	return child->getName();
+	return child_->getName();
 }
 
 const char * CAddressImpl::getDescription() const
 {
-	if ( ! child )
+	if ( ! child_ )
 		throw InternalError("CAddressImpl: child pointer not set");
-	return child->getDescription();
+	return child_->getDescription();
 }
 
 uint64_t CAddressImpl::getSize() const
 {
-	if ( ! child )
+	if ( ! child_ )
 		throw InternalError("CAddressImpl: child pointer not set");
-	return child->getSize();
+	return child_->getSize();
 }
 
 uint64_t  CAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
@@ -135,45 +135,45 @@ uint64_t CAddressImpl::write(CompositePathIterator *node, IField::Cacheable cach
 
 Hub CAddressImpl::getOwner() const
 {
-	return owner.get();
+	return owner_.get();
 }
 
 DevImpl CAddressImpl::getOwnerAsDevImpl() const
 {
-	return owner.get();
+	return owner_.get();
 }
 
 
 void CAddressImpl::dump(FILE *f) const
 {
-	fprintf(f, "@%s:%s[%i]", getOwner()->getName(), child->getName(), nelms);
+	fprintf(f, "@%s:%s[%i]", getOwner()->getName(), child_->getName(), nelms_);
 }
 
 class AddChildVisitor: public IVisitor {
 private:
-	Dev parent;
+	Dev parent_;
 
 public:
-	AddChildVisitor(Dev top, Field child) : parent(top)
+	AddChildVisitor(Dev top, Field child) : parent_(top)
 	{
 		child->accept( this, IVisitable::RECURSE_DEPTH_AFTER, IVisitable::DEPTH_INDEFINITE );
 	}
 
 	virtual void visit(Field child) {
 //		printf("considering propagating atts to %s\n", child->getName());
-		if ( ! parent ) {
+		if ( ! parent_ ) {
 			throw InternalError("InternalError: AddChildVisitor has no parent");
 		}
-		if ( IField::UNKNOWN_CACHEABLE != parent->getCacheable() && IField::UNKNOWN_CACHEABLE == child->getCacheable() ) {
+		if ( IField::UNKNOWN_CACHEABLE != parent_->getCacheable() && IField::UNKNOWN_CACHEABLE == child->getCacheable() ) {
 //			printf("setting cacheable\n");
-			child->setCacheable( parent->getCacheable() );
+			child->setCacheable( parent_->getCacheable() );
 		}
 	}
 
 	virtual void visit(Dev child) {
 		if ( IField::UNKNOWN_CACHEABLE == child->getCacheable() )
 			visit( static_pointer_cast<IField, IDev>( child ) );
-		parent = child;
+		parent_ = child;
 //		printf("setting parent to %s\n", child->getName());
 	}
 

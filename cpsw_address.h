@@ -25,10 +25,10 @@ class IAddress : public IChild {
 	public:
 		class AKey {
 			private:
-				WDevImpl owner;
-				AKey(DevImpl owner):owner(owner) {}
+				WDevImpl owner_;
+				AKey(DevImpl owner):owner_(owner) {}
 			public:
-				const DevImpl get() const { return DevImpl(owner); }
+				const DevImpl get() const { return DevImpl(owner_); }
 
 				template <typename T> T getAs() const
 				{
@@ -72,12 +72,12 @@ class IAddress : public IChild {
 
 class CAddressImpl : public IAddress {
 	protected:
-		mutable AKey       owner;
+		mutable AKey       owner_;
 	private:
-		mutable EntryImpl  child;
-		unsigned           nelms;
+		mutable EntryImpl  child_;
+		unsigned           nelms_;
 	protected:
-		ByteOrder      byteOrder;
+		ByteOrder      byteOrder_;
 
 	protected:
 
@@ -95,12 +95,12 @@ class CAddressImpl : public IAddress {
 
 		virtual Entry getEntry() const
 		{
-			return child;
+			return child_;
 		}
 
 		virtual EntryImpl getEntryImpl() const
 		{
-			return child;
+			return child_;
 		}
 
 		virtual const char *getName() const;
@@ -110,12 +110,12 @@ class CAddressImpl : public IAddress {
 
 		virtual unsigned getNelms() const
 		{
-			return nelms;
+			return nelms_;
 		}
 
 		virtual ByteOrder getByteOrder() const
 		{
-			return byteOrder;
+			return byteOrder_;
 		}
 
 		virtual uint64_t read (CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
