@@ -7,13 +7,13 @@ using std::string;
 
 class CPSWError {
 	private:
-		string name;
+		string name_;
 	public:
-		CPSWError(const string &s):name(s) {}
-		CPSWError(const char *n):name(n)  {}
-		CPSWError(const Path p):name("FIXME") {}
+		CPSWError(const string &s):name_(s) {}
+		CPSWError(const char *n):name_(n)  {}
+		CPSWError(const Path p):name_("FIXME") {}
 
-		virtual string &getInfo() { return name; }
+		virtual string &getInfo() { return name_; }
 };
 
 class DuplicateNameError : public CPSWError {
@@ -79,6 +79,13 @@ class InterfaceNotImplementedError: public CPSWError {
 class IOError: public CPSWError {
 	public:
 		IOError( const char *s ) : CPSWError( s ) {}
+};
+
+class BadStatusError: public CPSWError {
+	protected:
+		int64_t status_;
+	public:
+		BadStatusError( const char *s, int64_t status) :CPSWError(s), status_(status) {}
 };
 
 #endif
