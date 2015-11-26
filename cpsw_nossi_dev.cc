@@ -3,7 +3,6 @@
 
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/locks.hpp>
-#include <boost/thread/lock_guard.hpp>
 
 using boost::recursive_mutex;
 using boost::lock_guard;
