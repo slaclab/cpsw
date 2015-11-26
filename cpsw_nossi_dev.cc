@@ -1,9 +1,20 @@
 #include <cpsw_nossi_dev.h>
 #include <inttypes.h>
 
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/lock_guard.hpp>
+
+using boost::recursive_mutex;
+using boost::lock_guard;
+
 typedef shared_ptr<NoSsiDevImpl> NoSsiDevImplP;
 
 typedef uint32_t SRPWord;
+
+struct Mutex {
+	recursive_mutex m;
+};
 
 #undef  NOSSI_DEBUG
 
@@ -15,7 +26,8 @@ CUdpAddressImpl::CUdpAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, uns
  timeoutUs_(timeoutUs),
  retryCnt_(retryCnt),
  vc_(vc),
- tid_(0)
+ tid_(0),
+ mutex_(0)
 {
 struct sockaddr_in dst, me;
 NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
@@ -40,12 +52,16 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 	}
 
 	setTimeoutUs( timeoutUs );
+
+	mutex_ = new Mutex();
 }
 
 CUdpAddressImpl::~CUdpAddressImpl()
 {
 	if ( -1 != sd_ )
 		close( sd_ );
+	if ( mutex_ )
+		delete mutex_;
 }
 
 CNoSsiDevImpl::CNoSsiDevImpl(FKey k, const char *ip)
@@ -186,6 +202,9 @@ uint32_t tid = getTid();
 
 
 	unsigned attempt = 0;
+
+	lock_guard<recursive_mutex> GUARD( mutex_->m );
+
 	do {
 		if ( (int)sizeof(xbuf[0])*put != ::write( sd_, xbuf, sizeof(xbuf[0])*put ) ) {
 			throw IOError("Unable to send (complete) message");
@@ -268,7 +287,8 @@ uint32_t tid = getTid();
 			swp32( &status );
 			swp32( &header );
 		}
-		// TODO: check status word here
+		if ( status )
+			throw BadStatusError("reading SRP", status);
 		return sbytes;
 
 retry: ;
@@ -312,6 +332,8 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 	bool merge_last  = (totbytes & (sizeof(SRPWord)-1)) || mskn;
 
 	int toput = dbytes;
+
+	lock_guard<recursive_mutex> GUARD( mutex_->m );
 
 	if ( merge_first ) {
 		if ( merge_last && dbytes == 1 ) {
@@ -437,7 +459,7 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 		uint8_t rbuf[bufsz];
 
 		if ( bufsz != ::sendmsg( sd_, &mh, 0 )) {
-			throw InternalError("FIXME -- need I/O Error here");
+			throw IOError("sendmsg return value didn't match buffer size");
 		}
 
 		do {
@@ -460,7 +482,7 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 		} while ( tid != got_tid );
 
 		if ( got != bufsz ) {
-			throw InternalError("FIXME -- need I/O Error here");
+			throw IOError("read return value didn't match buffer size");
 		}
 		if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
 			if ( LE == hostByteOrder() ) {
@@ -474,12 +496,13 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 			swpw( rbuf + got - sizeof(SRPWord) );
 		}
 		memcpy( &status, rbuf + got - sizeof(SRPWord), sizeof(SRPWord) );
-		// TODO: check status word here
+		if ( status )
+			throw BadStatusError("writing SRP", status);
 		return dbytes;
 retry: ;
 	} while ( ++attempt <= retryCnt_ );
 
-	throw InternalError("FIXME -- need I/O Error here");
+	throw IOError("Too many retries");
 }
 
 void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)

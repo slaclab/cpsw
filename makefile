@@ -11,12 +11,17 @@ test: $(patsubst %.cc,%,$(wildcard *_tst.cc))
 
 cpsw_nossi_tst: udpsrv
 
+cpsw_nossi_tst_LIBS+=-lboost_system -lpthread
+cpsw_axiv_udp_tst_LIBS+=-lboost_system -lpthread
+
 udpsrv: udpsrv.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-%_tst: %_tst.cc $(LSRCS:%.cc=%.o)
-	$(CXX) $(CXXFLAGS) -o $@ $(filter-out udpsrv,$^)
+%_tst: %_tst.cc libcpsw.a
+	$(CXX) $(CXXFLAGS) -o $@ $< -L. -lcpsw $($@_LIBS)
 
+libcpsw.a: $(LSRCS:%.cc=%.o)
+	$(AR) cr $@ $^
 
 deps: $(SRCS)
 	$(CXX) $(CXXFLAGS) -MM $(SRCS) > $@

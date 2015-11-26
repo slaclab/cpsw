@@ -12,6 +12,8 @@ class CNoSsiDevImpl;
 
 typedef shared_ptr<CNoSsiDevImpl> NoSsiDevImpl;
 
+struct Mutex;
+
 class CUdpAddressImpl : public CAddressImpl {
 private:            
 	INoSsiDev::ProtocolVersion protoVersion_;
@@ -22,6 +24,8 @@ private:
 	uint8_t          vc_;
 	bool             needSwap_;
 	mutable uint32_t tid_;
+protected:
+	Mutex            *mutex_;
 public:
 	CUdpAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
 	virtual ~CUdpAddressImpl();
