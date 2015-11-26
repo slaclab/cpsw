@@ -94,6 +94,9 @@ ScalVal_ROAdapt rval = check_interface<ScalVal_ROAdapt, IntEntryImpl>( p );
 	return rval;
 }
 
+#if 0
+// without caching and bit-level access at the SRP protocol level we cannot
+// support write-only yet.
 ScalVal_WO IScalVal_WO::create(Path p)
 {
 ScalVal_WOAdapt rval = check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
@@ -103,6 +106,7 @@ ScalVal_WOAdapt rval = check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
 	}
 	return rval;
 }
+#endif
 
 ScalVal IScalVal::create(Path p)
 {
