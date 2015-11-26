@@ -20,6 +20,10 @@
 #ifndef PRIx32
 #define PRIx32 "x"
 #endif
+#ifndef PRIu64
+#define PRIu64 "lu"
+#endif
+
 
 class TestFailed {};
 

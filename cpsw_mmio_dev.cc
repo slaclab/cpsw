@@ -20,6 +20,11 @@ CMMIOAddressImpl::CMMIOAddressImpl(
 #define PRIx64 "lx"
 #endif
 
+#ifndef PRId64
+#define PRId64 "ld"
+#endif
+
+
 void CMMIOAddressImpl::dump(FILE *f) const
 {
 	CAddressImpl::dump( f ); fprintf(f, "+0x%"PRIx64" (stride %"PRId64")", offset_, stride_);

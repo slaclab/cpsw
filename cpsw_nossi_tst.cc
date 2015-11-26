@@ -14,6 +14,10 @@
 #ifndef PRIx32
 #define PRIx32 "x"
 #endif
+#ifndef PRIu64
+#define PRIu64 "lu"
+#endif
+
 
 #define REGBASE 0x1000 /* pseudo register space */
 #define REG_RO_OFF 0
