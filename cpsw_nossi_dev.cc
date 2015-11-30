@@ -123,7 +123,6 @@ int      i, j, put;
 int      headbytes = (off & (sizeof(SRPWord)-1));
 int      tailbytes = 0;
 int      totbytes;
-struct msghdr mh;
 struct iovec  iov[5];
 int      got;
 int      nWords;
@@ -164,12 +163,6 @@ uint32_t tid = getTid();
 		}
 	}
 
-	mh.msg_name       = 0;
-	mh.msg_namelen    = 0;
-	mh.msg_control    = 0;
-	mh.msg_controllen = 0;
-	mh.msg_flags      = 0;
-
 	i = 0;
 	if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
 		iov[i].iov_base = &header;
@@ -196,10 +189,7 @@ uint32_t tid = getTid();
 	iov[i].iov_len  = sizeof(SRPWord);
 	i++;
 
-	mh.msg_iov        = iov;
-	mh.msg_iovlen     = i;
-
-
+	unsigned iovlen  = i;
 	unsigned attempt = 0;
 
 	lock_guard<recursive_mutex> GUARD( mutex_->m );
@@ -210,7 +200,7 @@ uint32_t tid = getTid();
 		}
 
 		do {
-			if ( (got = ::recvmsg( sd_, &mh, 0 )) < 0 ) {
+			if ( (got = ::readv( sd_, iov, iovlen )) < 0 ) {
 				goto retry;
 			}
 #ifdef NOSSI_DEBUG
@@ -307,7 +297,6 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 	int      i, j, put;
 	int      headbytes = (off & (sizeof(SRPWord)-1));
 	int      totbytes;
-	struct msghdr mh;
 	struct iovec  iov[5];
 	int      got;
 	int      nWords;
@@ -400,12 +389,6 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 		swp32( &zero );
 	}
 
-	mh.msg_name       = 0;
-	mh.msg_namelen    = 0;
-	mh.msg_control    = 0;
-	mh.msg_controllen = 0;
-	mh.msg_flags      = 0;
-
 	i = 0;
 	iov[i].iov_base = xbuf;
 	iov[i].iov_len  = sizeof(xbuf[0])*put;
@@ -443,10 +426,7 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 	iov[i].iov_len  = sizeof(SRPWord);
 	i++;
 
-	mh.msg_iov        = iov;
-	mh.msg_iovlen     = i;
-
-
+	unsigned iovlen  = i;
 	unsigned attempt = 0;
 	uint32_t got_tid;
 
@@ -457,7 +437,7 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 		}
 		uint8_t rbuf[bufsz];
 
-		if ( bufsz != ::sendmsg( sd_, &mh, 0 )) {
+		if ( bufsz != ::writev( sd_, iov, iovlen )) {
 			throw IOError("sendmsg return value didn't match buffer size");
 		}
 
