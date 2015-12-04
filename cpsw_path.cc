@@ -40,8 +40,8 @@ public:
 
 	virtual bool empty() const;
 
-	PathImpl::iterator &begin();
-	PathImpl::const_iterator &begin() const;
+	PathImpl::iterator begin();
+	PathImpl::const_iterator begin() const;
 
 	virtual Path findByName(const char *name) const;
 	virtual Path clone()                      const;
@@ -200,14 +200,15 @@ bool PathImpl::empty() const
 	return size() <= 0;
 }
 
-PathImpl::iterator & PathImpl::begin()
+PathImpl::iterator PathImpl::begin()
 {
 	PathImpl::iterator i = PathEntryContainer::begin();
 	return ++i;
 }
 
-PathImpl::const_iterator & PathImpl::begin() const
+PathImpl::const_iterator PathImpl::begin() const
 {
+printf("cbeg\n");
 	PathImpl::const_iterator i = PathEntryContainer::begin();
 	return ++i;
 }
