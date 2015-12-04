@@ -19,6 +19,22 @@ public:
 
 struct TestFailed {};
 
+static void recurse(Hub h, unsigned l)
+{
+unsigned i;
+Children cc = h->getChildren();
+Hub      hh;
+	printf("%*s%s\n", l, "", h->getName());
+	l++;
+	for ( i=0; i<cc->size(); i++ ) {
+		if ( (hh = (*cc)[i]->isHub()) ) { 
+			recurse( hh, l );
+		} else {
+			printf("%*s%s\n", l, "", (*cc)[i]->getName());
+		}
+	}
+}
+
 int
 main(int argc, char **argv)
 {
@@ -61,6 +77,9 @@ Field  c4 = IField::create("leaf1", 8);
 	p1->dump( stdout ); fputc('\n', stdout);
 
 	printf("resetting\n");
+
+	recurse( r, 0 );
+
 	r.reset();
 	p.reset();
 	printf("root  use-count: %li\n", r.use_count());
@@ -177,4 +196,5 @@ Field  c4 = IField::create("leaf1", 8);
 		fprintf(stderr,"Leaked objects: %i\n", cpsw_obj_count - 1);
 		throw TestFailed();
 	}
+
 }
