@@ -255,12 +255,13 @@ Dev       meAsDev( getSelfAs<DevImpl>() );
 Children CDevImpl::getChildren() const
 {
 Children rval( make_shared<Children::element_type>( children_.size() ) );
+int      i;
 
 MyChildren::iterator it;
 
 	// copy into a vector
-	for ( it = children_.begin(); it != children_.end(); ++it ) {
-		rval->push_back( it->second );
+	for ( it = children_.begin(), i=0; it != children_.end(); ++it, ++i ) {
+		(*rval)[i] = it->second;
 	}
 
 	return rval;
