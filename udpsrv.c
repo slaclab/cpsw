@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <inttypes.h>
 
+#define DEBUG
+
 #define CMD_MSK    (0x3fffffff)
 #define CMD_WR(a)  (0x40000000 | (((a)>>2)&CMD_MSK))
 #define CMD_RD(a)  (0x00000000 | (((a)>>2)&CMD_MSK))
@@ -50,6 +52,9 @@ static void usage(const char *nm)
 {
 	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-V <protoVersion>]\n", nm);
 	fprintf(stderr, "        -V version  : protocol version V1 (V2 default)\n");
+#ifdef DEBUG
+	fprintf(stderr, "        -d          : disable debugging messages (faster)\n");
+#endif
 }
 
 static void payload_swap(int v1, uint32_t *buf, int nelms)
@@ -86,12 +91,19 @@ struct iovec  iov[2];
 int    niov = 0;
 int    i;
 int    expected;
+int    debug = 
+#ifdef DEBUG
+	1
+#else
+	0
+#endif
+;
 
 	memset( &mh, 0, sizeof(mh) );
 
 	sprintf(mem + 0x800, "Hello");
 
-	while ( (got = getopt(argc, argv, "p:a:V:h")) > 0 ) {
+	while ( (got = getopt(argc, argv, "dp:a:V:h")) > 0 ) {
 		c_a = 0;
 		i_a = 0;
 		switch ( got ) {
@@ -99,6 +111,7 @@ int    expected;
 			case 'p': i_a = &port;    break;
 			case 'a': ina = optarg;   break;
 			case 'V': i_a = &vers;    break;
+			case 'd': debug = 0;      break;
 			default:
 				fprintf(stderr, "unknown option '%c'\n", got);
 				usage(argv[0]);
@@ -196,7 +209,8 @@ int    expected;
 					/* disallow write; set status */
 					memset(&rbuf[2+size], 0xff, 4);
 #ifdef DEBUG
-printf("Rejecting write to read-only region\n");
+if ( debug )
+	printf("Rejecting write to read-only region\n");
 #endif
 				} else {
 					memcpy(mem + off, (void*)&rbuf[2], got-expected);
@@ -221,7 +235,8 @@ printf("Rejecting write to read-only region\n");
 							mem[REGBASE + REG_ARR_OFF + i + 2] = 0xfc;
 							mem[REGBASE + REG_ARR_OFF + i + 3] = 0xfd;
 #ifdef DEBUG
-printf("Setting\n");
+if ( debug )
+	printf("Setting\n");
 #endif
 						} else {
 							memset( mem + REGBASE + REG_SCR_OFF, 0x00, REG_SCR_SZ );
@@ -239,7 +254,8 @@ printf("Setting\n");
 							mem[REGBASE + REG_ARR_OFF + i + 2] = 0xfb;
 							mem[REGBASE + REG_ARR_OFF + i + 3] = 0xfa;
 #ifdef DEBUG
-printf("Clearing\n");
+if ( debug )
+	printf("Clearing\n");
 #endif
 						}
 						memset( mem + REGBASE + REG_CLR_OFF, 0xaa, 4 );
@@ -248,6 +264,8 @@ printf("Clearing\n");
 			}
 			memset((void*) &rbuf[2+size], 0, 4);
 
+#ifdef DEBUG
+if (debug) {
 			if ( CMD_IS_RD(addr) )
 				printf("Read from");
 			else
@@ -261,6 +279,8 @@ printf("Clearing\n");
 			}
 			if ( n & 15 )
 				printf("\n");
+}
+#endif
 		}
 		bs32(v1, rbuf[2+size] );
 
@@ -270,7 +290,10 @@ printf("Clearing\n");
 			perror("unable to send");
 			goto bail;
 		}
-printf("put %i\n", put);
+#ifdef DEBUG
+if ( debug )
+	printf("put %i\n", put);
+#endif
 
 	}
 
