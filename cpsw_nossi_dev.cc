@@ -17,6 +17,8 @@ struct Mutex {
 
 #undef  NOSSI_DEBUG
 
+#define MAXWORDS 256
+
 CUdpAddressImpl::CUdpAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
 :CAddressImpl(k),
  protoVersion_(version),
@@ -111,14 +113,14 @@ uint32_t v;
 
 #define CMD_READ  0x00000000
 #define CMD_WRITE 0x40000000
-	
-uint64_t CUdpAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+
+uint64_t CUdpAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
 {
-SRPWord    bufh[4];
+SRPWord  bufh[4];
 uint8_t  buft[sizeof(SRPWord)];
-SRPWord    xbuf[5];
-SRPWord    header;
-SRPWord    status;
+SRPWord  xbuf[5];
+SRPWord  header;
+SRPWord  status;
 int      i, j, put;
 int      headbytes = (off & (sizeof(SRPWord)-1));
 int      tailbytes = 0;
@@ -128,9 +130,6 @@ int      got;
 int      nWords;
 int      expected = 0;
 uint32_t tid = getTid();
-
-	if ( dbytes < sbytes )
-		sbytes = dbytes;
 
 	if ( sbytes == 0 )
 		return 0;
@@ -191,8 +190,6 @@ uint32_t tid = getTid();
 
 	unsigned iovlen  = i;
 	unsigned attempt = 0;
-
-	lock_guard<recursive_mutex> GUARD( mutex_->m );
 
 	do {
 		if ( (int)sizeof(xbuf[0])*put != ::write( sd_, xbuf, sizeof(xbuf[0])*put ) ) {
@@ -285,8 +282,42 @@ retry: ;
 
 	throw IOError("No response -- timeout");
 }
+	
+uint64_t CUdpAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+{
+uint64_t rval = 0;
+int headbytes = (off & (sizeof(SRPWord)-1));
+int totbytes;
+int nWords;
 
-uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+	if ( dbytes < sbytes )
+		sbytes = dbytes;
+
+	if ( sbytes == 0 )
+		return 0;
+
+	totbytes = headbytes + sbytes;
+	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
+
+	lock_guard<recursive_mutex> GUARD( mutex_->m );
+
+	while ( nWords > MAXWORDS ) {
+		int nbytes = MAXWORDS*4 - headbytes;
+		rval += readBlk_unlocked(node, cacheable, dst, off, nbytes);	
+		nWords -= MAXWORDS;
+		sbytes -= nbytes;	
+		dst    += nbytes;
+		off    += nbytes;
+		headbytes = 0;
+	}
+
+	rval += readBlk_unlocked(node, cacheable, dst, off, sbytes);
+
+	return rval;
+}
+
+
+uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
 	SRPWord    xbuf[4];
 	SRPWord    status;
@@ -301,9 +332,6 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 	int      got;
 	int      nWords;
 	uint32_t tid = getTid();
-
-	if ( sbytes < dbytes )
-		dbytes = sbytes;
 
 	if ( dbytes == 0 )
 		return 0;
@@ -320,8 +348,6 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 	bool merge_last  = (totbytes & (sizeof(SRPWord)-1)) || mskn;
 
 	int toput = dbytes;
-
-	lock_guard<recursive_mutex> GUARD( mutex_->m );
 
 	if ( merge_first ) {
 		if ( merge_last && dbytes == 1 ) {
@@ -446,12 +472,12 @@ uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable c
 				goto retry;
 			}
 #if 0
-			printf("got %i bytes, sbytes %i, nWords %i\n", got, sbytes, nWords);
+			printf("got %i bytes, dbytes %i, nWords %i\n", got, dbytes, nWords);
 			printf("got %i bytes\n", got);
 			for (i=0; i<2; i++ )
 				printf("header[%i]: %x\n", i, bufh[i]);
 
-			for ( i=0; i<sbytes; i++ )
+			for ( i=0; i<dbytes; i++ )
 				printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
 #endif
 			memcpy( &got_tid, rbuf + ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ? sizeof(SRPWord) : 0 ), sizeof(SRPWord) );
@@ -483,6 +509,42 @@ retry: ;
 
 	throw IOError("Too many retries");
 }
+
+uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+{
+uint64_t rval = 0;
+int headbytes = (off & (sizeof(SRPWord)-1));
+int totbytes;
+int nWords;
+
+	if ( sbytes < dbytes )
+		dbytes = sbytes;
+
+	if ( dbytes == 0 )
+		return 0;
+
+	totbytes = headbytes + dbytes;
+	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
+
+	lock_guard<recursive_mutex> GUARD( mutex_->m );
+
+	while ( nWords > MAXWORDS ) {
+		int nbytes = MAXWORDS*4 - headbytes;
+		rval += writeBlk_unlocked(node, cacheable, src, off, nbytes, msk1, 0);	
+		nWords -= MAXWORDS;
+		dbytes -= nbytes;	
+		src    += nbytes;
+		off    += nbytes;
+		headbytes = 0;
+		msk1      = 0;
+	}
+
+	rval += writeBlk_unlocked(node, cacheable, src, off, dbytes, msk1, mskn);
+
+	return rval;
+
+}
+
 
 void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
 {

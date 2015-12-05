@@ -23,8 +23,10 @@
 #define REG_RO_OFF 0
 #define REG_RO_SZ 16
 #define REG_CLR_OFF REG_RO_SZ
-#define REG_SCR_OFF REG_CLR_OFF + 8
+#define REG_SCR_OFF (REG_CLR_OFF + 8)
 #define REG_SCR_SZ  32
+#define REG_ARR_OFF (REG_SCR_OFF + REG_SCR_SZ)
+#define REG_ARR_SZ  8192
 
 using boost::dynamic_pointer_cast;
 
@@ -121,7 +123,7 @@ unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 
 		NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
 		MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
-		MMIODev   srvm = IMMIODev::create ("srvm",0x1000, LE);
+		MMIODev   srvm = IMMIODev::create ("srvm",0x10000, LE);
 
 		mmio->addAtAddress( srvm, REGBASE );
 
@@ -211,6 +213,53 @@ unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 			}
 		}
 
+		sprintf(nam,"arr-16-0-2-le");
+		srvm->addAtAddress( IIntField::create(nam, 16, false, 0), REG_ARR_OFF + 2, (REG_ARR_SZ-4)/2, IMMIODev::STRIDE_AUTO, LE ); 
+		ScalVal v_le = IScalVal::create( pre->findByName(nam) );
+		sprintf(nam,"arr-32-0-0-le");
+		srvm->addAtAddress( IIntField::create(nam, 32, false, 0), REG_ARR_OFF + 0, (REG_ARR_SZ)/4, IMMIODev::STRIDE_AUTO, LE ); 
+		ScalVal v32_le = IScalVal::create( pre->findByName(nam) );
+
+		int n,i;
+
+		n = v_le->getNelms();
+		uint16_t v16[n];
+		v_le->getVal(v16,n);
+
+		if ( v16[0] != 0xddcc ) {
+			throw TestFailed();
+		}
+		for ( i=1; i<n-1; i++ ) {
+			if ( v16[i] != i+1 ) {
+				fprintf(stderr, "array val mismatch @i==%i\n (got %x)\n", i, v16[i]);
+				throw TestFailed();
+			}
+		}
+		if ( v16[i] != 0xfbfa ) {
+			throw TestFailed();
+		}
+		memset(v16, 0x55, sizeof(v16[0])*n);
+		v_le->setVal(v16,n);
+
+		int n32 = v32_le->getNelms();
+		uint32_t v32[n32];
+		v32_le->getVal(v32, n32);
+		if ( v32[0] != 0x5555bbaa ) {
+			throw TestFailed();
+		}
+		for ( i=1; i<n32-1; i++ ) {
+			if ( v32[i] != 0x55555555 ) {
+				throw TestFailed();
+			}
+		}
+		if ( v32[i] != 0xfdfc5555 ) {
+			throw TestFailed();
+		}
+
+	} catch (IOError &e) {
+		printf("I/O Error -- is 'udpsrv' running (with matching protocol version) ?\n");
+		printf("             note: udpsrv debugging messages might slow it down...\n");
+		throw;
 	} catch (CPSWError &e) {
 		printf("CPSW Error: %s\n", e.getInfo().c_str());
 		throw;
