@@ -96,6 +96,11 @@ class CEntryImpl: public virtual IField {
 			locked_ = true;
 		}
 
+		virtual bool getLocked()
+		{
+			return locked_;
+		}
+
 		virtual void accept(IVisitor    *v, RecursionOrder order, int recursionDepth);
 
 		virtual EntryImpl getSelf()            { return EntryImpl( self_ ); }
