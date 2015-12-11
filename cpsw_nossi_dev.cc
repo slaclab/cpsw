@@ -556,3 +556,12 @@ NoSsiDev INoSsiDev::create(const char *name, const char *ipaddr)
 {
 	return CEntryImpl::create<CNoSsiDevImpl>(name, ipaddr);
 }
+
+void CNoSsiDevImpl::setLocked()
+{
+printf("SETLOCKED\n");
+	if ( getLocked() ) {
+		throw InternalError("Cannot attach this type of device multiple times -- need to create a new instance");
+	}
+	CDevImpl::setLocked();
+}

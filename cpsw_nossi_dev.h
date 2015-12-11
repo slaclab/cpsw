@@ -59,6 +59,8 @@ public:
 	virtual CNoSsiDevImpl *clone(FKey k) { return new CNoSsiDevImpl( *this ); }
 
 	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 100, unsigned retryCnt = 5, uint8_t vc = 0);
+
+	virtual void setLocked();
 };
 
 #endif
