@@ -74,9 +74,12 @@ class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 
 class IPathImpl : public IPath {
 public:
+	virtual void         append(Address, int f, int t) = 0;
 	virtual PathEntry    tailAsPathEntry() const = 0;
 	virtual ConstDevImpl originAsDevImpl() const = 0;
 	virtual ConstDevImpl parentAsDevImpl() const = 0;
+
+	static  IPathImpl   *toPathImpl(Path p);
 
 };
 

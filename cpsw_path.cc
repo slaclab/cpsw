@@ -136,9 +136,14 @@ std::string s = toString();
 	fprintf(f, "%s", s.c_str());
 }
 
-static PathImpl * toPathImpl(Path p)
+static PathImpl *_toPathImpl(Path p)
 {
 	return static_cast<PathImpl*>( p.get() );
+}
+
+IPathImpl * IPathImpl::toPathImpl(Path p)
+{
+	return _toPathImpl(p);
 }
 
 PathImpl::PathImpl()
@@ -213,7 +218,6 @@ PathImpl::iterator PathImpl::begin()
 
 PathImpl::const_iterator PathImpl::begin() const
 {
-printf("cbeg\n");
 	PathImpl::const_iterator i = PathEntryContainer::begin();
 	return ++i;
 }
@@ -312,10 +316,10 @@ int rval;
 
 Path PathImpl::findByName(const char *s) const
 {
-Address   found;
+Address      found;
 ConstDevImpl h;
 Path         rval = make_shared<PathImpl>( *this );
-PathImpl    *p    = toPathImpl( rval );
+PathImpl    *p    = _toPathImpl( rval );
 const char  *sl;
 
 #ifdef PATH_DEBUG
@@ -363,7 +367,6 @@ use_origin:
 			op = 0;
 
 		if ( op ) {
-
 			if (   !cl
 					|| (  cl <= op + 1)
 					|| (  sl && (sl < cl || sl != cl+1))
@@ -422,7 +425,7 @@ Hub PathImpl::parent() const
 
 bool PathImpl::verifyAtTail(Path p)
 {
-PathImpl *pi = toPathImpl( p );
+PathImpl *pi = _toPathImpl( p );
 	return verifyAtTail( pi->originAsDevImpl() );
 }
 
@@ -462,8 +465,8 @@ Path PathImpl::concat(Path p) const
 Path rval = clone();
 
 	if ( ! p->empty() ) {
-		PathImpl *h = toPathImpl(rval);
-		PathImpl *t = toPathImpl(p);
+		PathImpl *h = _toPathImpl(rval);
+		PathImpl *t = _toPathImpl(p);
 
 		append2(h, t);
 	}
@@ -474,7 +477,7 @@ Path rval = clone();
 void PathImpl::append(Path p)
 {
 	if ( ! p->empty() )
-		append2(this, toPathImpl(p));
+		append2(this, _toPathImpl(p));
 }
 
 void PathImpl::append(Address a, int f, int t)
@@ -503,7 +506,7 @@ bool CompositePathIterator::validConcatenation(Path p)
 
 static PathImpl::reverse_iterator rbegin(Path p)
 {
-	return toPathImpl(p)->rbegin();
+	return _toPathImpl(p)->rbegin();
 }
 
 
