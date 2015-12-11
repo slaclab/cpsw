@@ -51,6 +51,8 @@ public:
 	virtual ~IDev() {}
 
 	static Dev create(const char *name, uint64_t size = 0);
+
+	static Dev getRootDev();
 };
 
 class IVisitor {

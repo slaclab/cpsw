@@ -13,7 +13,12 @@ using std::cout;
 
 typedef shared_ptr<const DevImpl::element_type> ConstDevImpl;
 
-ConstDevImpl theRootDev( CEntryImpl::create<CDevImpl>("ROOT") );
+DevImpl theRootDev( CEntryImpl::create<CDevImpl>("ROOT") );
+
+Dev IDev::getRootDev()
+{
+	return theRootDev;
+}
 
 class PathImpl : public PathEntryContainer, public IPathImpl {
 private:
