@@ -7,7 +7,27 @@ SRCS = $(LSRCS) $(TSRCS)
 CXXFLAGS = -I. -g -Wall -O2
 CFLAGS=-O2 -g
 
-test: $(patsubst %.cc,%,$(wildcard *_tst.cc))
+TBINS=$(patsubst %.cc,%,$(wildcard *_tst.cc))
+
+TEST_AXIV_YES=
+TEST_AXIV_NO=cpsw_axiv_udp_tst
+
+FILTERED_TBINS=$(filter-out $(TEST_AXIV_$(TEST_AXIV)), $(TBINS))
+
+all: tbins
+
+tbins: $(TBINS)
+
+test: $(FILTERED_TBINS)
+	for i in $^ ; do \
+		if ./$$i ; then \
+			echo "TEST $$i PASSED" ; \
+		else \
+			echo "TEST $$i FAILED" ; \
+			exit 1; \
+		fi \
+	done  ; \
+	echo "TESTS PASSED"
 
 cpsw_nossi_tst: udpsrv
 
