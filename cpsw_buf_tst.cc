@@ -124,6 +124,36 @@ try {
 		|| IBuf::numBufsInUse()   != 0 )
 		throw TestFailed("final buffer count wrong");
 
+	// check release of a chain:
+	b[0] = IBuf::getBuf();
+	for ( i=1; i<NBUF; i++ )
+		IBuf::getBuf()->after( b[0] );
+	Buf p;
+	for ( p = b[0], i=0; p; p = p->getNext(), i++ ) {
+		p->getPayload()[0] = (uint8_t)i;
+	}
+	if ( i != NBUF )
+		throw TestFailed("building chain failed");
+
+	if (   IBuf::numBufsAlloced() != NBUF
+		|| IBuf::numBufsFree()    != 0
+		|| IBuf::numBufsInUse()   != NBUF )
+		throw TestFailed("buffer count after chain creation wrong");
+
+
+	b[1] = b[0]->getNext();
+
+	b[0].reset();
+	if ( b[1]->getPrev() )
+		throw TestFailed("PREV should be NULL here");
+	b[1].reset();
+
+	if (   IBuf::numBufsAlloced() != NBUF
+		|| IBuf::numBufsFree()    != NBUF
+		|| IBuf::numBufsInUse()   != 0 )
+		throw TestFailed("buffer count after chain destruction wrong");
+
+		
 	
 
 	

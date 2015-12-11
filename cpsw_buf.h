@@ -9,6 +9,30 @@ using boost::shared_ptr;
 class IBuf;
 typedef shared_ptr<IBuf> Buf;
 
+// NOTE: In order to avoid circular references of smart pointers
+//       the backwards link ('Prev') of a doubly-linked chain
+//       is 'weak', i.e., a chain is held together by the 'Next'
+//       pointers.
+//       Thus, it is not possible to have a linked list with only
+//       a tail pointer (since all the list elements would be destroyed
+//       -- unless there are other references).
+
+//   +++> strong reference
+//   ---> weak   reference
+//
+//              HEAD                 TAIL
+//               +                    +
+//               +                    +
+//               V                    V
+//              NODE:      NODE:     NODE:
+//              next_ ++>  next_ ++> next_ ++> (NULL)
+//       (NULL) prev_ <--  prev_ <-- prev_
+//
+// The 'forward' chain of strong references starting at 'HEAD' keeps
+// the chain 'alive'. Without HEAD only the last node would 'survive'
+// since there would be no strong references to other nodes.
+ 
+
 class IBuf {
 public:
 	virtual size_t   getCapacity()        = 0;
@@ -36,6 +60,8 @@ public:
 	// split (result are two lists with this buffer
 	// at the head of the second one)
 	virtual void     split()              = 0;
+
+	virtual         ~IBuf() {}
 
 	static Buf       getBuf(size_t capa = 1500 - 14 - 20 - 8);
 

@@ -29,7 +29,8 @@ private:
 
 class CBufImpl : public IBuf {
 private:
-	BufImpl prev_, next_; 
+	BufImpl            next_; 
+	weak_ptr<CBufImpl> prev_;
 	weak_ptr<CBufImpl> self_;
 	unsigned beg_,  end_;
 	uint8_t  data_[3*512 - 2*sizeof(prev_) - sizeof(self_) - 2*sizeof(beg_)];
@@ -48,18 +49,29 @@ public:
 	void     reinit();
 
 	Buf      getNext()     { return next_; }
-	Buf      getPrev()     { return prev_; }
+	Buf      getPrev()     { return prev_.expired() ? NULLBUF : Buf(prev_);     }
+
+	BufImpl  getNextImpl() { return next_; }
+	BufImpl  getPrevImpl() { return prev_.expired() ? NULLBUF : BufImpl(prev_); }
 
 	void     after(Buf);
 	void     before(Buf);
 	void     unlink();
 	void     split();
 
+	// We don't need to unlink a buffer when it is destroyed:
+	// Only the first one in a chain can ever be destroyed (because
+	// strong refs to all others in a chain exist). If this happens
+	// then the 'prev' pointer of the following node expires which 
+	// yields the correct result: a subsequent getPrev() on the 
+	// second/following node will return NULL.
+	//virtual ~CBufImpl() { }
+
 	static BufImpl getBuf(size_t capa);
 };
 
 CBufImpl::CBufImpl(CBufKey k)
-:beg_(0), end_(sizeof(data_))
+: beg_(0), end_(sizeof(data_))
 {
 }
 
@@ -103,13 +115,13 @@ BufImpl pi = static_pointer_cast<BufImpl::element_type>(p);
 BufImpl me = BufImpl(self_);
 
 	if ( pi && pi != me ) {
-		if ( next_ || prev_ )
+		if ( getNextImpl() || getPrevImpl() )
 			throw InternalError("Cannot enqueue non-empty node");
 		prev_        = pi;
 		next_        = pi->next_;
 		pi->next_    = me;
-		if ( next_ )
-			next_->prev_ = me;
+		if ( getNextImpl() )
+			getNextImpl()->prev_ = me;
 	}
 }
 
@@ -119,33 +131,33 @@ BufImpl pi = static_pointer_cast<BufImpl::element_type>(p);
 BufImpl me = BufImpl(self_);
 
 	if ( pi && pi != me ) {
-		if ( next_ || prev_ )
+		if ( getNextImpl() || getPrevImpl() )
 			throw InternalError("Cannot enqueue non-empty node");
 		next_        = pi;
 		prev_        = pi->prev_;
 		pi->prev_    = me;
-		if ( prev_ )
-			prev_->next_ = me;
+		if ( getPrevImpl() )
+			getPrevImpl()->next_ = me;
 	}
 }
 
 void CBufImpl::unlink()
 {
-	if ( next_ ) {
-		next_->prev_ = prev_;
+	if ( getNextImpl() ) {
+		getNextImpl()->prev_ = prev_;
 		next_ = NULLBUF;
 	}
-	if ( prev_ ) {
-		prev_->next_ = next_;
+	if ( getPrevImpl() ) {
+		getPrevImpl()->next_ = next_;
 		prev_ = NULLBUF;
 	}
 }
 
 void CBufImpl::split()
 {
-	if ( prev_ ) {
-		prev_->next_ = NULLBUF;
-		prev_        = NULLBUF;
+	if ( getPrevImpl() ) {
+		getPrevImpl()->next_ = NULLBUF;
+		prev_                = NULLBUF;
 	}
 }
 
