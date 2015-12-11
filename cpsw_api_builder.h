@@ -3,15 +3,26 @@
 
 #include <cpsw_api_user.h>
 
+// ************** BIG NOTE ****************
+//   The builder API is NOT THREAD SAFE. 
+// ****************************************
+
 using boost::static_pointer_cast;
 
 class IVisitor;
 class IField;
+class CEntryImpl;
 class FKey;
 class IDev;
 
-typedef shared_ptr<IField>   Field;
-typedef shared_ptr<IDev>     Dev;
+typedef shared_ptr<IField>     Field;
+typedef shared_ptr<IDev>       Dev;
+typedef shared_ptr<CEntryImpl> EntryImpl;
+
+
+typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21 } ByteOrder;
+
+ByteOrder hostByteOrder();
 
 class IVisitable {
 public:
@@ -22,13 +33,6 @@ public:
 	virtual void accept(IVisitor *v, RecursionOrder order, int recursionDepth = DEPTH_INDEFINITE) = 0;
 	virtual ~IVisitable() {}
 };
-
-class   CEntryImpl;
-typedef shared_ptr<CEntryImpl> EntryImpl;
-
-typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21 } ByteOrder;
-
-ByteOrder hostByteOrder();
 
 class IField : public virtual IEntry, public virtual IVisitable {
 public:
@@ -141,7 +145,5 @@ public:
 
 	static IntField create(const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_Signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP);
 };
-
-
 
 #endif
