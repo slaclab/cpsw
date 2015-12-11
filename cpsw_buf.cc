@@ -6,6 +6,8 @@
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
 
+#include <stdio.h>
+
 class CBufImpl;
 typedef shared_ptr<CBufImpl> BufImpl;
 
@@ -21,7 +23,7 @@ using boost::memory_order_acquire;
 
 class CBufKey {
 private:
-	CBufKey();
+	CBufKey() {};
 	friend class CBufFreeList;
 };
 
@@ -35,7 +37,7 @@ private:
 public:
 	CBufImpl(CBufKey k);
 
-	void     setSelf( shared_ptr<CBufImpl> me );
+	void     setSelf( BufImpl me );
 
 	size_t   getCapacity() { return sizeof(data_);                    }
 	size_t   getSize()     { return end_ - beg_;                      }
@@ -43,7 +45,7 @@ public:
 
 	void     setSize(size_t);
 	void     setPayload(uint8_t*);
-	void     reset();
+	void     reinit();
 
 	Buf      getNext()     { return next_; }
 	Buf      getPrev()     { return prev_; }
@@ -53,7 +55,7 @@ public:
 	void     unlink();
 	void     split();
 
-	static Buf getBuf(size_t capa);
+	static BufImpl getBuf(size_t capa);
 };
 
 CBufImpl::CBufImpl(CBufKey k)
@@ -61,7 +63,7 @@ CBufImpl::CBufImpl(CBufKey k)
 {
 }
 
-void CBufImpl::setSelf( shared_ptr<CBufImpl> me )
+void CBufImpl::setSelf( BufImpl me )
 {
 	if ( ! self_.expired() || me.get() != this ) 
 		throw InternalError("Self pointer already set or not matching 'this'");
@@ -89,7 +91,7 @@ void CBufImpl::setPayload(uint8_t *p)
 	}
 }
 
-void CBufImpl::reset()
+void CBufImpl::reinit()
 {
 	beg_ = 0;
 	end_ = sizeof(data_);
@@ -101,6 +103,8 @@ BufImpl pi = static_pointer_cast<BufImpl::element_type>(p);
 BufImpl me = BufImpl(self_);
 
 	if ( pi && pi != me ) {
+		if ( next_ || prev_ )
+			throw InternalError("Cannot enqueue non-empty node");
 		prev_        = pi;
 		next_        = pi->next_;
 		pi->next_    = me;
@@ -115,6 +119,8 @@ BufImpl pi = static_pointer_cast<BufImpl::element_type>(p);
 BufImpl me = BufImpl(self_);
 
 	if ( pi && pi != me ) {
+		if ( next_ || prev_ )
+			throw InternalError("Cannot enqueue non-empty node");
 		next_        = pi;
 		prev_        = pi->prev_;
 		pi->prev_    = me;
@@ -145,17 +151,20 @@ void CBufImpl::split()
 
 class CBufAlloc : public std::allocator<CBufImpl> {
 private:
-	atomic<unsigned int> *n_p_;
+	atomic<unsigned int> *nAlloc_p_;
+	atomic<unsigned int> *nFree_p_;
 public:
-	CBufAlloc( atomic<unsigned int> *n_p )
-	:n_p_(n_p)
+	CBufAlloc( atomic<unsigned int> *nAlloc_p, atomic<unsigned int> *nFree_p )
+	:nAlloc_p_(nAlloc_p), nFree_p_(nFree_p)
 	{
-		n_p_->store(0);
 	}
 
 	CBufImpl *allocate(size_t n)
 	{
-		n_p_->fetch_add(n, memory_order_release);
+		nAlloc_p_->fetch_add(n, memory_order_release);
+#ifndef BOOST_LOCKFREE_FREELIST_INIT_RUNS_DTOR
+		nFree_p_->fetch_add(n, memory_order_release);
+#endif
 		return std::allocator<CBufImpl>::allocate( n );
 	}
 };
@@ -183,9 +192,7 @@ private:
 	atomic<unsigned int> nFree_;
 public:
 	CBufFreeList(int n = 0)
-	:nAlloc_(0),
-	 nFree_(0),
-	 FreeListBase( ALL( (nAlloc_=nFree_=0, &nAlloc_ ) ) , n)
+	:FreeListBase( ALL( (nAlloc_=0, &nAlloc_ ), (nFree_ = 0, &nFree_) ) , n)
 	{}
 
 	unsigned int getNumAlloced()
@@ -198,7 +205,7 @@ public:
 		return nFree_.load( memory_order_acquire );
 	}
 
-	unsigned int getNumUsed()
+	unsigned int getNumInUse()
 	{
 		// can't atomically read both -- since this is a diagnostic
 		// we don't care about marginal race conditions here.
@@ -209,24 +216,27 @@ public:
 
 	CBufImpl *construct(CBufKey k)
 	{
-		CBufImpl *rval = FreeListBase::construct<true,true>( k );
+		const bool ThreadSafe = true;
+		const bool Bounded    = false;
+		CBufImpl *rval = FreeListBase::construct<ThreadSafe,Bounded>( k );
 		if ( rval )
-			nFree_.fetch_add( 1, memory_order_release );
+			nFree_.fetch_sub( 1, memory_order_release );
 		return rval;
 	}
 
 	void destruct(CBufImpl *o)
 	{
-		nFree_.fetch_sub( 1, memory_order_release );
-		FreeListBase::destruct<true>( o );
+		const bool ThreadSafe = true;
+		nFree_.fetch_add( 1, memory_order_release );
+		FreeListBase::destruct<ThreadSafe>( o );
 	}
 
-	Buf getBuf()
+	BufImpl getBuf()
 	{
 		CBufImpl *b = construct( CBufKey() );
 		if ( ! b )
 			throw InternalError("Unable to allocate Buffer");
-		shared_ptr<CBufImpl> rval = shared_ptr<CBufImpl>( b, DTOR(this) );
+		BufImpl rval = BufImpl( b, DTOR(this) );
 		rval->setSelf( rval );
 		return rval;
 	}
@@ -237,10 +247,32 @@ void DTOR::operator()(CBufImpl *o)
 	fl_->destruct( o );
 }
 
-Buf CBufImpl::getBuf(size_t capa)
-{
 static CBufFreeList fl;
-	if ( capa > sizeof(data_) )
+
+BufImpl CBufImpl::getBuf(size_t capa)
+{
+	if ( capa > sizeof(data_) ) {
 		throw InternalError("ATM all buffers are std. MTU size");
+	}
 	return fl.getBuf();
+}
+
+Buf IBuf::getBuf(size_t capa)
+{
+	return CBufImpl::getBuf( capa );
+}
+
+unsigned IBuf::numBufsAlloced()
+{
+	return fl.getNumAlloced();
+}
+
+unsigned IBuf::numBufsFree()
+{
+	return fl.getNumFree();
+}
+
+unsigned IBuf::numBufsInUse()
+{
+	return fl.getNumInUse();
 }
