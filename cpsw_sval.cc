@@ -22,6 +22,14 @@ IEntryAdapt::IEntryAdapt(Path p, shared_ptr<const CEntryImpl> ie)
 	}
 }
 
+void IEntryAdapt::setSelf(shared_ptr<IEntryAdapt> me)
+{
+	if ( ! self_.expired() || me.get() != this ) {
+		throw InternalError("self_ already set or arg doesn't point to 'this'");
+	}
+	self_ = me;
+}
+
 template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p)
 {
 	if ( p->empty() )
@@ -30,7 +38,9 @@ template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p)
 	Address a = CompositePathIterator( &p )->c_p_;
 	shared_ptr<const typename IMPL::element_type> e = dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
 	if ( e ) {
-		return make_shared<typename ADAPT::element_type>(p, e);
+		ADAPT rval = make_shared<typename ADAPT::element_type>(p, e);
+		rval->setSelf( rval );
+		return rval;
 	}
 	throw InterfaceNotImplementedError( p );
 }
@@ -121,13 +131,7 @@ ScalVal_Adapt rval = check_interface<ScalVal_Adapt, IntEntryImpl>( p );
 
 unsigned IIntEntryAdapt::getNelms()
 {
-	if ( nelms_ < 0 ) {
-		CompositePathIterator it( & p_ );
-		while ( ! it.atEnd() )
-			++it;
-		nelms_ = it.getNelmsRight();
-	}
-	return nelms_;	
+	return p_->getNelms();
 }
 
 class SignExtender {
@@ -263,10 +267,41 @@ public:
 	}
 };
 
+class SlicedPathIterator : public CompositePathIterator {
+public:
+	// 'suffix' (if used) must live for as long as this object is used
+	Path suffix;
+	
+	SlicedPathIterator(Path p, IndexRange *range)
+	:CompositePathIterator( &p )
+	{
+		if ( range && range->size() > 0 ) {
+			int f = (*this)->idxf_;
+			int t = (*this)->idxt_;
+			if ( range->size() != 1 ) {
+				throw InvalidArgError("Currently only 1-level of indices supported, sorry");
+			}
+			if ( range->getFrom() >= 0 )
+				f = range->getFrom();
+			if ( range->getTo() >= 0 )
+				t = range->getTo();
+			if ( f < (*this)->idxf_ || t > (*this)->idxt_ || t < f )
+				throw InvalidArgError("Array indices out of range");
+			if ( f != (*this)->idxf_ || t != (*this)->idxt_ ) {
+				suffix = IPath::create();
+				Address cl = (*this)->c_p_;
+				++(*this);
+				IPathImpl::toPathImpl( suffix )->append( cl, f, t );
+				(*this).append(suffix);
+			}
+		}
+	}
+};
 
-unsigned CScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz)
+unsigned CScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
 {
-CompositePathIterator it( & p_ );
+SlicedPathIterator it( p_, range );
+
 Address          cl           = it->c_p_;
 uint64_t         off          = 0;
 unsigned         sbytes       = getSize(); // byte-size including lsb shift
@@ -276,9 +311,10 @@ int              lsb          = getLsBit();
 ByteOrder        hostEndian   = hostByteOrder();
 ByteOrder        targetEndian = cl->getByteOrder();
 unsigned         ibuf_nchars;
+unsigned         nelmsOnPath  = it->nelmsLeft_;
 
-	if ( (unsigned)getNelms() <= nelms )
-		nelms = getNelms();
+	if ( nelms >= nelmsOnPath )
+		nelms = nelmsOnPath;
 	else
 		throw InvalidArgError("Invalid Argument: buffer too small");
 
@@ -390,9 +426,9 @@ for (int i=0; i<9; i++ ) {
 }
 #endif
 
-unsigned CScalVal_WOAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz)
+unsigned CScalVal_WOAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
 {
-CompositePathIterator it( & p_ );
+SlicedPathIterator   it( p_, range );
 Address          cl = it->c_p_;
 uint64_t         off = 0;
 unsigned         dbytes   = getSize(); // byte-size including lsb shift
@@ -404,12 +440,12 @@ ByteOrder        hostEndian= hostByteOrder();
 ByteOrder        targetEndian = cl->getByteOrder();
 uint8_t          msk1     = 0x00;
 uint8_t          mskn     = 0x00;
+unsigned         nelmsOnPath = it->nelmsLeft_;
 
-	if ( (unsigned)getNelms() <= nelms )
-		nelms = getNelms();
+	if ( nelms >= nelmsOnPath )
+		nelms = nelmsOnPath;
 	else
 		throw InvalidArgError("not enough values supplied");
-
 
 	bool sign_extend = sizeBits > 8*sbytes;
 	bool truncate    = sizeBits < 8*sbytes;
@@ -519,30 +555,54 @@ prib("byte-swapped", obufp + oidx);
 	return nelms;
 }
 	
-unsigned CScalVal_WOAdapt::setVal(uint64_t  v)
+unsigned CScalVal_WOAdapt::setVal(uint64_t  v, IndexRange *r)
 {
-unsigned nelms = getNelms();
+unsigned nelms;
+
+
+	if ( r ) {
+		int f = r->getFrom();
+		int t = r->getTo();
+
+		if ( f < 0 && t < 0 ) {
+			nelms = getNelms();
+		} else {
+			CompositePathIterator it( &p_ );
+			if ( f < 0 )
+				f = it->idxf_; 
+			if ( t < 0 )
+				t = it->idxt_; 
+			t = t - f + 1;
+			int d = it.getNelmsRight();
+			if ( t >= 0 && t < d )
+				d = t;
+			nelms = it.getNelmsLeft() * d;
+		}
+	} else {
+		nelms = getNelms();
+	}
+
 	// since reads may be collapsed at a lower layer we simply build an array here
 	if ( getSize() <= sizeof(uint8_t) ) {
 		uint8_t vals[nelms];
 		for ( unsigned i=0; i<nelms; i++ )
 			vals[i] = v;
-		return setVal(vals, nelms);
+		return setVal(vals, nelms, r);
 	} else if ( getSize() <= sizeof(uint16_t) ) {
 		uint16_t vals[nelms];
 		for ( unsigned i=0; i<nelms; i++ )
 			vals[i] = v;
-		return setVal(vals, nelms);
+		return setVal(vals, nelms, r);
 	} else if ( getSize() <= sizeof(uint32_t) ) {
 		uint32_t vals[nelms];
 		for ( unsigned i=0; i<nelms; i++ )
 			vals[i] = v;
-		return setVal(vals, nelms);
+		return setVal(vals, nelms, r);
 	} else {
 		uint64_t vals[nelms];
 		for ( unsigned i=0; i<nelms; i++ )
 			vals[i] = v;
-		return setVal(vals, nelms);
+		return setVal(vals, nelms, r);
 	}
 }
 
@@ -635,4 +695,61 @@ shared_ptr<CIntEntryImpl::CBuilder> rval( p );
 IIntField::Builder IIntField::IBuilder::create()
 {
 	return CIntEntryImpl::CBuilder::create();
+}
+
+IndexRange::IndexRange(int from, int to)
+:std::vector< std::pair<int,int> >(1)
+{
+	if ( from >= 0 && to >= 0 && to < from )
+		throw InvalidArgError("Invalid index range");
+	setFrom( from );
+	setTo( to );
+	(*this)[0].first = from;
+	(*this)[0].first = from;
+}
+
+IndexRange::IndexRange(int fromto)
+:std::vector< std::pair<int,int> >(1)
+{
+	setFromTo( fromto );
+}
+
+int IndexRange::getFrom()
+{
+	return (*this)[0].first;
+}
+
+int IndexRange::getTo()
+{
+	return (*this)[0].second;
+}
+
+void IndexRange::setFrom(int f)
+{
+	(*this)[0].first = f;
+}
+
+void IndexRange::setTo(int t)
+{
+	(*this)[0].second = t;
+}
+
+void IndexRange::setFromTo(int i)
+{
+	setFrom( i );
+	setTo( i );
+}
+
+void IndexRange::setFromTo(int f, int t)
+{
+	setFrom( f );
+	setTo( t );
+}
+
+IndexRange & IndexRange::operator++()
+{
+	int newFrom = getTo() + 1;
+	setTo( newFrom + getTo() - getFrom() );
+	setFrom( newFrom );
+	return *this;
 }

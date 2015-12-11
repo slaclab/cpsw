@@ -167,9 +167,13 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 	_setHostByteOrder( native );
 }
 
+using boost::dynamic_pointer_cast;
+
 int
 main()
 {
+
+try {
 
 {
 MemDev  mm      = IMemDev::create("mem",2048);
@@ -237,6 +241,7 @@ printf("%s\n", e->getName());
 						try {
 							v_le = IScalVal::create( p_le->findByName( nm ) );
 							v_be = IScalVal::create( p_be->findByName( nm ) );
+v_be->getPath()->dump(stdout); std::cout << "\n";
 						} catch ( InvalidArgError &e ) {
 							// cannot be writable if word-swap and bits % 8 != 0
 							if ( wswap && (bits[bits_idx] & 7) ) {
@@ -308,10 +313,82 @@ printf("%s\n", e->getName());
 		throw TestFailed("Readback failed");
 	}
 
-
 	for (int i=0; i<9; i++ )
 		printf("%02x ", *(mm->getBufp()+i));
 	printf("\n");
+
+	// test array slicing
+
+	ScalVal v_arr = IScalVal::create( p_le->findByName( "i32-0-u-0" ) );
+	if ( v_arr->getNelms() != NELMS )
+		throw TestFailed("expected number of elements mismatch");
+
+	uint32_t buf[NELMS];
+	
+
+	v_arr->setVal( 0xa5a5a5a5 );
+
+	v_arr->getVal( buf, NELMS );
+
+	for ( int i=0; i<NELMS; i++ ) {
+		if ( buf[i] != 0xa5a5a5a5 )
+			throw TestFailed("clearing array with 'setVal' failed");
+		buf[i] = i;
+	}
+
+	v_arr->setVal( buf, NELMS );
+
+	memset(buf, 0x55, sizeof(buf) );
+
+	IndexRange rng(0);
+
+	unsigned steps[] = { 1, 2, NELMS };
+
+	for ( unsigned steps_idx = 0; steps_idx < sizeof(steps)/sizeof(steps[0]); steps_idx++ ) {
+		rng.setFromTo(0, steps[steps_idx]-1);
+		for ( unsigned i=0; i<NELMS; i+= steps[steps_idx] ) {
+			v_arr->getVal( buf, steps[steps_idx], &rng );
+			for ( unsigned j=0; j < steps[steps_idx]; j++ ) {
+				if ( buf[j] != (uint32_t)(i+j) ) {
+					throw TestFailed("reading sliced array failed");
+				}
+			}
+			++rng;
+		}
+	}
+
+	for ( unsigned steps_idx = 0; steps_idx < sizeof(steps)/sizeof(steps[0]); steps_idx++ ) {
+		rng.setFromTo(0, steps[steps_idx]-1);
+		for ( unsigned i=0; i<NELMS; i+= steps[steps_idx] ) {
+			v_arr->setVal( 0xa5a5a5a5, &rng );
+			++rng;
+		}
+		v_arr->getVal( buf, NELMS );
+		for ( unsigned i=0; i<NELMS; i++ ) {
+			if ( buf[i] != 0xa5a5a5a5 ) {
+				throw TestFailed("swiping with single-valued setVal failed");
+			}
+		}
+
+		for ( unsigned i=0; i<NELMS; i++ )
+			buf[i] = (uint32_t)i;
+
+		rng.setFromTo(0, steps[steps_idx]-1);
+		for ( unsigned i=0; i<NELMS; i+= steps[steps_idx] ) {
+			v_arr->setVal( buf + i, steps[steps_idx], &rng );
+			++rng;
+		}
+
+		memset(buf, 0 , sizeof(buf));
+		v_arr->getVal(buf, NELMS);
+		for ( unsigned i=0; i<NELMS; i++ ) {
+			if ( buf[i] != (uint32_t) i ) {
+				throw TestFailed("writing sliced array failed");
+			}
+		}
+	}
+
+
 
 }
 
@@ -321,6 +398,13 @@ printf("%s\n", e->getName());
 		throw TestFailed("Unexpected object count");
 	}
 
+} catch ( TestFailed e ) {
+	printf("Test failed -- because: %s\n", e.info);
+	throw;
+}
+
 	printf("CPSW_SVAL test PASSED\n");
 	return 0;
+
+IndexRange r( 0,0 );
 }

@@ -20,16 +20,21 @@ typedef shared_ptr<CScalVal_Adapt>   ScalVal_Adapt;
 class IEntryAdapt : public virtual IEntry {
 protected:
 	shared_ptr<const CEntryImpl> ie_;
+	weak_ptr<IEntryAdapt>        self_;
 	Path                         p_;
+
+	template <typename AS>    AS getSelfAs() const { return static_pointer_cast< typename AS::element_type >( shared_ptr<IEntryAdapt>( self_) ); }
 
 protected:
 	IEntryAdapt(Path p, shared_ptr<const CEntryImpl> ie);
 
 public:
+	virtual void        setSelf(shared_ptr<IEntryAdapt> me);
 	virtual const char *getName()        const { return ie_->getName(); }
 	virtual const char *getDescription() const { return ie_->getDescription(); }
 	virtual uint64_t    getSize()        const { return ie_->getSize(); }
 	virtual Hub         isHub()          const { return ie_->isHub();   }
+	virtual Path        getPath()        const { return p_->clone();    }
 };
 
 class CIntEntryImpl : public CEntryImpl, public virtual IIntField {
@@ -98,6 +103,7 @@ public:
 	virtual uint64_t getSizeBits() const { return asIntEntry()->getSizeBits(); }
 	virtual unsigned getWordSwap() const { return asIntEntry()->getWordSwap(); }
 	virtual IIntField::Mode     getMode()     const { return asIntEntry()->getMode(); }
+	virtual Path     getPath()     const { return IEntryAdapt::getPath(); }
 	virtual unsigned getNelms();
 
 protected:
@@ -112,35 +118,34 @@ public:
 	{
 	}
 
-	virtual unsigned getVal(uint8_t  *, unsigned, unsigned);
+	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0 );
 
-	template <typename E> unsigned getVal(E *e, unsigned nelms) {
-		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E) );
+	template <typename E> unsigned getVal(E *e, unsigned nelms, IndexRange *r) {
+		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
 	}
 
-	virtual unsigned getVal(uint64_t *p, unsigned n) { return getVal<uint64_t>(p,n); }
-	virtual unsigned getVal(uint32_t *p, unsigned n) { return getVal<uint32_t>(p,n); }
-	virtual unsigned getVal(uint16_t *p, unsigned n) { return getVal<uint16_t>(p,n); }
-	virtual unsigned getVal(uint8_t  *p, unsigned n) { return getVal<uint8_t> (p,n); }
-
+	virtual unsigned getVal(uint64_t *p, unsigned n, IndexRange *r=0) { return getVal<uint64_t>(p,n,r); }
+	virtual unsigned getVal(uint32_t *p, unsigned n, IndexRange *r=0) { return getVal<uint32_t>(p,n,r); }
+	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0) { return getVal<uint16_t>(p,n,r); }
+	virtual unsigned getVal(uint8_t  *p, unsigned n, IndexRange *r=0) { return getVal<uint8_t> (p,n,r); }
 };
 
 class CScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {
 public:
 	CScalVal_WOAdapt(Path p, shared_ptr<const CIntEntryImpl> ie);
 
-	template <typename E> unsigned setVal(E *e, unsigned nelms) {
-		return setVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E) );
+	template <typename E> unsigned setVal(E *e, unsigned nelms, IndexRange *r) {
+		return setVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
 	}
 
-	virtual unsigned setVal(uint8_t  *, unsigned, unsigned);
+	virtual unsigned setVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
 
-	virtual unsigned setVal(uint64_t *p, unsigned n) { return setVal<uint64_t>(p,n); }
-	virtual unsigned setVal(uint32_t *p, unsigned n) { return setVal<uint32_t>(p,n); }
-	virtual unsigned setVal(uint16_t *p, unsigned n) { return setVal<uint16_t>(p,n); }
-	virtual unsigned setVal(uint8_t  *p, unsigned n) { return setVal<uint8_t> (p,n); }
+	virtual unsigned setVal(uint64_t *p, unsigned n, IndexRange *r=0) { return setVal<uint64_t>(p,n,r); }
+	virtual unsigned setVal(uint32_t *p, unsigned n, IndexRange *r=0) { return setVal<uint32_t>(p,n,r); }
+	virtual unsigned setVal(uint16_t *p, unsigned n, IndexRange *r=0) { return setVal<uint16_t>(p,n,r); }
+	virtual unsigned setVal(uint8_t  *p, unsigned n, IndexRange *r=0) { return setVal<uint8_t> (p,n,r); }
 
-	virtual unsigned setVal(uint64_t  v);
+	virtual unsigned setVal(uint64_t  v, IndexRange *r=0);
 };
 
 class CScalVal_Adapt : public virtual CScalVal_ROAdapt, public virtual CScalVal_WOAdapt, public virtual IScalVal {
