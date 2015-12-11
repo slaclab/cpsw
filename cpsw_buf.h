@@ -7,7 +7,13 @@
 using boost::shared_ptr;
 
 class IBuf;
+class IBufChain;
+
 typedef shared_ptr<IBuf> Buf;
+typedef shared_ptr<IBufChain> BufChain;
+
+// NOTE: Buffer chains are NOT THREAD SAFE. It is the user's responsibility
+//       to properly synchronize.
 
 // NOTE: In order to avoid circular references of smart pointers
 //       the backwards link ('Prev') of a doubly-linked chain
@@ -68,6 +74,26 @@ public:
 	static unsigned  numBufsAlloced();
 	static unsigned  numBufsFree();
 	static unsigned  numBufsInUse();
+};
+
+class IBufChain {
+public:
+
+	virtual Buf getHead()       = 0;
+	virtual Buf getTail()       = 0;
+
+	virtual unsigned getLen()   = 0;  // # of buffers in chain
+	virtual size_t   getSize()  = 0; // in bytes
+
+	virtual Buf createAtHead()  = 0;
+	virtual Buf createAtTail()  = 0;
+
+	virtual void addAtHead(Buf b) = 0;
+	virtual void addAtTail(Buf b) = 0;
+
+	virtual ~IBufChain(){}
+
+	static BufChain create();
 };
 
 #endif

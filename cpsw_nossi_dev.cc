@@ -545,10 +545,29 @@ int nWords;
 
 }
 
+void CNoSsiDevImpl::addPort(unsigned port)
+{
+	if ( ! portInUse( port ) )
+		ports_.push_back( port );
+}
+
+bool CNoSsiDevImpl::portInUse(unsigned port)
+{
+unsigned i;
+	for ( i=0; i<ports_.size(); i++ ) {
+		if ( ports_[i] == port )
+			return true;
+	}
+	return false;
+}
 
 void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
 {
-IAddress::AKey k = getAKey();
+	if ( portInUse( dport ) ) {
+		throw InvalidArgError("Cannot address same destination port from multiple instances");
+	}
+	addPort( dport );
+	IAddress::AKey k = getAKey();
 	add( make_shared<CUdpAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc), child );
 }
 

@@ -8,6 +8,10 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+#include <vector>
+
+using std::vector;
+
 class CNoSsiDevImpl;
 
 typedef shared_ptr<CNoSsiDevImpl> NoSsiDevImpl;
@@ -48,8 +52,11 @@ public:
 
 class CNoSsiDevImpl : public CDevImpl, public virtual INoSsiDev {
 private:
-	in_addr_t d_ip_;
-	string    ip_str_;
+	in_addr_t        d_ip_;
+	string           ip_str_;
+	vector<unsigned> ports_;
+protected:
+	virtual void addPort(unsigned port);
 public:
 	CNoSsiDevImpl(FKey key, const char *ip);
 
@@ -57,6 +64,8 @@ public:
 	virtual in_addr_t   getIpAddress()       const { return d_ip_; }
 
 	virtual CNoSsiDevImpl *clone(FKey k) { return new CNoSsiDevImpl( *this ); }
+
+	virtual bool portInUse(unsigned port);
 
 	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 100, unsigned retryCnt = 5, uint8_t vc = 0);
 
