@@ -74,11 +74,14 @@ public:
 	//virtual ~CBufImpl() { }
 
 	static BufImpl getBuf(size_t capa);
+
+	static CFreeList<CBufImpl> freeList;
 };
 
-class CBufChainImpl : public IBufChain {
+CFreeList<CBufImpl> CBufImpl::freeList;
+
+class CBufChainImpl : public IBufChain, public CFreeListNode<CBufChainImpl> {
 private:
-	weak_ptr<CBufChainImpl> self_;
 	BufImpl   head_;
 	BufImpl   tail_;
 	unsigned  len_;
@@ -87,10 +90,8 @@ private:
 	virtual void setTail(BufImpl t)     { tail_ = t; }
 	friend class CBufImpl;
 
-protected:
-	CBufChainImpl() : len_(0), size_(0) {}
-	
 public:
+	CBufChainImpl( CFreeListNodeKey<CBufChainImpl> k );
 
 	virtual Buf      getHead()          { return head_; }
 	virtual Buf      getTail()          { return tail_; }
@@ -113,24 +114,16 @@ public:
 	virtual void     addAtTail(Buf b);
 
 	static BufChainImpl createImpl();
+
+	static CFreeList<CBufChainImpl> freeList;
 };
 
-BufChainImpl CBufChainImpl::createImpl()
-{
-CBufChainImpl *c = new CBufChainImpl();
-BufChainImpl  rval = BufChainImpl( c );
-	rval->self_ = rval;
-	return rval;
-}
-
-BufChain IBufChain::create()
-{
-	return CBufChainImpl::createImpl();
-}
-
+CFreeList<CBufChainImpl> CBufChainImpl::freeList;
 
 CBufImpl::CBufImpl(CFreeListNodeKey<CBufImpl> k)
-: beg_(0), end_(sizeof(data_))
+: CFreeListNode<CBufImpl>( k ),
+  beg_(0),
+  end_(sizeof(data_))
 {
 }
 
@@ -322,14 +315,12 @@ void CBufImpl::split()
 	}
 }
 
-static CFreeList<CBufImpl> fl;
-
 BufImpl CBufImpl::getBuf(size_t capa)
 {
 	if ( capa > sizeof(data_) ) {
 		throw InternalError("ATM all buffers are std. MTU size");
 	}
-	return fl.alloc();
+	return freeList.alloc();
 }
 
 Buf IBuf::getBuf(size_t capa)
@@ -339,23 +330,41 @@ Buf IBuf::getBuf(size_t capa)
 
 unsigned IBuf::numBufsAlloced()
 {
-	return fl.getNumAlloced();
+	return CBufImpl::freeList.getNumAlloced();
 }
 
 unsigned IBuf::numBufsFree()
 {
-	return fl.getNumFree();
+	return CBufImpl::freeList.getNumFree();
 }
 
 unsigned IBuf::numBufsInUse()
 {
-	return fl.getNumInUse();
+	return CBufImpl::freeList.getNumInUse();
 }
+
+CBufChainImpl::CBufChainImpl( CFreeListNodeKey<CBufChainImpl> k )
+: CFreeListNode<CBufChainImpl>( k ),
+  len_(0),
+  size_(0)
+{
+}
+
 	
+BufChainImpl CBufChainImpl::createImpl()
+{
+	return freeList.alloc();
+}
+
+BufChain IBufChain::create()
+{
+	return CBufChainImpl::createImpl();
+}
+
 void CBufChainImpl::addAtHead(Buf b)
 {
 	if ( ! head_ ) {
-		static_pointer_cast<BufImpl::element_type>(b)->addToChain( BufChainImpl(self_) );
+		static_pointer_cast<BufImpl::element_type>(b)->addToChain( getSelf() );
 	} else {
 		b->before( head_ );
 	}
@@ -364,7 +373,7 @@ void CBufChainImpl::addAtHead(Buf b)
 void CBufChainImpl::addAtTail(Buf b)
 {
 	if ( ! tail_ ) {
-		static_pointer_cast<BufImpl::element_type>(b)->addToChain( BufChainImpl(self_) );
+		static_pointer_cast<BufImpl::element_type>(b)->addToChain( getSelf() );
 	} else {
 		b->after( tail_ );
 	}

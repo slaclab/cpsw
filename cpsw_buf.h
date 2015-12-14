@@ -71,8 +71,11 @@ public:
 
 	static Buf       getBuf(size_t capa = 1500 - 14 - 20 - 8);
 
-	static unsigned  numBufsAlloced();
-	static unsigned  numBufsFree();
+	// if no buffers are available on the free-list then
+	// they are allocated from the heap. After use they go
+	// to the free-list.
+	static unsigned  numBufsAlloced(); // from heap
+	static unsigned  numBufsFree();    // on free-list
 	static unsigned  numBufsInUse();
 };
 

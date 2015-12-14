@@ -44,6 +44,10 @@ protected:
 	friend shared_ptr<C> CFreeList<C>::alloc();
 
 public:
+	CFreeListNode( CFreeListNodeKey<C> k )
+	{
+	}
+
 	virtual shared_ptr<C> getSelf()
 	{
 		return shared_ptr<C>( self_ );
