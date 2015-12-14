@@ -1,4 +1,3 @@
-#include <cpsw_buf.h>
 #include <boost/weak_ptr.hpp>
 #include <boost/lockfree/stack.hpp>
 #include <boost/atomic.hpp>
@@ -7,6 +6,7 @@
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
 #include <cpsw_freelist.h>
+#include <cpsw_buf.h>
 
 #include <stdio.h>
 
@@ -58,7 +58,8 @@ public:
 	BufImpl  getNextImpl()  { return next_; }
 	BufImpl  getPrevImpl()  { return prev_.expired() ? NULLBUF : BufImpl(prev_);  }
 
-	BufChainImpl getChain() { return chain_.expired() ? NULLCHAIN : BufChainImpl(chain_); }
+	BufChainImpl getChainImpl() { return chain_.expired() ? NULLCHAIN : BufChainImpl(chain_); }
+	BufChain getChain();
 
 	void     after(Buf);
 	void     before(Buf);
@@ -137,7 +138,7 @@ BufChainImpl c;
 		throw InvalidArgError("requested size too big");
 	end_ = e;
 
-	if ( (c=getChain()) ) {
+	if ( (c=getChainImpl()) ) {
 		c->addSize( getSize() - old_size );
 	}
 }
@@ -156,7 +157,7 @@ BufChainImpl c;
 		if ( end_ < beg_ )
 			end_ = beg_;
 	}
-	if ( (c=getChain()) ) {
+	if ( (c=getChainImpl()) ) {
 		c->addSize( getSize() - old_size );
 	}
 }
@@ -167,40 +168,34 @@ unsigned     old_size = getSize();
 BufChainImpl c;
 	beg_ = 0;
 	end_ = sizeof(data_);
-	if ( (c=getChain()) ) {
+	if ( (c=getChainImpl()) ) {
 		c->addSize( getSize() - old_size );
 	}
 }
 
 void CBufImpl::addToChain(BufImpl p, bool before)
 {
-BufChainImpl c  = getChain();
-BufChainImpl pc = p->getChain();
+BufChainImpl c  = getChainImpl();
+BufChainImpl pc = p->getChainImpl();
 
-	if ( c != pc ) {
-		if ( c ) {
-			if ( pc )
-				throw InternalError("buffers belong to different chains");
-			else
-				p->chain_ = c;
-		} else {
-			chain_ = c = pc;
-		}
-		if ( c ) {
-			if ( before ) {
-				if ( (p == c->getHeadImpl()) ) {
-					BufImpl me = getSelf();
-					c->setHead( me );
-				}
-			} else {
-				if ( (p == c->getTailImpl()) ) {
-					BufImpl me = getSelf();
-					c->setTail( me );
-				}
+	if ( c )
+		throw InternalError("buffer already on a chain");
+
+	if ( pc ) {
+		chain_ = c = pc;
+		if ( before ) {
+			if ( (p == c->getHeadImpl()) ) {
+				BufImpl me = getSelf();
+				c->setHead( me );
 			}
-			c->addLen( 1 );
-			c->addSize( getSize() );
+		} else {
+			if ( (p == c->getTailImpl()) ) {
+				BufImpl me = getSelf();
+				c->setTail( me );
+			}
 		}
+		c->addLen( 1 );
+		c->addSize( getSize() );
 	}
 }
 
@@ -215,18 +210,18 @@ unsigned l = 0;
 
 	h = t = me;
 	for ( p=me; p; t=p, p=p->getNextImpl() ) {
-		if ( getChain() )
+		if ( p->getChainImpl() )
 			throw InternalError("buffer already on a chain");
 		s += p->getSize();
 		l++;
-		chain_ = c;
+		p->chain_ = c;
 	}
 	for ( p=me->getPrevImpl(); p; h=p, p=p->getPrevImpl() ) {
-		if ( getChain() )
+		if ( p->getChainImpl() )
 			throw InternalError("buffer already on a chain");
 		s += p->getSize();
 		l++;
-		chain_ = c;
+		p->chain_ = c;
 	}
 	c->setSize( s );
 	c->setLen ( l );
@@ -234,9 +229,14 @@ unsigned l = 0;
 	c->setTail( t );
 }
 
+BufChain CBufImpl::getChain()
+{
+	return getChainImpl();
+}
+
 void CBufImpl::delFromChain()
 {
-BufChainImpl c  = getChain();
+BufChainImpl c  = getChainImpl();
 	if ( c ) {
 		BufImpl me = getSelf();
 		if ( c->getHeadImpl() == me ) {
@@ -278,6 +278,7 @@ BufImpl pi = static_pointer_cast<BufImpl::element_type>(p);
 BufImpl me = getSelf();
 
 	if ( pi && pi != me ) {
+
 		if ( getNextImpl() || getPrevImpl() )
 			throw InternalError("Cannot enqueue non-empty node");
 
@@ -293,6 +294,8 @@ BufImpl me = getSelf();
 
 void CBufImpl::unlink()
 {
+	delFromChain(); // no exceptions must happen after this
+
 	if ( getNextImpl() ) {
 		getNextImpl()->prev_ = prev_;
 		next_ = NULLBUF;
@@ -301,12 +304,11 @@ void CBufImpl::unlink()
 		getPrevImpl()->next_ = next_;
 		prev_ = NULLBUF;
 	}
-	delFromChain(); // no exceptions must happen after this
 }
 
 void CBufImpl::split()
 {
-	if ( getChain() ) {
+	if ( getChainImpl() ) {
 		throw InternalError("Cannot split buffers which are on a chain");
 	}
 	if ( getPrevImpl() ) {

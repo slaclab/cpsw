@@ -55,6 +55,8 @@ public:
 	virtual Buf      getNext()            = 0;
 	virtual Buf      getPrev()            = 0;
 
+	virtual BufChain getChain()           = 0;
+
 	// NOTE: none of the link manipulations
 	//       are thread-safe
 	// link this after 'buf'

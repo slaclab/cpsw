@@ -153,8 +153,105 @@ try {
 		|| IBuf::numBufsInUse()   != 0 )
 		throw TestFailed("buffer count after chain destruction wrong");
 
+	// test chains
+	BufChain ch0 = IBufChain::create();
+	b[0] = ch0->createAtHead();
+	b[1] = ch0->createAtTail();
+
+	size_t s_orig = ch0->getSize();
+
+	if ( 2 != ch0->getLen() )
+		throw TestFailed("buffer length test 1 failed");
+
+	b[1]->setSize( b[1]->getSize() - 20 );
+	b[0]->setPayload( b[0]->getPayload() + 13 );
+
+	if ( ch0->getSize() != s_orig -20 -13 )
+		throw TestFailed("buffer size test 1 failed");
+
+	b[2] = IBuf::getBuf();
+	b[2]->setSize( 53 );
+
+	b[2]->before( b[0] );
+	if ( ch0->getHead() != b[2] )
+		throw TestFailed("inserting buffer at head failed");
+
+	b[3] = IBuf::getBuf();
+	b[3]->setSize( 127 );
+
+	b[3]->after( b[1] );
+	if ( ch0->getTail() != b[3] )
+		throw TestFailed("inserting buffer at head failed");
+
+	if ( 4 != ch0->getLen() )
+		throw TestFailed("buffer length test 2 failed");
+
+	if ( s_orig + b[2]->getSize() + b[3]->getSize() - 20 - 13 != ch0->getSize() )
+		throw TestFailed("buffer size test 2 failed");
 		
+	try {
+		b[1]->split();
+		throw TestFailed("splitting a chain should fail!");
+	} catch (InternalError e) {
+	}
+
+	b[1]->unlink();
+	if ( ch0->getHead() != b[2] || ch0->getTail() != b[3] )
+		throw TestFailed("chain inconsistency 1");
+
+	if ( b[1]->getNext() || b[1]->getPrev() || b[1]->getChain() )
+		throw TestFailed("buffer inconsistency after unlink() 1");
+
+	if ( 3 != ch0->getLen() || b[0]->getSize() + b[2]->getSize() + b[3]->getSize() != ch0->getSize() )
+		throw TestFailed("buffer size/len test 3 failed");
+
 	
+	if ( ch0->getHead() != b[2] || ch0->getTail() != b[3] )
+		throw TestFailed("chain inconsistency 2");
+
+	ch0->getHead()->unlink();
+	
+	if ( ch0->getHead() != b[0] || ch0->getTail() != b[3] )
+		throw TestFailed("chain inconsistency 3");
+
+	if ( 2 != ch0->getLen() || b[0]->getSize() + b[3]->getSize() != ch0->getSize() )
+		throw TestFailed("buffer size/len test 4 failed");
+
+	b[3]->unlink();
+	if ( b[3]->getNext() || b[3]->getPrev() || b[3]->getChain() )
+		throw TestFailed("buffer inconsistency after unlink() 2");
+
+	if ( ch0->getHead() != b[0] || ch0->getTail() != b[0] )
+		throw TestFailed("chain inconsistency 4");
+
+	if ( 1 != ch0->getLen() || b[0]->getSize() != ch0->getSize() )
+		throw TestFailed("buffer size/len test 5 failed");
+
+	ch0->getHead()->unlink();
+
+	if ( b[0]->getNext() || b[0]->getPrev() || b[0]->getChain() )
+		throw TestFailed("buffer inconsistency after unlink() 3");
+
+	if ( ch0->getHead() || ch0->getTail() )
+		throw TestFailed("chain inconsistency 5");
+
+	if ( ch0->getLen() != 0 || ch0->getSize() != 0 )
+		throw TestFailed("chain size/len test 6 failed");
+
+	for ( i=0; i<=3; i++ ) {
+		// attach all bufs to chain
+		ch0->addAtHead( b[i] );
+		// release refs
+		b[i].reset();
+	}
+
+	// releasing ref to the chain should clean everything up
+	ch0.reset();
+
+	if (   IBuf::numBufsAlloced() != NBUF
+		|| IBuf::numBufsFree()    != NBUF
+		|| IBuf::numBufsInUse()   != 0 )
+		throw TestFailed("buffer count after chain destruction (2) wrong");
 
 	
 } catch ( CPSWError e ) {
