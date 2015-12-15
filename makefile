@@ -7,6 +7,7 @@ LSRCS+= cpsw_nossi_dev.cc
 LSRCS+= cpsw_buf.cc
 LSRCS+= cpsw_proto_mod.cc
 LSRCS+= cpsw_proto_mod_depack.cc
+LSRCS+= cpsw_proto_mod_udp.cc
 
 TSRCS = cpsw_path_tst.cc
 TSRCS+= cpsw_sval_tst.cc
