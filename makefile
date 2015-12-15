@@ -1,7 +1,20 @@
 
-LSRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc cpsw_mmio_dev.cc cpsw_sval.cc cpsw_nossi_dev.cc cpsw_buf.cc
+LSRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
+LSRCS+= cpsw_sval.cc
+LSRCS+= cpsw_mmio_dev.cc
 LSRCS+= cpsw_mem_dev.cc
-TSRCS = cpsw_path_tst.cc cpsw_sval_tst.cc cpsw_large_tst.cc cpsw_nossi_tst.cc cpsw_axiv_udp_tst.cc cpsw_buf_tst.cc
+LSRCS+= cpsw_nossi_dev.cc
+LSRCS+= cpsw_buf.cc
+LSRCS+= cpsw_proto_mod.cc
+LSRCS+= cpsw_proto_mod_depack.cc
+
+TSRCS = cpsw_path_tst.cc
+TSRCS+= cpsw_sval_tst.cc
+TSRCS+= cpsw_large_tst.cc
+TSRCS+= cpsw_nossi_tst.cc
+TSRCS+= cpsw_axiv_udp_tst.cc
+TSRCS+= cpsw_buf_tst.cc
+
 SRCS = $(LSRCS) $(TSRCS)
 
 CXXFLAGS = -I. -g -Wall -O2

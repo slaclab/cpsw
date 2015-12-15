@@ -14,6 +14,7 @@ class CPSWError {
 		CPSWError(const Path p):name_("FIXME") {}
 
 		virtual string &getInfo() { return name_; }
+
 };
 
 class DuplicateNameError : public CPSWError {
@@ -79,6 +80,8 @@ class InterfaceNotImplementedError: public CPSWError {
 class IOError: public CPSWError {
 	public:
 		IOError( const char *s ) : CPSWError( s ) {}
+		IOError( string &s )     : CPSWError( s ) {}
+		IOError( const char *s, int err) : CPSWError( string(s).append(strerror(err)) ) {}
 };
 
 class BadStatusError: public CPSWError {
@@ -86,6 +89,11 @@ class BadStatusError: public CPSWError {
 		int64_t status_;
 	public:
 		BadStatusError( const char *s, int64_t status) :CPSWError(s), status_(status) {}
+};
+
+class IntrError : public CPSWError {
+	public:
+		IntrError(const char *s) : CPSWError(s) {}
 };
 
 #endif

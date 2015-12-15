@@ -69,6 +69,8 @@ int sem_stat = wait ?
 			return BufChain( reinterpret_cast<BufChain::element_type *>(0) );
 		case EINVAL:
 			throw InvalidArgError("invalid timeout arg");
+		case EINTR:
+			throw IntrError("interrupted by signal");
 		default:
 			break;
 	}

@@ -83,13 +83,19 @@ CFreeList<CBufImpl> CBufImpl::freeList;
 
 class CBufChainImpl : public IBufChain, public CFreeListNode<CBufChainImpl> {
 private:
-	BufImpl   head_;
-	BufImpl   tail_;
-	unsigned  len_;
-	size_t    size_;
+	BufChainImpl strong_self_;
+	BufImpl      head_;
+	BufImpl      tail_;
+	unsigned     len_;
+	size_t       size_;
+
 	virtual void setHead(BufImpl h)     { head_ = h; }
 	virtual void setTail(BufImpl t)     { tail_ = t; }
+
+	BufChain     yield_ownership();
+
 	friend class CBufImpl;
+	friend void IBufChain::take_ownership(BufChain*);
 
 public:
 	CBufChainImpl( CFreeListNodeKey<CBufChainImpl> k );
@@ -379,6 +385,20 @@ void CBufChainImpl::addAtTail(Buf b)
 	} else {
 		b->after( tail_ );
 	}
+}
+
+BufChain CBufChainImpl::yield_ownership()
+{
+BufChain rval = strong_self_;
+	strong_self_.reset();
+	return rval;
+}
+
+void IBufChain::take_ownership(BufChain *current_owner)
+{
+BufChainImpl me = static_pointer_cast<BufChainImpl::element_type>( *current_owner );
+	me->strong_self_ = me;
+	(*current_owner).reset();
 }
 
 Buf CBufChainImpl::createAtHead()

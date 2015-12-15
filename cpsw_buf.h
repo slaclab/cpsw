@@ -3,6 +3,7 @@
 
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <stdint.h>
+#include <time.h>
 
 using boost::shared_ptr;
 
@@ -81,7 +82,21 @@ public:
 	static unsigned  numBufsInUse();
 };
 
+
 class IBufChain {
+protected:
+	// The 'ownership' members are needed because lockfree::queue
+	// cannot hold smart pointers. Therefore, before pushing a
+	// smart pointer onto a lockfree queue we 'transfer' the
+	// smart pointer into this object itself and use a raw
+	// pointer inside the lockfree::queue.
+	// When taking elements off the queue the smart pointer
+	// is transferred back out of this object.
+	static  void     take_ownership( BufChain *p_owner );
+	virtual BufChain yield_ownership() = 0;
+
+	friend class CBufQueue;
+
 public:
 
 	virtual Buf getHead()       = 0;

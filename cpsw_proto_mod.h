@@ -9,6 +9,17 @@
 
 using boost::lockfree::queue;
 
+class IProtoMod;
+typedef shared_ptr<IProtoMod> ProtoMod;
+
+class IProtoMod {
+public:
+	virtual BufChain pop(struct timespec *timeout) = 0;
+	virtual BufChain tryPop()                      = 0;
+
+	virtual ~IProtoMod() {}
+};
+
 typedef queue< IBufChain *, boost::lockfree::fixed_sized< true > > CBufQueueBase;
 
 class CBufQueue : protected CBufQueueBase {
@@ -29,20 +40,21 @@ public:
 	~CBufQueue();
 };
 
-class CProtoMod {
+class CProtoMod : public virtual IProtoMod {
 protected:
-	CBufQueue outputQueue;
+	CBufQueue outputQueue_;
+	ProtoMod  upstream_;
 public:
-	CProtoMod(CBufQueueBase::size_type n):outputQueue(n) {}
+	CProtoMod(CBufQueueBase::size_type n):outputQueue_(n) {}
 
 	virtual BufChain pop(struct timespec *timeout)
 	{
-		return outputQueue.pop( timeout );
+		return outputQueue_.pop( timeout );
 	}
 
 	virtual BufChain tryPop()
 	{
-		return outputQueue.tryPop();
+		return outputQueue_.tryPop();
 	}
 
 	virtual ~CProtoMod() {}
