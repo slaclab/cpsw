@@ -2,6 +2,7 @@
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
 
+#include <stdio.h>
 #include <errno.h>
 #include <pthread.h>
 
@@ -104,6 +105,7 @@ void CProtoModDepack::threadBody()
 			BufChain bufch = upstream_->pop( frame->running_ ? & frame->timeout_ : 0 );
 
 			if ( ! bufch ) {
+printf("Depack input timeout\n");
 				// timeout
 				releaseOldestFrame( false );
 				timedOutFrames_++;
@@ -145,6 +147,7 @@ CAxisFrameHeader hdr;
 	if ( hdr.getFrameNo() < oldestFrame_ ) {
 		oldFrameDrops_++;
 		frameSync( &hdr );
+printf("Dropping old frame %d\n", hdr.getFrameNo());
 		return;
 	}
 
@@ -153,9 +156,11 @@ CAxisFrameHeader hdr;
 		if ( hdr.getFrameNo() == oldestFrame_ + frameWinSize_ ) {
 			evictedFrames_++;
 			releaseOldestFrame( false );
+printf("Evict\n");
 		} else {
 			newFrameDrops_++;
 			frameSync( &hdr );
+printf("Dropping new frame %d\n", hdr.getFrameNo());
 			return;
 		}
 	}
@@ -172,12 +177,14 @@ CAxisFrameHeader hdr;
 	if ( hdr.getFragNo() < frame->oldestFrag_ ) {
 		// outside of window -- drop
 		oldFragDrops_++;
+printf("Dropping old frag %d\n", hdr.getFragNo());
 		return;
 	}
 
 	if ( hdr.getFragNo() >= frame->oldestFrag_ + fragWinSize_ ) {
 		// outside of window -- drop
 		newFragDrops_++;
+printf("Dropping new frag %d\n", hdr.getFragNo());
 		return;
 	}
 
@@ -187,6 +194,8 @@ CAxisFrameHeader hdr;
 		// Looks good
 		frame->prod_             = IBufChain::create();
 		frame->frameID_          = hdr.getFrameNo();
+
+printf("First frag of frame # %d\n", frame->frameID_);
 
 		// make sure older frames (which may not yet have received any fragment)
 		// start their timeout
@@ -208,6 +217,7 @@ CAxisFrameHeader hdr;
 			pastLastDrops_++;
 			return;
 		}
+printf("Frag %d of frame # %d\n", hdr.getFragNo(), frame->frameID_);
 	}
 
 	// Looks good - a new frag
@@ -216,10 +226,12 @@ CAxisFrameHeader hdr;
 	if ( hdr.getTailEOF( b->getPayload() + b->getSize() - hdr.getTailSize() ) || ( CAxisFrameHeader::FRAG_MAX == hdr.getFragNo() ) ) {
 		if ( CFrame::NO_FRAG != frame->lastFrag_ ) {
 			duplicateLastSeen_++;
+printf("DuplicateLast\n");
 		} else {
 			if ( CAxisFrameHeader::FRAG_MAX == (frame->lastFrag_ = hdr.getFragNo()) ) {
 				noLastSeen_++;
 			}
+printf("Last frag %d\n", frame->lastFrag_);
 		}
 	}
 
