@@ -64,6 +64,7 @@ CUdpHandlerThread::CUdpHandlerThread(struct sockaddr_in *dest, struct sockaddr_i
 		throw IOError("bind failed ", errno);
 	}
 
+	// connect - filters any traffic from other destinations/fpgas in the kernel
 	if ( ::connect( sd_->getSd(), (struct sockaddr*)dest, sizeof(*dest) ) )
 		throw IOError("connect failed ", errno);
 
