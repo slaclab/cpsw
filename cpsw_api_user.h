@@ -27,6 +27,8 @@ typedef shared_ptr<IScalVal>     ScalVal;
 class IEventListener;
 class IEventSource;
 typedef shared_ptr<IEventSource> EventSource;
+class IStream;
+typedef shared_ptr<IStream> Stream;
 
 typedef shared_ptr< std::vector<Child> > Children;
 
@@ -219,6 +221,16 @@ public:
 };
 
 // Analogous to ScalVal there could be interfaces to double, enums, strings...
+
+class IStream {
+public:
+	static const unsigned long TIMEOUT_FOREVER = (unsigned long)-1UL;
+	static const unsigned long TIMEOUT_NONE    = (unsigned long)0;
+
+	virtual int64_t read(uint8_t *buf, size_t size, unsigned long timeoutUs) = 0;
+
+	static Stream create(Path p);
+};
 
 // Event AKA Interrupt interface
 
