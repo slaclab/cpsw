@@ -251,25 +251,23 @@ printf("Last frag %d\n", frame->lastFrag_);
 
 	frame->updateChain();
 
-
-	if ( frame->isComplete() )
-		releaseFrames( true );
 }
 
 bool CProtoModDepack::releaseOldestFrame(bool onlyComplete)
 {
 unsigned frameIdx      = oldestFrame_ & (frameWinSize_ - 1 );
 CFrame  *frame         = &frameWin_[frameIdx];
-unsigned l;
 
 	if ( ( onlyComplete && ! frame->isComplete() ) || ! frame->running_ )
 		return false;
 
 	BufChain completeFrame = frame->prod_;
+	bool     isComplete    = frame->isComplete(); // frame invalid after release
 
 	frame->release( 0 );
 
-	if ( frame->isComplete() ) {
+	if ( isComplete ) {
+		unsigned l = completeFrame->getLen();
 		if ( ! outputQueue_.push( &completeFrame ) ) {
 			oqueueFullDrops_++;
 		} else {
