@@ -18,12 +18,13 @@ uint8_t  buf[100000];
 int64_t  got;
 int      i;
 CAxisFrameHeader hdr;
+int      quiet = 1;
 
 	unsigned qDepth = 12;
-	unsigned ldFrameWinSize = 2;
-	unsigned ldFragWinSize  = 2;
+	unsigned ldFrameWinSize = 4;
+	unsigned ldFragWinSize  = 4;
 
-	root->addAtStream( sink, 8193, 1000000, qDepth, ldFrameWinSize, ldFragWinSize );
+	root->addAtStream( sink, 8193, 25000000, qDepth, ldFrameWinSize, ldFragWinSize );
 
 	Stream strm = IStream::create( root->findByName("sink") );
 
@@ -43,10 +44,12 @@ CAxisFrameHeader hdr;
 		
 		printf("Frame # %4i\n", hdr.getFrameNo());
 
-		for ( i=0; i<got - (int)hdr.getSize() - (int)hdr.getTailSize(); i++ ) {
-			printf("0x%02x ", buf[hdr.getSize() + i]);
+		if ( ! quiet ) {
+			for ( i=0; i<got - (int)hdr.getSize() - (int)hdr.getTailSize(); i++ ) {
+				printf("0x%02x ", buf[hdr.getSize() + i]);
+			}
+			printf("\n");
 		}
-		printf("\n");
 	}
 
 	
