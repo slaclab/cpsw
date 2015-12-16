@@ -99,7 +99,7 @@ public:
 	typedef enum ProtocolVersion { SRP_UDP_V1 = 1, SRP_UDP_V2 = 2 } ProtocolVersion;
 
 	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 200, unsigned retryCnt = 5, uint8_t vc = 0) = 0;
-	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs) = 0;
+	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned outQDepth = 16, unsigned ldFrameWinSize = 4, unsigned ldFragWinSize = 4) = 0;
 
 	virtual const char *getIpAddressString() const = 0;
 

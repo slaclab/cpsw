@@ -99,6 +99,7 @@ void CProtoModDepack::threadBody()
 	try {
 		while ( 1 ) {
 			CFrame *frame  = &frameWin_[ toFrameIdx( oldestFrame_ ) ];
+printf("depack: trying to pop\n");
 			// wait for new datagram
 			BufChain bufch = upstream_->pop( frame->running_ ? & frame->timeout_ : 0, IProtoMod::ABS_TIMEOUT );
 

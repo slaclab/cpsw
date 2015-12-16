@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 
+#include <sched.h>
+
 CSockSd::CSockSd()
 {
 	if ( ( sd_ = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ) {

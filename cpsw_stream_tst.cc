@@ -19,7 +19,11 @@ int64_t  got;
 int      i;
 CAxisFrameHeader hdr;
 
-	root->addAtStream( sink, 8193, 10000 );
+	unsigned qDepth = 12;
+	unsigned ldFrameWinSize = 2;
+	unsigned ldFragWinSize  = 2;
+
+	root->addAtStream( sink, 8193, 1000000, qDepth, ldFrameWinSize, ldFragWinSize );
 
 	Stream strm = IStream::create( root->findByName("sink") );
 

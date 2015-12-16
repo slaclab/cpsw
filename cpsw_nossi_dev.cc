@@ -594,14 +594,14 @@ void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version
 	add( make_shared<CUdpAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc), child );
 }
 
-void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs)
+void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize)
 {
 	if ( portInUse( dport ) ) {
 		throw InvalidArgError("Cannot address same destination port from multiple instances");
 	}
 	addPort( dport );
 	IAddress::AKey k = getAKey();
-	add( make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs), child );
+	add( make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs, outQDepth, ldFrameWinSize, ldFragWinSize), child );
 }
 
 
@@ -619,7 +619,7 @@ printf("SETLOCKED\n");
 	CDevImpl::setLocked();
 }
 
-CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs)
+CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize)
 :CAddressImpl(key)
 {
 struct sockaddr_in dst;
@@ -632,7 +632,7 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 	ProtoMod udpMod     = CProtoMod::create<CProtoModUdp>( &dst, 10/* queue depth */, 2 /* nThreads */ );
 	udpMod->pushMod( &protoStack_ );
 
-	ProtoMod depackMod  = CProtoMod::create<CProtoModDepack>( 4, 4, 4, timeoutUs );
+	ProtoMod depackMod  = CProtoMod::create<CProtoModDepack>( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
 
 	depackMod->pushMod( &protoStack_ );
 }

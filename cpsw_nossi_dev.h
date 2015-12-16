@@ -59,7 +59,7 @@ private:
 	ProtoMod protoStack_;
 
 public:
-	CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs);
+	CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize);
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
@@ -86,7 +86,7 @@ public:
 	virtual bool portInUse(unsigned port);
 
 	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 100, unsigned retryCnt = 5, uint8_t vc = 0);
-	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs = 10000);
+	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize);
 
 	virtual void setLocked();
 };

@@ -1,7 +1,11 @@
 
-HARCH=linux-x86_64
-BOOSTINCP=-I/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/include
-BOOSTLIBP=-L/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/lib
+#HARCH=linux-x86_64
+#BOOSTINCP=-I/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/include
+#BOOSTLIBP=-L/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/lib
+
+#include local definitions
+-include mak.local
+
 LSRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 LSRCS+= cpsw_sval.cc
 LSRCS+= cpsw_mmio_dev.cc
@@ -71,4 +75,4 @@ clean:
 -include deps
 
 libpath:
-	@echo $(BOOSTLIBP:-L%=%)
+	@echo LD_LIBRARY_PATH=$(BOOSTLIBP:-L%=%)

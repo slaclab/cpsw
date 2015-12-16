@@ -28,7 +28,7 @@
 #define REG_ARR_OFF (REG_SCR_OFF + REG_SCR_SZ)
 #define REG_ARR_SZ  8192
 
-#define FRAGS   4
+#define NFRAGS  4
 #define FRAGLEN 8
 
 #define FRAMBITS 12
@@ -41,11 +41,17 @@
 
 #define EOFRAG   0x80
 
+#define PIPEDEPTH (1<<0) /* MUST be power of two */
+
 // byte swap ? 
 #define bsl(x) (x)
 
 #define BE 1
 #define LE 0
+
+typedef uint8_t Buf[FRAGLEN + HEADSIZE + TAILSIZE];
+
+static Buf bufmem[PIPEDEPTH];
 
 static inline uint32_t swp32(int to, uint32_t x)
 {
@@ -64,10 +70,12 @@ uint8_t mem[1024*1024] = {0};
 
 static void usage(const char *nm)
 {
-	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-s <stream_port>] [-V <protoVersion>]\n", nm);
+	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-s <stream_port>] [-f <n_frags>] [-L <loss_percent>] [-S] [-V <protoVersion>]\n", nm);
 	fprintf(stderr, "        -V version  : protocol version V1 (V2 default)\n");
 #ifdef DEBUG
 	fprintf(stderr, "        -d          : disable debugging messages (faster)\n");
+	fprintf(stderr, "        -S          : scramble packet order (arg is ld2(scramble-length)) \n");
+	fprintf(stderr, "        -L <percent>: lose/drop <percent> pacets\n");
 #endif
 }
 
@@ -109,6 +117,9 @@ bail:
 struct streamer_args {
 	int                sd;
 	struct sockaddr_in peer;
+	unsigned           sim_loss;
+	unsigned           n_frags;
+	unsigned           scramble;
 };
 
 void *poller(void *arg)
@@ -140,15 +151,46 @@ uint64_t rval;
 	return rval;
 }
 
+static int send_shuffled(int idx, struct streamer_args *sa)
+{
+static int depth = 0;
+	if ( depth < sa->scramble - 1 ) {
+		if (RAND_MAX < (PIPEDEPTH << 16) ) {
+			fprintf(stderr,"FAILURE: PIPEDEPTH problem\n");
+			exit(1);
+		}
+		return ++depth;
+	}
+	idx = (rand() >> 16) & (sa->scramble-1);
+
+	/* simulate packet loss */
+	if ( !sa->sim_loss || rand() > (RAND_MAX/100)*sa->sim_loss ) {
+		if ( sendto(sa->sd, bufmem[idx], sizeof(bufmem[idx]), 0, (struct sockaddr*)&sa->peer, sizeof(sa->peer)) < 0 ) {
+			perror("fragmenter: write");
+			switch ( errno ) {
+				case EDESTADDRREQ:
+				case ECONNREFUSED:
+					/* not (yet/anymore) connected -- wait */
+					sleep(10);
+					return idx;
+				default:
+					return -1;
+			}
+			return -1;
+		}
+	}
+	return idx;
+}
+
 void *fragger(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
 unsigned frag = 0;
 unsigned fram = 0;
 uint64_t h;
-uint8_t  pld[FRAGLEN + HEADSIZE + TAILSIZE];
 struct iovec iov[2];
 int      i;
+int      idx  = 0;
 
 	while (1) {
 		if ( 0 == ntohs( sa->peer.sin_port ) ) {
@@ -157,30 +199,17 @@ int      i;
 		}
 		h = mkhdr(fram, frag);
 		for ( i=0; i<HEADSIZE; i++ ) {
-			pld[i] = h;
-			h      = h>>8; 
+			bufmem[idx][i] = h;
+			h           = h>>8; 
 		}
-		memset(pld + i, (fram << 4) | (frag & 0xf), FRAGLEN);
+		memset(bufmem[idx] + i, (fram << 4) | (frag & 0xf), FRAGLEN);
 		i += FRAGLEN;
-		pld[i] = (FRAGS-1 == frag) ? EOFRAG : 0;
+		bufmem[idx][i] = (sa->n_frags-1 == frag) ? EOFRAG : 0;
 		i++;
-		/* simulate packet loss */
-		if ( rand() > RAND_MAX/10 )  {
-			if ( sendto(sa->sd, pld, i, 0, (struct sockaddr*)&sa->peer, sizeof(sa->peer)) < 0 ) {
-				perror("fragmenter: write");
-				switch ( errno ) {
-					case EDESTADDRREQ:
-					case ECONNREFUSED:
-						/* not (yet/anymore) connected -- wait */
-						sleep(10);
-						continue;
-					default:
-						break;
-				}
-				break;
-			}
-		}
-		if ( ++frag >= FRAGS ) {
+
+		idx = send_shuffled(idx, sa);
+
+		if ( ++frag >= sa->n_frags ) {
 			frag = 0;
 			fram++;
 			sleep(1);
@@ -209,6 +238,9 @@ int       sport = 0;
 const char *ina = "127.0.0.1";
 socklen_t  youlen;
 unsigned off;
+unsigned n_frags  = NFRAGS;
+unsigned sim_loss = 0;
+unsigned scramble = 0;
 int      vers = 2;
 int      v1;
 uint32_t header = 0;
@@ -236,16 +268,19 @@ struct streamer_args *s_arg = 0;
 
 	sprintf(mem + 0x800, "Hello");
 
-	while ( (got = getopt(argc, argv, "dp:a:V:hs:")) > 0 ) {
+	while ( (got = getopt(argc, argv, "dp:a:V:hs:f:S:L:")) > 0 ) {
 		c_a = 0;
 		i_a = 0;
 		switch ( got ) {
 			case 'h': usage(argv[0]); return 0;
-			case 'p': i_a = &port;    break;
-			case 'a': ina = optarg;   break;
-			case 'V': i_a = &vers;    break;
-			case 'd': debug = 0;      break;
-			case 's': i_a = &sport;   break;
+			case 'p': i_a = &port;     break;
+			case 'a': ina = optarg;    break;
+			case 'V': i_a = &vers;     break;
+			case 'd': debug = 0;       break;
+			case 's': i_a = &sport;    break;
+			case 'f': i_a = &n_frags;  break;
+			case 'L': i_a = &sim_loss; break;
+			case 'S': i_a = &scramble; break;
 			default:
 				fprintf(stderr, "unknown option '%c'\n", got);
 				usage(argv[0]);
@@ -257,6 +292,18 @@ struct streamer_args *s_arg = 0;
 				goto bail;
 			}
 		}
+	}
+
+	if ( sim_loss >= 100 ) {
+		fprintf(stderr,"-L arg must be < 100\n");
+		exit(1);
+	}
+
+	// arg is ld2
+	scramble = 1<<scramble;
+	if ( scramble > PIPEDEPTH ) {
+		fprintf(stderr,"-S arg must be <= log2(%d)\n", PIPEDEPTH);
+		exit(1);
 	}
 
 	if ( vers != 1 && vers != 2 ) {
@@ -289,6 +336,9 @@ struct streamer_args *s_arg = 0;
 		s_arg->peer.sin_family      = AF_INET;
 		s_arg->peer.sin_addr.s_addr = INADDR_ANY;
 		s_arg->peer.sin_port        = htons(0);
+		s_arg->sim_loss             = sim_loss;
+		s_arg->n_frags              = n_frags;
+		s_arg->scramble             = scramble;
 		if ( s_arg->sd < 0 )
 			goto bail;
 		if ( pthread_create( &poller_tid, 0, poller, (void*)s_arg ) ) {
