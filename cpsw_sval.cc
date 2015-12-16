@@ -335,8 +335,16 @@ unsigned         nelmsOnPath  = it->nelmsLeft_;
 			ibufp += (dbytes-sbytes) * nelms;
 		}
 	}
+
+	CReadArgs args;
+
+	args.cacheable_ = ie_->getCacheable();
+	args.dst_       = ibufp;
+	args.dbytes_    = sbytes;
+	args.off_       = off;
+	args.sbytes_    = sbytes;
 	
-	cl->read( &it, ie_->getCacheable(), ibufp, sbytes, off, sbytes );
+	cl->read( &it, &args );
 
 	bool sign_extend = getSizeBits() < 8*dbytes;
 	bool truncate    = getSizeBits() > 8*dbytes;
@@ -550,7 +558,17 @@ prib("byte-swapped", obufp + oidx);
 		}
 	}
 
-	cl->write( &it, ie_->getCacheable(), obufp, dbytes, off, dbytes, msk1, mskn );
+	CWriteArgs args;
+
+	args.cacheable_ = ie_->getCacheable();
+	args.src_       = obufp;
+	args.sbytes_    = dbytes;
+	args.off_       = off;
+	args.dbytes_    = dbytes;
+	args.msk1_      = msk1;
+	args.mskn_      = mskn;
+	
+	cl->write( &it, &args );
 
 	return nelms;
 }

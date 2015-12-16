@@ -91,7 +91,7 @@ uint64_t CAddressImpl::getSize() const
 	return child_->getSize();
 }
 
-uint64_t  CAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t  CAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 	Address c;
 #ifdef HUB_DEBUG
@@ -111,14 +111,14 @@ uint64_t  CAddressImpl::read(CompositePathIterator *node, IField::Cacheable cach
 	++(*node);
 	if ( ! node->atEnd() ) {
 		c = (*node)->c_p_;
-		return c->read(node, cacheable, dst, dbytes, off, sbytes);
+		return c->read(node, args);
 	} else {
 		throw ConfigurationError("Configuration Error: -- unable to route I/O for read");
 		return 0;
 	}
 }
 
-uint64_t CAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+uint64_t CAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 	Address c;
 
@@ -126,7 +126,7 @@ uint64_t CAddressImpl::write(CompositePathIterator *node, IField::Cacheable cach
 	++(*node);
 	if ( ! node->atEnd() ) {
 		c = (*node)->c_p_;
-		return c->write(node, cacheable, src, sbytes, off, dbytes, msk1, mskn);
+		return c->write(node, args);
 	} else {
 		throw ConfigurationError("Configuration Error: -- unable to route I/O for write");
 		return 0;

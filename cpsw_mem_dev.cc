@@ -42,26 +42,30 @@ CMemAddressImpl::CMemAddressImpl(AKey k, unsigned nelms)
 {
 }
 
-uint64_t CMemAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t CMemAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
-int toget = dbytes < sbytes ? dbytes : sbytes;
-	if ( off + toget > owner->getSize() ) {
+int toget = args->dbytes_ < args->sbytes_ ? args->dbytes_ : args->sbytes_;
+	if ( args->off_ + toget > owner->getSize() ) {
 //printf("off %lu, dbytes %lu, size %lu\n", off, dbytes, owner->getSize());
 		throw ConfigurationError("MemAddress: read out of range");
 	}
-	memcpy(dst, owner->getBufp() + off, toget);
+	memcpy(args->dst_, owner->getBufp() + args->off_, toget);
 //printf("MemDev read from off %lli", off);
 //for ( int ii=0; ii<dbytes; ii++) printf(" 0x%02x", dst[ii]); printf("\n");
 	return toget;
 }
 
-uint64_t CMemAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const 
+uint64_t CMemAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
 uint8_t *buf  = owner->getBufp();
-unsigned put  = dbytes < sbytes ? dbytes : sbytes;
+unsigned put  = args->dbytes_ < args->sbytes_ ? args->dbytes_ : args->sbytes_;
 unsigned rval = put;
+uint8_t  msk1 = args->msk1_;
+uint8_t  mskn = args->mskn_;
+uint64_t off  = args->off_;
+uint8_t *src  = args->src_;
 
 	if ( off + put > owner->getSize() ) {
 		throw ConfigurationError("MemAddress: write out of range");

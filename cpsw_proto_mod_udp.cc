@@ -5,6 +5,8 @@
 
 #include <errno.h>
 
+#include <stdio.h>
+
 CSockSd::CSockSd()
 {
 	if ( ( sd_ = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ) {

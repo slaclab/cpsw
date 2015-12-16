@@ -35,8 +35,8 @@ protected:
 public:
 	CUdpAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
 	virtual ~CUdpAddressImpl();
-	uint64_t read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
-	virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
+	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
+	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
 	// ANY subclass must implement clone(AKey) !
 	virtual CUdpAddressImpl *clone(AKey k) { return new CUdpAddressImpl( *this ); }

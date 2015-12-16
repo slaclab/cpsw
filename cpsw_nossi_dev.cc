@@ -1,6 +1,7 @@
 #include <cpsw_nossi_dev.h>
 #include <inttypes.h>
 
+
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/locks.hpp>
 
@@ -283,15 +284,19 @@ retry: ;
 	throw IOError("No response -- timeout");
 }
 	
-uint64_t CUdpAddressImpl::read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const
+uint64_t CUdpAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 uint64_t rval = 0;
-int headbytes = (off & (sizeof(SRPWord)-1));
+int headbytes = (args->off_ & (sizeof(SRPWord)-1));
 int totbytes;
 int nWords;
+uint64_t off = args->off_;
+uint8_t *dst = args->dst_;
 
-	if ( dbytes < sbytes )
-		sbytes = dbytes;
+unsigned sbytes = args->sbytes_;
+
+	if ( args->dbytes_ < sbytes )
+		sbytes = args->dbytes_;
 
 	if ( sbytes == 0 )
 		return 0;
@@ -303,7 +308,7 @@ int nWords;
 
 	while ( nWords > MAXWORDS ) {
 		int nbytes = MAXWORDS*4 - headbytes;
-		rval += readBlk_unlocked(node, cacheable, dst, off, nbytes);	
+		rval += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);	
 		nWords -= MAXWORDS;
 		sbytes -= nbytes;	
 		dst    += nbytes;
@@ -311,7 +316,7 @@ int nWords;
 		headbytes = 0;
 	}
 
-	rval += readBlk_unlocked(node, cacheable, dst, off, sbytes);
+	rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes);
 
 	return rval;
 }
@@ -358,7 +363,14 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 
 		int first_byte = headbytes;
 
-		read(node, cacheable, first_word, sizeof(first_word), off & ~3ULL, sizeof(first_word));
+		CReadArgs rargs;
+		rargs.cacheable_ = cacheable;
+		rargs.dst_       = first_word;
+		rargs.dbytes_    = sizeof(first_word);
+		rargs.off_       = off & ~3ULL;
+		rargs.sbytes_    = sizeof(first_word);
+
+		read(node, &rargs);
 
 		if ( doSwapV1 )
 			swpw( first_word );
@@ -385,7 +397,14 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 	}
 	if ( merge_last ) {
 
-		read(node, cacheable, last_word, sizeof(last_word), (off + dbytes) & ~3ULL, sizeof(last_word));
+		CReadArgs rargs;
+		rargs.cacheable_ = cacheable;
+		rargs.dst_       = last_word;
+		rargs.dbytes_    = sizeof(last_word);
+		rargs.off_       = (off + dbytes) & ~3ULL;
+		rargs.sbytes_    = sizeof(last_word);
+
+		read(node, &rargs);
 
 		if ( doSwapV1 )
 			swpw( last_word );
@@ -510,15 +529,19 @@ retry: ;
 	throw IOError("Too many retries");
 }
 
-uint64_t CUdpAddressImpl::write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+uint64_t CUdpAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 uint64_t rval = 0;
-int headbytes = (off & (sizeof(SRPWord)-1));
+int headbytes = (args->off_ & (sizeof(SRPWord)-1));
 int totbytes;
 int nWords;
+unsigned dbytes = args->dbytes_;
+uint64_t off    = args->off_;
+uint8_t *src    = args->src_;
+uint8_t  msk1   = args->msk1_;
 
-	if ( sbytes < dbytes )
-		dbytes = sbytes;
+	if ( args->sbytes_ < dbytes )
+		dbytes = args->sbytes_;
 
 	if ( dbytes == 0 )
 		return 0;
@@ -530,7 +553,7 @@ int nWords;
 
 	while ( nWords > MAXWORDS ) {
 		int nbytes = MAXWORDS*4 - headbytes;
-		rval += writeBlk_unlocked(node, cacheable, src, off, nbytes, msk1, 0);	
+		rval += writeBlk_unlocked(node, args->cacheable_, src, off, nbytes, msk1, 0);	
 		nWords -= MAXWORDS;
 		dbytes -= nbytes;	
 		src    += nbytes;
@@ -539,7 +562,7 @@ int nWords;
 		msk1      = 0;
 	}
 
-	rval += writeBlk_unlocked(node, cacheable, src, off, dbytes, msk1, mskn);
+	rval += writeBlk_unlocked(node, args->cacheable_, src, off, dbytes, msk1, args->mskn_);
 
 	return rval;
 

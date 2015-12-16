@@ -20,6 +20,43 @@ typedef weak_ptr<CDevImpl>   WDevImpl;
 typedef shared_ptr<IAddress> Address;
 typedef shared_ptr<CAddressImpl> AddressImpl;
 
+class CReadArgs {
+public:
+	IField::Cacheable cacheable_;
+	uint8_t          *dst_;
+	unsigned          dbytes_;
+	uint64_t          off_;
+	unsigned          sbytes_;
+	CReadArgs() {
+		cacheable_ = IField::UNKNOWN_CACHEABLE;
+		dst_       = NULL;
+	    dbytes_    = 0;
+	    off_       = 0;
+		sbytes_    = 0;
+	}
+};
+
+class CWriteArgs {
+public:
+	IField::Cacheable cacheable_;
+	uint8_t          *src_;
+	unsigned          sbytes_;
+	uint64_t          off_;
+	unsigned          dbytes_;
+	uint8_t           msk1_;
+	uint8_t           mskn_;
+	CWriteArgs()
+	{
+		cacheable_ = IField::UNKNOWN_CACHEABLE;
+		src_       = NULL;
+	    sbytes_    = 0;
+	    off_       = 0;
+		dbytes_    = 0;
+		msk1_      = 0;
+		mskn_      = 0;
+	}
+};
+
 
 class IAddress : public IChild {
 	public:
@@ -41,8 +78,8 @@ class IAddress : public IChild {
 
 		virtual void attach(EntryImpl child) = 0;
 
-		virtual uint64_t read (CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const = 0;
-		virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const = 0;
+		virtual uint64_t read (CompositePathIterator *node, CReadArgs *args)  const = 0;
+		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const = 0;
 
 		virtual void dump(FILE *f)           const = 0;
 
@@ -64,7 +101,6 @@ class IAddress : public IChild {
 		virtual Address clone(DevImpl) = 0;
 
 		virtual ~IAddress() {}
-
 };
 
 #define NULLCHILD Child( static_cast<IChild *>(NULL) )
@@ -118,8 +154,8 @@ class CAddressImpl : public IAddress {
 			return byteOrder_;
 		}
 
-		virtual uint64_t read (CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
-		virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
+		virtual uint64_t read (CompositePathIterator *node, CReadArgs *args) const;
+		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
 		virtual void dump(FILE *f) const;
 
