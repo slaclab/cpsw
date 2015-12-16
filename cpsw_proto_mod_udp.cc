@@ -98,7 +98,9 @@ void CUdpRxHandlerThread::threadBody()
 		Buf buf = IBuf::getBuf();
 		got = ::read( sd_->getSd(), buf->getPayload(), buf->getSize() );
 		if ( got < 0 ) {
-			break;
+			perror("rx thread");
+			sleep(10);
+			continue;
 		}
 		buf->setSize( got );
 		if ( got > 0 ) {
@@ -120,10 +122,12 @@ void CUdpPeerPollerThread::threadBody()
 	uint8_t buf[4];
 	memset( buf, 0, sizeof(buf) );
 	while ( 1 ) {
-		if ( ::write( sd_->getSd(), buf, sizeof(buf) ) < 0 )
-			break;
+		if ( ::write( sd_->getSd(), buf, sizeof(buf) ) < 0 ) {
+			perror("poller thread (write)");
+			continue;
+		}
 		if ( sleep( pollSecs_ ) )
-			break; // interrupted by signal
+			continue; // interrupted by signal
 	}
 }
 
