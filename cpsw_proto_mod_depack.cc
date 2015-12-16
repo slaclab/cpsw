@@ -46,8 +46,8 @@ bool CAxisFrameHeader::parse(uint8_t *hdrBase, size_t hdrSize)
 }
 
 
-CProtoModDepack::CProtoModDepack(CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned long timeoutUS)
-	: CProtoMod(oqueueDepth),
+CProtoModDepack::CProtoModDepack(CProtoModKey k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned long timeoutUS)
+	: CProtoMod(k, oqueueDepth),
 	  badHeaderDrops_(0),
 	  oldFrameDrops_(0),
 	  newFrameDrops_(0),

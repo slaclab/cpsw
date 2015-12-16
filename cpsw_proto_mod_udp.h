@@ -82,7 +82,8 @@ protected:
 	std::vector< CUdpRxHandlerThread > rxHandlers_;
 	CUdpPeerPollerThread               poller_;
 public:
-	CProtoModUdp(struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nThreads = 1);
+	CProtoModUdp(CProtoModKey k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nThreads = 1);
+	virtual const char *getName() const { return "UDP"; }
 
 	virtual ~CProtoModUdp();
 };

@@ -132,9 +132,9 @@ CUdpPeerPollerThread::CUdpPeerPollerThread(struct sockaddr_in *dest, struct sock
 {
 }
 
-CProtoModUdp::CProtoModUdp(struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nThreads)
-:CProtoMod(depth),
- poller_( CUdpPeerPollerThread(dest, NULL) )
+CProtoModUdp::CProtoModUdp(CProtoModKey k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nThreads)
+:CProtoMod(k, depth),
+ poller_( CUdpPeerPollerThread(dest, NULL, 4) )
 {
 	unsigned i;
 	struct sockaddr_in me;

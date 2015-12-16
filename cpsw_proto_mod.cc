@@ -4,7 +4,6 @@
 
 #include <errno.h>
 
-
 CBufQueue::CBufQueue(size_type n)
 : queue< IBufChain*, boost::lockfree::fixed_sized< true > >(n)
 {
@@ -87,3 +86,28 @@ BufChain CBufQueue::tryPop()
 {
 	return pop(false, 0);
 }
+
+ProtoMod CProtoMod::pushMod( ProtoMod *m_p )
+{
+	if ( upstream_ )
+		throw InternalError("Pushee already attached!");
+	upstream_ = *m_p;
+	return ( *m_p      = ProtoMod( self_ ) );
+}
+
+ProtoMod CProtoMod::cloneStack()
+{
+ProtoMod rval;
+	if ( upstream_ ) {
+		rval = upstream_->cloneStack();
+	}
+	return clone()->pushMod( &rval );
+}
+
+ProtoMod CProtoMod::clone()
+{
+	throw InternalError("Clone not implemented");
+}
+
+
+
