@@ -3,7 +3,6 @@
 
 #include <cpsw_proto_mod_udp.h>
 
-#include <signal.h>
 #include <errno.h>
 
 CSockSd::CSockSd()
@@ -102,7 +101,7 @@ void CUdpRxHandlerThread::threadBody()
 		buf->setSize( got );
 		if ( got > 0 ) {
 			BufChain bufch = IBufChain::create();
-			bufch->addAtHead( buf );
+			bufch->addAtTail( buf );
 			pOutputQueue_->push( &bufch );
 		}
 	}
