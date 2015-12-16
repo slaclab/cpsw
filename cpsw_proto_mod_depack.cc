@@ -98,6 +98,15 @@ void CProtoModDepack::threadBody()
 	}
 }
 
+void CProtoModDepack::frameSync(CAxisFrameHeader *hdr_p)
+{
+	// brute force for now...
+	if ( abs( hdr_p->signExtendFrameNo( hdr_p->getFrameNo() - oldestFrame_ ) ) > frameWinSize_ ) {
+		releaseFrames( true );
+		oldestFrame_ = hdr_p->getFrameNo() + 1;
+	}
+}
+
 void CProtoModDepack::processBuffer(Buf b)
 {
 CAxisFrameHeader hdr;
@@ -107,8 +116,13 @@ CAxisFrameHeader hdr;
 		return;
 	}
 
+	// if there is a 'string' of frames that falls outside of the window
+	// (which could happen during a 'resync') then we should readjust
+	// the window...
+
 	if ( hdr.getFrameNo() < oldestFrame_ ) {
 		oldFrameDrops_++;
+		frameSync( &hdr );
 		return;
 	}
 
@@ -119,6 +133,7 @@ CAxisFrameHeader hdr;
 			releaseOldestFrame( false );
 		} else {
 			newFrameDrops_++;
+			frameSync( &hdr );
 			return;
 		}
 	}

@@ -44,6 +44,13 @@ public:
 	FragID       getFragNo()  { return fragNo_;  }
 	ProtoVersion getVersion() { return vers_;    }
 
+	static int   signExtendFrameNo(FrameID x)
+	{
+		if ( x & (1<<(FRAME_NO_BIT_SIZE-1)) )
+			 x |= ~((1<<FRAME_NO_BIT_SIZE)-1);
+		return x;
+	}
+
 	size_t       getSize()     { return V0_HEADER_SIZE; }
 
 	size_t       getTailSize() { return V0_TAIL_SIZE;   }
@@ -140,6 +147,8 @@ protected:
 	vector<CFrame> frameWin_;
 
 	void processBuffer(Buf);
+
+	void frameSync(CAxisFrameHeader *);
 
 	void threadBody();
 
