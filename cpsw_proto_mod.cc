@@ -12,6 +12,10 @@ CBufQueue::CBufQueue(size_type n)
 	if ( sem_init( &rd_sem_, 0, 0 ) ) {
 		throw InternalError("Unable to create semaphore");
 	}
+	if ( sem_init( &wr_sem_, 0, n ) ) {
+		sem_destroy( &rd_sem_ );
+		throw InternalError("Unable to create semaphore");
+	}
 }
 
 CBufQueue::~CBufQueue()
@@ -23,12 +27,18 @@ CBufQueue::~CBufQueue()
 		;
 	}
 	sem_destroy( &rd_sem_ );
+	sem_destroy( &wr_sem_ );
 }
 
 bool CBufQueue::push(BufChain *owner)
 {
 // keep a ref in case we have to undo
 BufChain ref = *owner;
+
+	// wait for a slot
+	if ( sem_wait( &wr_sem_ ) ) {
+		throw InternalError("FATAL ERROR -- blocking for queue semaphore failed");
+	}
 
 	IBufChain::take_ownership(owner);
 	// 1 ref inside the BufChain obj
@@ -37,33 +47,18 @@ BufChain ref = *owner;
 
 	if ( bounded_push( ref.get() ) ) {
 		if ( sem_post( &rd_sem_ ) ) {
-			throw InternalError("FATAL ERROR -- unable to post semaphore");
+			throw InternalError("FATAL ERROR -- unable to post reader semaphore");
 			// cannot easily clean up since the item is in the queue already
 		}
 		return true;
 	} else {
-		// push failed. Let's delay this thread for a little while
-		// (since we cannot rely on priority scheduling). This might
-		// give the consumer the chance to remove some items...
-if ( 1 ) {
-		struct timespec dely;
-		dely.tv_sec  = 0;
-		dely.tv_nsec = QUEUE_PUSH_RETRY_INTERVAL;
-		nanosleep( &dely, 0 );
-} else {
-		sched_yield();
-}
 
-		if ( bounded_push( ref.get() ) ) {
-			if ( sem_post( &rd_sem_ ) ) {
-				throw InternalError("FATAL ERROR -- unable to post semaphore");
-				// cannot easily clean up since the item is in the queue already
-			}
-			return true;
-		}
+		sem_post( &wr_sem_ );
 		// enqueue failed -- re-transfer smart pointer
 		// to owner...
 		*owner = ref->yield_ownership();
+
+		throw InternalError("Queue inconsistency???");
 	}
 	return false;
 }
@@ -80,7 +75,11 @@ int sem_stat = wait ?
 		if ( !CBufQueueBase::pop( raw_ptr ) ) {
 			throw InternalError("FATAL ERROR -- unable to pop even though we decremented the semaphore?");
 		}
-		return raw_ptr->yield_ownership();
+		BufChain rval = raw_ptr->yield_ownership();
+		if ( sem_post( &wr_sem_ ) ) {
+			throw InternalError("FATAL ERROR -- unable to post writer semaphore");
+		}
+		return rval;
 	}
 
 	switch ( errno ) {

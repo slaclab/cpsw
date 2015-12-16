@@ -36,13 +36,13 @@ typedef queue< IBufChain *, boost::lockfree::fixed_sized< true > > CBufQueueBase
 class CBufQueue : protected CBufQueueBase {
 private:
 	sem_t rd_sem_;
+	sem_t wr_sem_;
 protected:
 	BufChain pop(bool wait, struct timespec * abs_timeout);
 
 public:
 	CBufQueue(size_type n);
 
-	// waiting to push not implemented ATM
 	bool     push(BufChain *owner);
 
 	BufChain pop(struct timespec *abs_timeout);
