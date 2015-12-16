@@ -6,6 +6,8 @@
 
 #include <cpsw_proto_mod.h>
 
+#include <pthread.h>
+
 using std::vector;
 
 typedef unsigned FrameID;
@@ -139,6 +141,8 @@ private:
 	unsigned pastLastDrops_;
 
 	struct timespec timeout_;
+
+	pthread_t tid_;
 protected:
 	unsigned frameWinSize_;
 	unsigned fragWinSize_;
@@ -161,9 +165,14 @@ protected:
 	unsigned toFrameIdx(unsigned frameNo) { return frameNo & ( frameWinSize_ - 1 ); }
 	unsigned toFragIdx(unsigned fragNo)   { return fragNo  & ( fragWinSize_  - 1 ); }
 
+	static void *pthreadBody(void *);
+
 
 public:
 	CProtoModDepack(CProtoModKey k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned long timeoutUS);
+
+	~CProtoModDepack();
+
 };
 
 #endif

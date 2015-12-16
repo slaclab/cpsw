@@ -2,6 +2,10 @@
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
 
+#include <errno.h>
+#include <pthread.h>
+
+
 static unsigned getNum(uint8_t *p, unsigned bit_offset, unsigned bit_size)
 {
 int i;
@@ -71,6 +75,24 @@ CProtoModDepack::CProtoModDepack(CProtoModKey k, CBufQueueBase::size_type oqueue
 {
 	timeout_.tv_sec  = timeoutUS / 1000000UL;
 	timeout_.tv_nsec = (timeoutUS % 1000000UL) * 1000;
+
+	if ( pthread_create( &tid_, 0, pthreadBody, this ) ) {
+		throw IOError("unable to create thread ", errno);
+	}
+}
+
+CProtoModDepack::~CProtoModDepack()
+{
+void *ign;
+	pthread_cancel( tid_ );
+	pthread_join( tid_ , &ign );
+}
+
+void * CProtoModDepack::pthreadBody(void *arg)
+{
+CProtoModDepack *obj = static_cast<CProtoModDepack*>( arg );
+	obj->threadBody();
+	return 0;
 }
 
 void CProtoModDepack::threadBody()
