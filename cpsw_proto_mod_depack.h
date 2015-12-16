@@ -173,6 +173,7 @@ public:
 
 	~CProtoModDepack();
 
+	const char *getName() const { return "AXIS Depack"; }
 };
 
 #endif
