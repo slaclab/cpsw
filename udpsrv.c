@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <pthread.h>
+#include <errno.h>
 
 #define DEBUG
 
@@ -26,6 +28,18 @@
 #define REG_ARR_OFF (REG_SCR_OFF + REG_SCR_SZ)
 #define REG_ARR_SZ  8192
 
+#define FRAGS   4
+#define FRAGLEN 8
+
+#define FRAMBITS 12
+#define FRAGBITS 24
+#define VERS     0
+#define VERSBITS 4
+
+#define HEADSIZE 8
+#define TAILSIZE 1
+
+#define EOFRAG   0x80
 
 // byte swap ? 
 #define bsl(x) (x)
@@ -50,7 +64,7 @@ uint8_t mem[1024*1024] = {0};
 
 static void usage(const char *nm)
 {
-	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-V <protoVersion>]\n", nm);
+	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-s <stream_port>] [-V <protoVersion>]\n", nm);
 	fprintf(stderr, "        -V version  : protocol version V1 (V2 default)\n");
 #ifdef DEBUG
 	fprintf(stderr, "        -d          : disable debugging messages (faster)\n");
@@ -66,12 +80,124 @@ int i;
 		buf[i] = __builtin_bswap32( buf[i] );
 }
 
+static int getsock(const char *ina, unsigned short port)
+{
+int sd = -1;
+struct sockaddr_in me;
+
+	if ( (sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+		perror("socket");
+		goto bail;
+	}
+
+	me.sin_family      = AF_INET;
+	me.sin_addr.s_addr = inet_addr(ina);
+	me.sin_port        = htons( (short)port );
+
+	if ( bind( sd, (struct sockaddr*)&me, sizeof(me) ) < 0 ) {
+		perror("bind");
+		goto bail;
+	}
+
+	return sd;
+
+bail:
+	close(sd);
+	return -1;
+}
+
+struct streamer_args {
+	int                sd;
+	struct sockaddr_in peer;
+};
+
+void *poller(void *arg)
+{
+struct streamer_args *sa = (struct streamer_args*)arg;
+char      buf[8];
+socklen_t l;
+
+	while ( (l=sizeof(sa->peer), recvfrom(sa->sd, buf, sizeof(buf), 0, (struct sockaddr*)&sa->peer, &l)) > 0 ) {
+		fprintf(stderr,"Poller: Contacted by %d\n", ntohs(sa->peer.sin_port));
+	}
+	perror("Poller thread failed");
+	exit(1);
+	return 0;
+}
+
+static uint64_t mkhdr(unsigned fram, unsigned frag)
+{
+uint64_t rval;
+	if ( HEADSIZE > sizeof(rval) ) {
+		fprintf(stderr,"FATAL ERROR -- HEADSIZE too big\n");
+		exit(1);
+	}
+	rval = (frag & ((1<<FRAGBITS)-1));
+	rval = rval << FRAMBITS;
+	rval |= (fram & ((1<<FRAMBITS)-1));
+	rval = rval << VERSBITS;
+	rval |= VERS & ((1<<VERSBITS)-1);
+	return rval;
+}
+
+void *fragger(void *arg)
+{
+struct streamer_args *sa = (struct streamer_args*)arg;
+unsigned frag = 0;
+unsigned fram = 0;
+uint64_t h;
+uint8_t  pld[FRAGLEN + HEADSIZE + TAILSIZE];
+struct iovec iov[2];
+int      i;
+
+	while (1) {
+		if ( 0 == ntohs( sa->peer.sin_port ) ) {
+			sleep(4);
+			continue;
+		}
+		h = mkhdr(fram, frag);
+		for ( i=0; i<HEADSIZE; i++ ) {
+			pld[i] = h;
+			h      = h>>8; 
+		}
+		memset(pld + i, (fram << 4) | (frag & 0xf), FRAGLEN);
+		i += FRAGLEN;
+		pld[i] = (FRAGS-1 == frag) ? EOFRAG : 0;
+		i++;
+		/* simulate packet loss */
+		if ( rand() > RAND_MAX/10 )  {
+			if ( sendto(sa->sd, pld, i, 0, (struct sockaddr*)&sa->peer, sizeof(sa->peer)) < 0 ) {
+				perror("fragmenter: write");
+				switch ( errno ) {
+					case EDESTADDRREQ:
+					case ECONNREFUSED:
+						/* not (yet/anymore) connected -- wait */
+						sleep(10);
+						continue;
+					default:
+						break;
+				}
+				break;
+			}
+		}
+		if ( ++frag >= FRAGS ) {
+			frag = 0;
+			fram++;
+			sleep(1);
+		}
+	}
+	fprintf(stderr,"Fragmenter thread failed\n");
+	exit(1);
+
+	return 0;
+}
+
 int
 main(int argc, char **argv)
 {
 int sd = -1;
 int rval = 1;
-struct   sockaddr_in me, you;
+struct   sockaddr_in you;
 uint32_t rbuf[2048];
 int      n, got, put;
 uint32_t addr = 0;
@@ -79,12 +205,17 @@ uint32_t size = 16;
 char *c_a;
 int  *i_a;
 int        port = 8192;
+int       sport = 0;
 const char *ina = "127.0.0.1";
 socklen_t  youlen;
 unsigned off;
 int      vers = 2;
 int      v1;
 uint32_t header = 0;
+
+pthread_t poller_tid, fragger_tid;
+int    have_poller  = 0;
+int    have_fragger = 0;
 
 struct msghdr mh;
 struct iovec  iov[2];
@@ -99,11 +230,13 @@ int    debug =
 #endif
 ;
 
+struct streamer_args *s_arg = 0;
+
 	memset( &mh, 0, sizeof(mh) );
 
 	sprintf(mem + 0x800, "Hello");
 
-	while ( (got = getopt(argc, argv, "dp:a:V:h")) > 0 ) {
+	while ( (got = getopt(argc, argv, "dp:a:V:hs:")) > 0 ) {
 		c_a = 0;
 		i_a = 0;
 		switch ( got ) {
@@ -112,42 +245,62 @@ int    debug =
 			case 'a': ina = optarg;   break;
 			case 'V': i_a = &vers;    break;
 			case 'd': debug = 0;      break;
+			case 's': i_a = &sport;   break;
 			default:
 				fprintf(stderr, "unknown option '%c'\n", got);
 				usage(argv[0]);
-				return 1;
+				goto bail;
 		}
 		if ( i_a ) {
 			if ( 1 != sscanf(optarg,"%i",i_a) ) {
 				fprintf(stderr,"Unable to scan option '-%c' argument '%s'\n", got, optarg);
-				return 1;
+				goto bail;
 			}
 		}
 	}
 
 	if ( vers != 1 && vers != 2 ) {
 		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
-		return 1;
+		goto bail;
 	}
 
-	v1 = (vers == 1);
-
-	if ( (sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
-		perror("socket");
+	if ( sport && sport == port ) {
+		fprintf(stderr,"Stream and SRP ports must be different!\n");
 		goto bail;
 	}
 
 	if ( ! ina || ! port ) {
 		fprintf(stderr,"Need inet and port args (-a and -p options)\n");
-		return 1;
-	}
-	me.sin_family = AF_INET;
-	me.sin_addr.s_addr = inet_addr(ina);
-	me.sin_port   = htons( (short)port );
-
-	if ( bind( sd, (struct sockaddr*)&me, sizeof(me) ) < 0 ) {
-		perror("bind");
 		goto bail;
+	}
+
+	v1 = (vers == 1);
+
+	if ( (sd = getsock( ina, port ) ) < 0 )
+		goto bail;
+
+	if ( sport ) {
+		s_arg = malloc( sizeof(*s_arg) );
+		if ( ! s_arg ) {
+			fprintf(stderr,"No Memory\n");
+			goto bail;
+		}
+		s_arg->sd = getsock( ina, sport );
+		s_arg->peer.sin_family      = AF_INET;
+		s_arg->peer.sin_addr.s_addr = INADDR_ANY;
+		s_arg->peer.sin_port        = htons(0);
+		if ( s_arg->sd < 0 )
+			goto bail;
+		if ( pthread_create( &poller_tid, 0, poller, (void*)s_arg ) ) {
+			perror("pthread_create [poller]");
+			goto bail;
+		}
+		have_poller = 1;
+		if ( pthread_create( &fragger_tid, 0, fragger, (void*)s_arg ) ) {
+			perror("pthread_create [fragger]");
+			goto bail;
+		}
+		have_fragger = 1;
 	}
 
 	expected = 12;
@@ -301,5 +454,17 @@ if ( debug )
 bail:
 	if ( sd >= 0 )
 		close( sd );
+	if ( have_poller ) {
+		void *ign;
+		pthread_cancel( poller_tid );
+		pthread_join( poller_tid, &ign );
+	}
+	if ( have_fragger ) {
+		void *ign;
+		pthread_cancel( fragger_tid );
+		pthread_join( fragger_tid, &ign );
+	}
+	if ( s_arg )
+		free( s_arg );
 	return rval;
 }
