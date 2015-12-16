@@ -104,6 +104,38 @@ ScalVal_ROAdapt rval = check_interface<ScalVal_ROAdapt, IntEntryImpl>( p );
 	return rval;
 }
 
+class CStreamAdapt;
+typedef shared_ptr<CStreamAdapt> StreamAdapt;
+
+class CStreamAdapt : public IEntryAdapt, public virtual IStream {
+public:
+	CStreamAdapt(Path p, shared_ptr<const CEntryImpl> ie)
+	: IEntryAdapt(p, ie)
+	{
+	}
+
+	virtual int64_t read(uint8_t *buf, size_t size, unsigned long timeoutUs)
+	{
+		CompositePathIterator it( &p_);
+		Address cl = it->c_p_;
+		CReadArgs args;
+
+		args.cacheable_ = ie_->getCacheable();
+		args.dst_       = buf;
+		args.dbytes_    = size;
+		args.off_       = 0;
+		args.sbytes_    = size;
+		return cl->read( &it, &args );
+	}
+
+};
+
+Stream IStream::create(Path p)
+{
+StreamAdapt rval = check_interface<StreamAdapt, EntryImpl>( p );
+	return rval;
+}
+
 #if 0
 // without caching and bit-level access at the SRP protocol level we cannot
 // support write-only yet.
