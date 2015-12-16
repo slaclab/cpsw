@@ -594,6 +594,17 @@ void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version
 	add( make_shared<CUdpAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc), child );
 }
 
+void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs)
+{
+	if ( portInUse( dport ) ) {
+		throw InvalidArgError("Cannot address same destination port from multiple instances");
+	}
+	addPort( dport );
+	IAddress::AKey k = getAKey();
+	add( make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs), child );
+}
+
+
 NoSsiDev INoSsiDev::create(const char *name, const char *ipaddr)
 {
 	return CEntryImpl::create<CNoSsiDevImpl>(name, ipaddr);
@@ -606,4 +617,73 @@ printf("SETLOCKED\n");
 		throw InternalError("Cannot attach this type of device multiple times -- need to create a new instance");
 	}
 	CDevImpl::setLocked();
+}
+
+CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs)
+:CAddressImpl(key)
+{
+struct sockaddr_in dst;
+NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
+
+	dst.sin_family      = AF_INET;
+	dst.sin_port        = htons( dport );
+	dst.sin_addr.s_addr = owner->getIpAddress();
+
+	ProtoMod udpMod     = CProtoMod::create<CProtoModUdp>( &dst, 10/* queue depth */, 2 /* nThreads */ );
+	udpMod->pushMod( &protoStack_ );
+
+	ProtoMod depackMod  = CProtoMod::create<CProtoModDepack>( 4, 4, 4, timeoutUs );
+
+	depackMod->pushMod( &protoStack_ );
+}
+
+uint64_t CUdpStreamAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+{
+uint64_t   rval = 0;
+BufChain    bch = protoStack_->pop( 0 );
+Buf           b = bch->getHead();
+uint64_t    off = args->off_;
+unsigned sbytes = args->sbytes_;
+uint8_t    *dst = args->dst_;
+
+	if ( ! b )
+		return 0;
+
+	while ( b->getSize() <= off ) {
+		off -= b->getSize();	
+		if ( ! (b = b->getNext()) )
+			return 0;
+	}
+
+	do {
+
+		unsigned l = b->getSize() - off;
+
+		if ( l > sbytes )
+			l = sbytes;
+
+		memcpy( dst, b->getPayload() + off, l );
+		rval   += l;
+		dst    += l;
+		sbytes -= l;
+
+		if ( ! (b = b->getNext()) ) {
+			return rval;
+		}
+
+		off = 0;
+
+	} while ( sbytes > 0 );
+
+	return off;
+}
+
+uint64_t CUdpStreamAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+{
+	throw InternalError("streaming write not implemented");
+}
+
+CUdpStreamAddressImpl * CUdpStreamAddressImpl::clone(AKey k)
+{
+	throw InternalError("CUdpStreamAddressImpl:: clone not implemented");
 }

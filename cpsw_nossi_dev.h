@@ -3,6 +3,10 @@
 
 #include <cpsw_hub.h>
 
+#include <cpsw_proto_mod.h>
+#include <cpsw_proto_mod_depack.h>
+#include <cpsw_proto_mod_udp.h>
+
 // ugly - these shouldn't be here!
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -50,6 +54,20 @@ public:
 	virtual uint32_t getTid()                            const { return ++tid_; }
 };
 
+class CUdpStreamAddressImpl : public CAddressImpl {
+private:
+	ProtoMod protoStack_;
+
+public:
+	CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs);
+	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
+	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
+
+	virtual CUdpStreamAddressImpl *clone(AKey k);
+
+	virtual ~CUdpStreamAddressImpl() {}
+};
+
 class CNoSsiDevImpl : public CDevImpl, public virtual INoSsiDev {
 private:
 	in_addr_t        d_ip_;
@@ -68,6 +86,7 @@ public:
 	virtual bool portInUse(unsigned port);
 
 	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 100, unsigned retryCnt = 5, uint8_t vc = 0);
+	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs = 10000);
 
 	virtual void setLocked();
 };
