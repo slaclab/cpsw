@@ -112,9 +112,13 @@ printf("Depack input timeout\n");
 				// maybe there are complete frames after the timed-out one
 				releaseFrames( true );
 			} else {
-				Buf buf = bufch->getHead();
-				buf->unlink();
-				processBuffer( buf );
+				Buf buf;
+
+				while ( (buf = bufch->getHead()) ) {
+					buf->unlink();
+					processBuffer( buf );
+					releaseFrames( true );
+				}
 			}
 		}
 	} catch ( IntrError e ) {
