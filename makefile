@@ -1,4 +1,7 @@
 
+HARCH=linux-x86_64
+BOOSTINCP=-I/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/include
+BOOSTLIBP=-L/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/lib
 LSRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 LSRCS+= cpsw_sval.cc
 LSRCS+= cpsw_mmio_dev.cc
@@ -19,7 +22,7 @@ TSRCS+= cpsw_stream_tst.cc
 
 SRCS = $(LSRCS) $(TSRCS)
 
-CXXFLAGS = -I. -g -Wall -O2
+CXXFLAGS = -I. $(BOOSTINCP) -g -Wall -O2
 CFLAGS=-O2 -g
 
 TBINS=$(patsubst %.cc,%,$(wildcard *_tst.cc))
@@ -54,7 +57,7 @@ udpsrv: udpsrv.c
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
 %_tst: %_tst.cc libcpsw.a
-	$(CXX) $(CXXFLAGS) -o $@ $< -L. -lcpsw $($@_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $< -L. $(BOOSTLIBP) -lcpsw $($@_LIBS)
 
 libcpsw.a: $(LSRCS:%.cc=%.o)
 	$(AR) cr $@ $^
@@ -66,3 +69,6 @@ clean:
 	$(RM) deps *.o *_tst udpsrv
 
 -include deps
+
+libpath:
+	@echo $(BOOSTLIBP:-L%=%)

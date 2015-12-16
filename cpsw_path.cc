@@ -295,6 +295,12 @@ Path IPath::create()
 	return Path( make_shared<PathImpl>() );
 }
 
+Path IPath::create(const char *key)
+{
+	return Path( make_shared<PathImpl>() )->findByName( key );
+}
+
+
 Path IPath::create(Hub h)
 {
 	return Path( make_shared<PathImpl>( h ) );

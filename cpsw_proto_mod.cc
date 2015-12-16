@@ -33,6 +33,8 @@ BufChain ref = *owner;
 	// 1 ref in our local var
 	// (*owner) has been reset
 
+	bounded_push( ref.get() );
+#if 0
 	if ( bounded_push( ref.get() ) ) {
 		if ( sem_post( &rd_sem ) ) {
 			throw InternalError("FATAL ERROR -- unable to post semaphore");
@@ -44,6 +46,9 @@ BufChain ref = *owner;
 		// to owner...
 		*owner = ref->yield_ownership();
 	}
+#else
+		*owner = ref->yield_ownership();
+#endif
 	return false;
 }
 

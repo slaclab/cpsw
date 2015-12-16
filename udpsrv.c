@@ -117,7 +117,7 @@ struct streamer_args *sa = (struct streamer_args*)arg;
 char      buf[8];
 socklen_t l;
 
-	while ( (l=sizeof(sa->peer), recvfrom(sa->sd, buf, sizeof(buf), 0, (struct sockaddr*)&sa->peer, &l)) > 0 ) {
+	while ( (l=sizeof(sa->peer), recvfrom(sa->sd, buf, sizeof(buf), 0, (struct sockaddr*)&sa->peer, &l)) >= 0 ) {
 		fprintf(stderr,"Poller: Contacted by %d\n", ntohs(sa->peer.sin_port));
 	}
 	perror("Poller thread failed");

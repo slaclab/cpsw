@@ -97,6 +97,7 @@ public:
 
 	// create an empty path
 	static  Path        create();             // absolute; starting at root
+	static  Path        create(const char*);  // absolute; starting at root
 	static  Path        create(Hub);          // relative; starting at passed arg
 
 	virtual ~IPath() {}

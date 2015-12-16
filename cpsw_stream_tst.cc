@@ -4,10 +4,14 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+#ifndef PRIu64
+#define PRIu64 "lu"
+#endif
 
 int
 main(int argc, char **argv)
 {
+//NoSsiDev root = INoSsiDev::create("udp", "192.168.2.10");
 NoSsiDev root = INoSsiDev::create("udp", "127.0.0.1");
 Field    sink = IField::create("sink");
 uint8_t  buf[100000];

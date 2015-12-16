@@ -105,6 +105,13 @@ void CUdpRxHandlerThread::threadBody()
 		}
 		buf->setSize( got );
 		if ( got > 0 ) {
+printf("got from UDP %d\n", got);
+{
+unsigned i;
+	for ( i=0; i< (got < 4 ? got : 4); i++ )
+		printf("%02x ", buf->getPayload()[i]);
+	printf("\n");
+}
 			BufChain bufch = IBufChain::create();
 			bufch->addAtTail( buf );
 			pOutputQueue_->push( &bufch );
@@ -123,7 +130,7 @@ void CUdpPeerPollerThread::threadBody()
 	uint8_t buf[4];
 	memset( buf, 0, sizeof(buf) );
 	while ( 1 ) {
-		if ( ::write( sd_->getSd(), buf, sizeof(buf) ) < 0 ) {
+		if ( ::write( sd_->getSd(), buf, 0 ) < 0 ) {
 			perror("poller thread (write)");
 			continue;
 		}
