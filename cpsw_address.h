@@ -27,12 +27,15 @@ public:
 	unsigned          dbytes_;
 	uint64_t          off_;
 	unsigned          sbytes_;
-	CReadArgs() {
-		cacheable_ = IField::UNKNOWN_CACHEABLE;
-		dst_       = NULL;
-	    dbytes_    = 0;
-	    off_       = 0;
-		sbytes_    = 0;
+	CTimeout          timeout_;
+	CReadArgs()
+	: cacheable_ ( IField::UNKNOWN_CACHEABLE ),
+	  dst_       ( NULL ),
+	  dbytes_    ( 0 ),
+	  off_       ( 0 ),
+	  sbytes_    ( 0 ),
+	  timeout_   ( TIMEOUT_INDEFINITE )
+	{
 	}
 };
 
@@ -45,15 +48,17 @@ public:
 	unsigned          dbytes_;
 	uint8_t           msk1_;
 	uint8_t           mskn_;
+	CTimeout          timeout_;
 	CWriteArgs()
+	: cacheable_ ( IField::UNKNOWN_CACHEABLE ),
+	  src_       ( NULL ),
+      sbytes_    ( 0 ),
+      off_       ( 0 ),
+	  dbytes_    ( 0 ),
+	  msk1_      ( 0 ),
+	  mskn_      ( 0 ),
+	  timeout_   ( TIMEOUT_INDEFINITE )
 	{
-		cacheable_ = IField::UNKNOWN_CACHEABLE;
-		src_       = NULL;
-	    sbytes_    = 0;
-	    off_       = 0;
-		dbytes_    = 0;
-		msk1_      = 0;
-		mskn_      = 0;
 	}
 };
 

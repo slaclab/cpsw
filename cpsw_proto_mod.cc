@@ -47,11 +47,11 @@ BufChain ref = *owner;
 	return false;
 }
 
-BufChain CBufQueue::pop(bool wait, struct timespec *timeout)
+BufChain CBufQueue::pop(bool wait, struct timespec *abs_timeout)
 {
 int sem_stat = wait ?
-	                   ( timeout ? sem_timedwait( &rd_sem, timeout )
-	                             : sem_wait( &rd_sem ) )
+	                   ( abs_timeout ? sem_timedwait( &rd_sem, abs_timeout )
+	                                 : sem_wait( &rd_sem ) )
                     : sem_trywait( &rd_sem );
 
 	if ( 0 == sem_stat ) {
@@ -109,5 +109,23 @@ ProtoMod CProtoMod::clone()
 	throw InternalError("Clone not implemented");
 }
 
+
+CTimeout CProtoMod::getAbsTimeout(CTimeout *rel_timeout)
+{
+	struct timespec ts;
+
+	if ( ! rel_timeout || rel_timeout->isIndefinite() )
+		return TIMEOUT_INDEFINITE;
+
+	if ( clock_gettime( CLOCK_REALTIME, &ts ) )
+		throw InternalError("clock_gettime failed", errno);
+
+	CTimeout rval( ts );
+
+	if ( ! rel_timeout->isNone() ) {
+		rval += *rel_timeout;
+	}
+	return rval;
+}
 
 

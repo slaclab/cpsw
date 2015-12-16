@@ -1,6 +1,8 @@
 #ifndef CPSW_PROTO_MOD_H
 #define CPSW_PROTO_MOD_H
 
+#include <cpsw_api_user.h>
+
 #include <boost/lockfree/queue.hpp>
 #include <boost/weak_ptr.hpp>
 #include <semaphore.h>
@@ -16,12 +18,15 @@ typedef shared_ptr<IProtoMod> ProtoMod;
 
 class IProtoMod {
 public:
-	virtual BufChain pop(struct timespec *timeout) = 0;
-	virtual BufChain tryPop()                      = 0;
+	static const bool ABS_TIMEOUT = true;
+	static const bool REL_TIMEOUT = false;
 
-	virtual ProtoMod pushMod( ProtoMod *m_p )      = 0;
+	virtual BufChain pop(CTimeout *, bool abs_timeout) = 0;
+	virtual BufChain tryPop()                          = 0;
 
-	virtual ProtoMod cloneStack()                  = 0;
+	virtual ProtoMod pushMod( ProtoMod *m_p )          = 0;
+
+	virtual ProtoMod cloneStack()                      = 0;
 
 	virtual ~IProtoMod() {}
 };
@@ -32,7 +37,7 @@ class CBufQueue : protected CBufQueueBase {
 private:
 	sem_t rd_sem;
 protected:
-	BufChain pop(bool wait, struct timespec*);
+	BufChain pop(bool wait, struct timespec * abs_timeout);
 
 public:
 	CBufQueue(size_type n);
@@ -40,7 +45,7 @@ public:
 	// waiting to push not implemented ATM
 	bool     push(BufChain *owner);
 
-	BufChain pop(struct timespec*);
+	BufChain pop(struct timespec *abs_timeout);
 	BufChain tryPop();
 
 	~CBufQueue();
@@ -65,10 +70,29 @@ protected:
 public:
 	CProtoMod(CProtoModKey k, CBufQueueBase::size_type n):outputQueue_(n) {}
 
-	virtual BufChain pop(struct timespec *timeout)
+	virtual BufChain pop(CTimeout *timeout, bool abs_timeout)
 	{
-		return outputQueue_.pop( timeout );
+		if ( ! timeout || timeout->isIndefinite() )
+			return outputQueue_.pop( 0 );
+		else if ( timeout->isNone() )
+			return outputQueue_.tryPop();
+
+		if ( ! abs_timeout ) {
+			// arg is rel-timeout
+			CTimeout abst( getAbsTimeout( timeout ) );
+			return outputQueue_.pop( &abst.tv_ );
+		} else {
+			return outputQueue_.pop( &timeout->tv_ );
+		}
 	}
+
+	// getAbsTimeout is not a member of the CTimeout class:
+	// the clock to be used is implementation dependent.
+	// ProtoMod uses a semaphore which uses CLOCK_REALTIME.
+	// The conversion to abs-time should be a member
+	// of the same class which uses the clock-dependent
+	// resource...
+	virtual CTimeout getAbsTimeout(CTimeout *rel_timeout);
 
 	virtual BufChain tryPop()
 	{

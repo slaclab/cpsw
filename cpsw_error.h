@@ -65,6 +65,10 @@ class InternalError: public CPSWError {
 	public:
 		InternalError() : CPSWError("Internal Error") {}
 		InternalError(const char*s) : CPSWError(s) {}
+		InternalError(const char*s, int err)
+		: CPSWError( string(s).append(": ").append(strerror(err)) )
+		{
+		}
 };
 
 class AddrOutOfRangeError: public CPSWError {
@@ -81,7 +85,10 @@ class IOError: public CPSWError {
 	public:
 		IOError( const char *s ) : CPSWError( s ) {}
 		IOError( string &s )     : CPSWError( s ) {}
-		IOError( const char *s, int err) : CPSWError( string(s).append(strerror(err)) ) {}
+		IOError( const char *s, int err)
+		: CPSWError( string(s).append(": ").append(strerror(err)) )
+		{
+		}
 };
 
 class BadStatusError: public CPSWError {

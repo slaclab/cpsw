@@ -4,6 +4,7 @@
 #include <boost/intrusive/list.hpp>
 #include <vector>
 
+#include <cpsw_api_user.h>
 #include <cpsw_proto_mod.h>
 
 #include <pthread.h>
@@ -69,7 +70,7 @@ protected:
 	FrameID          frameID_;
 	FragID           oldestFrag_;
 	FragID           lastFrag_;
-	struct timespec  timeout_;
+	CTimeout         timeout_;
 	vector<Buf>      fragWin_;	
 	bool             isComplete_;
 	bool             running_;
@@ -140,7 +141,7 @@ private:
 	unsigned timedOutFrames_;
 	unsigned pastLastDrops_;
 
-	struct timespec timeout_;
+	CTimeout timeout_;
 
 	pthread_t tid_;
 protected:

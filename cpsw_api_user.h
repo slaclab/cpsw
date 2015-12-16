@@ -222,12 +222,28 @@ public:
 
 // Analogous to ScalVal there could be interfaces to double, enums, strings...
 
+
+// We don't want the timeout class to clutter this header.
+//
+// The most important features are
+//
+//   CTimeout( uint64_t        timeout_microseconds );
+//   CTimeout( struct timespec timeout              );
+//   CTimeout( time_t          seconds              , long nanoseconds );
+//   CTimeout()
+//      the default constructor builds an INDEFINITE timeout
+//
+// and there are operators '+=' and '-='
+//
+#include <cpsw_api_timeout.h>
+
+static const CTimeout TIMEOUT_NONE( 0, 0 );
+static const CTimeout TIMEOUT_INDEFINITE;
+
+
 class IStream {
 public:
-	static const unsigned long TIMEOUT_FOREVER = (unsigned long)-1UL;
-	static const unsigned long TIMEOUT_NONE    = (unsigned long)0;
-
-	virtual int64_t read(uint8_t *buf, size_t size, unsigned long timeoutUs) = 0;
+	virtual int64_t read(uint8_t *buf, size_t size, CTimeout timeout = TIMEOUT_INDEFINITE, uint64_t off = 0) = 0;
 
 	static Stream create(Path p);
 };

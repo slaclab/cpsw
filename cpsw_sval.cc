@@ -114,7 +114,7 @@ public:
 	{
 	}
 
-	virtual int64_t read(uint8_t *buf, size_t size, unsigned long timeoutUs)
+	virtual int64_t read(uint8_t *buf, size_t size, CTimeout timeout, uint64_t off)
 	{
 		CompositePathIterator it( &p_);
 		Address cl = it->c_p_;
@@ -123,8 +123,9 @@ public:
 		args.cacheable_ = ie_->getCacheable();
 		args.dst_       = buf;
 		args.dbytes_    = size;
-		args.off_       = 0;
+		args.off_       = off;
 		args.sbytes_    = size;
+		args.timeout_   = timeout;
 		return cl->read( &it, &args );
 	}
 

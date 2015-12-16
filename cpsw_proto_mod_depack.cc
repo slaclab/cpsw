@@ -51,7 +51,7 @@ bool CAxisFrameHeader::parse(uint8_t *hdrBase, size_t hdrSize)
 }
 
 
-CProtoModDepack::CProtoModDepack(CProtoModKey k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned long timeoutUS)
+CProtoModDepack::CProtoModDepack(CProtoModKey k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, uint64_t timeoutUS)
 	: CProtoMod(k, oqueueDepth),
 	  badHeaderDrops_(0),
 	  oldFrameDrops_(0),
@@ -69,14 +69,12 @@ CProtoModDepack::CProtoModDepack(CProtoModKey k, CBufQueueBase::size_type oqueue
 	  emptyDrops_(0),
 	  timedOutFrames_(0),
 	  pastLastDrops_(0),
+	  timeout_( timeoutUS ),
 	  frameWinSize_( 1<<ldFrameWinSize ),
 	  fragWinSize_( 1<<ldFragWinSize ),
 	  oldestFrame_( CFrame::NO_FRAME ),
 	  frameWin_( frameWinSize_, CFrame(fragWinSize_) )
 {
-	timeout_.tv_sec  = timeoutUS / 1000000UL;
-	timeout_.tv_nsec = (timeoutUS % 1000000UL) * 1000;
-
 	if ( pthread_create( &tid_, 0, pthreadBody, this ) ) {
 		throw IOError("unable to create thread ", errno);
 	}
@@ -102,7 +100,7 @@ void CProtoModDepack::threadBody()
 		while ( 1 ) {
 			CFrame *frame  = &frameWin_[ toFrameIdx( oldestFrame_ ) ];
 			// wait for new datagram
-			BufChain bufch = upstream_->pop( frame->running_ ? & frame->timeout_ : 0 );
+			BufChain bufch = upstream_->pop( frame->running_ ? & frame->timeout_ : 0, IProtoMod::ABS_TIMEOUT );
 
 			if ( ! bufch ) {
 printf("Depack input timeout\n");
@@ -301,13 +299,7 @@ struct timespec now;
 	if ( clock_gettime( CLOCK_REALTIME, &now ) ) 
 		throw InternalError("clock_gettime failed");
 
-	frame->timeout_.tv_nsec = now.tv_nsec + timeout_.tv_nsec;
-	frame->timeout_.tv_sec  = now.tv_sec +  timeout_.tv_sec;
-
-	if ( frame->timeout_.tv_nsec >= 1000000000L ) {
-		frame->timeout_.tv_nsec -= 1000000000L;
-		frame->timeout_.tv_sec  += 1;
-	}
+	frame->timeout_ = getAbsTimeout( &timeout_ );
 
 	frame->running_ = true;
 }

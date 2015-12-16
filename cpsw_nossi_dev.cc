@@ -640,13 +640,15 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 uint64_t CUdpStreamAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 uint64_t   rval = 0;
-BufChain    bch = protoStack_->pop( 0 );
-Buf           b = bch->getHead();
 uint64_t    off = args->off_;
 unsigned sbytes = args->sbytes_;
 uint8_t    *dst = args->dst_;
+BufChain    bch;
+Buf           b;
 
-	if ( ! b )
+	bch = protoStack_->pop( &args->timeout_, CProtoMod::REL_TIMEOUT  );
+
+	if ( ! bch || ! (b = bch->getHead()) )
 		return 0;
 
 	while ( b->getSize() <= off ) {
