@@ -134,10 +134,10 @@ uint8_t  buf[16];
 int64_t  got;
 
 	while ( 1 ) {
-		got = strm->read( buf, sizeof(buf), CTimeout( 2000000 ) );
+		got = strm->read( buf, sizeof(buf), CTimeout(20000000) );
 		if ( ! got ) {
 			fprintf(stderr,"RX thread timed out\n");
-			break;
+			exit (1);
 		}
 		unsigned frameNo;
 		if ( got > 2 ) {
@@ -158,13 +158,15 @@ const char *ip_addr = "192.168.2.10";
 bool        use_mem = false;
 int        *i_p;
 int         vers    = 2;
+bool        use_stream = false;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
-			case 'a': ip_addr = optarg; break;
-			case 'm': use_mem = true;   break;
-			case 'V': i_p     = &vers;  break;
+			case 'a': ip_addr = optarg;  break;
+			case 'm': use_mem = true;    break;
+			case 'V': i_p     = &vers;   break;
+			case 'S': use_stream = true; break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				throw TestFailed();
@@ -201,6 +203,9 @@ uint16_t u16;
 	for (int i=16; i<24; i++ )
 		buf[i]=i-16;
 
+	if ( use_mem )
+		use_stream = false;
+
 
 	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
 
@@ -210,7 +215,8 @@ uint16_t u16;
 
 	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, 8192 );
 
-//	root->addAtStream( IField::create("dataSource"), 8193, 10000 /* ms */ );
+	if ( use_stream )
+		root->addAtStream( IField::create("dataSource"), 8193, 10000000 /* us */ );
 
 	IDev::getRootDev()->addAtAddress( root );
 
@@ -283,20 +289,20 @@ uint16_t u16;
 		}
 		v = 1;
 		axiEn->setVal( &v, 1 );
-		v = 8000;
+		v = 3000; //600;
 		packetLength->setVal( &v, 1 );
 		v = 1;
 		oneShot->setVal( &v, 1 );
 	}
 
-	if ( ! use_mem && 0 ) {
+	if ( use_stream ) {
 		pthread_t tid;
 		void     *ign;
 		int i;
 		if ( pthread_create( &tid, 0, rxThread, 0 ) ) {
 			perror("pthread_create");
 		}
-		for (i = 0; i<10; i++) {
+		for (i = 0; i<1000; i++) {
 			sleep(1);
 			oneShot->setVal( 1 );
 		}

@@ -677,7 +677,7 @@ Buf           b;
 
 	} while ( sbytes > 0 );
 
-	return off;
+	return rval;
 }
 
 uint64_t CUdpStreamAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const

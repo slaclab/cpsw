@@ -107,16 +107,30 @@ void CUdpRxHandlerThread::threadBody()
 		}
 		buf->setSize( got );
 		if ( got > 0 ) {
-printf("got from UDP %d\n", got);
-{
+#ifdef UDP_DEBUG
 unsigned i;
+uint8_t  *p = buf->getPayload();
+unsigned fram = (p[1]<<4) | (p[0]>>4);
+unsigned frag = (p[4]<<16) | (p[3] << 8) | p[2];
 	for ( i=0; i< (got < 4 ? got : 4); i++ )
 		printf("%02x ", buf->getPayload()[i]);
 	printf("\n");
-}
+#endif
+
 			BufChain bufch = IBufChain::create();
 			bufch->addAtTail( buf );
+
+#ifdef UDP_DEBUG
+bool st=
+#endif
 			pOutputQueue_->push( &bufch );
+
+#ifdef UDP_DEBUG
+	printf("(UDP %d) fram # %4d, frag # %4d", got, fram, frag); 
+if ( st )
+     printf(" (SUCC)\n");
+else printf(" (DROP)\n");
+#endif
 		}
 	}
 }

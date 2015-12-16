@@ -41,7 +41,7 @@
 
 #define EOFRAG   0x80
 
-#define PIPEDEPTH (1<<0) /* MUST be power of two */
+#define PIPEDEPTH (1<<4) /* MUST be power of two */
 
 // byte swap ? 
 #define bsl(x) (x)
@@ -70,7 +70,7 @@ uint8_t mem[1024*1024] = {0};
 
 static void usage(const char *nm)
 {
-	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-s <stream_port>] [-f <n_frags>] [-L <loss_percent>] [-S] [-V <protoVersion>]\n", nm);
+	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-s <stream_port>] [-f <n_frags>] [-L <loss_percent>] [-S <depth> ] [-V <protoVersion>]\n", nm);
 	fprintf(stderr, "        -V version  : protocol version V1 (V2 default)\n");
 #ifdef DEBUG
 	fprintf(stderr, "        -d          : disable debugging messages (faster)\n");

@@ -75,4 +75,4 @@ clean:
 -include deps
 
 libpath:
-	@echo LD_LIBRARY_PATH=$(BOOSTLIBP:-L%=%)
+	@echo export LD_LIBRARY_PATH=$(BOOSTLIBP:-L%=%)
