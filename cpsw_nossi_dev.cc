@@ -568,6 +568,17 @@ uint8_t  msk1   = args->msk1_;
 
 }
 
+void CUdpAddressImpl::dump(FILE *f) const
+{
+	fprintf(f,"CUdpAddressImpl:\n");
+	CAddressImpl::dump(f);
+	fprintf(f,"\nPeer: %s:%d\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString(), dport_);
+	fprintf(f,"  SRP Protocol Version: %8u\n",   protoVersion_);
+	fprintf(f,"  Timeout             : %8uus\n", timeoutUs_);
+	fprintf(f,"  Retry Count         : %8u\n",   retryCnt_);
+	fprintf(f,"  Virtual Channel     : %8u\n",   vc_);
+}
+
 void CNoSsiDevImpl::addPort(unsigned port)
 {
 	if ( ! portInUse( port ) )
@@ -620,7 +631,8 @@ printf("SETLOCKED\n");
 }
 
 CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize)
-:CAddressImpl(key)
+:CAddressImpl(key),
+ dport_(dport)
 {
 struct sockaddr_in dst;
 NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
@@ -635,6 +647,17 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 	ProtoMod depackMod  = CProtoMod::create<CProtoModDepack>( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
 
 	depackMod->pushMod( &protoStack_ );
+}
+
+void CUdpStreamAddressImpl::dump(FILE *f) const
+{
+	fprintf(f,"CUdpStreamAddressImpl:\n");
+	CAddressImpl::dump(f);
+	fprintf(f,"\nPeer: %s:%d\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString(), dport_);
+	ProtoMod m;
+	for ( m = protoStack_; m; m=m->getUpstream() ) {
+		m->dumpInfo( f );
+	}
 }
 
 uint64_t CUdpStreamAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
@@ -683,9 +706,4 @@ Buf           b;
 uint64_t CUdpStreamAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 	throw InternalError("streaming write not implemented");
-}
-
-CUdpStreamAddressImpl * CUdpStreamAddressImpl::clone(AKey k)
-{
-	throw InternalError("CUdpStreamAddressImpl:: clone not implemented");
 }

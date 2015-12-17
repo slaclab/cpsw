@@ -47,6 +47,11 @@ public:
 	FragID       getFragNo()  { return fragNo_;  }
 	ProtoVersion getVersion() { return vers_;    }
 
+	static FrameID moduloFrameSz(FrameID id)
+	{
+		return (id & ((1<<FRAME_NO_BIT_SIZE) - 1));
+	}
+
 	static int   signExtendFrameNo(FrameID x)
 	{
 		if ( x & (1<<(FRAME_NO_BIT_SIZE-1)) )
@@ -59,6 +64,7 @@ public:
 	size_t       getTailSize() { return V0_TAIL_SIZE;   }
 
 	static bool getTailEOF(uint8_t *tailbuf) { return (*tailbuf) & (1<<FRAG_LAST_BIT); }
+
 };
 
 class CFrame {
@@ -173,6 +179,8 @@ public:
 	CProtoModDepack(CProtoModKey k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned long timeoutUS);
 
 	~CProtoModDepack();
+
+	virtual void dumpInfo(FILE *f);
 
 	const char *getName() const { return "AXIS Depack"; }
 };

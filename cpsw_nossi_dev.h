@@ -42,8 +42,10 @@ public:
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
+	virtual void dump(FILE *f) const;
+
 	// ANY subclass must implement clone(AKey) !
-	virtual CUdpAddressImpl *clone(AKey k) { return new CUdpAddressImpl( *this ); }
+	virtual CUdpAddressImpl *clone(AKey k) { throw InternalError("Clone not implemented"); } /* need to clone socket */
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
 	virtual unsigned getTimeoutUs()                      const { return timeoutUs_; }
@@ -56,6 +58,7 @@ public:
 
 class CUdpStreamAddressImpl : public CAddressImpl {
 private:
+	unsigned dport_;
 	ProtoMod protoStack_;
 
 public:
@@ -63,7 +66,9 @@ public:
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
-	virtual CUdpStreamAddressImpl *clone(AKey k);
+	virtual void dump(FILE *f) const;
+
+	virtual CUdpStreamAddressImpl *clone(AKey k) { throw InternalError("Clone not implemented"); } /* need to clone socket */
 
 	virtual ~CUdpStreamAddressImpl() {}
 };

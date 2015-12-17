@@ -9,6 +9,8 @@
 
 #include <sched.h>
 
+//#define UDP_DEBUG
+
 CSockSd::CSockSd()
 {
 	if ( ( sd_ = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ) {
@@ -30,7 +32,12 @@ SockSd CSockSd::create()
 void * CUdpHandlerThread::threadBody(void *arg)
 {
 	CUdpHandlerThread *obj = static_cast<CUdpHandlerThread *>(arg);
-	obj->threadBody();
+	try {
+		obj->threadBody();
+	} catch ( CPSWError e ) {
+		fprintf(stderr,"CPSW Error (CUdpHandlerThread): %s\n", e.getInfo().c_str());
+		throw;
+	}
 	return 0;
 }
 
@@ -182,4 +189,12 @@ CProtoModUdp::CProtoModUdp(CProtoModKey k, struct sockaddr_in *dest, CBufQueueBa
 
 CProtoModUdp::~CProtoModUdp()
 {
+}
+
+void CProtoModUdp::dumpInfo(FILE *f)
+{
+	if ( ! f )
+		f = stdout;
+
+	fprintf(f,"CProtoModUdp:\n");
 }

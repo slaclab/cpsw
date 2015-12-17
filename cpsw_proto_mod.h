@@ -7,6 +7,7 @@
 #include <boost/weak_ptr.hpp>
 #include <semaphore.h>
 #include <time.h>
+#include <stdio.h>
 
 #include <cpsw_buf.h>
 
@@ -27,6 +28,10 @@ public:
 	virtual ProtoMod pushMod( ProtoMod *m_p )          = 0;
 
 	virtual ProtoMod cloneStack()                      = 0;
+
+	virtual ProtoMod getUpstream()                     = 0;
+
+	virtual void dumpInfo(FILE *)                      = 0;
 
 	virtual ~IProtoMod() {}
 };
@@ -111,6 +116,8 @@ public:
 	virtual ProtoMod pushMod( ProtoMod *m_p );
 
 	virtual ProtoMod cloneStack();
+
+	virtual void dumpInfo(FILE *f) {}
 
 	virtual ~CProtoMod() {}
 

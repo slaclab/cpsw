@@ -59,6 +59,8 @@ class IChild : public virtual IEntry {
 	public:
 		virtual       Hub       getOwner()     const = 0;
 		virtual       unsigned  getNelms()     const = 0;
+		virtual       void      dump(FILE*)    const = 0;
+		virtual       void      dump()         const = 0;
 		virtual ~IChild() {}
 };
 

@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <pthread.h>
 
+#define DEPACK_DEBUG
+
 
 static unsigned getNum(uint8_t *p, unsigned bit_offset, unsigned bit_size)
 {
@@ -90,7 +92,12 @@ void *ign;
 void * CProtoModDepack::pthreadBody(void *arg)
 {
 CProtoModDepack *obj = static_cast<CProtoModDepack*>( arg );
-	obj->threadBody();
+	try {
+		obj->threadBody();
+	} catch ( CPSWError e ) {
+		fprintf(stderr,"CPSW Error (CUdpHandlerThread): %s\n", e.getInfo().c_str());
+		throw;
+	}
 	return 0;
 }
 
@@ -107,7 +114,13 @@ printf("depack: trying to pop\n");
 
 			if ( ! bufch ) {
 #ifdef DEPACK_DEBUG
-printf("Depack input timeout\n");
+{
+CTimeout del;
+	clock_gettime( CLOCK_REALTIME, &del.tv_ );
+	if ( frame->running_ )
+		del -= frame->timeout_;
+printf("Depack input timeout (late: %ld.%ld)\n", del.tv_.tv_sec, del.tv_.tv_nsec/1000);
+}
 #endif
 				// timeout
 				releaseOldestFrame( false );
@@ -133,8 +146,15 @@ void CProtoModDepack::frameSync(CAxisFrameHeader *hdr_p)
 {
 	// brute force for now...
 	if ( abs( hdr_p->signExtendFrameNo( hdr_p->getFrameNo() - oldestFrame_ ) ) > frameWinSize_ ) {
-		releaseFrames( true );
-		oldestFrame_ = hdr_p->getFrameNo() + 1;
+		releaseFrames( false );
+#ifdef DEPACK_DEBUG
+printf("frameSync (frame %d, frag %d, oldest frame %d, winsz %d)\n",
+		hdr_p->getFrameNo(),
+		hdr_p->getFragNo(),
+		oldestFrame_,
+		frameWinSize_);
+#endif
+		oldestFrame_ = CAxisFrameHeader::moduloFrameSz( hdr_p->getFrameNo() + 1 );
 	}
 }
 
@@ -155,14 +175,16 @@ CAxisFrameHeader hdr;
 		oldFrameDrops_++;
 		frameSync( &hdr );
 #ifdef DEPACK_DEBUG
-printf("Dropping old frame %d\n", hdr.getFrameNo());
+printf("Dropping old frame %d (frag %d; oldest %d)\n", hdr.getFrameNo(), hdr.getFragNo(), oldestFrame_);
 #endif
 		return;
 	}
 
-	if ( hdr.getFrameNo() >= oldestFrame_ + frameWinSize_ ) {
+	FrameID relOff = CAxisFrameHeader::moduloFrameSz( hdr.getFrameNo() - oldestFrame_ );
+
+	if ( relOff >= frameWinSize_ ) {
 		// evict/drop oldest frame (which should be incomplete)
-		if ( hdr.getFrameNo() == oldestFrame_ + frameWinSize_ ) {
+		if ( relOff == frameWinSize_ ) {
 			evictedFrames_++;
 			releaseOldestFrame( false );
 #ifdef DEPACK_DEBUG
@@ -172,7 +194,7 @@ printf("Evict\n");
 			newFrameDrops_++;
 			frameSync( &hdr );
 #ifdef DEPACK_DEBUG
-printf("Dropping new frame %d\n", hdr.getFrameNo());
+printf("Dropping new frame %d (frag %d; oldest %d, relOff %d)\n", hdr.getFrameNo(), hdr.getFragNo(), oldestFrame_, relOff);
 #endif
 			return;
 		}
@@ -213,7 +235,7 @@ printf("Dropping new frag %d\n", hdr.getFragNo());
 		frame->frameID_          = hdr.getFrameNo();
 
 #ifdef DEPACK_DEBUG
-printf("First frag of frame # %d\n", frame->frameID_);
+printf("First frag (%d) of frame # %d\n", hdr.getFragNo(), frame->frameID_);
 #endif
 
 		// make sure older frames (which may not yet have received any fragment)
@@ -225,6 +247,7 @@ printf("First frag of frame # %d\n", frame->frameID_);
 		if ( frame->frameID_ != hdr.getFrameNo() ) {
 			// since frameID >= oldestFrame && frameID < oldestFrame + frameWinSize
 			// this should never happen.
+			fprintf(stderr,"working on frame %d -- but %d found in its slot!\n", hdr.getFrameNo(), frame->frameID_);
 			throw InternalError("Frame ID window inconsistency!");
 		}
 		if ( frame->fragWin_[fragIdx] ) {
@@ -284,6 +307,9 @@ CFrame  *frame         = &frameWin_[frameIdx];
 
 	BufChain completeFrame = frame->prod_;
 	bool     isComplete    = frame->isComplete(); // frame invalid after release
+#ifdef DEPACK_DEBUG
+	bool     wasRunning    = frame->running_;
+#endif
 
 	frame->release( 0 );
 
@@ -302,7 +328,11 @@ CFrame  *frame         = &frameWin_[frameIdx];
 			emptyDrops_++;
 	}
 
-	oldestFrame_++;
+	oldestFrame_ = CAxisFrameHeader::moduloFrameSz( oldestFrame_ + 1 );
+
+#ifdef DEPACK_DEBUG
+	printf("Updated oldest to %d (is complete %d, running %d)\n", oldestFrame_, isComplete, wasRunning);
+#endif
 
 	return true;
 }
@@ -312,6 +342,7 @@ void CProtoModDepack::releaseFrames(bool onlyComplete)
 	while ( releaseOldestFrame( onlyComplete ) )
 		/* nothing else to do */;
 }
+
 void CProtoModDepack::startTimeout(CFrame *frame)
 {
 struct timespec now;
@@ -327,4 +358,27 @@ struct timespec now;
 	frame->running_ = true;
 }
 
-
+void CProtoModDepack::dumpInfo(FILE *f)
+{
+	if ( ! f )
+		f = stdout;
+	fprintf(f,"CProtoModDepack:\n");
+	fprintf(f,"  Frame Window Size: %4d, Frag Window Size: %4d\n", frameWinSize_, fragWinSize_);
+	fprintf(f,"  Timeout          : %4ld.%09lds\n", timeout_.tv_.tv_sec, timeout_.tv_.tv_nsec);
+	fprintf(f,"  **Good Fragments Accepted     **: %8d\n", fragsAccepted_);
+	fprintf(f,"  **Good Frames Accepted        **: %8d\n", framesAccepted_);
+	fprintf(f,"  Frames dropped due to bad header: %8d\n", badHeaderDrops_);
+	fprintf(f,"  Frames dropped below Frame Win  : %8d\n", oldFrameDrops_);
+	fprintf(f,"  Frames dropped beyond Frame Win : %8d\n", newFrameDrops_);
+	fprintf(f,"  Frags  dropped below Frag Window: %8d\n", oldFragDrops_);
+	fprintf(f,"  Frags  dropped beyond Frag Win  : %8d\n", newFragDrops_);
+	fprintf(f,"  Duplicates of Fragments dropped : %8d\n", duplicateFragDrops_);
+	fprintf(f,"  Duplicate EOF seen              : %8d\n", duplicateLastSeen_);
+	fprintf(f,"  No EOF seen                     : %8d\n", noLastSeen_);
+	fprintf(f,"  Frames dropped due outQueue full: %8d\n", oqueueFullDrops_);
+	fprintf(f,"  Frames dropped due to Eviction  : %8d\n", evictedFrames_);
+	fprintf(f,"  Incomplete Frames dropped (sync): %8d\n", incompleteDrops_);
+	fprintf(f,"  Empty fragments dropped         : %8d\n", emptyDrops_);
+	fprintf(f,"  Incomplete Frames with Timeout  : %8d\n", timedOutFrames_);
+	fprintf(f,"  Frames past EOF dropped         : %8d\n", pastLastDrops_);
+}

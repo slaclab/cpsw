@@ -28,7 +28,7 @@
 #define REG_ARR_OFF (REG_SCR_OFF + REG_SCR_SZ)
 #define REG_ARR_SZ  8192
 
-#define NFRAGS  4
+#define NFRAGS  20
 #define FRAGLEN 8
 
 #define FRAMBITS 12
@@ -40,8 +40,14 @@
 #define TAILSIZE 1
 
 #define EOFRAG   0x80
-
 #define PIPEDEPTH (1<<4) /* MUST be power of two */
+
+#define PORT_DEF   8192
+#define SPORT_DEF  8193
+#define SCRMBL_DEF 2
+#define INA_DEF    "127.0.0.1"
+#define SIMLOSS_DEF 0
+#define NFRAGS_DEF  NFRAGS
 
 // byte swap ? 
 #define bsl(x) (x)
@@ -73,10 +79,11 @@ static void usage(const char *nm)
 	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-s <stream_port>] [-f <n_frags>] [-L <loss_percent>] [-S <depth> ] [-V <protoVersion>]\n", nm);
 	fprintf(stderr, "        -V version  : protocol version V1 (V2 default)\n");
 #ifdef DEBUG
-	fprintf(stderr, "        -d          : disable debugging messages (faster)\n");
-	fprintf(stderr, "        -S          : scramble packet order (arg is ld2(scramble-length)) \n");
-	fprintf(stderr, "        -L <percent>: lose/drop <percent> pacets\n");
+	fprintf(stderr, "        -d          : enable debugging messages (may slow down)\n");
 #endif
+	fprintf(stderr, "        -S <depth>  : scramble packet order (arg is ld2(scramble-length))\n");
+	fprintf(stderr, "        -L <percent>: lose/drop <percent> pacets\n");
+	fprintf(stderr, " Defaults: -a %s -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
 }
 
 static void payload_swap(int v1, uint32_t *buf, int nelms)
@@ -212,7 +219,10 @@ int      idx  = 0;
 		if ( ++frag >= sa->n_frags ) {
 			frag = 0;
 			fram++;
-			sleep(1);
+			struct timespec ts;
+			ts.tv_sec  = 0;
+			ts.tv_nsec = 10000000;
+			nanosleep( &ts, 0 );
 		}
 	}
 	fprintf(stderr,"Fragmenter thread failed\n");
@@ -233,14 +243,14 @@ uint32_t addr = 0;
 uint32_t size = 16;
 char *c_a;
 int  *i_a;
-int        port = 8192;
-int       sport = 0;
-const char *ina = "127.0.0.1";
+int        port = PORT_DEF;
+int       sport = SPORT_DEF;
+const char *ina = INA_DEF;
 socklen_t  youlen;
 unsigned off;
 unsigned n_frags  = NFRAGS;
-unsigned sim_loss = 0;
-unsigned scramble = 0;
+unsigned sim_loss = SIMLOSS_DEF;
+unsigned scramble = SCRMBL_DEF;
 int      vers = 2;
 int      v1;
 uint32_t header = 0;
@@ -254,13 +264,7 @@ struct iovec  iov[2];
 int    niov = 0;
 int    i;
 int    expected;
-int    debug = 
-#ifdef DEBUG
-	1
-#else
-	0
-#endif
-;
+int    debug = 0;
 
 struct streamer_args *s_arg = 0;
 
@@ -276,7 +280,7 @@ struct streamer_args *s_arg = 0;
 			case 'p': i_a = &port;     break;
 			case 'a': ina = optarg;    break;
 			case 'V': i_a = &vers;     break;
-			case 'd': debug = 0;       break;
+			case 'd': debug = 1;       break;
 			case 's': i_a = &sport;    break;
 			case 'f': i_a = &n_frags;  break;
 			case 'L': i_a = &sim_loss; break;

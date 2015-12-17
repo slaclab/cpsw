@@ -143,7 +143,6 @@ DevImpl CAddressImpl::getOwnerAsDevImpl() const
 	return owner_.get();
 }
 
-
 void CAddressImpl::dump(FILE *f) const
 {
 	fprintf(f, "@%s:%s[%i]", getOwner()->getName(), child_->getName(), nelms_);

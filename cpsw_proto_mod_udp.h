@@ -85,6 +85,8 @@ public:
 	CProtoModUdp(CProtoModKey k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nThreads = 1);
 	virtual const char *getName() const { return "UDP"; }
 
+	virtual void dumpInfo(FILE *f);
+
 	virtual ~CProtoModUdp();
 };
 
