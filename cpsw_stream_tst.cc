@@ -17,9 +17,6 @@ static void usage(const char *nm)
 int
 main(int argc, char **argv)
 {
-//NoSsiDev root = INoSsiDev::create("udp", "192.168.2.10");
-NoSsiDev root = INoSsiDev::create("udp", "127.0.0.1");
-Field    data = IField::create("data");
 uint8_t  buf[100000];
 int64_t  got;
 int      i;
@@ -60,6 +57,9 @@ unsigned*i_p;
 	}
 
 try {
+//NoSsiDev root = INoSsiDev::create("udp", "192.168.2.10");
+NoSsiDev root = INoSsiDev::create("udp", "127.0.0.1");
+Field    data = IField::create("data");
 
 	root->addAtStream( data, 8193, timeoutUs, qDepth, ldFrameWinSize, ldFragWinSize );
 
@@ -127,6 +127,15 @@ try {
 }
 
 	printf("TEST PASSED: %d consecutive frames received\n", goodf);
+
+	printf("# bufs allocated: %4d\n", IBuf::numBufsAlloced());
+	printf("# bufs free     : %4d\n", IBuf::numBufsFree());
+	printf("# bufs in use   : %4d\n", IBuf::numBufsInUse());
+
+	if ( IBuf::numBufsInUse() != 0 ) {
+		fprintf(stderr,"Buffers leaked !\n");
+		goto bail;
+	}
 	
 	return 0;
 bail:
