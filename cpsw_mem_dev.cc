@@ -4,13 +4,13 @@
 #include <string.h>
 #include <stdio.h>
 
-CMemDevImpl::CMemDevImpl(FKey k, uint64_t size)
-: CDevImpl(k, size), buf_( new uint8_t[size] )
+CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size)
+: CDevImpl(k, name, size), buf_( new uint8_t[size] )
 {
 }
 
-CMemDevImpl::CMemDevImpl(CMemDevImpl &orig)
-: CDevImpl(orig),
+CMemDevImpl::CMemDevImpl(CMemDevImpl &orig, Key &k)
+: CDevImpl(orig, k),
   buf_( new uint8_t[orig.getSize()] )
 {
 	memcpy( buf_, orig.buf_, orig.getSize() );
@@ -99,5 +99,5 @@ uint8_t *src  = args->src_;
 
 MemDev IMemDev::create(const char *name, uint64_t size)
 {
-	return CEntryImpl::create<CMemDevImpl>(name, size);
+	return CShObj::create<MemDevImpl>(name, size);
 }

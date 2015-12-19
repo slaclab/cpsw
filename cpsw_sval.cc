@@ -50,9 +50,10 @@ static uint64_t b2B(uint64_t bits)
 	return (bits + 7)/8;
 }
 
-CIntEntryImpl::CIntEntryImpl(FKey k, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
+CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
 : CEntryImpl(
 		k,
+		name,
 		wordSwap > 0 && wordSwap != b2B(sizeBits) ? b2B(sizeBits) + (lsBit ? 1 : 0) : b2B(sizeBits + lsBit)
 	),
 	is_signed_(is_signed),
@@ -75,7 +76,7 @@ unsigned byteSize = b2B(sizeBits);
 
 IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
 {
-	return CEntryImpl::create<CIntEntryImpl>(name, sizeBits, is_signed, lsBit, mode, wordSwap);
+	return CShObj::create<IntEntryImpl>(name, sizeBits, is_signed, lsBit, mode, wordSwap);
 }
 
 CScalVal_Adapt::CScalVal_Adapt(Path p, shared_ptr<const CIntEntryImpl> ie)
@@ -657,51 +658,57 @@ unsigned nelms;
 	}
 }
 
-CIntEntryImpl::CBuilder::CBuilder()
+CIntEntryImpl::CBuilder::CBuilder(Key &k)
+:CShObj(k)
 {
 	init();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::clone()
+{
+	return CShObj::clone( getSelfAs<BuilderImpl>() );
 }
 
 IIntField::Builder CIntEntryImpl::CBuilder::name(const char *name)
 {
 	name_ = name ? std::string(name) : std::string();
-	return getSelf<Builder>();
+	return getSelfAs<BuilderImpl>();
 }
 
 IIntField::Builder CIntEntryImpl::CBuilder::sizeBits(uint64_t sizeBits)
 {
 	sizeBits_ = sizeBits;
-	return getSelf<Builder>();
+	return getSelfAs<BuilderImpl>();
 }
 
 IIntField::Builder CIntEntryImpl::CBuilder::isSigned(bool isSigned)
 {
 	isSigned_ = isSigned;
-	return getSelf<Builder>();
+	return getSelfAs<BuilderImpl>();
 }
 
 IIntField::Builder CIntEntryImpl::CBuilder::lsBit(int lsBit)
 {
 	lsBit_    = lsBit;
-	return getSelf<Builder>();
+	return getSelfAs<BuilderImpl>();
 }
 
 IIntField::Builder CIntEntryImpl::CBuilder::mode(Mode mode)
 {
 	mode_     = mode;
-	return getSelf<Builder>();
+	return getSelfAs<BuilderImpl>();
 }
 
 IIntField::Builder CIntEntryImpl::CBuilder::wordSwap(unsigned wordSwap)
 {
 	wordSwap_ = wordSwap;
-	return getSelf<Builder>();
+	return getSelfAs<BuilderImpl>();
 }
 
 IIntField::Builder CIntEntryImpl::CBuilder::reset()
 {
 	init();
-	return getSelf<Builder>();
+	return getSelfAs<BuilderImpl>();
 }
 
 void CIntEntryImpl::CBuilder::init()
@@ -721,26 +728,12 @@ IntField CIntEntryImpl::CBuilder::build()
 
 IntField CIntEntryImpl::CBuilder::build(const char *name)
 {
-	return CEntryImpl::create<CIntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_);
-}
-
-IIntField::Builder  CIntEntryImpl::CBuilder::clone()
-{
-shared_ptr<CIntEntryImpl::CBuilder> rval( doClone() );
-		rval->setSelf( rval );
-
-		if ( typeid( *rval ) != typeid( *this ) )
-			throw InternalError("Some subclass of CIntEntryImpl::CBuilder doesn't implement doClone()");
-
-		return rval;
+	return CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_);
 }
 
 IIntField::Builder  CIntEntryImpl::CBuilder::create()
 {
-CBuilder *p = new CBuilder();
-shared_ptr<CIntEntryImpl::CBuilder> rval( p );
-	rval->setSelf( rval );
-	return rval;
+	return CShObj::create< shared_ptr<CIntEntryImpl::CBuilder> >();
 }
 
 IIntField::Builder IIntField::IBuilder::create()

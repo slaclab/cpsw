@@ -40,13 +40,17 @@ typedef queue< IBufChain *, boost::lockfree::fixed_sized< true > > CBufQueueBase
 
 class CBufQueue : protected CBufQueueBase {
 private:
+	unsigned n_;
 	sem_t rd_sem_;
 	sem_t wr_sem_;
+	CBufQueue & operator=(const CBufQueue &orig) { throw InternalError("Must not assign"); }
+
 protected:
 	BufChain pop(bool wait, struct timespec * abs_timeout);
 
 public:
 	CBufQueue(size_type n);
+	CBufQueue(const CBufQueue &);
 
 	bool     push(BufChain *owner);
 
@@ -68,9 +72,12 @@ private:
 
 	static CProtoModKey getKey() { return CProtoModKey(); }
 
+	CProtoMod & operator=(const CProtoMod &orig) { throw InternalError("Must not assign"); }
+
 protected:
 	CBufQueue outputQueue_;
 	ProtoMod  upstream_;
+	CProtoMod(const CProtoMod &orig);
 
 public:
 	CProtoMod(CProtoModKey k, CBufQueueBase::size_type n):outputQueue_(n) {}

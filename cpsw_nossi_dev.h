@@ -80,13 +80,18 @@ private:
 	vector<unsigned> ports_;
 protected:
 	virtual void addPort(unsigned port);
+	CNoSsiDevImpl(CNoSsiDevImpl &orig, Key &k)
+	: CDevImpl(orig, k)
+	{
+		throw InternalError("Cloning of CNoSsiDevImpl not yet implemented");
+	}
 public:
-	CNoSsiDevImpl(FKey key, const char *ip);
+	CNoSsiDevImpl(Key &key, const char *name, const char *ip);
 
 	virtual const char *getIpAddressString() const { return ip_str_.c_str(); }
 	virtual in_addr_t   getIpAddress()       const { return d_ip_; }
 
-	virtual CNoSsiDevImpl *clone(FKey k) { return new CNoSsiDevImpl( *this ); }
+	virtual CNoSsiDevImpl *clone(Key &k) { return new CNoSsiDevImpl( *this, k ); }
 
 	virtual bool portInUse(unsigned port);
 

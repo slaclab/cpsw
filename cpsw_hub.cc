@@ -195,7 +195,7 @@ EntryImpl e = child->getSelf();
 
 Hub CDevImpl::isHub() const
 {
-	return getSelfAs<const DevImpl>();
+	return getSelfAsConst<DevImpl>();
 }
 
 
@@ -208,8 +208,8 @@ Address CDevImpl::getAddress(const char *name) const
 	return children_[name];
 }
 
-CDevImpl::CDevImpl(FKey k, uint64_t size)
-: CEntryImpl(k, size)
+CDevImpl::CDevImpl(Key &k, const char *name, uint64_t size)
+: CEntryImpl(k, name, size)
 {
 	// by default - mark containers as write-through cacheable; user may still override
 	setCacheable( WT_CACHEABLE );
@@ -217,7 +217,7 @@ CDevImpl::CDevImpl(FKey k, uint64_t size)
 
 Dev IDev::create(const char *name, uint64_t size)
 {
-	return CEntryImpl::create<CDevImpl>(name, size);
+	return CShObj::create<DevImpl>(name, size);
 }
 
 Path CDevImpl::findByName(const char *s)

@@ -13,7 +13,7 @@ using std::cout;
 
 typedef shared_ptr<const DevImpl::element_type> ConstDevImpl;
 
-DevImpl theRootDev( CEntryImpl::create<CDevImpl>("ROOT") );
+DevImpl theRootDev( CShObj::create<DevImpl>("ROOT") );
 
 Dev IDev::getRootDev()
 {

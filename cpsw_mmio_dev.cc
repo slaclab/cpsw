@@ -104,7 +104,7 @@ void CMMIOAddressImpl::attach(EntryImpl child)
 
 MMIODev IMMIODev::create(const char *name, uint64_t size, ByteOrder byteOrder)
 {
-	return CEntryImpl::create<CMMIODevImpl>(name, size, byteOrder);
+	return CShObj::create<MMIODevImpl>(name, size, byteOrder);
 }
 
 void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, uint64_t stride, ByteOrder byteOrder)

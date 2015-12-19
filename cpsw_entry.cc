@@ -7,8 +7,9 @@
 
 int cpsw_obj_count = 0;
 
-CEntryImpl::CEntryImpl(FKey k, uint64_t size)
-: name_( k.getName() ),
+CEntryImpl::CEntryImpl(Key &k, const char *name, uint64_t size)
+: CShObj(k),
+  name_( name ),
   size_( size),
   cacheable_( UNKNOWN_CACHEABLE ),
   locked_( false )
@@ -23,30 +24,14 @@ const char *cptr;
 	cpsw_obj_count++;
 }
 
-CEntryImpl::CEntryImpl(CEntryImpl &ei)
-: name_(ei.name_),
+CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
+: CShObj(ei,k),
+  name_(ei.name_),
   description_(ei.description_),
   size_(ei.size_),
   cacheable_(ei.cacheable_),
   locked_( false )
 {
-	self_.reset();
-}
-
-CEntryImpl & CEntryImpl::operator=(CEntryImpl &in)
-{
-	if ( locked_ ) {
-		throw ConfigurationError("Must not assign to attached EntryImpl");
-	}
-	if ( this != &in ) {
-		name_       = in.name_;
-		description_= in.description_;
-		size_       = in.size_;
-		cacheable_  = in.cacheable_;
-		locked_     = false;
-		// do NOT copy 'self' but leave alone !!
-	}
-	return *this;
 }
 
 CEntryImpl::~CEntryImpl()
@@ -80,7 +65,7 @@ void CEntryImpl::accept(IVisitor *v, RecursionOrder order, int depth)
 
 Field IField::create(const char *name, uint64_t size)
 {
-	return CEntryImpl::create<CEntryImpl>(name, size);
+	return CShObj::create<EntryImpl>(name, size);
 }
 
 

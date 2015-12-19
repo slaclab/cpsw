@@ -39,11 +39,13 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 
 		virtual IAddress::AKey getAKey()  { return IAddress::AKey( getSelfAs<DevImpl>() );       }
 
+		CDevImpl(CDevImpl &orig, Key &k):CEntryImpl(orig, k) { throw InternalError("Clone NotImplemented"); }
+
 	public:
-		CDevImpl(FKey k, uint64_t size= 0);
+		CDevImpl(Key &k, const char *name, uint64_t size= 0);
 		virtual ~CDevImpl();
 
-		virtual CDevImpl *clone(FKey k) { return new CDevImpl( *this ); }
+		virtual CDevImpl *clone(Key &k) { return new CDevImpl( *this, k ); }
 
 		// template: each (device-specific) address must be instantiated
 		// by it's creator device and then added.

@@ -37,12 +37,12 @@ public:
 
 class CAXIVersImpl : public CMMIODevImpl, public virtual IAXIVers {
 public:
-	CAXIVersImpl(FKey);
+	CAXIVersImpl(Key &k, const char *name);
 };
 
 AXIVers IAXIVers::create(const char *name)
 {
-AXIVersImpl v = CEntryImpl::create<AXIVersImpl::element_type>(name);
+AXIVersImpl v = CShObj::create<AXIVersImpl>(name);
 Field f;
 	f = IIntField::create("dnaValue", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f , 0x08 );
@@ -59,7 +59,7 @@ Field f;
 	return v;	
 }
 
-CAXIVersImpl::CAXIVersImpl(FKey key) : CMMIODevImpl(key, 0x1000, LE)
+CAXIVersImpl::CAXIVersImpl(Key &key, const char *name) : CMMIODevImpl(key, name, 0x1000, LE)
 {
 }
 
@@ -76,12 +76,12 @@ public:
 
 class CPRBSImpl : public CMMIODevImpl, public virtual IPRBS {
 public:
-	CPRBSImpl(FKey);
+	CPRBSImpl(Key &k, const char *name);
 };
 
 PRBS IPRBS::create(const char *name)
 {
-PRBSImpl v = CEntryImpl::create<PRBSImpl::element_type>(name);
+PRBSImpl v = CShObj::create<PRBSImpl>(name);
 Field f;
 	f = IIntField::create("axiEn",        1, false, 0);
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
@@ -109,7 +109,7 @@ Field f;
 	return v;
 }
 
-CPRBSImpl::CPRBSImpl(FKey key) : CMMIODevImpl(key, 0x1000, LE)
+CPRBSImpl::CPRBSImpl(Key &key, const char *name) : CMMIODevImpl(key, name, 0x1000, LE)
 {
 }
 

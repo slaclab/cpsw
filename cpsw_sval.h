@@ -39,7 +39,7 @@ public:
 
 class CIntEntryImpl : public CEntryImpl, public virtual IIntField {
 public:
-	class CBuilder : public virtual IBuilder {
+	class CBuilder : public virtual IBuilder, public CShObj {
 	private:
 		std::string name_;
 		uint64_t    sizeBits_;
@@ -47,17 +47,26 @@ public:
 		int         lsBit_;	
 		Mode        mode_;
         unsigned    wordSwap_;
-		
-		weak_ptr<CBuilder> self_;
+
 	protected:
-		CBuilder();
-		template<typename AS> AS getSelf() { return static_pointer_cast<typename AS::element_type, CBuilder>( shared_ptr<CBuilder>(self_) ); }
+		typedef shared_ptr<CBuilder> BuilderImpl;
+		
+	public:
+		CBuilder(Key &k);
+		CBuilder(CBuilder &orig, Key &k)
+		:CShObj    (orig, k),
+		 name_     (orig.name_),
+		 sizeBits_ (orig.sizeBits_),
+		 isSigned_ (orig.isSigned_),
+		 lsBit_    (orig.lsBit_),
+		 mode_     (orig.mode_),
+         wordSwap_ (orig.wordSwap_)
+		{
+		}
 
 		// all subclasses must implement
-		virtual CBuilder *doClone() { return new CBuilder( *this ); }
+		virtual CBuilder *clone(Key &k) { return new CBuilder( *this, k); }
 
-		virtual void    setSelf(shared_ptr<CBuilder> in) { self_ = in; }
-	public:
 		virtual void    init();
 		virtual Builder name(const char *);
 		virtual Builder sizeBits(uint64_t);
@@ -83,9 +92,19 @@ private:
 public:
 
 
-	CIntEntryImpl(FKey k, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP);
+	CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP);
 
-	virtual CIntEntryImpl *clone(FKey k) { return new CIntEntryImpl( *this ); }
+	CIntEntryImpl(CIntEntryImpl &orig, Key &k)
+	:CEntryImpl(orig, k),
+	 is_signed_(orig.is_signed_),
+	 ls_bit_(orig.ls_bit_),
+	 size_bits_(orig.size_bits_),
+	 mode_(orig.mode_),
+	 wordSwap_(orig.wordSwap_)
+	{
+	}
+
+	virtual CIntEntryImpl *clone(Key &k) { return new CIntEntryImpl( *this, k ); }
 	virtual bool     isSigned()    const { return is_signed_; }
 	virtual int      getLsBit()    const { return ls_bit_;    }
 	virtual uint64_t getSizeBits() const { return size_bits_; }

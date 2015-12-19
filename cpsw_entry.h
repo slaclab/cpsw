@@ -2,6 +2,7 @@
 #define CPSW_ENTRY_H
 
 #include <cpsw_api_builder.h>
+#include <cpsw_shared_obj.h>
 
 #include <boost/weak_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -13,26 +14,11 @@ class   Visitor;
 
 class   CEntryImpl;
 typedef shared_ptr<CEntryImpl> EntryImpl;
-typedef weak_ptr<CEntryImpl>   WEntryImpl;
 
 // debugging
 extern int cpsw_obj_count;
 
-class CEntryImpl: public virtual IField {
-	public:
-		// "Key" class to prevent the public from
-		// directly instantiating EntryImpl (and derived)
-		// objects since we want the public to 
-		// access EntryImpl via shared pointers only.
-		class FKey {
-		private:
-			const char *name_;
-			FKey(const char *name):name_(name){}
-		public:
-			const char *getName() const { return name_; }
-			friend class CEntryImpl;
-		};
-
+class CEntryImpl: public virtual IField, public CShObj {
 	private:
 		// WARNING -- when modifying fields you might need to
 		//            modify 'operator=' as well as the copy
@@ -42,25 +28,17 @@ class CEntryImpl: public virtual IField {
 		uint64_t    	    size_;
 		mutable Cacheable   cacheable_;
 		mutable bool        locked_;
-		mutable WEntryImpl  self_;
-
-	protected:
-		virtual void  setSelf(EntryImpl sp) { self_ = sp; }
 
 	protected:
 		// prevent public copy construction -- cannot copy the 'self'
 		// member this constructor is intended be used by the 'clone'
 		// template which takes care of setting 'self'.
-		CEntryImpl(CEntryImpl &ei);
+		CEntryImpl(CEntryImpl &ei, Key &k);
 
 	public:
-		CEntryImpl(FKey k, uint64_t size);
+		CEntryImpl(Key &k, const char *name, uint64_t size);
 
-		// need to override operator= to properly take care
-		// of 'self'.
-		CEntryImpl &operator=(CEntryImpl &in);
-
-		virtual CEntryImpl *clone(FKey k) { return new CEntryImpl( *this ); }
+		virtual CEntryImpl *clone(Key &k) { return new CEntryImpl( *this, k ); }
 
 		virtual const char *getName() const
 		{
@@ -103,80 +81,10 @@ class CEntryImpl: public virtual IField {
 
 		virtual void accept(IVisitor    *v, RecursionOrder order, int recursionDepth);
 
-		virtual EntryImpl getSelf()            { return EntryImpl( self_ ); }
-		virtual EntryImpl getConstSelf() const { return EntryImpl( self_ ); }
+		virtual EntryImpl getSelf()            { return getSelfAs<EntryImpl>();       }
+		virtual EntryImpl getConstSelf() const { return getSelfAsConst<EntryImpl>(); }
 
 		virtual Hub isHub() const   { return Hub( static_cast<Hub::element_type *>(NULL) ); }
-
-		// Template for up-casting derived classes' 'self' pointer
-	protected:
-		template <typename T> T getSelfAs() const
-		{
-			return T( static_pointer_cast< typename T::element_type, CEntryImpl>( getConstSelf() ) );
-		}
-
-	public:
-		// factory for derived types T
-		template<typename T>
-			static shared_ptr<T>
-			create(const char *name)
-			{
-				shared_ptr<T> self( make_shared<T>( FKey(name) ) );
-				self->setSelf(self);
-				return self;
-			}
-		template<typename T, typename A1>
-			static shared_ptr<T>
-			create(const char *name, A1 a1)
-			{
-				shared_ptr<T> self( make_shared<T>( FKey(name), a1 ) );
-				self->setSelf(self);
-				return self;
-			}
-		template<typename T, typename A1, typename A2>
-			static shared_ptr<T>
-			create(const char *name, A1 a1, A2 a2)
-			{
-				shared_ptr<T> self( make_shared<T>( FKey(name), a1, a2 ) );
-				self->setSelf(self);
-				return self;
-			}
-		template<typename T, typename A1, typename A2, typename A3>
-			static shared_ptr<T>
-			create(const char *name, A1 a1, A2 a2, A3 a3)
-			{
-				shared_ptr<T> self( make_shared<T>( FKey(name), a1, a2, a3 ) );
-				self->setSelf(self);
-				return self;
-			}
-		template<typename T, typename A1, typename A2, typename A3, typename A4>
-			static shared_ptr<T>
-			create(const char *name, A1 a1, A2 a2, A3 a3, A4 a4)
-			{
-				shared_ptr<T> self( make_shared<T>( FKey(name), a1, a2, a3, a4 ) );
-				self->setSelf(self);
-				return self;
-			}
-		template<typename T, typename A1, typename A2, typename A3, typename A4, typename A5>
-			static shared_ptr<T>
-			create(const char *name, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
-			{
-				shared_ptr<T> self( make_shared<T>( FKey(name), a1, a2, a3, a4, a5 ) );
-				self->setSelf(self);
-				return self;
-			}
-
-		template<typename T> static shared_ptr<T> clone(shared_ptr<T> in)
-		{
-			typename T::element_type *p = in->clone(FKey(0));
-			if ( typeid( *p ) != typeid( *in ) ) {
-				delete( p );
-				throw InternalError("Some subclass of EntryImpl doesn't implement 'clone'");
-			}
-			shared_ptr<T> self( p );
-			self->setSelf( self );
-			return self;
-		}
 };
 
 #endif

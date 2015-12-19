@@ -23,10 +23,10 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	private:
 		uint8_t * buf_;
 	protected:
-		CMemDevImpl(CMemDevImpl &orig);
+		CMemDevImpl(CMemDevImpl &orig, Key &k);
 
 	public:
-		CMemDevImpl(FKey k, uint64_t size);
+		CMemDevImpl(Key &k, const char *name, uint64_t size);
 
 		CMemDevImpl & operator=(CMemDevImpl &orig);
 
@@ -34,7 +34,7 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 
 		virtual uint8_t * const getBufp() const { return buf_; }
 
-		virtual CMemDevImpl *clone(FKey k) { return new CMemDevImpl( *this ); }
+		virtual CMemDevImpl *clone(Key &k) { return new CMemDevImpl( *this, k ); }
 
 		virtual ~CMemDevImpl();
 };

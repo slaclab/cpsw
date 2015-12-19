@@ -66,8 +66,8 @@ CUdpAddressImpl::~CUdpAddressImpl()
 		delete mutex_;
 }
 
-CNoSsiDevImpl::CNoSsiDevImpl(FKey k, const char *ip)
-: CDevImpl(k), ip_str_(ip)
+CNoSsiDevImpl::CNoSsiDevImpl(Key &k, const char *name, const char *ip)
+: CDevImpl(k, name), ip_str_(ip)
 {
 	if ( INADDR_NONE == ( d_ip_ = inet_addr( ip ) ) ) {
 		throw InvalidArgError( ip );
@@ -618,7 +618,7 @@ void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs,
 
 NoSsiDev INoSsiDev::create(const char *name, const char *ipaddr)
 {
-	return CEntryImpl::create<CNoSsiDevImpl>(name, ipaddr);
+	return CShObj::create<NoSsiDevImpl>(name, ipaddr);
 }
 
 void CNoSsiDevImpl::setLocked()

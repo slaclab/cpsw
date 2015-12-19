@@ -7,12 +7,26 @@
 #define QUEUE_PUSH_RETRY_INTERVAL 1000 //nano-seconds
 
 CBufQueue::CBufQueue(size_type n)
-: queue< IBufChain*, boost::lockfree::fixed_sized< true > >(n)
+: queue< IBufChain*, boost::lockfree::fixed_sized< true > >(n),
+  n_(n)
 {
 	if ( sem_init( &rd_sem_, 0, 0 ) ) {
 		throw InternalError("Unable to create semaphore");
 	}
-	if ( sem_init( &wr_sem_, 0, n ) ) {
+	if ( sem_init( &wr_sem_, 0, n_ ) ) {
+		sem_destroy( &rd_sem_ );
+		throw InternalError("Unable to create semaphore");
+	}
+}
+
+CBufQueue::CBufQueue(const CBufQueue &orig)
+: queue< IBufChain*, boost::lockfree::fixed_sized< true > >(orig.n_),
+  n_(orig.n_)
+{
+	if ( sem_init( &rd_sem_, 0, 0 ) ) {
+		throw InternalError("Unable to create semaphore");
+	}
+	if ( sem_init( &wr_sem_, 0, n_ ) ) {
 		sem_destroy( &rd_sem_ );
 		throw InternalError("Unable to create semaphore");
 	}
