@@ -53,7 +53,7 @@ bool CAxisFrameHeader::parse(uint8_t *hdrBase, size_t hdrSize)
 }
 
 
-CProtoModDepack::CProtoModDepack(CProtoModKey k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, uint64_t timeoutUS)
+CProtoModDepack::CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, uint64_t timeoutUS)
 	: CProtoMod(k, oqueueDepth),
 	  badHeaderDrops_(0),
 	  oldFrameDrops_(0),
@@ -81,6 +81,36 @@ CProtoModDepack::CProtoModDepack(CProtoModKey k, CBufQueueBase::size_type oqueue
 		throw IOError("unable to create thread ", errno);
 	}
 }
+
+CProtoModDepack::CProtoModDepack(CProtoModDepack &orig, Key &k)
+	: CProtoMod(orig, k),
+	  badHeaderDrops_(0),
+	  oldFrameDrops_(0),
+	  newFrameDrops_(0),
+	  oldFragDrops_(0),
+	  newFragDrops_(0),
+	  duplicateFragDrops_(0),
+	  duplicateLastSeen_(0),
+	  noLastSeen_(0),
+	  fragsAccepted_(0),
+	  framesAccepted_(0),
+	  oqueueFullDrops_(0),
+	  evictedFrames_(0),
+	  incompleteDrops_(0),
+	  emptyDrops_(0),
+	  timedOutFrames_(0),
+	  pastLastDrops_(0),
+	  timeout_( orig.timeout_ ),
+	  frameWinSize_( orig.frameWinSize_ ),
+	  fragWinSize_( orig.fragWinSize_ ),
+	  oldestFrame_( CFrame::NO_FRAME ),
+	  frameWin_( frameWinSize_, CFrame(fragWinSize_) )
+{
+	if ( pthread_create( &tid_, 0, pthreadBody, this ) ) {
+		throw IOError("unable to create thread ", errno);
+	}
+}
+
 
 CProtoModDepack::~CProtoModDepack()
 {

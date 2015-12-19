@@ -1,4 +1,5 @@
-
+#ifndef CPSW_SHARED_OBJ_H
+#define CPSW_SHARED_OBJ_H
 // Object referenced via shared pointer
 
 #include <boost/shared_ptr.hpp>
@@ -119,6 +120,9 @@ public:
 		return new CShObj( *this, k );
 	}
 
+
+	// The typeid check works if we know from
+	// what class we clone.
 	template <typename T>
 	static T clone(T in)
 	{
@@ -129,6 +133,14 @@ public:
 			// some subclass of '*in' does not implement virtual clone
 			throw CloneNotImplementedError();
 		}
+		return setSelf( p );
+	}
+
+	template <typename T>
+	static T cloneUnchecked(T in)
+	{
+	Key k;
+	typename T::element_type *p = in->clone( k );
 		return setSelf( p );
 	}
 
@@ -204,3 +216,5 @@ public:
 	}
 
 };
+
+#endif

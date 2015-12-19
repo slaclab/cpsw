@@ -126,7 +126,7 @@ ProtoMod CProtoMod::pushMod( ProtoMod *m_p )
 	if ( upstream_ )
 		throw InternalError("Pushee already attached!");
 	upstream_ = *m_p;
-	return ( *m_p      = ProtoMod( self_ ) );
+	return ( *m_p      = getSelfAs< shared_ptr<CProtoMod> >() );
 }
 
 ProtoMod CProtoMod::cloneStack()
@@ -135,14 +135,10 @@ ProtoMod rval;
 	if ( upstream_ ) {
 		rval = upstream_->cloneStack();
 	}
-	return clone()->pushMod( &rval );
+	// we don't know what subclass the module really is and thus
+	// must use the unchecked variant
+	return CShObj::cloneUnchecked( getSelfAs< shared_ptr<CProtoMod> >() )->pushMod( &rval );
 }
-
-ProtoMod CProtoMod::clone()
-{
-	throw InternalError("Clone not implemented");
-}
-
 
 CTimeout CProtoMod::getAbsTimeout(CTimeout *rel_timeout)
 {
@@ -161,5 +157,3 @@ CTimeout CProtoMod::getAbsTimeout(CTimeout *rel_timeout)
 	}
 	return rval;
 }
-
-

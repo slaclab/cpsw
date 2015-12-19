@@ -174,13 +174,16 @@ protected:
 
 	static void *pthreadBody(void *);
 
+	CProtoModDepack( CProtoModDepack &orig, Key &k );
 
 public:
-	CProtoModDepack(CProtoModKey k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned long timeoutUS);
+	CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned long timeoutUS);
 
 	~CProtoModDepack();
 
 	virtual void dumpInfo(FILE *f);
+
+	virtual CProtoModDepack * clone(Key &k) { return new CProtoModDepack( *this, k ); }
 
 	const char *getName() const { return "AXIS Depack"; }
 };

@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include <cpsw_buf.h>
+#include <cpsw_shared_obj.h>
 
 using boost::lockfree::queue;
 using boost::weak_ptr;
@@ -60,27 +61,18 @@ public:
 	~CBufQueue();
 };
 
-class CProtoModKey {
-private:
-	CProtoModKey() {}
-	friend class CProtoMod;
-};
-
-class CProtoMod : public virtual IProtoMod {
-private:
-	weak_ptr<CProtoMod> self_;	
-
-	static CProtoModKey getKey() { return CProtoModKey(); }
-
-	CProtoMod & operator=(const CProtoMod &orig) { throw InternalError("Must not assign"); }
-
+class CProtoMod : public virtual IProtoMod, public CShObj {
 protected:
 	CBufQueue outputQueue_;
 	ProtoMod  upstream_;
-	CProtoMod(const CProtoMod &orig);
+	CProtoMod(const CProtoMod &orig, Key &k)
+	: CShObj(k),
+	  outputQueue_(orig.outputQueue_)
+	{
+	}
 
 public:
-	CProtoMod(CProtoModKey k, CBufQueueBase::size_type n):outputQueue_(n) {}
+	CProtoMod(Key &k, CBufQueueBase::size_type n):CShObj(k), outputQueue_(n) {}
 
 	virtual BufChain pop(CTimeout *timeout, bool abs_timeout)
 	{
@@ -113,10 +105,8 @@ public:
 
 	virtual ProtoMod getUpstream() { return upstream_ ; }
 
-protected:
-	virtual ProtoMod clone();
-
 public:
+	virtual CProtoMod *clone(Key &k) = 0;
 
 	virtual const char *getName() const = 0;
 
@@ -127,47 +117,6 @@ public:
 	virtual void dumpInfo(FILE *f) {}
 
 	virtual ~CProtoMod() {}
-
-	template <typename C, typename A1>
-	static shared_ptr<C> create(A1 a1)
-	{
-	C *obj = new C(getKey(), a1);
-	shared_ptr<C> rval(obj);
-		obj->self_ = rval;
-		return rval;
-	}
-	template <typename C, typename A1, typename A2>
-	static shared_ptr<C> create(A1 a1, A2 a2)
-	{
-	C *obj = new C(getKey(), a1, a2);
-	shared_ptr<C> rval(obj);
-		obj->self_ = rval;
-		return rval;
-	}
-	template <typename C, typename A1, typename A2, typename A3>
-	static shared_ptr<C> create(A1 a1, A2 a2, A3 a3)
-	{
-	C *obj = new C(getKey(), a1, a2, a3);
-	shared_ptr<C> rval(obj);
-		obj->self_ = rval;
-		return rval;
-	}
-	template <typename C, typename A1, typename A2, typename A3, typename A4>
-	static shared_ptr<C> create(A1 a1, A2 a2, A3 a3, A4 a4)
-	{
-	C *obj = new C(getKey(), a1, a2, a3, a4);
-	shared_ptr<C> rval(obj);
-		obj->self_ = rval;
-		return rval;
-	}
-	template <typename C, typename A1, typename A2, typename A3, typename A4, typename A5>
-	static shared_ptr<C> create(A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
-	{
-	C *obj = new C(getKey(), a1, a2, a3, a4, a5);
-	shared_ptr<C> rval(obj);
-		obj->self_ = rval;
-		return rval;
-	}
 };
 
 #endif

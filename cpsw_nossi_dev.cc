@@ -641,10 +641,10 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 	dst.sin_port        = htons( dport );
 	dst.sin_addr.s_addr = owner->getIpAddress();
 
-	ProtoMod udpMod     = CProtoMod::create<CProtoModUdp>( &dst, 10/* queue depth */, 2 /* nThreads */ );
+	ProtoMod udpMod     = CShObj::template create< shared_ptr<CProtoModUdp> >( &dst, 10/* queue depth */, 2 /* nThreads */ );
 	udpMod->pushMod( &protoStack_ );
 
-	ProtoMod depackMod  = CProtoMod::create<CProtoModDepack>( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
+	ProtoMod depackMod  = CShObj::template create< shared_ptr<CProtoModDepack> >( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
 
 	depackMod->pushMod( &protoStack_ );
 }

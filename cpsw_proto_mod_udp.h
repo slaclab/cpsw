@@ -19,26 +19,29 @@ typedef shared_ptr<CSockSd> SockSd;
 class CSockSd {
 private:
 	int sd_;
+	CSockSd & operator=(CSockSd &orig) { throw InternalError("Must not assign"); }
+
+public:
 
 	CSockSd();
 
-public:
+	CSockSd(CSockSd &orig);
 
 	virtual ~CSockSd();
 
 	virtual int getSd() const { return sd_; }
 
-	static SockSd create();
 };
 
 class CUdpHandlerThread {
 protected:
-	SockSd         sd_;
+	CSockSd        sd_;
 	pthread_t      tid_;
 	bool           running_;
 
 private:
 	static void * threadBody(void *arg);
+
 
 protected:
 	virtual void threadBody() = 0;
@@ -47,6 +50,7 @@ public:
 	virtual void getMyAddr(struct sockaddr_in *addr_p);
 
 	CUdpHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me_p = NULL);
+	CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me_p);
 
 	// only start after object is fully constructed
 	virtual void start();
@@ -64,6 +68,7 @@ protected:
 
 public:
 	CUdpRxHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me, CBufQueue *oqueue);
+	CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CBufQueue *oqueue);
 };
 
 class CUdpPeerPollerThread : public CUdpHandlerThread {
@@ -75,17 +80,28 @@ protected:
 
 public:
 	CUdpPeerPollerThread(struct sockaddr_in *dest, struct sockaddr_in *me = NULL, unsigned pollSecs = 60);
+	CUdpPeerPollerThread(CUdpPeerPollerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me);
 };
 
 class CProtoModUdp : public CProtoMod {
+private:
+	struct sockaddr_in dest_;
 protected:
-	std::vector< CUdpRxHandlerThread > rxHandlers_;
-	CUdpPeerPollerThread               poller_;
+	std::vector< CUdpRxHandlerThread * > rxHandlers_;
+	CUdpPeerPollerThread                 poller_;
+
+	void spawnThreads(unsigned nRxThreads);
+
 public:
-	CProtoModUdp(CProtoModKey k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nThreads = 1);
+	CProtoModUdp(Key &k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nRxThreads = 1);
+
+	CProtoModUdp(CProtoModUdp &orig, Key &k);
+
 	virtual const char *getName() const { return "UDP"; }
 
 	virtual void dumpInfo(FILE *f);
+
+	virtual CProtoModUdp *clone(Key &k) { return new CProtoModUdp( *this, k ); }
 
 	virtual ~CProtoModUdp();
 };

@@ -18,15 +18,16 @@ CSockSd::CSockSd()
 	}
 }
 
+CSockSd::CSockSd(CSockSd &orig)
+{
+	if ( ( sd_ = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ) {
+		throw InternalError("Unable to create socket");
+	}
+}
+
 CSockSd::~CSockSd()
 {
 	close( sd_ );
-}
-
-SockSd CSockSd::create()
-{
-	CSockSd *s = new CSockSd();
-	return SockSd(s);
 }
 
 void * CUdpHandlerThread::threadBody(void *arg)
@@ -44,14 +45,12 @@ void * CUdpHandlerThread::threadBody(void *arg)
 void CUdpHandlerThread::getMyAddr(struct sockaddr_in *addr_p)
 {
 	socklen_t l = sizeof(*addr_p);
-	if ( getsockname( sd_->getSd(), (struct sockaddr*)addr_p, &l ) ) {
+	if ( getsockname( sd_.getSd(), (struct sockaddr*)addr_p, &l ) ) {
 		throw IOError("getsockname() ", errno);
 	}
 }
 
-CUdpHandlerThread::CUdpHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me_p)
-: sd_( CSockSd::create() ),
-  running_(false)
+static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p)
 {
 	int    optval = 1;
 
@@ -65,18 +64,29 @@ CUdpHandlerThread::CUdpHandlerThread(struct sockaddr_in *dest, struct sockaddr_i
 		me_p = &me;
 	}
 
-	if ( ::setsockopt(  sd_->getSd(),  SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) ) {
+	if ( ::setsockopt(  sd,  SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) ) {
 		throw IOError("setsockopt(SO_REUSEADDR) ", errno);
 	}
 
-	if ( ::bind( sd_->getSd(), (struct sockaddr*)me_p, sizeof(*me_p)) ) {
+	if ( ::bind( sd, (struct sockaddr*)me_p, sizeof(*me_p)) ) {
 		throw IOError("bind failed ", errno);
 	}
 
 	// connect - filters any traffic from other destinations/fpgas in the kernel
-	if ( ::connect( sd_->getSd(), (struct sockaddr*)dest, sizeof(*dest) ) )
+	if ( ::connect( sd, (struct sockaddr*)dest, sizeof(*dest) ) )
 		throw IOError("connect failed ", errno);
+}
 
+CUdpHandlerThread::CUdpHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me_p)
+: running_(false)
+{
+	sockIni( sd_.getSd(), dest, me_p );
+}
+
+CUdpHandlerThread::CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me_p)
+: running_(false)
+{
+	sockIni( sd_.getSd(), dest, me_p );
 }
 
 // only start after object is fully constructed
@@ -106,7 +116,7 @@ void CUdpRxHandlerThread::threadBody()
 
 	while ( 1 ) {
 		Buf buf = IBuf::getBuf();
-		got = ::read( sd_->getSd(), buf->getPayload(), buf->getSize() );
+		got = ::read( sd_.getSd(), buf->getPayload(), buf->getSize() );
 		if ( got < 0 ) {
 			perror("rx thread");
 			sleep(10);
@@ -144,7 +154,13 @@ else printf(" (DROP)\n");
 
 CUdpRxHandlerThread::CUdpRxHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me, CBufQueue *oqueue)
 : CUdpHandlerThread(dest, me),
-	  pOutputQueue_( oqueue )
+  pOutputQueue_( oqueue )
+{
+}
+
+CUdpRxHandlerThread::CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CBufQueue *oqueue)
+: CUdpHandlerThread( orig, dest, me),
+  pOutputQueue_( oqueue )
 {
 }
 
@@ -153,7 +169,7 @@ void CUdpPeerPollerThread::threadBody()
 	uint8_t buf[4];
 	memset( buf, 0, sizeof(buf) );
 	while ( 1 ) {
-		if ( ::write( sd_->getSd(), buf, 0 ) < 0 ) {
+		if ( ::write( sd_.getSd(), buf, 0 ) < 0 ) {
 			perror("poller thread (write)");
 			continue;
 		}
@@ -168,27 +184,50 @@ CUdpPeerPollerThread::CUdpPeerPollerThread(struct sockaddr_in *dest, struct sock
 {
 }
 
-CProtoModUdp::CProtoModUdp(CProtoModKey k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nThreads)
-:CProtoMod(k, depth),
- poller_( CUdpPeerPollerThread(dest, NULL, 4) )
+CUdpPeerPollerThread::CUdpPeerPollerThread(CUdpPeerPollerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me)
+: CUdpHandlerThread(orig, dest, me),
+  pollSecs_(orig.pollSecs_)
+{
+}
+
+void CProtoModUdp::spawnThreads(unsigned nRxThreads)
 {
 	unsigned i;
 	struct sockaddr_in me;
 
 	poller_.getMyAddr( &me );
 
-	for ( i=0; i<nThreads; i++ ) {
-		rxHandlers_.push_back( CUdpRxHandlerThread( dest, &me, &outputQueue_ ) );
+	for ( i=0; i<nRxThreads; i++ ) {
+		rxHandlers_.push_back( new CUdpRxHandlerThread( &dest_, &me, &outputQueue_ ) );
 	}
 
 	poller_.start();
 	for ( i=0; i<rxHandlers_.size(); i++ ) {
-		rxHandlers_[i].start();
+		rxHandlers_[i]->start();
 	}
+}
+
+CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nRxThreads)
+:CProtoMod(k, depth),
+ dest_(*dest),
+ poller_( dest, NULL, 4 )
+{
+	spawnThreads( nRxThreads );
+}
+
+CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)
+:CProtoMod(orig, k),
+ dest_(orig.dest_),
+ poller_(orig.poller_, &orig.dest_, NULL)
+{
+	spawnThreads( orig.rxHandlers_.size() );
 }
 
 CProtoModUdp::~CProtoModUdp()
 {
+unsigned i;
+	for ( i=0; i<rxHandlers_.size(); i++ )
+		delete rxHandlers_[i];
 }
 
 void CProtoModUdp::dumpInfo(FILE *f)
