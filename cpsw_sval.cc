@@ -7,8 +7,9 @@
 
 using boost::dynamic_pointer_cast;
 
-IEntryAdapt::IEntryAdapt(Path p, shared_ptr<const CEntryImpl> ie)
-	:ie_(ie), p_(p->clone())
+IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
+	:CShObj(k),
+	 ie_(ie), p_(p->clone())
 {
 	if ( p->empty() )
 		throw InvalidPathError("<EMPTY>");
@@ -22,14 +23,6 @@ IEntryAdapt::IEntryAdapt(Path p, shared_ptr<const CEntryImpl> ie)
 	}
 }
 
-void IEntryAdapt::setSelf(shared_ptr<IEntryAdapt> me)
-{
-	if ( ! self_.expired() || me.get() != this ) {
-		throw InternalError("self_ already set or arg doesn't point to 'this'");
-	}
-	self_ = me;
-}
-
 template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p)
 {
 	if ( p->empty() )
@@ -38,8 +31,7 @@ template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p)
 	Address a = CompositePathIterator( &p )->c_p_;
 	shared_ptr<const typename IMPL::element_type> e = dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
 	if ( e ) {
-		ADAPT rval = make_shared<typename ADAPT::element_type>(p, e);
-		rval->setSelf( rval );
+		ADAPT rval = CShObj::template create<ADAPT>(p, e);
 		return rval;
 	}
 	throw InterfaceNotImplementedError( p );
@@ -79,13 +71,13 @@ IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, 
 	return CShObj::create<IntEntryImpl>(name, sizeBits, is_signed, lsBit, mode, wordSwap);
 }
 
-CScalVal_Adapt::CScalVal_Adapt(Path p, shared_ptr<const CIntEntryImpl> ie)
-	: IIntEntryAdapt(p, ie), CScalVal_ROAdapt(p, ie), CScalVal_WOAdapt(p, ie)
+CScalVal_Adapt::CScalVal_Adapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+	: IIntEntryAdapt(k, p, ie), CScalVal_ROAdapt(k, p, ie), CScalVal_WOAdapt(k, p, ie)
 {
 }
 
-CScalVal_WOAdapt::CScalVal_WOAdapt(Path p, shared_ptr<const CIntEntryImpl> ie)
-	: IIntEntryAdapt(p, ie)
+CScalVal_WOAdapt::CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+	: IIntEntryAdapt(k, p, ie)
 {
 	// merging a word-swapped entity with a bit-size that is
 	// not a multiple of 8 would require more complex bitmasks
@@ -110,8 +102,8 @@ typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
 class CStreamAdapt : public IEntryAdapt, public virtual IStream {
 public:
-	CStreamAdapt(Path p, shared_ptr<const CEntryImpl> ie)
-	: IEntryAdapt(p, ie)
+	CStreamAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
+	: IEntryAdapt(k, p, ie)
 	{
 	}
 

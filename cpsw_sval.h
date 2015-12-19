@@ -17,19 +17,18 @@ typedef shared_ptr<CScalVal_WOAdapt> ScalVal_WOAdapt;
 class CScalVal_Adapt;
 typedef shared_ptr<CScalVal_Adapt>   ScalVal_Adapt;
 
-class IEntryAdapt : public virtual IEntry {
+class IEntryAdapt : public virtual IEntry, public CShObj {
 protected:
 	shared_ptr<const CEntryImpl> ie_;
-	weak_ptr<IEntryAdapt>        self_;
 	Path                         p_;
 
-	template <typename AS>    AS getSelfAs() const { return static_pointer_cast< typename AS::element_type >( shared_ptr<IEntryAdapt>( self_) ); }
 
 protected:
-	IEntryAdapt(Path p, shared_ptr<const CEntryImpl> ie);
+	IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie);
+
+	// clone not implemented (should not be needed)
 
 public:
-	virtual void        setSelf(shared_ptr<IEntryAdapt> me);
 	virtual const char *getName()        const { return ie_->getName(); }
 	virtual const char *getDescription() const { return ie_->getDescription(); }
 	virtual uint64_t    getSize()        const { return ie_->getSize(); }
@@ -116,7 +115,7 @@ class IIntEntryAdapt : public IEntryAdapt, public virtual IScalVal_Base {
 private:
 	int nelms_;
 public:
-	IIntEntryAdapt(Path p, shared_ptr<const CIntEntryImpl> ie) : IEntryAdapt(p, ie), nelms_(-1) {}
+	IIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie) : IEntryAdapt(k, p, ie), nelms_(-1) {}
 	virtual bool     isSigned()    const { return asIntEntry()->isSigned();    }
 	virtual int      getLsBit()    const { return asIntEntry()->getLsBit();    }
 	virtual uint64_t getSizeBits() const { return asIntEntry()->getSizeBits(); }
@@ -132,8 +131,8 @@ protected:
 
 class CScalVal_ROAdapt : public virtual IScalVal_RO, public virtual IIntEntryAdapt {
 public:
-	CScalVal_ROAdapt(Path p, shared_ptr<const CIntEntryImpl> ie)
-	: IIntEntryAdapt(p, ie)
+	CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+	: IIntEntryAdapt(k, p, ie)
 	{
 	}
 
@@ -151,7 +150,7 @@ public:
 
 class CScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {
 public:
-	CScalVal_WOAdapt(Path p, shared_ptr<const CIntEntryImpl> ie);
+	CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 
 	template <typename E> unsigned setVal(E *e, unsigned nelms, IndexRange *r) {
 		return setVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
@@ -169,7 +168,7 @@ public:
 
 class CScalVal_Adapt : public virtual CScalVal_ROAdapt, public virtual CScalVal_WOAdapt, public virtual IScalVal {
 public:
-	CScalVal_Adapt(Path p, shared_ptr<const CIntEntryImpl> ie);
+	CScalVal_Adapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 };
 
 #endif
