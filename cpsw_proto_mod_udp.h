@@ -27,6 +27,8 @@ public:
 
 	CSockSd(CSockSd &orig);
 
+	virtual void getMyAddr(struct sockaddr_in *addr_p);
+
 	virtual ~CSockSd();
 
 	virtual int getSd() const { return sd_; }
@@ -47,7 +49,10 @@ protected:
 	virtual void threadBody() = 0;
 
 public:
-	virtual void getMyAddr(struct sockaddr_in *addr_p);
+	virtual void getMyAddr(struct sockaddr_in *addr_p)
+	{
+		sd_.getMyAddr( addr_p );
+	}
 
 	CUdpHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me_p = NULL);
 	CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me_p);

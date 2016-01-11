@@ -18,6 +18,14 @@ CSockSd::CSockSd()
 	}
 }
 
+void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
+{
+	socklen_t l = sizeof(*addr_p);
+	if ( getsockname( getSd(), (struct sockaddr*)addr_p, &l ) ) {
+		throw IOError("getsockname() ", errno);
+	}
+}
+
 CSockSd::CSockSd(CSockSd &orig)
 {
 	if ( ( sd_ = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ) {
@@ -40,14 +48,6 @@ void * CUdpHandlerThread::threadBody(void *arg)
 		throw;
 	}
 	return 0;
-}
-
-void CUdpHandlerThread::getMyAddr(struct sockaddr_in *addr_p)
-{
-	socklen_t l = sizeof(*addr_p);
-	if ( getsockname( sd_.getSd(), (struct sockaddr*)addr_p, &l ) ) {
-		throw IOError("getsockname() ", errno);
-	}
 }
 
 static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p)
