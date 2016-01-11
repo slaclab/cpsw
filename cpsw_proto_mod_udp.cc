@@ -217,7 +217,7 @@ void CProtoModUdp::spawnThreads(unsigned nRxThreads, int pollSeconds)
 	rxHandlers_.clear();
 
 	for ( i=0; i<nRxThreads; i++ ) {
-		rxHandlers_.push_back( new CUdpRxHandlerThread( &dest_, &me, &outputQueue_ ) );
+		rxHandlers_.push_back( new CUdpRxHandlerThread( &dest_, &me, outputQueue_ ) );
 	}
 
 	if ( poller_ )

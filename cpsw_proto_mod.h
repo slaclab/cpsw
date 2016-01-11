@@ -68,30 +68,38 @@ public:
 
 class CProtoMod : public virtual IProtoMod, public CShObj {
 protected:
-	CBufQueue outputQueue_;
+	CBufQueue *outputQueue_;
 	ProtoMod  upstream_;
 	CProtoMod(const CProtoMod &orig, Key &k)
 	: CShObj(k),
-	  outputQueue_(orig.outputQueue_)
+	  outputQueue_(orig.outputQueue_ ? new CBufQueue( *orig.outputQueue_ ) : NULL)
 	{
 	}
 
 public:
-	CProtoMod(Key &k, CBufQueueBase::size_type n):CShObj(k), outputQueue_(n) {}
+	CProtoMod(Key &k, CBufQueueBase::size_type n)
+	:CShObj(k),
+	 outputQueue_( n > 0 ? new CBufQueue( n ) : NULL )
+	{
+	}
 
 	virtual BufChain pop(CTimeout *timeout, bool abs_timeout)
 	{
-		if ( ! timeout || timeout->isIndefinite() )
-			return outputQueue_.pop( 0 );
-		else if ( timeout->isNone() )
-			return outputQueue_.tryPop();
-
-		if ( ! abs_timeout ) {
-			// arg is rel-timeout
-			CTimeout abst( getAbsTimeout( timeout ) );
-			return outputQueue_.pop( &abst.tv_ );
+		if ( ! outputQueue_ ) {
+			return processInput( mustGetUpstream()->pop(timeout, abs_timeout) );
 		} else {
-			return outputQueue_.pop( &timeout->tv_ );
+			if ( ! timeout || timeout->isIndefinite() )
+				return outputQueue_->pop( 0 );
+			else if ( timeout->isNone() )
+				return outputQueue_->tryPop();
+
+			if ( ! abs_timeout ) {
+				// arg is rel-timeout
+				CTimeout abst( getAbsTimeout( timeout ) );
+				return outputQueue_->pop( &abst.tv_ );
+			} else {
+				return outputQueue_->pop( &timeout->tv_ );
+			}
 		}
 	}
 
@@ -105,7 +113,11 @@ public:
 
 	virtual BufChain tryPop()
 	{
-		return outputQueue_.tryPop();
+		if ( ! outputQueue_ ) {
+			return processInput( mustGetUpstream()->tryPop() );
+		} else {
+			return outputQueue_->tryPop();
+		}
 	}
 
 	virtual void push(BufChain bc, CTimeout *timeout, bool abs_timeout)
@@ -123,6 +135,12 @@ protected:
 	{
 		throw InternalError("processOutput() not implemented!\n");
 	}
+
+	virtual BufChain processInput(BufChain bc)
+	{
+		throw InternalError("processInput() not implemented!\n");
+	}
+
 
 	virtual ProtoMod getUpstream()
 	{
@@ -148,7 +166,11 @@ public:
 
 	virtual void dumpInfo(FILE *f) {}
 
-	virtual ~CProtoMod() {}
+	virtual ~CProtoMod()
+	{
+		if ( outputQueue_ )
+			delete outputQueue_;
+	}
 };
 
 #endif
