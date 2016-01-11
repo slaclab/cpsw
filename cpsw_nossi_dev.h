@@ -38,6 +38,11 @@ protected:
 	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 public:
 	CUdpAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
+	CUdpAddressImpl(CUdpAddressImpl &orig)
+	: CAddressImpl(orig)
+	{
+		throw InternalError("Clone not implemented"); /* need to clone socket, mutex, ... */
+	}
 	virtual ~CUdpAddressImpl();
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
@@ -45,7 +50,7 @@ public:
 	virtual void dump(FILE *f) const;
 
 	// ANY subclass must implement clone(AKey) !
-	virtual CUdpAddressImpl *clone(AKey k) { throw InternalError("Clone not implemented"); } /* need to clone socket */
+	virtual CUdpAddressImpl *clone(AKey k) { return new CUdpAddressImpl( *this ); }
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
 	virtual unsigned getTimeoutUs()                      const { return timeoutUs_; }
@@ -60,6 +65,13 @@ class CUdpStreamAddressImpl : public CAddressImpl {
 private:
 	unsigned dport_;
 	ProtoMod protoStack_;
+protected:
+	CUdpStreamAddressImpl(CUdpStreamAddressImpl &orig)
+	: CAddressImpl( orig ),
+	  dport_(orig.dport_),
+	  protoStack_( orig.protoStack_->cloneStack() )
+	{
+	}
 
 public:
 	CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize);
@@ -68,7 +80,7 @@ public:
 
 	virtual void dump(FILE *f) const;
 
-	virtual CUdpStreamAddressImpl *clone(AKey k) { throw InternalError("Clone not implemented"); } /* need to clone socket */
+	virtual CUdpStreamAddressImpl *clone(AKey k) { return new CUdpStreamAddressImpl( *this ); } /* need to clone stack */
 
 	virtual ~CUdpStreamAddressImpl() {}
 };
