@@ -23,8 +23,13 @@ public:
 	static const bool ABS_TIMEOUT = true;
 	static const bool REL_TIMEOUT = false;
 
+	// returns NULL shared_ptr on timeout; throws on error
 	virtual BufChain pop(CTimeout *, bool abs_timeout) = 0;
 	virtual BufChain tryPop()                          = 0;
+
+	// Successfully pushed buffers are unlinked from the chain
+	virtual void push(BufChain , CTimeout *, bool abs_timeout) = 0;
+	virtual void tryPush(BufChain)                             = 0;
 
 	virtual ProtoMod pushMod( ProtoMod *m_p )          = 0;
 
@@ -103,7 +108,34 @@ public:
 		return outputQueue_.tryPop();
 	}
 
-	virtual ProtoMod getUpstream() { return upstream_ ; }
+	virtual void push(BufChain bc, CTimeout *timeout, bool abs_timeout)
+	{
+		mustGetUpstream()->push( processOutput( bc ), timeout, abs_timeout );
+	}
+
+	virtual void tryPush(BufChain bc)
+	{
+		mustGetUpstream()->tryPush( processOutput( bc ) );
+	}
+
+protected:
+	virtual BufChain processOutput(BufChain bc)
+	{
+		throw InternalError("processOutput() not implemented!\n");
+	}
+
+	virtual ProtoMod getUpstream()
+	{
+		return upstream_;
+	}
+
+	virtual ProtoMod mustGetUpstream() 
+	{
+	ProtoMod rval = getUpstream();
+		if ( ! rval )
+			throw InternalError("mustGetUpstream() received NIL pointer\n");
+		return rval;
+	}
 
 public:
 	virtual CProtoMod *clone(Key &k) = 0;

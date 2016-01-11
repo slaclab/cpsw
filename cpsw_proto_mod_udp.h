@@ -91,14 +91,28 @@ public:
 class CProtoModUdp : public CProtoMod {
 private:
 	struct sockaddr_in dest_;
+	CSockSd            tx_;
 protected:
 	std::vector< CUdpRxHandlerThread * > rxHandlers_;
-	CUdpPeerPollerThread                 poller_;
+	CUdpPeerPollerThread                 *poller_;
 
-	void spawnThreads(unsigned nRxThreads);
+	void spawnThreads(unsigned nRxThreads, int pollSecons);
+
+	virtual void doPush(BufChain bc, bool wait, CTimeout *timeout, bool abs_timeout);
+
+	virtual void push(BufChain bc, CTimeout *timeout, bool abs_timeout)	
+	{
+		doPush(bc, true, timeout, abs_timeout);
+	}
+
+	virtual void tryPush(BufChain bc)
+	{
+		doPush(bc, false, NULL, true);
+	}
 
 public:
-	CProtoModUdp(Key &k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nRxThreads = 1);
+	// negative or zero 'pollSecs' avoids creating a poller thread
+	CProtoModUdp(Key &k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nRxThreads = 1, int pollSecs = 4);
 
 	CProtoModUdp(CProtoModUdp &orig, Key &k);
 

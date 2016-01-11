@@ -4,8 +4,11 @@
 #include <cpsw_proto_mod_udp.h>
 
 #include <errno.h>
+#include <sys/select.h>
 
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include <sched.h>
 
@@ -50,7 +53,7 @@ void * CUdpHandlerThread::threadBody(void *arg)
 	return 0;
 }
 
-static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p)
+static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
 {
 	int    optval = 1;
 
@@ -62,6 +65,12 @@ static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p)
 		me.sin_port        = htons( 0 );
 
 		me_p = &me;
+	}
+
+	if ( nblk ) {
+		if ( ::fcntl( sd, F_SETFL, O_NONBLOCK ) ) {
+			throw IOError("fcntl(O_NONBLOCK) ", errno);
+		}
 	}
 
 	if ( ::setsockopt(  sd,  SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) ) {
@@ -80,13 +89,13 @@ static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p)
 CUdpHandlerThread::CUdpHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me_p)
 : running_(false)
 {
-	sockIni( sd_.getSd(), dest, me_p );
+	sockIni( sd_.getSd(), dest, me_p, false );
 }
 
 CUdpHandlerThread::CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me_p)
 : running_(false)
 {
-	sockIni( sd_.getSd(), dest, me_p );
+	sockIni( sd_.getSd(), dest, me_p, false );
 }
 
 // only start after object is fully constructed
@@ -190,37 +199,50 @@ CUdpPeerPollerThread::CUdpPeerPollerThread(CUdpPeerPollerThread &orig, struct so
 {
 }
 
-void CProtoModUdp::spawnThreads(unsigned nRxThreads)
+void CProtoModUdp::spawnThreads(unsigned nRxThreads, int pollSeconds)
 {
 	unsigned i;
 	struct sockaddr_in me;
 
-	poller_.getMyAddr( &me );
+	tx_.getMyAddr( &me );
+
+	if ( poller_ ) {
+		// called from copy constructor
+		poller_ = new CUdpPeerPollerThread( *poller_, &dest_, &me);
+	} else if ( pollSeconds > 0 ) {
+		poller_ = new CUdpPeerPollerThread( &dest_, &me, pollSeconds );
+	}
+
+	// might be called by the copy constructor
+	rxHandlers_.clear();
 
 	for ( i=0; i<nRxThreads; i++ ) {
 		rxHandlers_.push_back( new CUdpRxHandlerThread( &dest_, &me, &outputQueue_ ) );
 	}
 
-	poller_.start();
+	if ( poller_ )
+		poller_->start();
 	for ( i=0; i<rxHandlers_.size(); i++ ) {
 		rxHandlers_[i]->start();
 	}
 }
 
-CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nRxThreads)
+CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nRxThreads, int pollSecs)
 :CProtoMod(k, depth),
  dest_(*dest),
- poller_( dest, NULL, 4 )
+ poller_( NULL )
 {
-	spawnThreads( nRxThreads );
+	sockIni( tx_.getSd(), dest, 0, true );
+	spawnThreads( nRxThreads, pollSecs );
 }
 
 CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)
 :CProtoMod(orig, k),
  dest_(orig.dest_),
- poller_(orig.poller_, &orig.dest_, NULL)
+ poller_(orig.poller_)
 {
-	spawnThreads( orig.rxHandlers_.size() );
+	sockIni( tx_.getSd(), &dest_, 0, true );
+	spawnThreads( orig.rxHandlers_.size(), -1 );
 }
 
 CProtoModUdp::~CProtoModUdp()
@@ -228,6 +250,8 @@ CProtoModUdp::~CProtoModUdp()
 unsigned i;
 	for ( i=0; i<rxHandlers_.size(); i++ )
 		delete rxHandlers_[i];
+	if ( poller_ )
+		delete poller_;
 }
 
 void CProtoModUdp::dumpInfo(FILE *f)
@@ -236,4 +260,58 @@ void CProtoModUdp::dumpInfo(FILE *f)
 		f = stdout;
 
 	fprintf(f,"CProtoModUdp:\n");
+}
+
+void CProtoModUdp::doPush(BufChain bc, bool wait, CTimeout *timeout, bool abs_timeout)
+{
+fd_set         fds;
+int            selres, sndres;
+Buf            b;
+
+	while ( b = bc->getHead() ) {
+
+		if ( 0 == b->getSize() ) {
+			b->unlink();
+			continue;
+		}
+
+		if ( wait ) {
+			FD_ZERO( &fds );
+
+			FD_SET( tx_.getSd(), &fds );
+
+			// use pselect: does't modify the timeout and it's a timespec
+			selres = ::pselect( tx_.getSd() + 1, NULL, &fds, NULL, &timeout->tv_, NULL );
+			if ( selres < 0  ) {
+				throw IOError("::pselect() error: ", errno);
+			}
+			if ( selres == 0 ) {
+				// TIMEOUT
+				return;
+			}
+		}
+
+		sndres = send( tx_.getSd(), b->getPayload(), b->getSize(), 0 );
+
+		if ( sndres < 0 ) {
+			switch ( errno ) {
+				case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+				case EWOULDBLOCK:
+#endif
+					// TIMEOUT or cannot send right now
+					return;
+
+				default:
+					throw IOError("::send() error: ", errno);
+			}
+		}
+
+		if ( sndres > 0 ) {
+			b->unlink();
+		} else {
+			//nothing was sent
+			return;
+		}
+	}
 }
