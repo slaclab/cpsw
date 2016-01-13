@@ -3,21 +3,11 @@
 
 #include <string.h>
 #include <stdio.h>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <getopt.h>
 
 // Run this test program together with the 'udpsrv' program using matching IP address and port parameters
-
-#ifndef PRIx64
-#define PRIx64 "lx"
-#endif
-#ifndef PRIx32
-#define PRIx32 "x"
-#endif
-#ifndef PRIu64
-#define PRIu64 "lu"
-#endif
-
 
 #define REGBASE 0x1000 /* pseudo register space */
 #define REG_RO_OFF 0

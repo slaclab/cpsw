@@ -2,6 +2,7 @@
 #include <cpsw_hub.h>
 #include <cpsw_path.h>
 
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <stdio.h>
 

@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <pthread.h>
 #include <errno.h>

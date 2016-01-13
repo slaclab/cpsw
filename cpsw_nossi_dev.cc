@@ -1,4 +1,5 @@
 #include <cpsw_nossi_dev.h>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 

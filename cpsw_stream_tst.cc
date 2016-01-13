@@ -2,11 +2,8 @@
 #include <cpsw_proto_mod_depack.h>
 
 #include <stdio.h>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-
-#ifndef PRIu64
-#define PRIu64 "lu"
-#endif
 
 #define NGOOD 200
 

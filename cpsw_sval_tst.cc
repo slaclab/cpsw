@@ -3,16 +3,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <iostream>
-
-#ifndef PRIx64
-#define PRIx64 "lx"
-#endif
-
-#ifndef PRIx8
-#define PRIx8 "hhx"
-#endif
 
 extern void _setHostByteOrder(ByteOrder);
 

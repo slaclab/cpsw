@@ -1,4 +1,5 @@
 #include <cpsw_mmio_dev.h>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 CMMIOAddressImpl::CMMIOAddressImpl(
@@ -14,16 +15,6 @@ CMMIOAddressImpl::CMMIOAddressImpl(
               stride_(stride)
 {
 }
-
-/* old RHEL compiler */
-#ifndef PRIx64
-#define PRIx64 "lx"
-#endif
-
-#ifndef PRId64
-#define PRId64 "ld"
-#endif
-
 
 void CMMIOAddressImpl::dump(FILE *f) const
 {

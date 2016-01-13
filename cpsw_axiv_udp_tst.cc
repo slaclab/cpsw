@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <getopt.h>
 
@@ -12,13 +13,6 @@
 
 #define VLEN 123
 #define ADCL 10
-
-#ifndef PRIx64
-#define PRIx64 "lx"
-#endif
-#ifndef PRIx32
-#define PRIx32 "x"
-#endif
 
 using std::vector;
 
