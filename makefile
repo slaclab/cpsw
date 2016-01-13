@@ -74,5 +74,6 @@ clean:
 
 -include deps
 
+# invoke with :  eval `make libpath`
 libpath:
 	@echo export LD_LIBRARY_PATH=$(BOOSTLIBP:-L%=%)
