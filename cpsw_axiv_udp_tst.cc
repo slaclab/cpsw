@@ -1,5 +1,6 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_mmio_dev.h>
+#include <boost/atomic.hpp>
 
 #include <string.h>
 #include <stdio.h>
@@ -13,6 +14,12 @@
 
 #define VLEN 123
 #define ADCL 10
+
+#define SYNC_LIMIT 10
+
+using boost::atomic;
+using boost::memory_order_acquire;
+using boost::memory_order_release;
 
 using std::vector;
 
@@ -119,6 +126,35 @@ static ScalVal vpb(vector<ScalVal_RO> *v, ScalVal x)
 	return x;
 }
 
+class ThreadArg {
+private:
+	atomic<int> firstFrame_;
+	atomic<int> nFrames_;
+public:
+	ThreadArg()
+	:firstFrame_(-1),
+	 nFrames_(0)
+	{
+	}
+
+	void gotFrame(int frameNo)
+	{
+		int expected = -1;
+		firstFrame_.compare_exchange_strong( expected, frameNo );
+		nFrames_.fetch_add(1, memory_order_release);
+	}
+
+	int firstFrame()
+	{
+		return firstFrame_.load( memory_order_acquire );
+	}
+
+	int nFrames()
+	{
+		return nFrames_.load( memory_order_acquire );
+	}
+};
+
 
 static void *rxThread(void *arg)
 {
@@ -126,6 +162,7 @@ Stream strm = IStream::create( IPath::create("/fpga/dataSource") );
 
 uint8_t  buf[16];
 int64_t  got;
+ThreadArg *stats = static_cast<ThreadArg*>(arg);
 
 	while ( 1 ) {
 		got = strm->read( buf, sizeof(buf), CTimeout(20000000) );
@@ -136,6 +173,7 @@ int64_t  got;
 		unsigned frameNo;
 		if ( got > 2 ) {
 			frameNo = (buf[1]<<4) | (buf[0] >> 4);
+			stats->gotFrame( frameNo );
 			printf("Received frame # %d\n", frameNo);
 		} else {
 			fprintf(stderr,"Received frame too small!\n");
@@ -147,7 +185,7 @@ int64_t  got;
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-a <ip_addr>] [-mh] [-V <version>] [-S <length>]\n", nm);
+	fprintf(stderr,"Usage: %s [-a <ip_addr>] [-mh] [-V <version>] [-S <length>] [-n <shots>] [-p <period>]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
 	fprintf(stderr,"       -V <version>:  SRP version (1 or 2)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
@@ -155,6 +193,10 @@ static void usage(const char *nm)
 	fprintf(stderr,"       -S <length> :  test streaming interface\n");
 	fprintf(stderr,"                      with frames of 'length'.\n");
 	fprintf(stderr,"                      'length' must be > 0 to enable streaming\n");
+	fprintf(stderr,"       -n <shots>  :  stream 'shots' fragments\n");
+	fprintf(stderr,"                      (defaults to 10).\n");
+	fprintf(stderr,"       -p <period> :  trigger a fragment every <period> ms\n");
+	fprintf(stderr,"                      (defaults to 1000).\n");
 	fprintf(stderr,"       -h          :  print this message\n");
 }
 
@@ -166,14 +208,18 @@ bool        use_mem = false;
 int        *i_p;
 int         vers    = 2;
 int         length  = 0;
+int         shots   = 10;
+int         period  = 1000; // ms
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:h")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;  break;
 			case 'm': use_mem = true;    break;
 			case 'V': i_p     = &vers;   break;
 			case 'S': i_p     = &length; break;
+			case 'n': i_p     = &shots;  break;
+			case 'p': i_p     = &period; break;
 			case 'h': usage(argv[0]); return 0;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
@@ -308,15 +354,33 @@ uint16_t u16;
 		pthread_t tid;
 		void     *ign;
 		int i;
-		if ( pthread_create( &tid, 0, rxThread, 0 ) ) {
+		struct timespec p;
+		ThreadArg arg;
+		p.tv_sec  = period/1000;
+		p.tv_nsec = (period % 1000) * 1000000;
+		if ( pthread_create( &tid, 0, rxThread, &arg ) ) {
 			perror("pthread_create");
 		}
-		for (i = 0; i<1000; i++) {
-			sleep(1);
+		for (i = 0; i<shots; i++) {
+			struct timespec dly = p;
+			nanosleep( &dly, 0 );
 			oneShot->setVal( 1 );
+			// not truly thread safe but
+			// a correct algorithm would
+			// be much more complex.
+			if ( arg.firstFrame() < 0 ) {
+				//not yet synchronized
+				if ( i > SYNC_LIMIT ) {
+					fprintf(stderr,"Stream unable to synchronize: FAILED\n");
+					break;
+				}
+				shots++;
+			}
 		}
 		pthread_cancel( tid );
 		pthread_join( tid, &ign );
+		printf("%d shots were fired; %d frames received\n", shots, arg.nFrames());
+		printf("(Difference to requested shots are due to synchronization)\n");
 	}
 
 } catch (CPSWError &e) {
