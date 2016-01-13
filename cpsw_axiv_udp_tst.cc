@@ -145,6 +145,19 @@ int64_t  got;
 	return 0;
 }
 
+static void usage(const char *nm)
+{
+	fprintf(stderr,"Usage: %s [-a <ip_addr>] [-mh] [-V <version>] [-S <length>]\n", nm);
+	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
+	fprintf(stderr,"       -V <version>:  SRP version (1 or 2)\n");
+	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
+	fprintf(stderr,"                      of real device and UDP\n");
+	fprintf(stderr,"       -S <length> :  test streaming interface\n");
+	fprintf(stderr,"                      with frames of 'length'.\n");
+	fprintf(stderr,"                      'length' must be > 0 to enable streaming\n");
+	fprintf(stderr,"       -h          :  print this message\n");
+}
+
 int
 main(int argc, char **argv)
 {
@@ -152,17 +165,19 @@ const char *ip_addr = "192.168.2.10";
 bool        use_mem = false;
 int        *i_p;
 int         vers    = 2;
-bool        use_stream = false;
+int         length  = 0;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:h")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;  break;
 			case 'm': use_mem = true;    break;
 			case 'V': i_p     = &vers;   break;
-			case 'S': use_stream = true; break;
+			case 'S': i_p     = &length; break;
+			case 'h': usage(argv[0]); return 0;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
+				usage(argv[0]);
 				throw TestFailed();
 		}
 		if ( i_p && 1 != sscanf(optarg, "%i", i_p) ) {
@@ -198,7 +213,7 @@ uint16_t u16;
 		buf[i]=i-16;
 
 	if ( use_mem )
-		use_stream = false;
+		length = 0;
 
 
 	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
@@ -209,7 +224,7 @@ uint16_t u16;
 
 	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, 8192 );
 
-	if ( use_stream )
+	if ( length > 0 )
 		root->addAtStream( IField::create("dataSource"), 8193, 10000000 /* us */ );
 
 	IDev::getRootDev()->addAtAddress( root );
@@ -283,13 +298,13 @@ uint16_t u16;
 		}
 		v = 1;
 		axiEn->setVal( &v, 1 );
-		v = 3000; //600;
+		v = length;
 		packetLength->setVal( &v, 1 );
 		v = 1;
 		oneShot->setVal( &v, 1 );
 	}
 
-	if ( use_stream ) {
+	if ( length > 0 ) {
 		pthread_t tid;
 		void     *ign;
 		int i;
