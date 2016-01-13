@@ -41,7 +41,7 @@ all: tbins
 tbins: $(TBINS)
 
 test: $(FILTERED_TBINS)
-	for i in $^ ; do \
+	@for i in $^ ; do \
 		if ./$$i ; then \
 			echo "TEST $$i PASSED" ; \
 		else \
