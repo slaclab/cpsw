@@ -115,9 +115,8 @@ public:
 
 		args.cacheable_ = ie_->getCacheable();
 		args.dst_       = buf;
-		args.dbytes_    = size;
+		args.nbytes_    = size;
 		args.off_       = off;
-		args.sbytes_    = size;
 		args.timeout_   = timeout;
 		return cl->read( &it, &args );
 	}
@@ -366,9 +365,8 @@ unsigned         nelmsOnPath  = it->nelmsLeft_;
 
 	args.cacheable_ = ie_->getCacheable();
 	args.dst_       = ibufp;
-	args.dbytes_    = sbytes;
+	args.nbytes_    = sbytes;
 	args.off_       = off;
-	args.sbytes_    = sbytes;
 	
 	cl->read( &it, &args );
 
@@ -588,9 +586,8 @@ prib("byte-swapped", obufp + oidx);
 
 	args.cacheable_ = ie_->getCacheable();
 	args.src_       = obufp;
-	args.sbytes_    = dbytes;
 	args.off_       = off;
-	args.dbytes_    = dbytes;
+	args.nbytes_    = dbytes;
 	args.msk1_      = msk1;
 	args.mskn_      = mskn;
 	

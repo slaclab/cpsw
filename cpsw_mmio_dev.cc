@@ -24,14 +24,13 @@ void CMMIOAddressImpl::dump(FILE *f) const
 uint64_t CMMIOAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 int        rval      = 0, to;
-uintptr_t  dstStride = node->getNelmsRight() * args->dbytes_;
+uintptr_t  dstStride = node->getNelmsRight() * args->nbytes_;
 
 CReadArgs  nargs = *args;
 
-	if ( nargs.sbytes_ == getStride()  && nargs.dbytes_ == nargs.sbytes_ && getEntryImpl()->getCacheable() >= IField::WT_CACHEABLE ) {
+	if ( nargs.nbytes_ == getStride()  && getEntryImpl()->getCacheable() >= IField::WT_CACHEABLE ) {
 		// if strides == size then we can try to read all in one chunk
-		nargs.sbytes_ *= (*node)->idxt_ - (*node)->idxf_ + 1;
-		nargs.dbytes_  = nargs.sbytes_;
+		nargs.nbytes_ *= (*node)->idxt_ - (*node)->idxf_ + 1;
 		to      = (*node)->idxf_;
 	} else {
 		to      = (*node)->idxt_;
@@ -54,14 +53,13 @@ CReadArgs  nargs = *args;
 uint64_t CMMIOAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 int        rval      = 0, to;
-uintptr_t  srcStride = node->getNelmsRight() * args->sbytes_;
+uintptr_t  srcStride = node->getNelmsRight() * args->nbytes_;
 
 CWriteArgs nargs = *args;
 
-	if ( nargs.dbytes_ == getStride()  && nargs.sbytes_ == nargs.dbytes_ && getEntryImpl()->getCacheable() >= IField::WT_CACHEABLE ) {
+	if ( nargs.nbytes_ == getStride()  && getEntryImpl()->getCacheable() >= IField::WT_CACHEABLE ) {
 		// if strides == size then we can try to read all in one chunk
-		nargs.dbytes_ *= (*node)->idxt_ - (*node)->idxf_ + 1;
-		nargs.sbytes_  = nargs.dbytes_;
+		nargs.nbytes_ *= (*node)->idxt_ - (*node)->idxf_ + 1;
 		to             = (*node)->idxf_;
 	} else {
 		to             = (*node)->idxt_;

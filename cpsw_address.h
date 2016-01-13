@@ -24,16 +24,14 @@ class CReadArgs {
 public:
 	IField::Cacheable cacheable_;
 	uint8_t          *dst_;
-	unsigned          dbytes_;
+	unsigned          nbytes_;
 	uint64_t          off_;
-	unsigned          sbytes_;
 	CTimeout          timeout_;
 	CReadArgs()
 	: cacheable_ ( IField::UNKNOWN_CACHEABLE ),
 	  dst_       ( NULL ),
-	  dbytes_    ( 0 ),
+	  nbytes_    ( 0 ),
 	  off_       ( 0 ),
-	  sbytes_    ( 0 ),
 	  timeout_   ( TIMEOUT_INDEFINITE )
 	{
 	}
@@ -43,18 +41,16 @@ class CWriteArgs {
 public:
 	IField::Cacheable cacheable_;
 	uint8_t          *src_;
-	unsigned          sbytes_;
 	uint64_t          off_;
-	unsigned          dbytes_;
+	unsigned          nbytes_;
 	uint8_t           msk1_;
 	uint8_t           mskn_;
 	CTimeout          timeout_;
 	CWriteArgs()
 	: cacheable_ ( IField::UNKNOWN_CACHEABLE ),
 	  src_       ( NULL ),
-      sbytes_    ( 0 ),
       off_       ( 0 ),
-	  dbytes_    ( 0 ),
+	  nbytes_    ( 0 ),
 	  msk1_      ( 0 ),
 	  mskn_      ( 0 ),
 	  timeout_   ( TIMEOUT_INDEFINITE )

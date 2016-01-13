@@ -294,10 +294,7 @@ int nWords;
 uint64_t off = args->off_;
 uint8_t *dst = args->dst_;
 
-unsigned sbytes = args->sbytes_;
-
-	if ( args->dbytes_ < sbytes )
-		sbytes = args->dbytes_;
+unsigned sbytes = args->nbytes_;
 
 	if ( sbytes == 0 )
 		return 0;
@@ -367,9 +364,8 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 		CReadArgs rargs;
 		rargs.cacheable_ = cacheable;
 		rargs.dst_       = first_word;
-		rargs.dbytes_    = sizeof(first_word);
+		rargs.nbytes_    = sizeof(first_word);
 		rargs.off_       = off & ~3ULL;
-		rargs.sbytes_    = sizeof(first_word);
 
 		read(node, &rargs);
 
@@ -401,9 +397,8 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 		CReadArgs rargs;
 		rargs.cacheable_ = cacheable;
 		rargs.dst_       = last_word;
-		rargs.dbytes_    = sizeof(last_word);
+		rargs.nbytes_    = sizeof(last_word);
 		rargs.off_       = (off + dbytes) & ~3ULL;
-		rargs.sbytes_    = sizeof(last_word);
 
 		read(node, &rargs);
 
@@ -536,13 +531,10 @@ uint64_t rval = 0;
 int headbytes = (args->off_ & (sizeof(SRPWord)-1));
 int totbytes;
 int nWords;
-unsigned dbytes = args->dbytes_;
+unsigned dbytes = args->nbytes_;
 uint64_t off    = args->off_;
 uint8_t *src    = args->src_;
 uint8_t  msk1   = args->msk1_;
-
-	if ( args->sbytes_ < dbytes )
-		dbytes = args->sbytes_;
 
 	if ( dbytes == 0 )
 		return 0;
@@ -665,7 +657,7 @@ uint64_t CUdpStreamAddressImpl::read(CompositePathIterator *node, CReadArgs *arg
 {
 uint64_t   rval = 0;
 uint64_t    off = args->off_;
-unsigned sbytes = args->sbytes_;
+unsigned sbytes = args->nbytes_;
 uint8_t    *dst = args->dst_;
 BufChain    bch;
 Buf           b;

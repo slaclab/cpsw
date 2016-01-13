@@ -45,7 +45,7 @@ CMemAddressImpl::CMemAddressImpl(AKey k, unsigned nelms)
 uint64_t CMemAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
-int toget = args->dbytes_ < args->sbytes_ ? args->dbytes_ : args->sbytes_;
+int toget = args->nbytes_;
 	if ( args->off_ + toget > owner->getSize() ) {
 //printf("off %lu, dbytes %lu, size %lu\n", off, dbytes, owner->getSize());
 		throw ConfigurationError("MemAddress: read out of range");
@@ -60,7 +60,7 @@ uint64_t CMemAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) c
 {
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
 uint8_t *buf  = owner->getBufp();
-unsigned put  = args->dbytes_ < args->sbytes_ ? args->dbytes_ : args->sbytes_;
+unsigned put  = args->nbytes_;
 unsigned rval = put;
 uint8_t  msk1 = args->msk1_;
 uint8_t  mskn = args->mskn_;
