@@ -125,7 +125,7 @@ void CUdpRxHandlerThread::threadBody()
 
 	while ( 1 ) {
 		Buf buf = IBuf::getBuf();
-		got = ::read( sd_.getSd(), buf->getPayload(), buf->getSize() );
+		got = ::read( sd_.getSd(), buf->getPayload(), buf->getCapacity() );
 		if ( got < 0 ) {
 			perror("rx thread");
 			sleep(10);

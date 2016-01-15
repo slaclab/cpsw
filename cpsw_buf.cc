@@ -46,6 +46,7 @@ public:
 
 	size_t   getCapacity() { return sizeof(data_);                    }
 	size_t   getSize()     { return end_ - beg_;                      }
+	size_t   getAvail()    { return sizeof(data_) - end_;             }
 	uint8_t *getPayload()  { return data_ + beg_;                     }
 
 	void     setSize(size_t);
@@ -120,6 +121,9 @@ public:
 	virtual void     addAtHead(Buf b);
 	virtual void     addAtTail(Buf b);
 
+	virtual uint64_t extract(void *buf, uint64_t off, uint64_t size);
+	virtual void     insert(void *buf, uint64_t off, uint64_t size);
+
 	static BufChainImpl createImpl();
 
 	static CFreeList<CBufChainImpl> freeList;
@@ -130,7 +134,7 @@ CFreeList<CBufChainImpl> CBufChainImpl::freeList;
 CBufImpl::CBufImpl(CFreeListNodeKey<CBufImpl> k)
 : CFreeListNode<CBufImpl>( k ),
   beg_(0),
-  end_(sizeof(data_))
+  end_(0)
 {
 }
 
@@ -173,7 +177,7 @@ void CBufImpl::reinit()
 unsigned     old_size = getSize();
 BufChainImpl c;
 	beg_ = 0;
-	end_ = sizeof(data_);
+	end_ = 0;
 	if ( (c=getChainImpl()) ) {
 		c->addSize( getSize() - old_size );
 	}
@@ -413,4 +417,124 @@ Buf CBufChainImpl::createAtTail()
 	Buf rval = IBuf::getBuf();
 	addAtTail(rval);
 	return rval;
+}
+
+
+uint64_t CBufChainImpl::extract(void *buf, uint64_t off, uint64_t size)
+{
+uint64_t rval = 0;
+uint8_t *dst  = static_cast<uint8_t*>(buf);
+Buf      b;
+
+	if ( ! (b = getHead()) )
+		return 0;
+
+	while ( b->getSize() <= off ) {
+		off -= b->getSize();	
+		if ( ! (b = b->getNext()) )
+			return 0;
+	}
+
+	do {
+
+		unsigned l = b->getSize() - off;
+
+		if ( l > size )
+			l = size;
+
+		memcpy( dst, b->getPayload() + off, l );
+		rval   += l;
+		dst    += l;
+		size   -= l;
+
+		if ( ! (b = b->getNext()) ) {
+			return rval;
+		}
+
+		off = 0;
+
+	} while ( size > 0 );
+
+	return rval;
+}
+
+void CBufChainImpl::insert(void *buf, uint64_t off, uint64_t size)
+{
+uint64_t delta;
+uint8_t *src  = static_cast<uint8_t*>(buf);
+Buf      b, nxtb;
+
+	// skip over existing data
+	b = getHead();
+
+	nxtb = Buf( static_cast<Buf::element_type*>(NULL) );
+
+	while ( b ) {
+		delta = b->getSize();
+		if ( off <= delta ) {
+			delta = off;
+			// truncate
+			b->setSize( delta );
+			off   = 0;
+			// leave loop with b pointing to this buffer
+			// (since it has space available)
+			nxtb = b->getNext();
+			break;
+		}
+		off -= delta;
+		b    = b->getNext();
+	}
+
+	// add dummy buffers
+	while ( off > 0 ) {
+		// off > 0 implies !b (and !nextb)
+		uint64_t delta;
+		b = createAtTail();
+		delta = b->getCapacity();
+		if ( off < delta )
+			delta = off;
+		b->setSize(delta);
+		off -= delta;
+	}
+
+	// at this point: off == 0
+	//
+	// if b != null then it points to the last 
+	// buffer with valid old data in it.
+	// if nxtb != null then it points to the first
+	// buffer that needs to be truncated
+
+	while ( size > 0 ) {
+
+		if ( ! b ) {
+			b = createAtTail();
+		}
+
+		// there might be a on old buffer to overwrite...
+
+		if ( (delta = b->getAvail()) > 0 ) {
+
+			if ( delta > size )
+				delta = size;
+
+			memcpy( b->getPayload() + b->getSize(), src, delta );
+
+			b->setSize( b->getSize() + delta );
+
+			src  += delta;
+			size -= delta;
+		}
+
+		b = nxtb = b->getNext();
+		if ( b )
+			b->reinit();
+	}
+
+	// at this point: if nxtb is not NULL that means we
+	// are truncating an existing chain.
+	while ( nxtb ) {
+		b    = nxtb;
+		nxtb = b->getNext();	
+		b->unlink();
+	}
 }

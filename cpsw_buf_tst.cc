@@ -52,7 +52,7 @@ try {
 	for ( i=0; i<NBUF; i++ )
 		b[i] = IBuf::getBuf();
 
-	if ( b[0]->getCapacity() != b[0]->getSize() )
+	if ( 0 != b[0]->getSize() )
 		throw TestFailed("initial size mismatch");
 
 	if (   IBuf::numBufsAlloced() != NBUF
@@ -71,7 +71,7 @@ try {
 		throw TestFailed("changing 'payload' failed");
 	}
 	b[0]->reinit();
-	if ( b[0]->getPayload() != op || b[0]->getSize() != b[0]->getCapacity() )
+	if ( b[0]->getPayload() != op || b[0]->getSize() != 0 )
 		throw TestFailed("reinit failed");
 
 	if ( b[0]->getNext() || b[0]->getPrev() )
@@ -163,10 +163,16 @@ try {
 	if ( 2 != ch0->getLen() )
 		throw TestFailed("buffer length test 1 failed");
 
-	b[1]->setSize( b[1]->getSize() - 20 );
+	b[1]->setSize( b[1]->getSize() + 20 );
+	b[0]->setPayload( b[0]->getPayload() + 13 );
+	if ( ch0->getSize() != s_orig + 20 )
+		throw TestFailed("buffer size test 0 failed");
+
+	b[0]->reinit();
+	b[0]->setSize(40);
 	b[0]->setPayload( b[0]->getPayload() + 13 );
 
-	if ( ch0->getSize() != s_orig -20 -13 )
+	if ( ch0->getSize() != s_orig + 20 + 40 -13 )
 		throw TestFailed("buffer size test 1 failed");
 
 	b[2] = IBuf::getBuf();
@@ -186,7 +192,7 @@ try {
 	if ( 4 != ch0->getLen() )
 		throw TestFailed("buffer length test 2 failed");
 
-	if ( s_orig + b[2]->getSize() + b[3]->getSize() - 20 - 13 != ch0->getSize() )
+	if ( s_orig + b[2]->getSize() + b[3]->getSize() + 20 + 40 - 13 != ch0->getSize() )
 		throw TestFailed("buffer size test 2 failed");
 		
 	try {
@@ -253,7 +259,73 @@ try {
 		|| IBuf::numBufsInUse()   != 0 )
 		throw TestFailed("buffer count after chain destruction (2) wrong");
 
-	
+	ch0 = IBufChain::create();
+	// exercise insert/extract
+	unsigned NN = 4*ch0->createAtTail()->getCapacity();
+	uint32_t rawmemi [NN];
+	uint32_t rawmemo [4*NN];
+
+	for ( i=0; i< NN; i++ ) {
+		rawmemi[i] = i;
+	}
+
+	// do twice to overwrite existing
+	for ( i=0; i<2; i++ ) {
+		ch0->insert( rawmemi, 0, sizeof(rawmemi) );
+		// insert / append
+		ch0->extract( rawmemo, 0, sizeof(rawmemi) );
+
+		if ( memcmp(rawmemi, rawmemo + 0, sizeof(rawmemi)) ) {
+			fprintf(stderr,"Iteration: %i\n", i);
+			throw TestFailed("insert/extract (offset 0) FAILED");
+		}
+	}
+
+	unsigned l_orig = ch0->getLen();
+
+	// existing chain, nonzero offset
+	ch0->insert( rawmemi, 55, sizeof(rawmemi) );
+	ch0->extract( rawmemo, 55, sizeof(rawmemi) );
+	if ( memcmp(rawmemi, rawmemo + 0, sizeof(rawmemi)) ) {
+		throw TestFailed("insert/extract (offset 55, buf nonzero) FAILED");
+	}
+
+	int capa = ch0->getHead()->getCapacity();
+	// existing chain, capa offset
+	ch0->insert( rawmemi, capa, sizeof(rawmemi) );
+	ch0->extract( rawmemo, capa, sizeof(rawmemi) );
+	if ( memcmp(rawmemi, rawmemo + 0, sizeof(rawmemi)) ) {
+		throw TestFailed("insert/extract (offset capa, buf nonzero) FAILED");
+	}
+
+	// existing chain, capa + x offset
+	ch0->insert( rawmemi, capa + 55, sizeof(rawmemi) );
+	ch0->extract( rawmemo, capa + 55, sizeof(rawmemi) );
+	if ( memcmp(rawmemi, rawmemo + 0, sizeof(rawmemi)) ) {
+		throw TestFailed("insert/extract (offset capa + 55, buf nonzero) FAILED");
+	}
+
+	// back to original
+	ch0->insert( rawmemi, 0, sizeof(rawmemi) );
+	ch0->extract( rawmemo, 0, sizeof(rawmemi) );
+	if ( memcmp(rawmemi, rawmemo + 0, sizeof(rawmemi)) ) {
+		throw TestFailed("insert/extract (offset 0 -- second time), buf nonzero) FAILED");
+	}
+
+	if ( ch0->getLen() != l_orig ) {
+		fprintf(stderr,"Len now %d, was %d\n", ch0->getLen(), l_orig);
+		throw TestFailed("insert: chain not properly truncated - FAILED");
+	}
+
+
+	// no buf, nonzero offset
+	ch0 = IBufChain::create();
+	ch0->insert( rawmemi, 55, sizeof(rawmemi) );
+	ch0->extract( rawmemo, 55, sizeof(rawmemi) );
+	if ( memcmp(rawmemi, rawmemo + 0, sizeof(rawmemi)) ) {
+		throw TestFailed("insert/extract (offset 55, buf NULL) FAILED");
+	}
+
 } catch ( CPSWError e ) {
 	fprintf(stderr,"ERROR: %s\n", e.getInfo().c_str());
 	throw;

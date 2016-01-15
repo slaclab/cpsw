@@ -42,9 +42,14 @@ typedef shared_ptr<IBufChain> BufChain;
 
 class IBuf {
 public:
+	// max capacity
 	virtual size_t   getCapacity()        = 0;
-	virtual size_t   getSize()            = 0;
+	// start of payload
 	virtual uint8_t *getPayload()         = 0;
+	// used portion (payload_end - payload_start + 1)
+	virtual size_t   getSize()            = 0;
+	// available portion (capacity - payload_end)
+	virtual size_t   getAvail()           = 0;
 
 	virtual void     setSize(size_t)      = 0;
 	// setting payload ptr to 0 resets to start
@@ -110,6 +115,15 @@ public:
 
 	virtual void addAtHead(Buf b) = 0;
 	virtual void addAtTail(Buf b) = 0;
+
+	// extract bufchain contents to 'buf' (starting at 'off' bytes
+	// into the chain. At most 'size' bytes are stored to 'buf'.
+	// RETURNS number of bytes copied.
+	virtual uint64_t extract(void *buf, uint64_t off, uint64_t size) = 0;
+
+	// insert data into bufchain. New buffers are appended as needed,
+	// existing data are overwritten.
+	virtual void     insert(void *buf, uint64_t off, uint64_t size)  = 0;
 
 	virtual ~IBufChain(){}
 
