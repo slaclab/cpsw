@@ -122,9 +122,9 @@ CUdpHandlerThread::~CUdpHandlerThread()
 void CUdpRxHandlerThread::threadBody()
 {
 	ssize_t got;
+	Buf     buf = IBuf::getBuf();
 
 	while ( 1 ) {
-		Buf buf = IBuf::getBuf();
 		got = ::read( sd_.getSd(), buf->getPayload(), buf->getCapacity() );
 		if ( got < 0 ) {
 			perror("rx thread");
@@ -157,6 +157,9 @@ if ( st )
      printf(" (SUCC)\n");
 else printf(" (DROP)\n");
 #endif
+
+			// get new buffer
+			buf = IBuf::getBuf();
 		}
 	}
 }
@@ -267,51 +270,51 @@ void CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool 
 fd_set         fds;
 int            selres, sndres;
 Buf            b;
+struct iovec   iov[bc->getLen()];
+unsigned       nios;
 
-	while ( b = bc->getHead() ) {
+	// there could be two models for sending a chain of buffers:
+	// a) the chain describes a gather list (one UDP message assembled from chain)
+	// b) the chain describes a fragmented frame (multiple messages sent)
+	// We follow a) here...
+	// If they were to frament a large frame they have to push each
+	// fragment individually.
 
-		if ( 0 == b->getSize() ) {
-			b->unlink();
-			continue;
+	for (nios=0, b=bc->getHead(); nios<bc->getLen(); nios++, b=b->getNext()) {
+		iov[nios].iov_base = b->getPayload();
+		iov[nios].iov_len  = b->getSize();
+	}
+
+	if ( wait ) {
+		FD_ZERO( &fds );
+
+		FD_SET( tx_.getSd(), &fds );
+
+		// use pselect: does't modify the timeout and it's a timespec
+		selres = ::pselect( tx_.getSd() + 1, NULL, &fds, NULL, &timeout->tv_, NULL );
+		if ( selres < 0  ) {
+			throw IOError("::pselect() error: ", errno);
 		}
-
-		if ( wait ) {
-			FD_ZERO( &fds );
-
-			FD_SET( tx_.getSd(), &fds );
-
-			// use pselect: does't modify the timeout and it's a timespec
-			selres = ::pselect( tx_.getSd() + 1, NULL, &fds, NULL, &timeout->tv_, NULL );
-			if ( selres < 0  ) {
-				throw IOError("::pselect() error: ", errno);
-			}
-			if ( selres == 0 ) {
-				// TIMEOUT
-				return;
-			}
-		}
-
-		sndres = send( tx_.getSd(), b->getPayload(), b->getSize(), 0 );
-
-		if ( sndres < 0 ) {
-			switch ( errno ) {
-				case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-				case EWOULDBLOCK:
-#endif
-					// TIMEOUT or cannot send right now
-					return;
-
-				default:
-					throw IOError("::send() error: ", errno);
-			}
-		}
-
-		if ( sndres > 0 ) {
-			b->unlink();
-		} else {
-			//nothing was sent
+		if ( selres == 0 ) {
+			// TIMEOUT
 			return;
+		}
+	}
+
+	sndres = writev( tx_.getSd(), iov, nios );
+
+	if ( sndres < 0 ) {
+		perror("send");
+		switch ( errno ) {
+			case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+			case EWOULDBLOCK:
+#endif
+				// TIMEOUT or cannot send right now
+				return;
+
+			default:
+				throw IOError("::send() error: ", errno);
 		}
 	}
 }

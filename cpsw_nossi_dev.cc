@@ -32,29 +32,16 @@ CUdpAddressImpl::CUdpAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, uns
  tid_(0),
  mutex_(0)
 {
-struct sockaddr_in dst, me;
+struct sockaddr_in dst;
 NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
+
 	dst.sin_family      = AF_INET;
-	dst.sin_port        = htons( dport_ );
+	dst.sin_port        = htons( dport );
 	dst.sin_addr.s_addr = owner->getIpAddress();
 
-	me.sin_family       = AF_INET;
-	me.sin_port         = htons( 0 );
-	me.sin_addr.s_addr  = INADDR_ANY;
+	ProtoModUdp    udpMod = CShObj::create< ProtoModUdp >( &dst, 10/* queue depth */, 1 /* nThreads */, 0 /* no poller */ );
 
-	if ( (sd_ = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 ) {
-		throw InvalidArgError("Unable to create socket");
-	}
-
-	if ( bind( sd_, (struct sockaddr*)&me, sizeof( me ) ) ) {
-		throw InternalError("Unable to bind socket");
-	}
-
-	if ( connect( sd_, (struct sockaddr*)&dst, sizeof( dst ) ) ) {
-		throw InvalidArgError("Unable to connect socket");
-	}
-
-	setTimeoutUs( timeoutUs );
+	protoStack_ = udpMod;
 
 	mutex_ = new Mutex();
 }
@@ -117,7 +104,8 @@ uint8_t  buft[sizeof(SRPWord)];
 SRPWord  xbuf[5];
 SRPWord  header;
 SRPWord  status;
-int      i, j, put;
+unsigned i;
+int      j, put;
 int      headbytes = (off & (sizeof(SRPWord)-1));
 int      tailbytes = 0;
 int      totbytes;
@@ -126,6 +114,7 @@ int      got;
 int      nWords;
 int      expected = 0;
 uint32_t tid = getTid();
+
 
 	if ( sbytes == 0 )
 		return 0;
@@ -188,14 +177,26 @@ uint32_t tid = getTid();
 	unsigned attempt = 0;
 
 	do {
-		if ( (int)sizeof(xbuf[0])*put != ::write( sd_, xbuf, sizeof(xbuf[0])*put ) ) {
-			throw IOError("Unable to send (complete) message");
-		}
+		BufChain xchn = IBufChain::create();
+
+		xchn->insert( xbuf, 0, sizeof(xbuf[0])*put );
+
+		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
 		do {
-			if ( (got = ::readv( sd_, iov, iovlen )) < 0 ) {
+			BufChain rchn = protoStack_->pop( &timeoutUs_, IProtoPort::REL_TIMEOUT );
+			if ( ! rchn ) {
 				goto retry;
 			}
+			got = rchn->getSize();
+
+			unsigned bufoff = 0;
+
+			for ( i=0; i<iovlen; i++ ) {
+				rchn->extract(iov[i].iov_base, bufoff, iov[i].iov_len);
+				bufoff += iov[i].iov_len;
+			}
+
 #ifdef NOSSI_DEBUG
 			printf("got %i bytes, off 0x%"PRIx64", sbytes %i, nWords %i\n", got, off, sbytes, nWords  );
 			printf("got %i bytes\n", got);
@@ -243,7 +244,7 @@ uint32_t tid = getTid();
 					memcpy(tmp+headbytes, dst, hoff);
 				}
 #ifdef NOSSI_DEBUG
-				for (i=0; i< (int)sizeof(SRPWord); i++) printf("headbytes tmp[%i]: %x\n", i, tmp[i]);
+				for (i=0; i< sizeof(SRPWord); i++) printf("headbytes tmp[%i]: %x\n", i, tmp[i]);
 #endif
 				swpw( tmp );
 				memcpy(dst, tmp+headbytes, hoff);
@@ -256,13 +257,13 @@ uint32_t tid = getTid();
 				memcpy(tmp, dst + hoff + j, sizeof(SRPWord) - tailbytes);
 				memcpy(tmp + sizeof(SRPWord) - tailbytes, buft, tailbytes);
 #ifdef NOSSI_DEBUG
-				for (i=0; i< (int)sizeof(SRPWord); i++) printf("tailbytes tmp[%i]: %"PRIx8"\n", i, tmp[i]);
+				for (i=0; i< sizeof(SRPWord); i++) printf("tailbytes tmp[%i]: %"PRIx8"\n", i, tmp[i]);
 #endif
 				swpw( tmp );
 				memcpy(dst + hoff + j, tmp, sizeof(SRPWord) - tailbytes);
 			}
 #ifdef NOSSI_DEBUG
-			for ( i=0; i< (int)sbytes; i++ ) printf("swapped dst[%i]: %x\n", i, dst[i]);
+			for ( i=0; i< sbytes; i++ ) printf("swapped dst[%i]: %x\n", i, dst[i]);
 #endif
 		}
 		if ( doSwap ) {
@@ -300,7 +301,7 @@ unsigned sbytes = args->nbytes_;
 
 	while ( nWords > MAXWORDS ) {
 		int nbytes = MAXWORDS*4 - headbytes;
-		rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);
+		rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);	
 		nWords -= MAXWORDS;
 		sbytes -= nbytes;	
 		dst    += nbytes;
@@ -322,7 +323,8 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 	SRPWord    zero = 0;
 	uint8_t  first_word[sizeof(SRPWord)];
 	uint8_t  last_word[sizeof(SRPWord)];
-	int      i, j, put;
+	int      j, put;
+	unsigned i;
 	int      headbytes = (off & (sizeof(SRPWord)-1));
 	int      totbytes;
 	struct iovec  iov[5];
@@ -470,16 +472,26 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 		if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
 			bufsz += sizeof(SRPWord);
 		}
-		uint8_t rbuf[bufsz];
+		uint8_t *rbuf;
 
-		if ( bufsz != ::writev( sd_, iov, iovlen )) {
-			throw IOError("sendmsg return value didn't match buffer size");
+		BufChain xchn   = IBufChain::create();
+		unsigned bufoff = 0;
+		for ( i=0; i<iovlen; i++ ) {
+			xchn->insert(iov[i].iov_base, bufoff, iov[i].iov_len);
+			bufoff += iov[i].iov_len;
 		}
 
+		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
+
 		do {
-			if ( (got = ::read( sd_, &rbuf, bufsz )) < 0 ) {
+			BufChain rchn = protoStack_->pop( &timeoutUs_, IProtoPort::REL_TIMEOUT );
+			if ( ! rchn ) {
 				goto retry;
 			}
+			got = rchn->getSize();
+			if ( rchn->getLen() > 1 )
+				throw InternalError("Assume received payload fits into a single buffer");
+			rbuf = rchn->getHead()->getPayload();
 #if 0
 			printf("got %i bytes, dbytes %i, nWords %i\n", got, dbytes, nWords);
 			printf("got %i bytes\n", got);
@@ -659,7 +671,7 @@ uint8_t    *dst = args->dst_;
 BufChain    bch;
 Buf           b;
 
-	bch = protoStack_->pop( &args->timeout_, CProtoMod::REL_TIMEOUT  );
+	bch = protoStack_->pop( &args->timeout_, IProtoPort::REL_TIMEOUT  );
 
 	if ( ! bch || ! (b = bch->getHead()) )
 		return 0;

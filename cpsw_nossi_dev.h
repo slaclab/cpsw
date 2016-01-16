@@ -32,6 +32,7 @@ private:
 	uint8_t          vc_;
 	bool             needSwap_;
 	mutable uint32_t tid_;
+	ProtoPort        protoStack_;
 protected:
 	Mutex            *mutex_;
 	virtual uint64_t readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const;

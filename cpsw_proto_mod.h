@@ -34,7 +34,8 @@ public:
 	virtual void push(BufChain , const CTimeout *, bool abs_timeout) = 0;
 	virtual void tryPush(BufChain)                             = 0;
 
-	virtual ProtoMod getProtoMod()                             = 0;
+	virtual ProtoMod getProtoMod()                     = 0;
+	virtual ProtoPort getUpstreamPort()                = 0;
 };
 
 class IProtoMod {
@@ -78,39 +79,37 @@ public:
 	~CBufQueue();
 };
 
-class CProtoMod : public IProtoMod, public IProtoPort, public CShObj {
-private:
-	weak_ptr< ProtoMod::element_type > downstream_;
-
+class CPortImpl : public IProtoPort {
 protected:
 	CBufQueue *outputQueue_;
-	ProtoPort  upstream_;
-	CProtoMod(const CProtoMod &orig, Key &k)
-	: CShObj(k),
-	  outputQueue_(orig.outputQueue_ ? new CBufQueue( *orig.outputQueue_ ) : NULL)
+
+	CPortImpl(const CPortImpl &orig)
+	: outputQueue_(orig.outputQueue_ ? new CBufQueue( *orig.outputQueue_ ) : NULL)
 	{
+	}
+
+	virtual BufChain processOutput(BufChain bc)
+	{
+		throw InternalError("processOutput() not implemented!\n");
+	}
+
+	virtual BufChain processInput(BufChain bc)
+	{
+		throw InternalError("processInput() not implemented!\n");
 	}
 
 public:
-	CProtoMod(Key &k, CBufQueueBase::size_type n)
-	:CShObj(k),
-	 outputQueue_( n > 0 ? new CBufQueue( n ) : NULL )
+	CPortImpl(CBufQueueBase::size_type n)
+	: outputQueue_( n > 0 ? new CBufQueue( n ) : NULL )
 	{
 	}
 
-	virtual void attach(ProtoPort upstream)
+	virtual ProtoPort mustGetUpstreamPort() 
 	{
-		if ( upstream_ )
-			throw ConfigurationError("Already have an upstream module");
-		upstream_ = upstream;
-	}
-
-	virtual void addAtPort(ProtoMod downstream)
-	{
-		if ( ! downstream_.expired() )
-			throw ConfigurationError("Already have a downstream module");
-		downstream_ = downstream;
-		downstream->attach( getSelfAs< shared_ptr<CProtoMod> >() );
+	ProtoPort rval = getUpstreamPort();
+		if ( ! rval )
+			throw InternalError("mustGetUpstreamPort() received NIL pointer\n");
+		return rval;
 	}
 
 	virtual BufChain pop(const CTimeout *timeout, bool abs_timeout)
@@ -165,17 +164,36 @@ public:
 		mustGetUpstreamPort()->tryPush( processOutput( bc ) );
 	}
 
+	virtual ProtoPort getUpstreamPort()
+	{
+		return getProtoMod()->getUpstreamPort();
+	}
+
+	virtual ~CPortImpl()
+	{
+		if ( outputQueue_ )
+			delete outputQueue_;
+	}
+};
+
+class CProtoModImpl : public IProtoMod {
 protected:
-	virtual BufChain processOutput(BufChain bc)
+	ProtoPort  upstream_;
+	CProtoModImpl(const CProtoModImpl &orig)
 	{
-		throw InternalError("processOutput() not implemented!\n");
+		// leave upstream_ NULL
+	}
+public:
+	CProtoModImpl()
+	{
 	}
 
-	virtual BufChain processInput(BufChain bc)
+	virtual void attach(ProtoPort upstream)
 	{
-		throw InternalError("processInput() not implemented!\n");
+		if ( upstream_ )
+			throw ConfigurationError("Already have an upstream module");
+		upstream_ = upstream;
 	}
-
 
 	virtual ProtoPort getUpstreamPort()
 	{
@@ -191,18 +209,40 @@ protected:
 		return rval;
 	}
 
-	virtual ProtoPort mustGetUpstreamPort() 
+	virtual void dumpInfo(FILE *f) {}
+};
+
+// protocol module with single downstream port
+class CProtoMod : public CShObj, public CProtoModImpl, public CPortImpl {
+private:
+	weak_ptr< ProtoMod::element_type > downstream_;
+
+protected:
+	CProtoMod(const CProtoMod &orig, Key &k)
+	: CShObj(k),
+	  CProtoModImpl(orig),
+	  CPortImpl(orig)
 	{
-	ProtoPort rval = getUpstreamPort();
-		if ( ! rval )
-			throw InternalError("mustGetUpstreamPort() received NIL pointer\n");
-		return rval;
 	}
 
 public:
-	virtual const char *getName() const = 0;
+	CProtoMod(Key &k, CBufQueueBase::size_type n)
+	: CShObj(k),
+	  CPortImpl(n)
+	{
+	}
 
-	virtual void dumpInfo(FILE *f) {}
+	virtual void addAtPort(ProtoMod downstream)
+	{
+		if ( ! downstream_.expired() )
+			throw ConfigurationError("Already have a downstream module");
+		downstream_ = downstream;
+		downstream->attach( getSelfAs< shared_ptr<CProtoMod> >() );
+	}
+
+
+public:
+	virtual const char *getName() const = 0;
 
 	virtual ProtoMod getProtoMod()
 	{
@@ -211,8 +251,6 @@ public:
 
 	virtual ~CProtoMod()
 	{
-		if ( outputQueue_ )
-			delete outputQueue_;
 	}
 };
 
