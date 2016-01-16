@@ -399,7 +399,21 @@ struct streamer_args *s_arg = 0;
 
 		if ( CMD_IS_RD(addr) ) {
 			size = bs32(v1,  rbuf[2] ) + 1;
+			if ( got != expected + 4 /* status word */ ) {
+printf("got %d, exp %d\n", got, expected);
+				fprintf(stderr,"READ command -- got != expected + 4; dropping...\n");
+				continue;
+			}
 		} else {
+			if ( got < expected ) {
+printf("got %d, exp %d\n", got, expected);
+				fprintf(stderr,"WRITE command -- got < expected; dropping...\n");
+				continue;
+			} else if ( (got % 4) != 0 ) {
+printf("got %d, exp %d\n", got, expected);
+				fprintf(stderr,"WRITE command -- got not a multiple of 4; dropping...\n");
+				continue;
+			}
 			size = (got - expected)/4;
 		}
 
