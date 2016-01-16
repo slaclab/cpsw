@@ -108,7 +108,7 @@ public:
 
 	virtual bool portInUse(unsigned port);
 
-	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 100, unsigned retryCnt = 5, uint8_t vc = 0);
+	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 1000, unsigned retryCnt = 5, uint8_t vc = 0);
 	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize);
 
 	virtual void setLocked();
