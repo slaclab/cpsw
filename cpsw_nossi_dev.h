@@ -27,7 +27,7 @@ private:
 	INoSsiDev::ProtocolVersion protoVersion_;
 	unsigned short   dport_;
 	int              sd_;
-	unsigned         timeoutUs_;
+	CTimeout         timeoutUs_;
 	unsigned         retryCnt_;
 	uint8_t          vc_;
 	bool             needSwap_;
@@ -53,7 +53,7 @@ public:
 	virtual CUdpAddressImpl *clone(AKey k) { return new CUdpAddressImpl( *this ); }
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
-	virtual unsigned getTimeoutUs()                      const { return timeoutUs_; }
+	virtual unsigned getTimeoutUs()                      const { return timeoutUs_.getUs(); }
 	virtual unsigned getRetryCount()                     const { return retryCnt_;  }
 	virtual INoSsiDev::ProtocolVersion getProtoVersion() const { return protoVersion_; }
 	virtual uint8_t  getVC()                             const { return vc_; }

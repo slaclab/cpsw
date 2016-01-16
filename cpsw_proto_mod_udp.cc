@@ -262,7 +262,7 @@ void CProtoModUdp::dumpInfo(FILE *f)
 	fprintf(f,"CProtoModUdp:\n");
 }
 
-void CProtoModUdp::doPush(BufChain bc, bool wait, CTimeout *timeout, bool abs_timeout)
+void CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)
 {
 fd_set         fds;
 int            selres, sndres;

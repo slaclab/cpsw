@@ -101,9 +101,9 @@ protected:
 
 	void spawnThreads(unsigned nRxThreads, int pollSecons);
 
-	virtual void doPush(BufChain bc, bool wait, CTimeout *timeout, bool abs_timeout);
+	virtual void doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout);
 
-	virtual void push(BufChain bc, CTimeout *timeout, bool abs_timeout)	
+	virtual void push(BufChain bc, const CTimeout *timeout, bool abs_timeout)	
 	{
 		doPush(bc, true, timeout, abs_timeout);
 	}

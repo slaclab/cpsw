@@ -77,13 +77,7 @@ CNoSsiDevImpl::CNoSsiDevImpl(Key &k, const char *name, const char *ip)
 
 void CUdpAddressImpl::setTimeoutUs(unsigned timeoutUs)
 {
-struct timeval t;
-	t.tv_sec  = timeoutUs / 1000000;
-	t.tv_usec = timeoutUs % 1000000;
-	if ( setsockopt( sd_, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(t) ) ) {
-		throw InternalError("setsocktop(SO_RECVTIMEO) failed");
-	}
-	this->timeoutUs_ = timeoutUs;
+	this->timeoutUs_.set(timeoutUs);
 }
 
 void CUdpAddressImpl::setRetryCount(unsigned retryCnt)
@@ -306,7 +300,7 @@ unsigned sbytes = args->nbytes_;
 
 	while ( nWords > MAXWORDS ) {
 		int nbytes = MAXWORDS*4 - headbytes;
-		rval += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);	
+		rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);
 		nWords -= MAXWORDS;
 		sbytes -= nbytes;	
 		dst    += nbytes;
@@ -567,7 +561,7 @@ void CUdpAddressImpl::dump(FILE *f) const
 	CAddressImpl::dump(f);
 	fprintf(f,"\nPeer: %s:%d\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString(), dport_);
 	fprintf(f,"  SRP Protocol Version: %8u\n",   protoVersion_);
-	fprintf(f,"  Timeout             : %8uus\n", timeoutUs_);
+	fprintf(f,"  Timeout             : %8"PRIu64"us\n", timeoutUs_.getUs());
 	fprintf(f,"  Retry Count         : %8u\n",   retryCnt_);
 	fprintf(f,"  Virtual Channel     : %8u\n",   vc_);
 }
