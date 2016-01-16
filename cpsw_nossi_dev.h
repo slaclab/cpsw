@@ -64,13 +64,13 @@ public:
 class CUdpStreamAddressImpl : public CAddressImpl {
 private:
 	unsigned dport_;
-	ProtoMod protoStack_;
+	ProtoPort protoStack_;
 protected:
 	CUdpStreamAddressImpl(CUdpStreamAddressImpl &orig)
 	: CAddressImpl( orig ),
-	  dport_(orig.dport_),
-	  protoStack_( orig.protoStack_->cloneStack() )
+	  dport_(orig.dport_)
 	{
+		throw InternalError("Clone not implemented");
 	}
 
 public:

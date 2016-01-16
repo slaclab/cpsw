@@ -140,7 +140,7 @@ void CProtoModDepack::threadBody()
 printf("depack: trying to pop\n");
 #endif
 			// wait for new datagram
-			BufChain bufch = upstream_->pop( frame->running_ ? & frame->timeout_ : 0, IProtoMod::ABS_TIMEOUT );
+			BufChain bufch = upstream_->pop( frame->running_ ? & frame->timeout_ : 0, IProtoPort::ABS_TIMEOUT );
 
 			if ( ! bufch ) {
 #ifdef DEPACK_DEBUG

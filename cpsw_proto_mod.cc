@@ -121,25 +121,6 @@ BufChain CBufQueue::tryPop()
 	return pop(false, 0);
 }
 
-ProtoMod CProtoMod::pushMod( ProtoMod *m_p )
-{
-	if ( upstream_ )
-		throw InternalError("Pushee already attached!");
-	upstream_ = *m_p;
-	return ( *m_p      = getSelfAs< shared_ptr<CProtoMod> >() );
-}
-
-ProtoMod CProtoMod::cloneStack()
-{
-ProtoMod rval;
-	if ( upstream_ ) {
-		rval = upstream_->cloneStack();
-	}
-	// we don't know what subclass the module really is and thus
-	// must use the unchecked variant
-	return CShObj::cloneUnchecked( getSelfAs< shared_ptr<CProtoMod> >() )->pushMod( &rval );
-}
-
 CTimeout CProtoMod::getAbsTimeout(CTimeout *rel_timeout)
 {
 	struct timespec ts;

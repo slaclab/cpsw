@@ -15,6 +15,9 @@ typedef unsigned FrameID;
 typedef unsigned FragID;
 typedef unsigned ProtoVersion;
 
+class CProtoModDepack;
+typedef shared_ptr<CProtoModDepack> ProtoModDepack;
+
 class IProtoModDepack : public virtual IProtoMod {
 };
 

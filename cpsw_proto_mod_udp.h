@@ -16,6 +16,9 @@ using boost::shared_ptr;
 class CSockSd;
 typedef shared_ptr<CSockSd> SockSd;
 
+class CProtoModUdp;
+typedef shared_ptr<CProtoModUdp> ProtoModUdp;
+
 class CSockSd {
 private:
 	int sd_;

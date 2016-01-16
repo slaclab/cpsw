@@ -634,12 +634,13 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 	dst.sin_port        = htons( dport );
 	dst.sin_addr.s_addr = owner->getIpAddress();
 
-	ProtoMod udpMod     = CShObj::create< shared_ptr<CProtoModUdp> >( &dst, 10/* queue depth */, 2 /* nThreads */ );
-	udpMod->pushMod( &protoStack_ );
+	ProtoModUdp    udpMod     = CShObj::create< ProtoModUdp >( &dst, 10/* queue depth */, 2 /* nThreads */ );
 
-	ProtoMod depackMod  = CShObj::create< shared_ptr<CProtoModDepack> >( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
+	ProtoModDepack depackMod  = CShObj::create< ProtoModDepack >( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
 
-	depackMod->pushMod( &protoStack_ );
+	udpMod->addAtPort( depackMod );
+
+	protoStack_ = depackMod;
 }
 
 void CUdpStreamAddressImpl::dump(FILE *f) const
@@ -647,9 +648,11 @@ void CUdpStreamAddressImpl::dump(FILE *f) const
 	fprintf(f,"CUdpStreamAddressImpl:\n");
 	CAddressImpl::dump(f);
 	fprintf(f,"\nPeer: %s:%d\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString(), dport_);
-	ProtoMod m;
-	for ( m = protoStack_; m; m=m->getUpstream() ) {
-		m->dumpInfo( f );
+	if ( protoStack_ ) {
+		ProtoMod m;
+		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
+			m->dumpInfo( f );
+		}
 	}
 }
 

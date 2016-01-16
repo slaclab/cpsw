@@ -15,10 +15,13 @@
 using boost::lockfree::queue;
 using boost::weak_ptr;
 
+class IProtoPort;
+typedef shared_ptr<IProtoPort> ProtoPort;
+
 class IProtoMod;
 typedef shared_ptr<IProtoMod> ProtoMod;
 
-class IProtoMod {
+class IProtoPort {
 public:
 	static const bool ABS_TIMEOUT = true;
 	static const bool REL_TIMEOUT = false;
@@ -31,11 +34,18 @@ public:
 	virtual void push(BufChain , CTimeout *, bool abs_timeout) = 0;
 	virtual void tryPush(BufChain)                             = 0;
 
-	virtual ProtoMod pushMod( ProtoMod *m_p )          = 0;
+	virtual ProtoMod getProtoMod()                             = 0;
+};
 
-	virtual ProtoMod cloneStack()                      = 0;
+class IProtoMod {
+public:
+	// to be called by the upstream module's addAtPort() method
+	// (which is protocol specific)
+	virtual void attach(ProtoPort upstream)            = 0;
 
-	virtual ProtoMod getUpstream()                     = 0;
+	virtual ProtoPort getUpstreamPort()                = 0;
+	virtual ProtoMod  getUpstreamProtoMod()            = 0;
+
 
 	virtual void dumpInfo(FILE *)                      = 0;
 
@@ -66,10 +76,13 @@ public:
 	~CBufQueue();
 };
 
-class CProtoMod : public virtual IProtoMod, public CShObj {
+class CProtoMod : public IProtoMod, public IProtoPort, public CShObj {
+private:
+	weak_ptr< ProtoMod::element_type > downstream_;
+
 protected:
 	CBufQueue *outputQueue_;
-	ProtoMod  upstream_;
+	ProtoPort  upstream_;
 	CProtoMod(const CProtoMod &orig, Key &k)
 	: CShObj(k),
 	  outputQueue_(orig.outputQueue_ ? new CBufQueue( *orig.outputQueue_ ) : NULL)
@@ -83,10 +96,25 @@ public:
 	{
 	}
 
+	virtual void attach(ProtoPort upstream)
+	{
+		if ( upstream_ )
+			throw ConfigurationError("Already have an upstream module");
+		upstream_ = upstream;
+	}
+
+	virtual void addAtPort(ProtoMod downstream)
+	{
+		if ( ! downstream_.expired() )
+			throw ConfigurationError("Already have a downstream module");
+		downstream_ = downstream;
+		downstream->attach( getSelfAs< shared_ptr<CProtoMod> >() );
+	}
+
 	virtual BufChain pop(CTimeout *timeout, bool abs_timeout)
 	{
 		if ( ! outputQueue_ ) {
-			return processInput( mustGetUpstream()->pop(timeout, abs_timeout) );
+			return processInput( mustGetUpstreamPort()->pop(timeout, abs_timeout) );
 		} else {
 			if ( ! timeout || timeout->isIndefinite() )
 				return outputQueue_->pop( 0 );
@@ -114,7 +142,7 @@ public:
 	virtual BufChain tryPop()
 	{
 		if ( ! outputQueue_ ) {
-			return processInput( mustGetUpstream()->tryPop() );
+			return processInput( mustGetUpstreamPort()->tryPop() );
 		} else {
 			return outputQueue_->tryPop();
 		}
@@ -122,12 +150,12 @@ public:
 
 	virtual void push(BufChain bc, CTimeout *timeout, bool abs_timeout)
 	{
-		mustGetUpstream()->push( processOutput( bc ), timeout, abs_timeout );
+		mustGetUpstreamPort()->push( processOutput( bc ), timeout, abs_timeout );
 	}
 
 	virtual void tryPush(BufChain bc)
 	{
-		mustGetUpstream()->tryPush( processOutput( bc ) );
+		mustGetUpstreamPort()->tryPush( processOutput( bc ) );
 	}
 
 protected:
@@ -142,29 +170,37 @@ protected:
 	}
 
 
-	virtual ProtoMod getUpstream()
+	virtual ProtoPort getUpstreamPort()
 	{
 		return upstream_;
 	}
 
-	virtual ProtoMod mustGetUpstream() 
+	virtual ProtoMod  getUpstreamProtoMod()
 	{
-	ProtoMod rval = getUpstream();
+		ProtoPort p = getUpstreamPort();
+		ProtoMod  rval;
+		if ( p )
+			rval = p->getProtoMod();
+		return rval;
+	}
+
+	virtual ProtoPort mustGetUpstreamPort() 
+	{
+	ProtoPort rval = getUpstreamPort();
 		if ( ! rval )
-			throw InternalError("mustGetUpstream() received NIL pointer\n");
+			throw InternalError("mustGetUpstreamPort() received NIL pointer\n");
 		return rval;
 	}
 
 public:
-	virtual CProtoMod *clone(Key &k) = 0;
-
 	virtual const char *getName() const = 0;
 
-	virtual ProtoMod pushMod( ProtoMod *m_p );
-
-	virtual ProtoMod cloneStack();
-
 	virtual void dumpInfo(FILE *f) {}
+
+	virtual ProtoMod getProtoMod()
+	{
+		return getSelfAs< shared_ptr<CProtoMod> >();
+	}
 
 	virtual ~CProtoMod()
 	{
