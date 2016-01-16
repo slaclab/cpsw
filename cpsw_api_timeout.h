@@ -9,11 +9,15 @@ public:
 	// default is indefinite
 	CTimeout()
 	{
-		tv_.tv_sec  = INDEFINITE_S;
-		tv_.tv_nsec = 0;
+		setIndefinite();
 	}
 
 	CTimeout(uint64_t timeout_us)
+	{
+		set(timeout_us);
+	}
+
+	void set(uint64_t timeout_us)
 	{
 		if ( timeout_us < 1000000 ) {
 			tv_.tv_sec  = 0;
@@ -28,6 +32,23 @@ public:
 	:tv_(tv)
 	{
 	}
+
+	void set(struct timespec tv)
+	{
+		tv_ = tv;
+	}
+
+	uint64_t getUs() const
+	{
+		return (uint64_t)tv_.tv_sec * (uint64_t)1000000 + (uint64_t)tv_.tv_nsec/(uint64_t)1000;
+	}
+
+	void setIndefinite()
+	{
+		tv_.tv_sec  = INDEFINITE_S;
+		tv_.tv_nsec = 0;
+	}
+
 
 	CTimeout(time_t s, long ns)
 	{
