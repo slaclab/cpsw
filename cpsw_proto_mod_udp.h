@@ -129,6 +129,8 @@ public:
 
 	virtual const char *getName() const { return "UDP"; }
 
+	virtual unsigned getDestPort() const { return ntohs( dest_.sin_port ); }
+
 	virtual void dumpInfo(FILE *f);
 
 	virtual CProtoModUdp *clone(Key &k) { return new CProtoModUdp( *this, k ); }
