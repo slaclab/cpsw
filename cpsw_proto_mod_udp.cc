@@ -119,7 +119,7 @@ CUdpHandlerThread::~CUdpHandlerThread()
 	}
 }
 
-void CUdpRxHandlerThread::threadBody()
+void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 {
 	ssize_t got;
 	Buf     buf = IBuf::getBuf();
@@ -149,7 +149,7 @@ unsigned frag = (p[4]<<16) | (p[3] << 8) | p[2];
 #ifdef UDP_DEBUG
 bool st=
 #endif
-			pOutputQueue_->push( &bufch );
+			owner_->pushDown( bufch );
 
 #ifdef UDP_DEBUG
 	printf("(UDP %d) fram # %4d, frag # %4d", got, fram, frag); 
@@ -164,15 +164,15 @@ else printf(" (DROP)\n");
 	}
 }
 
-CUdpRxHandlerThread::CUdpRxHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me, CBufQueue *oqueue)
+CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
 : CUdpHandlerThread(dest, me),
-  pOutputQueue_( oqueue )
+  owner_( owner )
 {
 }
 
-CUdpRxHandlerThread::CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CBufQueue *oqueue)
+CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
 : CUdpHandlerThread( orig, dest, me),
-  pOutputQueue_( oqueue )
+  owner_( owner )
 {
 }
 
@@ -220,7 +220,7 @@ void CProtoModUdp::spawnThreads(unsigned nRxThreads, int pollSeconds)
 	rxHandlers_.clear();
 
 	for ( i=0; i<nRxThreads; i++ ) {
-		rxHandlers_.push_back( new CUdpRxHandlerThread( &dest_, &me, outputQueue_ ) );
+		rxHandlers_.push_back( new CUdpRxHandlerThread( &dest_, &me, this ) );
 	}
 
 	if ( poller_ )

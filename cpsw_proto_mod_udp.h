@@ -66,19 +66,6 @@ public:
 	virtual ~CUdpHandlerThread();
 };
 
-class CUdpRxHandlerThread : public CUdpHandlerThread {
-public:
-	CBufQueue  *pOutputQueue_;
-
-protected:
-
-	virtual void threadBody();
-
-public:
-	CUdpRxHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me, CBufQueue *oqueue);
-	CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CBufQueue *oqueue);
-};
-
 class CUdpPeerPollerThread : public CUdpHandlerThread {
 private:
 	unsigned pollSecs_;
@@ -92,6 +79,26 @@ public:
 };
 
 class CProtoModUdp : public CProtoMod {
+protected:
+
+	class CUdpRxHandlerThread : public CUdpHandlerThread {
+		public:
+			// cannot use smart pointer here because CProtoModUdp's
+			// constructor creates the threads (and a smart ptr is
+			// not available yet).
+			// In any case - the thread objects are only used 
+			// internally...
+			CProtoModUdp   *owner_;
+
+		protected:
+
+			virtual void threadBody();
+
+		public:
+			CUdpRxHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
+			CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
+	};
+
 private:
 	struct sockaddr_in dest_;
 	CSockSd            tx_;
@@ -112,6 +119,7 @@ protected:
 	{
 		doPush(bc, false, NULL, true);
 	}
+
 
 public:
 	// negative or zero 'pollSecs' avoids creating a poller thread

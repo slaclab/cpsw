@@ -34,7 +34,7 @@ public:
 	virtual void push(BufChain , const CTimeout *, bool abs_timeout) = 0;
 	virtual void tryPush(BufChain)                             = 0;
 
-	virtual ProtoMod getProtoMod()                     = 0;
+	virtual ProtoMod  getProtoMod()                    = 0;
 	virtual ProtoPort getUpstreamPort()                = 0;
 };
 
@@ -47,6 +47,7 @@ public:
 	virtual ProtoPort getUpstreamPort()                = 0;
 	virtual ProtoMod  getUpstreamProtoMod()            = 0;
 
+	virtual bool pushDown(BufChain)                    = 0;
 
 	virtual void dumpInfo(FILE *)                      = 0;
 
@@ -80,12 +81,18 @@ public:
 };
 
 class CPortImpl : public IProtoPort {
-protected:
+private:
+	weak_ptr< ProtoMod::element_type > downstream_;
 	CBufQueue *outputQueue_;
+
+protected:
 
 	CPortImpl(const CPortImpl &orig)
 	: outputQueue_(orig.outputQueue_ ? new CBufQueue( *orig.outputQueue_ ) : NULL)
 	{
+		// would have to set downstream_ to
+		// the respective clone...
+		throw InternalError("clone not implemented");
 	}
 
 	virtual BufChain processOutput(BufChain bc)
@@ -97,6 +104,8 @@ protected:
 	{
 		throw InternalError("processInput() not implemented!\n");
 	}
+
+	virtual ProtoPort getSelfAsProtoPort() = 0;
 
 public:
 	CPortImpl(CBufQueueBase::size_type n)
@@ -110,6 +119,14 @@ public:
 		if ( ! rval )
 			throw InternalError("mustGetUpstreamPort() received NIL pointer\n");
 		return rval;
+	}
+
+	virtual void addAtPort(ProtoMod downstream)
+	{
+		if ( ! downstream_.expired() )
+			throw ConfigurationError("Already have a downstream module");
+		downstream_ = downstream;
+		downstream->attach( getSelfAsProtoPort() );
 	}
 
 	virtual BufChain pop(const CTimeout *timeout, bool abs_timeout)
@@ -132,6 +149,13 @@ public:
 		}
 	}
 
+	virtual bool pushDownstream(BufChain bc)
+	{
+		if ( outputQueue_ )
+			return outputQueue_->push( &bc );
+		else
+			return ProtoMod( downstream_ )->pushDown( bc );
+	}
 	// getAbsTimeout is not a member of the CTimeout class:
 	// the clock to be used is implementation dependent.
 	// ProtoMod uses a semaphore which uses CLOCK_REALTIME.
@@ -183,6 +207,7 @@ protected:
 	{
 		// leave upstream_ NULL
 	}
+
 public:
 	CProtoModImpl()
 	{
@@ -194,6 +219,7 @@ public:
 			throw ConfigurationError("Already have an upstream module");
 		upstream_ = upstream;
 	}
+
 
 	virtual ProtoPort getUpstreamPort()
 	{
@@ -214,8 +240,6 @@ public:
 
 // protocol module with single downstream port
 class CProtoMod : public CShObj, public CProtoModImpl, public CPortImpl {
-private:
-	weak_ptr< ProtoMod::element_type > downstream_;
 
 protected:
 	CProtoMod(const CProtoMod &orig, Key &k)
@@ -225,6 +249,11 @@ protected:
 	{
 	}
 
+	virtual ProtoPort getSelfAsProtoPort()
+	{
+		return getSelfAs< shared_ptr<CProtoMod> >();
+	}
+
 public:
 	CProtoMod(Key &k, CBufQueueBase::size_type n)
 	: CShObj(k),
@@ -232,12 +261,10 @@ public:
 	{
 	}
 
-	virtual void addAtPort(ProtoMod downstream)
+	virtual bool pushDown(BufChain bc)
 	{
-		if ( ! downstream_.expired() )
-			throw ConfigurationError("Already have a downstream module");
-		downstream_ = downstream;
-		downstream->attach( getSelfAs< shared_ptr<CProtoMod> >() );
+		// out of downstream port
+		return pushDownstream( bc );
 	}
 
 

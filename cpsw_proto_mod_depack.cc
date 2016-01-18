@@ -345,7 +345,7 @@ CFrame  *frame         = &frameWin_[frameIdx];
 
 	if ( isComplete ) {
 		unsigned l = completeFrame->getLen();
-		if ( ! outputQueue_->push( &completeFrame ) ) {
+		if ( ! pushDown( completeFrame ) ) {
 			oqueueFullDrops_++;
 		} else {
 			fragsAccepted_  += l;
