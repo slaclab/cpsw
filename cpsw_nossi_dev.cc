@@ -28,8 +28,10 @@ CUdpAddressImpl::CUdpAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, uns
 :CAddressImpl(k),
  protoVersion_(version),
  dport_(dport),
- timeoutUs_(timeoutUs),
+ usrTimeout_(timeoutUs),
+ dynTimeout_(usrTimeout_),
  retryCnt_(retryCnt),
+ nRetries_(0),
  vc_(vc),
  tid_(0),
  mutex_(0)
@@ -68,7 +70,7 @@ CNoSsiDevImpl::CNoSsiDevImpl(Key &k, const char *name, const char *ip)
 
 void CUdpAddressImpl::setTimeoutUs(unsigned timeoutUs)
 {
-	this->timeoutUs_.set(timeoutUs);
+	this->usrTimeout_.set(timeoutUs);
 }
 
 void CUdpAddressImpl::setRetryCount(unsigned retryCnt)
@@ -185,13 +187,19 @@ uint32_t tid = getTid();
 
 		xchn->insert( xbuf, 0, sizeof(xbuf[0])*put );
 
+		struct timespec then, now;
+		clock_gettime(CLOCK_REALTIME, &then);
+
 		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
 		do {
-			BufChain rchn = protoStack_->pop( &timeoutUs_, IProtoPort::REL_TIMEOUT );
+			BufChain rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
 				goto retry;
 			}
+
+			clock_gettime(CLOCK_REALTIME, &now);
+
 			got = rchn->getSize();
 
 			unsigned bufoff = 0;
@@ -222,6 +230,8 @@ uint32_t tid = getTid();
 				swp32( &bufh[0] );
 			}
 		} while ( bufh[0] != tid );
+
+		dynTimeout_.update( &now, &then );
 
 		if ( got != (int)sizeof(bufh[0])*(nWords + expected) ) {
 			printf("got %i, nw %i, exp %i\n", got, nWords, expected);
@@ -276,10 +286,16 @@ uint32_t tid = getTid();
 		}
 		if ( status )
 			throw BadStatusError("reading SRP", status);
+
 		return sbytes;
 
-retry: ;
+retry: 
+		dynTimeout_.relax();
+		nRetries_++;
+
 	} while ( ++attempt <= retryCnt_ );
+
+	dynTimeout_.reset( usrTimeout_ );
 
 	throw IOError("No response -- timeout");
 }
@@ -485,13 +501,19 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 			bufoff += iov[i].iov_len;
 		}
 
+		struct timespec then, now;
+		clock_gettime(CLOCK_REALTIME, &then);
+
 		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
 		do {
-			BufChain rchn = protoStack_->pop( &timeoutUs_, IProtoPort::REL_TIMEOUT );
+			BufChain rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
 				goto retry;
 			}
+
+			clock_gettime(CLOCK_REALTIME, &now);
+
 			got = rchn->getSize();
 			if ( rchn->getLen() > 1 )
 				throw InternalError("Assume received payload fits into a single buffer");
@@ -511,6 +533,8 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 			}
 		} while ( tid != got_tid );
 
+		dynTimeout_.update( &now, &then );
+
 		if ( got != bufsz ) {
 			throw IOError("read return value didn't match buffer size");
 		}
@@ -529,8 +553,12 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 		if ( status )
 			throw BadStatusError("writing SRP", status);
 		return dbytes;
-retry: ;
+retry:
+		dynTimeout_.relax();
+		nRetries_++;
 	} while ( ++attempt <= retryCnt_ );
+
+	dynTimeout_.reset( usrTimeout_ );
 
 	throw IOError("Too many retries");
 }
@@ -577,8 +605,10 @@ void CUdpAddressImpl::dump(FILE *f) const
 	CAddressImpl::dump(f);
 	fprintf(f,"\nPeer: %s:%d\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString(), dport_);
 	fprintf(f,"  SRP Protocol Version: %8u\n",   protoVersion_);
-	fprintf(f,"  Timeout             : %8"PRIu64"us\n", timeoutUs_.getUs());
+	fprintf(f,"  Timeout (user)      : %8"PRIu64"us\n", usrTimeout_.getUs());
+	fprintf(f,"  Timeout (dynamic)   : %8"PRIu64"us\n", dynTimeout_.get().getUs());
 	fprintf(f,"  Retry Count         : %8u\n",   retryCnt_);
+	fprintf(f,"  # of retries        : %8u\n",   nRetries_);
 	fprintf(f,"  Virtual Channel     : %8u\n",   vc_);
 }
 
@@ -713,3 +743,48 @@ uint64_t CUdpStreamAddressImpl::write(CompositePathIterator *node, CWriteArgs *a
 {
 	throw InternalError("streaming write not implemented");
 }
+
+DynTimeout::DynTimeout(const CTimeout &iniv)
+: maxRndTrip_(0),
+  avgRndTrip_(iniv),
+  dynTimeout_(iniv),
+  nSinceLast_(0)
+{
+	clock_gettime( CLOCK_MONOTONIC, &lastUpdate_.tv_ );
+}
+
+void DynTimeout::reset(const CTimeout &iniv)
+{
+	clock_gettime( CLOCK_MONOTONIC, &lastUpdate_.tv_ );
+	dynTimeout_ = iniv;
+	maxRndTrip_.set(0);
+}
+
+void DynTimeout::relax()
+{
+	dynTimeout_ += dynTimeout_;
+}
+
+void DynTimeout::update(const struct timespec *now, const struct timespec *then)
+{
+CTimeout diff(*now);
+
+	diff -= CTimeout( *then );
+
+	if ( maxRndTrip_ < diff ) {
+		maxRndTrip_ = diff;
+		lastUpdate_.set( *now );
+		dynTimeout_ = maxRndTrip_ + maxRndTrip_;
+		dynTimeout_+= dynTimeout_;
+		nSinceLast_ = 0;
+	} else if ( nSinceLast_ > 1000 ) {
+		dynTimeout_.tv_.tv_sec  >>= 1;
+		dynTimeout_.tv_.tv_nsec >>= 1;
+		nSinceLast_ = 0;
+	} else {
+		nSinceLast_++;
+	}
+}
+
+
+

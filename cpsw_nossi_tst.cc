@@ -246,6 +246,8 @@ unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 			throw TestFailed();
 		}
 
+		root->findByName("mmio")->tail()->dump( stdout );
+
 	} catch (IOError &e) {
 		printf("I/O Error -- is 'udpsrv' running (with matching protocol version) ?\n");
 		printf("             note: udpsrv debugging messages might slow it down...\n");

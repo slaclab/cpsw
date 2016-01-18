@@ -28,12 +28,12 @@ public:
 		}
 	}
 
-	CTimeout(struct timespec tv)
+	CTimeout(const struct timespec tv)
 	:tv_(tv)
 	{
 	}
 
-	void set(struct timespec tv)
+	void set(const struct timespec tv)
 	{
 		tv_ = tv;
 	}
@@ -82,11 +82,11 @@ public:
 			if ( rhs.isIndefinite() )
 				return (*this = rhs);
 			tv_.tv_sec  -= rhs.tv_.tv_sec;
-			tv_.tv_nsec -= rhs.tv_.tv_nsec;
-			if ( tv_.tv_nsec < 0 ) {
+			if ( tv_.tv_nsec < rhs.tv_.tv_nsec ) {
 				tv_.tv_nsec += 1000000000;
 				tv_.tv_sec  --;
 			}
+			tv_.tv_nsec -= rhs.tv_.tv_nsec;
 		}
 		return *this;
 	}
@@ -101,6 +101,12 @@ public:
 	{
 		lhs -= rhs;
 		return lhs;
+	}
+
+	friend int operator <(const CTimeout lhs, const CTimeout &rhs)
+	{
+		return lhs.tv_.tv_sec < rhs.tv_.tv_sec
+		     || (lhs.tv_.tv_sec == rhs.tv_.tv_sec && lhs.tv_.tv_nsec < rhs.tv_.tv_nsec);
 	}
 };
 

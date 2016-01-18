@@ -21,12 +21,33 @@ typedef shared_ptr<CNoSsiDevImpl> NoSsiDevImpl;
 
 struct Mutex;
 
+class DynTimeout {
+private:
+	CTimeout maxRndTrip_;
+	CTimeout avgRndTrip_;
+	CTimeout lastUpdate_;
+	CTimeout dynTimeout_;
+	unsigned nSinceLast_;
+public:
+	DynTimeout(const CTimeout &iniv);
+
+	const CTimeout &get()  const { return  dynTimeout_; }
+	const CTimeout *getp() const { return &dynTimeout_; }
+
+	void update(const struct timespec *now, const struct timespec *then);
+
+	void relax();
+	void reset(const CTimeout &);
+};
+
 class CUdpAddressImpl : public CAddressImpl {
 private:            
 	INoSsiDev::ProtocolVersion protoVersion_;
 	unsigned short   dport_;
-	CTimeout         timeoutUs_;
+	CTimeout         usrTimeout_;
+	mutable DynTimeout dynTimeout_;
 	unsigned         retryCnt_;
+	mutable unsigned nRetries_;
 	uint8_t          vc_;
 	bool             needSwap_;
 	mutable uint32_t tid_;
@@ -38,9 +59,11 @@ protected:
 public:
 	CUdpAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
 	CUdpAddressImpl(CUdpAddressImpl &orig)
-	: CAddressImpl(orig)
+	: CAddressImpl(orig),
+	  dynTimeout_(orig.dynTimeout_.get()),
+	  nRetries_(0)
 	{
-		throw InternalError("Clone not implemented"); /* need to clone socket, mutex, ... */
+		throw InternalError("Clone not implemented"); /* need to clone protocols, mutex, ... */
 	}
 	virtual ~CUdpAddressImpl();
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
@@ -52,7 +75,8 @@ public:
 	virtual CUdpAddressImpl *clone(AKey k) { return new CUdpAddressImpl( *this ); }
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
-	virtual unsigned getTimeoutUs()                      const { return timeoutUs_.getUs(); }
+	virtual unsigned getTimeoutUs()                      const { return usrTimeout_.getUs(); }
+	virtual unsigned getDynTimeoutUs()                   const { return dynTimeout_.get().getUs(); }
 	virtual unsigned getRetryCount()                     const { return retryCnt_;  }
 	virtual INoSsiDev::ProtocolVersion getProtoVersion() const { return protoVersion_; }
 	virtual uint8_t  getVC()                             const { return vc_; }
