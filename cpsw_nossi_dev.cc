@@ -2,6 +2,9 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
+#include <cpsw_proto_mod_depack.h>
+#include <cpsw_proto_mod_udp.h>
+#include <cpsw_proto_mod_srpmux.h>
 
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/locks.hpp>
@@ -38,9 +41,13 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 	dst.sin_port        = htons( dport );
 	dst.sin_addr.s_addr = owner->getIpAddress();
 
-	ProtoModUdp    udpMod = CShObj::create< ProtoModUdp >( &dst, 10/* queue depth */, 1 /* nThreads */, 0 /* no poller */ );
+	ProtoModUdp    udpMod = CShObj::create< ProtoModUdp >( &dst, 0/* no queue */, 1 /* nThreads */, 0 /* no poller */ );
 
-	protoStack_ = udpMod;
+	ProtoModSRPMux srpMuxMod = CShObj::create< ProtoModSRPMux >( version );
+
+	udpMod->addAtPort( srpMuxMod );
+
+	protoStack_ = srpMuxMod->createPort( vc );
 
 	mutex_ = new Mutex();
 }

@@ -4,8 +4,7 @@
 #include <cpsw_hub.h>
 
 #include <cpsw_proto_mod.h>
-#include <cpsw_proto_mod_depack.h>
-#include <cpsw_proto_mod_udp.h>
+#include <cpsw_proto_mod_srpmux.h>
 
 // ugly - these shouldn't be here!
 #include <arpa/inet.h>
