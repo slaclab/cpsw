@@ -26,7 +26,6 @@ class CUdpAddressImpl : public CAddressImpl {
 private:            
 	INoSsiDev::ProtocolVersion protoVersion_;
 	unsigned short   dport_;
-	int              sd_;
 	CTimeout         timeoutUs_;
 	unsigned         retryCnt_;
 	uint8_t          vc_;

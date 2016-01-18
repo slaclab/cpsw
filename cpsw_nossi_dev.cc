@@ -25,7 +25,6 @@ CUdpAddressImpl::CUdpAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, uns
 :CAddressImpl(k),
  protoVersion_(version),
  dport_(dport),
- sd_(-1),
  timeoutUs_(timeoutUs),
  retryCnt_(retryCnt),
  vc_(vc),
@@ -48,8 +47,6 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 
 CUdpAddressImpl::~CUdpAddressImpl()
 {
-	if ( -1 != sd_ )
-		close( sd_ );
 	if ( mutex_ )
 		delete mutex_;
 }
