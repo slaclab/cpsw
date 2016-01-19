@@ -254,6 +254,7 @@ int      expected;
 unsigned off;
 int      n, got, put;
 uint32_t addr = 0;
+uint32_t xid  = 0;
 uint32_t size = 16;
 uint32_t rbuf[2048];
 uint32_t header = 0;
@@ -291,6 +292,7 @@ int      v1 = srp_arg->v1;
 			goto bail;
 		}
 
+		xid  = bs32(v1,  rbuf[0] );
 		addr = bs32(v1,  rbuf[1] );
 
 		off = CMD_ADDR(addr);
@@ -391,7 +393,7 @@ if (debug) {
 			else
 				printf("Writing to");
 
-			printf(" %x (%d); %d words\n", off, off, size);
+			printf(" %x (%d); %d words (xid %x)\n", off, off, size, xid);
 
 			for ( n=0; n<size*4; n++ ) {
 				printf("%02x ",mem[off+n]);	
