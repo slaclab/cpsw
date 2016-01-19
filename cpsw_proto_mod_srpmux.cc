@@ -1,6 +1,7 @@
 #include <cpsw_proto_mod_srpmux.h>
 
-#define VC_OFF 3
+#define VC_OFF_V2 3 // little endian
+#define VC_OFF_V1 4 // big endian
 
 
 SRPPort CProtoModSRPMux::createPort(int vc)
@@ -21,13 +22,13 @@ SRPPort CProtoModSRPMux::createPort(int vc)
 
 BufChain CSRPPort::processOutput(BufChain bc)
 {
-unsigned off = VC_OFF;
+unsigned off = VC_OFF_V2;
 	if ( bc->getLen() != 1 ) {
 		throw InternalError("CSRPPort::processOutput -- expect only 1 buffer");
 	}
 
 	if ( INoSsiDev::SRP_UDP_V1 == getProtoVersion() )
-		off += 4;
+		off = VC_OFF_V1;
 
 	Buf b = bc->getHead();
 	if ( b->getSize() <= off ) {
@@ -43,14 +44,14 @@ unsigned off = VC_OFF;
 bool CProtoModSRPMux::pushDown(BufChain bc)
 {
 unsigned vc;
-unsigned off = VC_OFF;
+unsigned off = VC_OFF_V2;
 
 	if ( bc->getLen() != 1 ) {
 		return false;
 	}
 
 	if ( INoSsiDev::SRP_UDP_V1 == getProtoVersion() )
-		off += 4;
+		off = VC_OFF_V1;
 
 	Buf b = bc->getHead();
 	if ( b->getSize() <= off ) {
