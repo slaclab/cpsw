@@ -21,6 +21,48 @@ typedef shared_ptr<IProtoPort> ProtoPort;
 class IProtoMod;
 typedef shared_ptr<IProtoMod> ProtoMod;
 
+// find a protocol stack based on parameters
+class ProtoPortMatchParams {
+public:
+	class MatchParam {
+	public:
+		ProtoPort matchedBy_;
+		bool      doMatch_;
+		MatchParam(bool doMatch = false)
+		: doMatch_(doMatch)
+		{
+		}
+	};
+	class MatchParamUnsigned : public MatchParam {
+	public:
+		unsigned val_;
+		MatchParamUnsigned(unsigned val = (unsigned)-1, bool doMatch = false)
+		: MatchParam( doMatch ? true : val != (unsigned)-1 ),
+		  val_(val)
+		{
+		}
+		MatchParamUnsigned & operator=(unsigned val)
+		{
+			val_     = val;
+			doMatch_ = true;
+			return *this;
+		}
+	};
+	MatchParamUnsigned udpDestPort_, srpVersion_, srpVC_;
+
+	int requestedMatches()
+	{
+	int rval = 0;
+		if ( udpDestPort_.doMatch_ )
+			rval++;
+		if ( srpVersion_.doMatch_ )
+			rval++;
+		if ( srpVC_.doMatch_ )
+			rval++;
+		return rval;
+	}
+};
+
 class IProtoPort {
 public:
 	static const bool         ABS_TIMEOUT = true;
@@ -36,6 +78,8 @@ public:
 
 	virtual ProtoMod  getProtoMod()                    = 0;
 	virtual ProtoPort getUpstreamPort()                = 0;
+
+	virtual int       match(ProtoPortMatchParams*)     = 0;
 };
 
 class IProtoMod {
@@ -198,6 +242,24 @@ public:
 		if ( outputQueue_ )
 			delete outputQueue_;
 	}
+
+	// return number of parameters matched by this port
+	virtual int iMatch(ProtoPortMatchParams *cmp)
+	{
+		return 0;
+	}
+
+	virtual int match(ProtoPortMatchParams *cmp)
+	{
+		int rval = iMatch(cmp);
+
+		ProtoPort up( getUpstreamPort() );
+
+		if ( up )
+			rval += up->match(cmp);
+		return rval;
+	}
+
 };
 
 class CProtoModImpl : public IProtoMod {

@@ -158,6 +158,8 @@ public:
 	virtual ~CSRPPort()
 	{
 	}
+
+	virtual int iMatch(ProtoPortMatchParams *cmp);
 };
 
 #endif

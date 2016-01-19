@@ -11,6 +11,7 @@
 
 using boost::recursive_mutex;
 using boost::lock_guard;
+using boost::dynamic_pointer_cast;
 
 typedef shared_ptr<NoSsiDevImpl> NoSsiDevImplP;
 
@@ -24,8 +25,8 @@ struct Mutex {
 
 #define MAXWORDS 256
 
-CUdpAddressImpl::CUdpAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
-:CAddressImpl(k),
+CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
+:CCommAddressImpl(k),
  protoVersion_(version),
  dport_(dport),
  usrTimeout_(timeoutUs),
@@ -36,25 +37,40 @@ CUdpAddressImpl::CUdpAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, uns
  tid_(0),
  mutex_(0)
 {
-struct sockaddr_in dst;
-NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
+ProtoPortMatchParams cmp;
+ProtoModSRPMux       srpMuxMod;
+ProtoPort            srpPort;
+NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
 
-	dst.sin_family      = AF_INET;
-	dst.sin_port        = htons( dport );
-	dst.sin_addr.s_addr = owner->getIpAddress();
 
-	ProtoModUdp    udpMod = CShObj::create< ProtoModUdp >( &dst, 0/* no queue */, 1 /* nThreads */, 0 /* no poller */ );
+	cmp.udpDestPort_  = dport;
+	cmp.srpVersion_   = version;
 
-	ProtoModSRPMux srpMuxMod = CShObj::create< ProtoModSRPMux >( version );
+	if ( (srpPort = owner->findProtoPort( &cmp )) ) {
+		if ( ! (srpMuxMod = dynamic_pointer_cast<ProtoModSRPMux::element_type>( srpPort->getProtoMod() )) ) {
+			throw InternalError("SRP port not attached to SRPMuxMod ?!");
+		}
+	} else {
+		// create new
+		struct sockaddr_in dst;
 
-	udpMod->addAtPort( srpMuxMod );
+		dst.sin_family      = AF_INET;
+		dst.sin_port        = htons( dport );
+		dst.sin_addr.s_addr = owner->getIpAddress();
+
+		ProtoModUdp    udpMod = CShObj::create< ProtoModUdp >( &dst, 0/* no queue */, 1 /* nThreads */, 0 /* no poller */ );
+
+		srpMuxMod = CShObj::create< ProtoModSRPMux >( version );
+
+		udpMod->addAtPort( srpMuxMod );
+	}
 
 	protoStack_ = srpMuxMod->createPort( vc );
 
 	mutex_ = new Mutex();
 }
 
-CUdpAddressImpl::~CUdpAddressImpl()
+CUdpSRPAddressImpl::~CUdpSRPAddressImpl()
 {
 	if ( mutex_ )
 		delete mutex_;
@@ -68,12 +84,12 @@ CNoSsiDevImpl::CNoSsiDevImpl(Key &k, const char *name, const char *ip)
 	}
 }
 
-void CUdpAddressImpl::setTimeoutUs(unsigned timeoutUs)
+void CUdpSRPAddressImpl::setTimeoutUs(unsigned timeoutUs)
 {
 	this->usrTimeout_.set(timeoutUs);
 }
 
-void CUdpAddressImpl::setRetryCount(unsigned retryCnt)
+void CUdpSRPAddressImpl::setRetryCount(unsigned retryCnt)
 {
 	this->retryCnt_ = retryCnt;
 }
@@ -103,7 +119,7 @@ uint32_t v;
 #define CMD_READ  0x00000000
 #define CMD_WRITE 0x40000000
 
-uint64_t CUdpAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
+uint64_t CUdpSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
 {
 SRPWord  bufh[4];
 uint8_t  buft[sizeof(SRPWord)];
@@ -300,7 +316,7 @@ retry:
 	throw IOError("No response -- timeout");
 }
 	
-uint64_t CUdpAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+uint64_t CUdpSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 uint64_t rval = 0;
 int headbytes = (args->off_ & (sizeof(SRPWord)-1));
@@ -335,7 +351,7 @@ unsigned sbytes = args->nbytes_;
 }
 
 
-uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+uint64_t CUdpSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
 	SRPWord    xbuf[4];
 	SRPWord    status;
@@ -557,7 +573,7 @@ retry:
 	throw IOError("Too many retries");
 }
 
-uint64_t CUdpAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+uint64_t CUdpSRPAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 uint64_t rval = 0;
 int headbytes = (args->off_ & (sizeof(SRPWord)-1));
@@ -593,9 +609,9 @@ uint8_t  msk1   = args->msk1_;
 
 }
 
-void CUdpAddressImpl::dump(FILE *f) const
+void CUdpSRPAddressImpl::dump(FILE *f) const
 {
-	fprintf(f,"CUdpAddressImpl:\n");
+	fprintf(f,"CUdpSRPAddressImpl:\n");
 	CAddressImpl::dump(f);
 	fprintf(f,"\nPeer: %s:%d\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString(), dport_);
 	fprintf(f,"  SRP Protocol Version: %8u\n",   protoVersion_);
@@ -606,30 +622,19 @@ void CUdpAddressImpl::dump(FILE *f) const
 	fprintf(f,"  Virtual Channel     : %8u\n",   vc_);
 }
 
-void CNoSsiDevImpl::addPort(unsigned port)
-{
-	if ( ! portInUse( port ) )
-		ports_.push_back( port );
-}
-
 bool CNoSsiDevImpl::portInUse(unsigned port)
 {
-unsigned i;
-	for ( i=0; i<ports_.size(); i++ ) {
-		if ( ports_[i] == port )
-			return true;
-	}
-	return false;
+ProtoPortMatchParams cmp;
+
+	cmp.udpDestPort_=port;
+
+	return findProtoPort( &cmp ) != 0;
 }
 
 void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
 {
-	if ( portInUse( dport ) ) {
-		throw InvalidArgError("Cannot address same destination port from multiple instances");
-	}
-	addPort( dport );
 	IAddress::AKey k = getAKey();
-	add( make_shared<CUdpAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc), child );
+	add( make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc), child );
 }
 
 void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize)
@@ -637,7 +642,6 @@ void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs,
 	if ( portInUse( dport ) ) {
 		throw InvalidArgError("Cannot address same destination port from multiple instances");
 	}
-	addPort( dport );
 	IAddress::AKey k = getAKey();
 	add( make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs, outQDepth, ldFrameWinSize, ldFragWinSize), child );
 }
@@ -657,8 +661,24 @@ printf("SETLOCKED\n");
 	CDevImpl::setLocked();
 }
 
+ProtoPort CNoSsiDevImpl::findProtoPort(ProtoPortMatchParams *cmp_p)
+{
+Children myChildren = getChildren();
+
+Children::element_type::iterator it;
+
+	for ( it = myChildren->begin(); it != myChildren->end(); ++it ) {
+		shared_ptr<const CCommAddressImpl> child = static_pointer_cast<const CCommAddressImpl>( *it );
+		// 'match' modifies the parameters (storing results); use a copy
+		ProtoPortMatchParams cmp = *cmp_p;
+		if ( cmp.requestedMatches() == child->getProtoStack()->match( &cmp ) )
+			return child->getProtoStack();
+	}
+	return ProtoPort();
+}
+
 CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize)
-:CAddressImpl(key),
+:CCommAddressImpl(key),
  dport_(dport)
 {
 struct sockaddr_in dst;
@@ -779,6 +799,3 @@ CTimeout diff(*now);
 		nSinceLast_++;
 	}
 }
-
-
-

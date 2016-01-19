@@ -318,3 +318,12 @@ unsigned       nios;
 		}
 	}
 }
+
+int CProtoModUdp::iMatch(ProtoPortMatchParams *cmp)
+{
+	if ( cmp->udpDestPort_.doMatch_ && cmp->udpDestPort_.val_ == getDestPort() ) {
+		cmp->udpDestPort_.matchedBy_ = getSelfAs<ProtoModUdp>();
+		return 1;
+	}
+	return 0;
+}

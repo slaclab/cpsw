@@ -40,7 +40,34 @@ public:
 	void reset(const CTimeout &);
 };
 
-class CUdpAddressImpl : public CAddressImpl {
+class CCommAddressImpl : public CAddressImpl {
+protected:
+	ProtoPort      protoStack_;
+
+public:
+	CCommAddressImpl(AKey k)
+	: CAddressImpl(k)
+	{
+	}
+
+	CCommAddressImpl(CCommAddressImpl &orig)
+	: CAddressImpl(orig)
+	{
+		throw InternalError("Clone not implemented"); /* need to clone protocols, ... */
+	}
+
+	ProtoPort
+	getProtoStack() const
+	{
+		return protoStack_;
+	}
+
+	virtual ~CCommAddressImpl()
+	{
+	}
+};
+
+class CUdpSRPAddressImpl : public CCommAddressImpl {
 private:            
 	INoSsiDev::ProtocolVersion protoVersion_;
 	unsigned short   dport_;
@@ -53,28 +80,28 @@ private:
 	mutable uint32_t tid_;
 	uint32_t         tidMsk_;
 	uint32_t         tidLsb_;
-	ProtoPort        protoStack_;
+
 protected:
 	Mutex            *mutex_;
 	virtual uint64_t readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const;
 	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 public:
-	CUdpAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
-	CUdpAddressImpl(CUdpAddressImpl &orig)
-	: CAddressImpl(orig),
+	CUdpSRPAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
+	CUdpSRPAddressImpl(CUdpSRPAddressImpl &orig)
+	: CCommAddressImpl(orig),
 	  dynTimeout_(orig.dynTimeout_.get()),
 	  nRetries_(0)
 	{
-		throw InternalError("Clone not implemented"); /* need to clone protocols, mutex, ... */
+		throw InternalError("Clone not implemented"); /* need to clone mutex, ... */
 	}
-	virtual ~CUdpAddressImpl();
+	virtual ~CUdpSRPAddressImpl();
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
 	virtual void dump(FILE *f) const;
 
 	// ANY subclass must implement clone(AKey) !
-	virtual CUdpAddressImpl *clone(AKey k) { return new CUdpAddressImpl( *this ); }
+	virtual CUdpSRPAddressImpl *clone(AKey k) { return new CUdpSRPAddressImpl( *this ); }
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
 	virtual unsigned getTimeoutUs()                      const { return usrTimeout_.getUs(); }
@@ -86,13 +113,12 @@ public:
 	virtual uint32_t getTid()                            const { return tid_ += tidLsb_; }
 };
 
-class CUdpStreamAddressImpl : public CAddressImpl {
+class CUdpStreamAddressImpl : public CCommAddressImpl {
 private:
 	unsigned dport_;
-	ProtoPort protoStack_;
 protected:
 	CUdpStreamAddressImpl(CUdpStreamAddressImpl &orig)
-	: CAddressImpl( orig ),
+	: CCommAddressImpl( orig ),
 	  dport_(orig.dport_)
 	{
 		throw InternalError("Clone not implemented");
@@ -114,14 +140,16 @@ class CNoSsiDevImpl : public CDevImpl, public virtual INoSsiDev {
 private:
 	in_addr_t        d_ip_;
 	string           ip_str_;
-	vector<unsigned> ports_;
 protected:
-	virtual void addPort(unsigned port);
 	CNoSsiDevImpl(CNoSsiDevImpl &orig, Key &k)
 	: CDevImpl(orig, k)
 	{
 		throw InternalError("Cloning of CNoSsiDevImpl not yet implemented");
 	}
+
+	virtual ProtoPort findProtoPort(ProtoPortMatchParams *);
+	friend CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
+
 public:
 	CNoSsiDevImpl(Key &key, const char *name, const char *ip);
 

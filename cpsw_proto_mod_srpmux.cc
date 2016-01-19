@@ -69,3 +69,17 @@ unsigned off = VC_OFF_V2;
 
 	return SRPPort( downstream_[vc] )->pushDownstream(bc);
 }
+
+int CSRPPort::iMatch(ProtoPortMatchParams *cmp)
+{
+int rval = 0;
+	if ( cmp->srpVersion_.doMatch_ && cmp->srpVersion_.val_ == getProtoVersion() ) {
+		cmp->srpVersion_.matchedBy_ = getSelfAsProtoPort();
+		rval++;
+	}
+	if ( cmp->srpVC_.doMatch_ && static_cast<INoSsiDev::ProtocolVersion>(cmp->srpVC_.val_) == getVC() ) {
+		cmp->srpVC_.matchedBy_ = getSelfAsProtoPort();
+		rval++;
+	}
+	return rval;
+}

@@ -136,6 +136,8 @@ public:
 	virtual CProtoModUdp *clone(Key &k) { return new CProtoModUdp( *this, k ); }
 
 	virtual ~CProtoModUdp();
+
+	virtual int iMatch(ProtoPortMatchParams *cmp);
 };
 
 #endif
