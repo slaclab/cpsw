@@ -41,6 +41,17 @@ public:
 	{
 	}
 
+	// range of bits in TID that the downstream user may occupy
+	virtual int tidStartBit()
+	{
+		return 0;
+	}
+
+	virtual int tidNBits()
+	{
+		return 24;
+	}
+
 	virtual INoSsiDev::ProtocolVersion getProtoVersion()
 	{
 		return protoVersion_;
@@ -113,7 +124,12 @@ public:
 
 	virtual ProtoMod getProtoMod()
 	{
-		return ProtoMod( owner_ );
+		return owner_;
+	}
+
+	virtual ProtoModSRPMux getProtoModAsSRPMux()
+	{
+		return owner_;
 	}
 
 	virtual INoSsiDev::ProtocolVersion getProtoVersion()
