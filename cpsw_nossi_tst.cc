@@ -217,15 +217,17 @@ unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 		v_le->getVal(v16,n);
 
 		if ( v16[0] != 0xddcc ) {
+			fprintf(stderr, "array16 val mismatch @i==%i\n (got %x -- expected %x)\n", 0, v16[0], 0xddcc);
 			throw TestFailed();
 		}
 		for ( i=1; i<n-1; i++ ) {
 			if ( v16[i] != i+1 ) {
-				fprintf(stderr, "array val mismatch @i==%i\n (got %x)\n", i, v16[i]);
+				fprintf(stderr, "array16 val mismatch @i==%i\n (got %x)\n", i, v16[i]);
 				throw TestFailed();
 			}
 		}
 		if ( v16[i] != 0xfbfa ) {
+			fprintf(stderr, "array16 val mismatch @i==%i\n (got %x -- expected %x)\n", i, v16[i], 0xfbfa);
 			throw TestFailed();
 		}
 		memset(v16, 0x55, sizeof(v16[0])*n);
@@ -235,14 +237,18 @@ unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 		uint32_t v32[n32];
 		v32_le->getVal(v32, n32);
 		if ( v32[0] != 0x5555bbaa ) {
+			i = 0;
+			fprintf(stderr, "array32 val mismatch @i==%i\n (got %x -- expected %x)\n", i, v32[i], 0x5555bbaa);
 			throw TestFailed();
 		}
 		for ( i=1; i<n32-1; i++ ) {
 			if ( v32[i] != 0x55555555 ) {
+				fprintf(stderr, "array32 val mismatch @i==%i\n (got %x -- expected %x)\n", i, v32[i], 0x55555555);
 				throw TestFailed();
 			}
 		}
 		if ( v32[i] != 0xfdfc5555 ) {
+			fprintf(stderr, "array32 val mismatch @i==%i\n (got %x -- expected %x)\n", i, v32[i], 0xfdfc5555);
 			throw TestFailed();
 		}
 
