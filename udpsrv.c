@@ -43,7 +43,8 @@
 #define EOFRAG   0x80
 #define PIPEDEPTH (1<<4) /* MUST be power of two */
 
-#define PORT_DEF   8192
+#define V1PORT_DEF 8191
+#define V2PORT_DEF 8192
 #define SPORT_DEF  8193
 #define SCRMBL_DEF 2
 #define INA_DEF    "127.0.0.1"
@@ -59,6 +60,7 @@
 typedef uint8_t Buf[FRAGLEN + HEADSIZE + TAILSIZE];
 
 static Buf bufmem[PIPEDEPTH];
+static int debug = 0;
 
 static inline uint32_t swp32(int to, uint32_t x)
 {
@@ -77,14 +79,15 @@ uint8_t mem[1024*1024] = {0};
 
 static void usage(const char *nm)
 {
-	fprintf(stderr, "usage: %s -a <inet_addr> -p <port> [-s <stream_port>] [-f <n_frags>] [-L <loss_percent>] [-S <depth> ] [-V <protoVersion>]\n", nm);
-	fprintf(stderr, "        -V version  : protocol version V1 (V2 default)\n");
+	fprintf(stderr, "usage: %s -a <inet_addr> -P <V2 port> [-s <stream_port>] [-f <n_frags>] [-L <loss_percent>] [-S <depth> ] [-V <protoVersion>]\n", nm);
+	fprintf(stderr, "        -P          : port where V2 SRP server is listening (-1 for none)\n");
+	fprintf(stderr, "        -p          : port where V1 SRP server is listening (-1 for none)\n");
 #ifdef DEBUG
 	fprintf(stderr, "        -d          : enable debugging messages (may slow down)\n");
 #endif
 	fprintf(stderr, "        -S <depth>  : scramble packet order (arg is ld2(scramble-length))\n");
 	fprintf(stderr, "        -L <percent>: lose/drop <percent> pacets\n");
-	fprintf(stderr, " Defaults: -a %s -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
+	fprintf(stderr, " Defaults: -a %s -P %d -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, V2PORT_DEF, V1PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
 }
 
 static void payload_swap(int v1, uint32_t *buf, int nelms)
@@ -122,13 +125,19 @@ bail:
 	return -1;
 }
 
-struct streamer_args {
+typedef struct streamer_args {
 	int                sd;
 	struct sockaddr_in peer;
 	unsigned           sim_loss;
 	unsigned           n_frags;
 	unsigned           scramble;
-};
+} streamer_args;
+
+typedef struct srp_args {
+	const char *       ina;
+	int                port;
+	int                v1;
+} srp_args;
 
 void *poller(void *arg)
 {
@@ -232,131 +241,27 @@ int      idx  = 0;
 	return 0;
 }
 
-int
-main(int argc, char **argv)
+static void* srpHandler(void *arg)
 {
-int sd = -1;
-int rval = 1;
-struct   sockaddr_in you;
-uint32_t rbuf[2048];
+srp_args *srp_arg = (srp_args*)arg;
+uintptr_t rval = 1;
+int      sd;
+struct msghdr mh;
+struct iovec  iov[2];
+int      niov = 0;
+int      i;
+int      expected;
+unsigned off;
 int      n, got, put;
 uint32_t addr = 0;
 uint32_t size = 16;
-char *c_a;
-int  *i_a;
-int        port = PORT_DEF;
-int       sport = SPORT_DEF;
-const char *ina = INA_DEF;
-socklen_t  youlen;
-unsigned off;
-unsigned n_frags  = NFRAGS;
-unsigned sim_loss = SIMLOSS_DEF;
-unsigned scramble = SCRMBL_DEF;
-int      vers = 2;
-int      v1;
+uint32_t rbuf[2048];
 uint32_t header = 0;
+struct   sockaddr_in you;
+int      v1 = srp_arg->v1;
 
-pthread_t poller_tid, fragger_tid;
-int    have_poller  = 0;
-int    have_fragger = 0;
-
-struct msghdr mh;
-struct iovec  iov[2];
-int    niov = 0;
-int    i;
-int    expected;
-int    debug = 0;
-
-struct streamer_args *s_arg = 0;
-
-	memset( &mh, 0, sizeof(mh) );
-
-	sprintf(mem + 0x800, "Hello");
-
-	while ( (got = getopt(argc, argv, "dp:a:V:hs:f:S:L:")) > 0 ) {
-		c_a = 0;
-		i_a = 0;
-		switch ( got ) {
-			case 'h': usage(argv[0]); return 0;
-			case 'p': i_a = &port;     break;
-			case 'a': ina = optarg;    break;
-			case 'V': i_a = &vers;     break;
-			case 'd': debug = 1;       break;
-			case 's': i_a = &sport;    break;
-			case 'f': i_a = &n_frags;  break;
-			case 'L': i_a = &sim_loss; break;
-			case 'S': i_a = &scramble; break;
-			default:
-				fprintf(stderr, "unknown option '%c'\n", got);
-				usage(argv[0]);
-				goto bail;
-		}
-		if ( i_a ) {
-			if ( 1 != sscanf(optarg,"%i",i_a) ) {
-				fprintf(stderr,"Unable to scan option '-%c' argument '%s'\n", got, optarg);
-				goto bail;
-			}
-		}
-	}
-
-	if ( sim_loss >= 100 ) {
-		fprintf(stderr,"-L arg must be < 100\n");
-		exit(1);
-	}
-
-	// arg is ld2
-	scramble = 1<<scramble;
-	if ( scramble > PIPEDEPTH ) {
-		fprintf(stderr,"-S arg must be <= log2(%d)\n", PIPEDEPTH);
-		exit(1);
-	}
-
-	if ( vers != 1 && vers != 2 ) {
-		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
+	if ( (sd = getsock( srp_arg->ina, srp_arg->port ) ) < 0 )
 		goto bail;
-	}
-
-	if ( sport && sport == port ) {
-		fprintf(stderr,"Stream and SRP ports must be different!\n");
-		goto bail;
-	}
-
-	if ( ! port ) {
-		fprintf(stderr,"Need port arg (-p option)\n");
-		goto bail;
-	}
-
-	v1 = (vers == 1);
-
-	if ( (sd = getsock( ina, port ) ) < 0 )
-		goto bail;
-
-	if ( sport ) {
-		s_arg = malloc( sizeof(*s_arg) );
-		if ( ! s_arg ) {
-			fprintf(stderr,"No Memory\n");
-			goto bail;
-		}
-		s_arg->sd = getsock( ina, sport );
-		s_arg->peer.sin_family      = AF_INET;
-		s_arg->peer.sin_addr.s_addr = INADDR_ANY;
-		s_arg->peer.sin_port        = htons(0);
-		s_arg->sim_loss             = sim_loss;
-		s_arg->n_frags              = n_frags;
-		s_arg->scramble             = scramble;
-		if ( s_arg->sd < 0 )
-			goto bail;
-		if ( pthread_create( &poller_tid, 0, poller, (void*)s_arg ) ) {
-			perror("pthread_create [poller]");
-			goto bail;
-		}
-		have_poller = 1;
-		if ( pthread_create( &fragger_tid, 0, fragger, (void*)s_arg ) ) {
-			perror("pthread_create [fragger]");
-			goto bail;
-		}
-		have_fragger = 1;
-	}
 
 	expected = 12;
 
@@ -368,14 +273,7 @@ struct streamer_args *s_arg = 0;
 		niov++;
 	}
 
-	for ( i=0; i<16; i+=2 ) {
-		mem[REGBASE+i/2]    = (i<<4)|(i+1);
-		mem[REGBASE+15-i/2] = (i<<4)|(i+1);
-	}
-
 	while ( 1 ) {
-
-		youlen = sizeof(you);
 
 		memset( &mh, 0, sizeof(mh) );
 		mh.msg_name    = (struct sockaddr*)&you;
@@ -523,17 +421,157 @@ if ( debug )
 bail:
 	if ( sd >= 0 )
 		close( sd );
+	return (void*)rval;
+}
+
+int
+main(int argc, char **argv)
+{
+int      rval = 1;
+int      opt;
+char    *c_a;
+int     *i_a;
+int      i;
+int      v2port   = V2PORT_DEF;
+int      v1port   = V1PORT_DEF;
+int      sport    = SPORT_DEF;
+const char *ina   = INA_DEF;
+unsigned n_frags  = NFRAGS;
+unsigned sim_loss = SIMLOSS_DEF;
+unsigned scramble = SCRMBL_DEF;
+
+pthread_t poller_tid, fragger_tid, srp_tid;
+int    have_poller  = 0;
+int    have_fragger = 0;
+int    have_srp     = 0;
+
+struct streamer_args *s_arg   = 0;
+struct srp_args      *srp_arg = 0;
+
+	sprintf(mem + 0x800, "Hello");
+
+	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:")) > 0 ) {
+		c_a = 0;
+		i_a = 0;
+		switch ( opt ) {
+			case 'h': usage(argv[0]); return 0;
+			case 'P': i_a = &v2port;   break;
+			case 'p': i_a = &v1port;   break;
+			case 'a': ina = optarg;    break;
+			case 'd': debug = 1;       break;
+			case 's': i_a = &sport;    break;
+			case 'f': i_a = &n_frags;  break;
+			case 'L': i_a = &sim_loss; break;
+			case 'S': i_a = &scramble; break;
+			default:
+				fprintf(stderr, "unknown option '%c'\n", opt);
+				usage(argv[0]);
+				goto bail;
+		}
+		if ( i_a ) {
+			if ( 1 != sscanf(optarg,"%i",i_a) ) {
+				fprintf(stderr,"Unable to scan option '-%c' argument '%s'\n", opt, optarg);
+				goto bail;
+			}
+		}
+	}
+
+	if ( sim_loss >= 100 ) {
+		fprintf(stderr,"-L arg must be < 100\n");
+		exit(1);
+	}
+
+	// arg is ld2
+	scramble = 1<<scramble;
+	if ( scramble > PIPEDEPTH ) {
+		fprintf(stderr,"-S arg must be <= log2(%d)\n", PIPEDEPTH);
+		exit(1);
+	}
+
+	if ( sport <= 0 && v1port <= 0 && v2port <= 0 ) {
+		fprintf(stderr,"At least one of -s, -p, -P must be > 0\n");
+		goto bail;
+	}
+
+	for ( i=0; i<16; i+=2 ) {
+		mem[REGBASE+i/2]    = (i<<4)|(i+1);
+		mem[REGBASE+15-i/2] = (i<<4)|(i+1);
+	}
+
+	if ( sport >= 0 ) {
+		s_arg = malloc( sizeof(*s_arg) );
+		if ( ! s_arg ) {
+			fprintf(stderr,"No Memory\n");
+			goto bail;
+		}
+		s_arg->sd = getsock( ina, sport );
+		s_arg->peer.sin_family      = AF_INET;
+		s_arg->peer.sin_addr.s_addr = INADDR_ANY;
+		s_arg->peer.sin_port        = htons(0);
+		s_arg->sim_loss             = sim_loss;
+		s_arg->n_frags              = n_frags;
+		s_arg->scramble             = scramble;
+		if ( s_arg->sd < 0 )
+			goto bail;
+		if ( pthread_create( &poller_tid, 0, poller, (void*)s_arg ) ) {
+			perror("pthread_create [poller]");
+			goto bail;
+		}
+		have_poller = 1;
+		if ( pthread_create( &fragger_tid, 0, fragger, (void*)s_arg ) ) {
+			perror("pthread_create [fragger]");
+			goto bail;
+		}
+		have_fragger = 1;
+	}
+
+	if ( v2port >= 0 && v1port >= 0 ) {
+		srp_arg = malloc(sizeof(*srp_arg));
+		if ( ! srp_arg ) {
+			fprintf(stderr,"No Memory\n");
+			goto bail;
+		}
+		srp_arg->ina   = ina;
+		srp_arg->port  = v1port;
+		srp_arg->v1    = 1;
+
+		if ( pthread_create( &srp_tid, 0, srpHandler, (void*)srp_arg ) ) {
+			perror("pthread_create [srpHandler]");
+			goto bail;
+		}
+		have_srp = 1;
+	}
+
+	if ( v1port >= 0 || v2port >= 0 ) {
+		srp_args arg;
+		arg.ina  = ina;
+		arg.port = (arg.v1 = v2port < 0) ? v1port : v2port; 
+	
+		rval = (uintptr_t)srpHandler( &arg );
+	}
+
+bail:
 	if ( have_poller ) {
-		void *ign;
+		void *res;
 		pthread_cancel( poller_tid );
-		pthread_join( poller_tid, &ign );
+		pthread_join( poller_tid, &res );
+		rval += (uintptr_t)res;
 	}
 	if ( have_fragger ) {
-		void *ign;
+		void *res;
 		pthread_cancel( fragger_tid );
-		pthread_join( fragger_tid, &ign );
+		pthread_join( fragger_tid, &res );
+		rval += (uintptr_t)res;
+	}
+	if ( have_srp ) {
+		void *res;
+		pthread_cancel( srp_tid );
+		pthread_join( srp_tid, &res );
+		rval += (uintptr_t)res;
 	}
 	if ( s_arg )
 		free( s_arg );
+	if ( srp_arg )
+		free( srp_arg );
 	return rval;
 }
