@@ -385,9 +385,6 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 
 		read(node, &rargs);
 
-		if ( doSwapV1 )
-			swpw( first_word );
-
 		first_word[ first_byte  ] = (first_word[ first_byte ] & msk1) | (src[0] & ~msk1);
 
 		toput--;
@@ -417,9 +414,6 @@ uint64_t CUdpAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 		rargs.off_       = (off + dbytes) & ~3ULL;
 
 		read(node, &rargs);
-
-		if ( doSwapV1 )
-			swpw( last_word );
 
 		int last_byte = (totbytes-1) & (sizeof(SRPWord)-1);
 		last_word[ last_byte  ] = (last_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
