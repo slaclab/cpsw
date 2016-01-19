@@ -107,7 +107,7 @@ struct sockaddr_in me;
 	}
 
 	me.sin_family      = AF_INET;
-	me.sin_addr.s_addr = inet_addr(ina);
+	me.sin_addr.s_addr = ina ? inet_addr(ina) : INADDR_ANY;
 	me.sin_port        = htons( (short)port );
 
 	if ( bind( sd, (struct sockaddr*)&me, sizeof(me) ) < 0 ) {
@@ -321,8 +321,8 @@ struct streamer_args *s_arg = 0;
 		goto bail;
 	}
 
-	if ( ! ina || ! port ) {
-		fprintf(stderr,"Need inet and port args (-a and -p options)\n");
+	if ( ! port ) {
+		fprintf(stderr,"Need port arg (-p option)\n");
 		goto bail;
 	}
 
