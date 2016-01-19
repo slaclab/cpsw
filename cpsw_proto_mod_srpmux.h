@@ -42,12 +42,12 @@ public:
 	}
 
 	// range of bits in TID that the downstream user may occupy
-	virtual int tidStartBit()
+	virtual int getTidLsb()
 	{
 		return 0;
 	}
 
-	virtual int tidNBits()
+	virtual int getTidNumBits()
 	{
 		return 24;
 	}

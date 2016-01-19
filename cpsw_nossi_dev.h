@@ -110,7 +110,7 @@ public:
 	virtual INoSsiDev::ProtocolVersion getProtoVersion() const { return protoVersion_; }
 	virtual uint8_t  getVC()                             const { return vc_; }
 	virtual unsigned short getDport()                    const { return dport_; }
-	virtual uint32_t getTid()                            const { return tid_ += tidLsb_; }
+	virtual uint32_t getTid()                            const { return tid_ = (tid_ + tidLsb_) & tidMsk_; }
 };
 
 class CUdpStreamAddressImpl : public CCommAddressImpl {

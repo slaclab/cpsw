@@ -21,7 +21,7 @@ struct Mutex {
 	recursive_mutex m;
 };
 
-#undef  NOSSI_DEBUG
+//#define NOSSI_DEBUG
 
 #define MAXWORDS 256
 
@@ -41,6 +41,7 @@ ProtoPortMatchParams cmp;
 ProtoModSRPMux       srpMuxMod;
 ProtoPort            srpPort;
 NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
+int                  nbits;
 
 
 	cmp.udpDestPort_  = dport;
@@ -66,6 +67,10 @@ NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
 	}
 
 	protoStack_ = srpMuxMod->createPort( vc );
+
+	tidLsb_ = 1 << srpMuxMod->getTidLsb();
+	nbits   = srpMuxMod->getTidNumBits();
+	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
 
 	mutex_ = new Mutex();
 }
@@ -128,8 +133,8 @@ SRPWord  header;
 SRPWord  status;
 unsigned i;
 int      j, put;
-int      headbytes = (off & (sizeof(SRPWord)-1));
-int      tailbytes = 0;
+unsigned headbytes = (off & (sizeof(SRPWord)-1));
+unsigned tailbytes = 0;
 int      totbytes;
 struct iovec  iov[5];
 int      got;
@@ -245,7 +250,7 @@ uint32_t tid = getTid();
 			if ( doSwap ) {
 				swp32( &bufh[0] );
 			}
-		} while ( bufh[0] != tid );
+		} while ( (bufh[0] & tidMsk_) != tid );
 
 		dynTimeout_.update( &now, &then );
 
@@ -319,7 +324,7 @@ retry:
 uint64_t CUdpSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 uint64_t rval = 0;
-int headbytes = (args->off_ & (sizeof(SRPWord)-1));
+unsigned headbytes = (args->off_ & (sizeof(SRPWord)-1));
 int totbytes;
 int nWords;
 uint64_t off = args->off_;
@@ -541,7 +546,7 @@ uint64_t CUdpSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IFie
 			if ( doSwap ) {
 				swp32( &got_tid ); 
 			}
-		} while ( tid != got_tid );
+		} while ( tid != (got_tid & tidMsk_) );
 
 		dynTimeout_.update( &now, &then );
 
