@@ -37,20 +37,33 @@ TEST_AXIV_NO=cpsw_axiv_udp_tst
 
 FILTERED_TBINS=$(filter-out $(TEST_AXIV_$(TEST_AXIV)), $(TBINS))
 
+# may override for individual test targets which will be
+# executed with for all option sets, eg:
+#
+#    some_tst_run:RUN_OPTS='' '-a -b'
+#
+# (will run once w/o opts, a second time with -a -b)
+RUN_OPTS=''
+
+# run for V2 and V1
+cpsw_nossi_tst_run:RUN_OPTS='' '-V1 -p8191'
+
 all: tbins
 
 tbins: $(TBINS)
 
-test: $(FILTERED_TBINS)
-	@for i in $^ ; do \
-		if ./$$i ; then \
+test: $(addsuffix _run,$(FILTERED_TBINS))
+	echo "TESTS PASSED"
+
+%_tst_run: %_tst
+	@for opt in $(RUN_OPTS) ; do \
+		if ./$< $${opt} ; then \
 			echo "TEST $$i PASSED" ; \
 		else \
 			echo "TEST $$i FAILED" ; \
 			exit 1; \
 		fi \
-	done  ; \
-	echo "TESTS PASSED"
+	done
 
 cpsw_nossi_tst: udpsrv
 
