@@ -20,14 +20,7 @@
 #define CMD_IS_WR(x) (((x)&0xc0000000) == 0x40000000)
 #define CMD_ADDR(x)  ( (x)<<2 )
 
-#define REGBASE 0x1000 /* pseudo register space */
-#define REG_RO_OFF 0
-#define REG_RO_SZ 16
-#define REG_CLR_OFF REG_RO_SZ
-#define REG_SCR_OFF (REG_CLR_OFF + 8)
-#define REG_SCR_SZ  32
-#define REG_ARR_OFF (REG_SCR_OFF + REG_SCR_SZ)
-#define REG_ARR_SZ  8192 // must match value in cpsw_nossi_tst.cc
+#include <udpsrv_regdefs.h>
 
 #define NFRAGS  20
 #define FRAGLEN 8

@@ -28,7 +28,7 @@ TSRCS+= cpsw_stream_tst.cc
 SRCS = $(LSRCS) $(TSRCS)
 
 CXXFLAGS = -I. $(BOOSTINCP) -g -Wall -O2
-CFLAGS=-O2 -g
+CFLAGS=-O2 -g -I.
 
 TBINS=$(patsubst %.cc,%,$(wildcard *_tst.cc))
 
