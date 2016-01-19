@@ -27,7 +27,7 @@
 #define REG_SCR_OFF (REG_CLR_OFF + 8)
 #define REG_SCR_SZ  32
 #define REG_ARR_OFF (REG_SCR_OFF + REG_SCR_SZ)
-#define REG_ARR_SZ  8192
+#define REG_ARR_SZ  8192 // must match value in cpsw_nossi_tst.cc
 
 #define NFRAGS  20
 #define FRAGLEN 8
