@@ -13,11 +13,7 @@
 
 #include <vector>
 
-#include <boost/atomic.hpp>
-
 using std::vector;
-using boost::atomic;
-using boost::memory_order_relaxed;
 
 class CNoSsiDevImpl;
 
@@ -54,7 +50,9 @@ private:
 	mutable unsigned nRetries_;
 	uint8_t          vc_;
 	bool             needSwap_;
-	mutable atomic<uint32_t> tid_;
+	mutable uint32_t tid_;
+	uint32_t         tidMsk_;
+	uint32_t         tidLsb_;
 	ProtoPort        protoStack_;
 protected:
 	Mutex            *mutex_;
@@ -85,7 +83,7 @@ public:
 	virtual INoSsiDev::ProtocolVersion getProtoVersion() const { return protoVersion_; }
 	virtual uint8_t  getVC()                             const { return vc_; }
 	virtual unsigned short getDport()                    const { return dport_; }
-	virtual uint32_t getTid()                            const { return tid_.fetch_add(1, memory_order_relaxed); }
+	virtual uint32_t getTid()                            const { return tid_ += tidLsb_; }
 };
 
 class CUdpStreamAddressImpl : public CAddressImpl {
