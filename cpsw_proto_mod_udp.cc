@@ -12,7 +12,8 @@
 
 #include <sched.h>
 
-//#define UDP_DEBUG
+#define UDP_DEBUG
+//#define UDP_DEBUG_STRM
 
 CSockSd::CSockSd()
 {
@@ -125,6 +126,10 @@ void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 	Buf     buf = IBuf::getBuf();
 
 	while ( 1 ) {
+
+#ifdef UDP_DEBUG
+		printf("UDP -- waiting for data\n");
+#endif
 		got = ::read( sd_.getSd(), buf->getPayload(), buf->getCapacity() );
 		if ( got < 0 ) {
 			perror("rx thread");
@@ -133,34 +138,47 @@ void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 		}
 		buf->setSize( got );
 		if ( got > 0 ) {
+
 #ifdef UDP_DEBUG
-unsigned i;
-uint8_t  *p = buf->getPayload();
-unsigned fram = (p[1]<<4) | (p[0]>>4);
-unsigned frag = (p[4]<<16) | (p[3] << 8) | p[2];
-	for ( i=0; i< (got < 4 ? got : 4); i++ )
-		printf("%02x ", buf->getPayload()[i]);
-	printf("\n");
+		unsigned i;
+#ifdef UDP_DEBUG_STRM
+		uint8_t  *p = buf->getPayload();
+		unsigned fram = (p[1]<<4) | (p[0]>>4);
+		unsigned frag = (p[4]<<16) | (p[3] << 8) | p[2];
+#endif
+			printf("UDP data: ");
+			for ( i=0; i< (got < 4 ? got : 4); i++ )
+				printf("%02x ", buf->getPayload()[i]);
+			printf("\n");
 #endif
 
 			BufChain bufch = IBufChain::create();
 			bufch->addAtTail( buf );
 
 #ifdef UDP_DEBUG
-bool st=
+		bool st=
 #endif
 			owner_->pushDown( bufch );
 
 #ifdef UDP_DEBUG
-	printf("(UDP %d) fram # %4d, frag # %4d", got, fram, frag); 
-if ( st )
-     printf(" (SUCC)\n");
-else printf(" (DROP)\n");
+			printf("UDP got %d", (int)got);
+#ifdef UDP_DEBUG_STRM
+			printf(" fram # %4d, frag # %4d", fram, frag);
+#endif
+			if ( st )
+				printf(" (pushdown SUCC)\n");
+			else
+				printf(" (pushdown DROP)\n");
 #endif
 
 			// get new buffer
 			buf = IBuf::getBuf();
 		}
+#ifdef UDP_DEBUG
+		else {
+			printf("UDP got ZERO\n");
+		}
+#endif
 	}
 }
 
@@ -296,6 +314,9 @@ unsigned       nios;
 			throw IOError("::pselect() error: ", errno);
 		}
 		if ( selres == 0 ) {
+#ifdef UDP_DEBUG
+			printf("UDP doPush -- pselect timeout\n");
+#endif
 			// TIMEOUT
 			return;
 		}
@@ -317,6 +338,13 @@ unsigned       nios;
 				throw IOError("::send() error: ", errno);
 		}
 	}
+
+#ifdef UDP_DEBUG
+	printf("UDP doPush -- wrote %d:", sndres);
+	for ( unsigned i=0; i < (iov[0].iov_len < 4 ? iov[0].iov_len : 4); i++ )
+		printf(" %02x", ((unsigned char*)iov[0].iov_base)[i]);
+	printf("\n");
+#endif
 }
 
 int CProtoModUdp::iMatch(ProtoPortMatchParams *cmp)
