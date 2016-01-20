@@ -679,13 +679,13 @@ void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version
 	add( make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc), child );
 }
 
-void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize)
+void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads)
 {
 	if ( portInUse( dport ) ) {
 		throw InvalidArgError("Cannot address same destination port from multiple instances");
 	}
 	IAddress::AKey k = getAKey();
-	add( make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs, outQDepth, ldFrameWinSize, ldFragWinSize), child );
+	add( make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads), child );
 }
 
 
@@ -718,7 +718,7 @@ Children::element_type::iterator it;
 	return ProtoPort();
 }
 
-CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize)
+CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads)
 :CCommAddressImpl(key),
  dport_(dport)
 {
@@ -729,7 +729,7 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 	dst.sin_port        = htons( dport );
 	dst.sin_addr.s_addr = owner->getIpAddress();
 
-	ProtoModUdp    udpMod     = CShObj::create< ProtoModUdp >( &dst, 10/* queue depth */, 2 /* nThreads */ );
+	ProtoModUdp    udpMod     = CShObj::create< ProtoModUdp >( &dst, inQDepth, nUdpThreads );
 
 	ProtoModDepack depackMod  = CShObj::create< ProtoModDepack >( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
 

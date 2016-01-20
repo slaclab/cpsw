@@ -9,7 +9,7 @@
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-h] [-d <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>]\n", nm);
+	fprintf(stderr,"Usage: %s [-h] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>]\n", nm);
 }
 int
 main(int argc, char **argv)
@@ -23,7 +23,8 @@ int      fram, lfram, errs, goodf;
 int      attempts;
 unsigned*i_p;
 
-	unsigned qDepth = 12;
+	unsigned iQDepth = 40;
+	unsigned oQDepth =  5;
 	unsigned ldFrameWinSize = 5;
 	unsigned ldFragWinSize  = 5;
 	unsigned timeoutUs = 10000000;
@@ -31,7 +32,8 @@ unsigned*i_p;
 	while ( (i=getopt(argc, argv, "d:l:L:hT:")) > 0 ) {
 		i_p = 0;
 		switch ( i ) {
-			case 'd': i_p = &qDepth;         break;
+			case 'q': i_p = &iQDepth;        break;
+			case 'Q': i_p = &oQDepth;        break;
 			case 'L': i_p = &ldFrameWinSize; break;
 			case 'l': i_p = &ldFragWinSize;  break;
 			case 'T': i_p = &timeoutUs;      break;
@@ -48,7 +50,7 @@ unsigned*i_p;
 		goto bail;
 	}
 
-	if ( qDepth > 5000 ) {
+	if ( iQDepth > 5000 || oQDepth > 5000 ) {
 		fprintf(stderr,"Queue Depth seems too large...\n");
 		goto bail;
 	}
@@ -58,7 +60,7 @@ try {
 NoSsiDev root = INoSsiDev::create("udp", "127.0.0.1");
 Field    data = IField::create("data");
 
-	root->addAtStream( data, 8193, timeoutUs, qDepth, ldFrameWinSize, ldFragWinSize );
+	root->addAtStream( data, 8193, timeoutUs, iQDepth, oQDepth, ldFrameWinSize, ldFragWinSize );
 
 	Path   strmPath = root->findByName("data");
 
