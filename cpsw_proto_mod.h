@@ -108,7 +108,7 @@ private:
 	CBufQueue & operator=(const CBufQueue &orig) { throw InternalError("Must not assign"); }
 
 protected:
-	BufChain pop(bool wait, const struct timespec * abs_timeout);
+	BufChain pop(bool wait, const CTimeout * abs_timeout);
 
 public:
 	CBufQueue(size_type n);
@@ -116,7 +116,7 @@ public:
 
 	bool     push(BufChain *owner);
 
-	BufChain pop(const struct timespec *abs_timeout);
+	BufChain pop(const CTimeout *abs_timeout);
 	BufChain tryPop();
 
 	CTimeout getAbsTimeout(const CTimeout *rel_timeout);
@@ -186,9 +186,9 @@ public:
 			if ( ! abs_timeout ) {
 				// arg is rel-timeout
 				CTimeout abst( getAbsTimeout( timeout ) );
-				return outputQueue_->pop( &abst.tv_ );
+				return outputQueue_->pop( &abst );
 			} else {
-				return outputQueue_->pop( &timeout->tv_ );
+				return outputQueue_->pop( timeout );
 			}
 		}
 	}

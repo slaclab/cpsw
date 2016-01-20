@@ -77,10 +77,10 @@ BufChain ref = *owner;
 	return false;
 }
 
-BufChain CBufQueue::pop(bool wait, const struct timespec *abs_timeout)
+BufChain CBufQueue::pop(bool wait, const CTimeout *abs_timeout)
 {
 int sem_stat = wait ?
-	                   ( abs_timeout ? sem_timedwait( &rd_sem_, abs_timeout )
+	                   ( abs_timeout ? sem_timedwait( &rd_sem_, &abs_timeout->tv_ )
 	                                 : sem_wait( &rd_sem_ ) )
                     : sem_trywait( &rd_sem_ );
 
@@ -111,7 +111,7 @@ int sem_stat = wait ?
 	throw IOError("sem__xxwait failed");
 }
 
-BufChain CBufQueue::pop(const struct timespec *timeout)
+BufChain CBufQueue::pop(const CTimeout *timeout)
 {
 	return pop( true, timeout );
 }
