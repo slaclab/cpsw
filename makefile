@@ -49,6 +49,8 @@ RUN_OPTS=''
 # run for V2 and V1
 cpsw_nossi_tst_run:RUN_OPTS='' '-V1 -p8191'
 
+cpsw_srpmux_tst_run:RUN_OPTS='' '-V1 -p8191'
+
 all: tbins
 
 tbins: $(TBINS)

@@ -73,7 +73,7 @@ mutex M::mtx_;
 static void* test_thread(void* arg)
 {
 char nm[100];
-int loops = 10;
+int loops = 20;
 intptr_t vc_idx = reinterpret_cast<intptr_t>(arg);
 
 	sprintf(nm, "comm/mmio_vc_%"PRIdPTR"/val", vc_idx);
@@ -133,13 +133,48 @@ int
 main(int argc, char **argv)
 {
 INoSsiDev::ProtocolVersion vers = INoSsiDev::SRP_UDP_V2;
-int port = INoSsiDev::SRP_UDP_V2 == vers ? 8192 : 8191;
+int port = 0;
 int vc1  = 81;
 int vc2  = 17;
 bool have_even = false;
 bool have_odd  = false;
 bool do_even   = true;
 bool do_odd    = true;
+int  ivers = 2;
+int *i_p;
+int  opt;
+int  rval  = 1;
+
+	while ( (opt = getopt(argc, argv, "hV:p:")) > 0 ) {
+		i_p = 0;
+		switch ( opt ) {
+			case 'V': i_p = &ivers; break;
+			case 'p': i_p = &port;  break;
+			case 'h':
+				rval = 0;
+				/* fall thru */
+			default:
+				fprintf(stderr,"Unknown option '-%c'\n", opt);
+				fprintf(stderr,"usage: %s [-V <proto_vers>] [-p <dest_port>] [-h]\n", argv[0]);
+				return rval;
+		}
+		if ( i_p && 1 != sscanf(optarg,"%i",i_p) ) {
+			fprintf(stderr,"Scanning option '-%c' arg (to integer) failed\n", opt);
+			return 1;
+		}
+	}
+
+	switch ( ivers ) {
+		case 2: vers = INoSsiDev::SRP_UDP_V2; break;
+		case 1: vers = INoSsiDev::SRP_UDP_V1; break;
+		default:
+			fprintf(stderr,"Invalid protocol version '%i'\n", ivers);
+			return 1;
+	}
+
+	if ( port <= 0 ) {
+		port = INoSsiDev::SRP_UDP_V2 == vers ? 8192 : 8191;
+	}
 
 	try {
 		NoSsiDev comm = INoSsiDev::create("comm", 0);
