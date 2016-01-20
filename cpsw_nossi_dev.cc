@@ -82,9 +82,9 @@ CUdpSRPAddressImpl::~CUdpSRPAddressImpl()
 }
 
 CNoSsiDevImpl::CNoSsiDevImpl(Key &k, const char *name, const char *ip)
-: CDevImpl(k, name), ip_str_(ip)
+: CDevImpl(k, name), ip_str_(ip ? ip : "ANY")
 {
-	if ( INADDR_NONE == ( d_ip_ = inet_addr( ip ) ) ) {
+	if ( INADDR_NONE == ( d_ip_ = ip ? inet_addr( ip ) : INADDR_ANY ) ) {
 		throw InvalidArgError( ip );
 	}
 }
