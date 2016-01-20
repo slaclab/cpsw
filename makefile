@@ -24,6 +24,7 @@ TSRCS+= cpsw_nossi_tst.cc
 TSRCS+= cpsw_axiv_udp_tst.cc
 TSRCS+= cpsw_buf_tst.cc
 TSRCS+= cpsw_stream_tst.cc
+TSRCS+= cpsw_srpmux_tst.cc
 
 SRCS = $(LSRCS) $(TSRCS)
 
@@ -70,6 +71,7 @@ cpsw_nossi_tst: udpsrv
 cpsw_nossi_tst_LIBS+=-lboost_system -lpthread
 cpsw_axiv_udp_tst_LIBS+=-lboost_system -lpthread
 cpsw_stream_tst_LIBS+=-lboost_system -lpthread
+cpsw_srpmux_tst_LIBS+=-lboost_system -lpthread
 
 udpsrv: udpsrv.c
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
