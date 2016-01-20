@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <pthread.h>
@@ -419,6 +420,13 @@ bail:
 	return (void*)rval;
 }
 
+static void sh(int sn)
+{
+	fflush(stdout);
+	fflush(stderr);
+	exit(0);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -444,6 +452,8 @@ struct streamer_args *s_arg   = 0;
 struct srp_args      *srp_arg = 0;
 
 	sprintf(mem + 0x800, "Hello");
+
+	signal( SIGINT, sh );
 
 	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:")) > 0 ) {
 		c_a = 0;
