@@ -358,20 +358,20 @@ unsigned sbytes = args->nbytes_;
 
 uint64_t CUdpSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
-	SRPWord    xbuf[4];
-	SRPWord    status;
-	SRPWord    header;
-	SRPWord    zero = 0;
-	uint8_t  first_word[sizeof(SRPWord)];
-	uint8_t  last_word[sizeof(SRPWord)];
-	int      j, put;
-	unsigned i;
-	int      headbytes = (off & (sizeof(SRPWord)-1));
-	int      totbytes;
-	struct iovec  iov[5];
-	int      got;
-	int      nWords;
-	uint32_t tid = getTid();
+SRPWord  xbuf[4];
+SRPWord  status;
+SRPWord  header;
+SRPWord  zero = 0;
+uint8_t  first_word[sizeof(SRPWord)];
+uint8_t  last_word[sizeof(SRPWord)];
+int      j, put;
+unsigned i;
+int      headbytes = (off & (sizeof(SRPWord)-1));
+int      totbytes;
+struct iovec  iov[5];
+int      got;
+int      nWords;
+uint32_t tid = getTid();
 
 	if ( dbytes == 0 )
 		return 0;
@@ -659,7 +659,6 @@ NoSsiDev INoSsiDev::create(const char *name, const char *ipaddr)
 
 void CNoSsiDevImpl::setLocked()
 {
-printf("SETLOCKED\n");
 	if ( getLocked() ) {
 		throw InternalError("Cannot attach this type of device multiple times -- need to create a new instance");
 	}
