@@ -56,14 +56,14 @@ all: tbins
 tbins: $(TBINS)
 
 test: $(addsuffix _run,$(FILTERED_TBINS))
-	echo "TESTS PASSED"
+	@echo "ALL TESTS PASSED"
 
 %_tst_run: %_tst
 	@for opt in $(RUN_OPTS) ; do \
 		if ./$< $${opt} ; then \
-			echo "TEST $$i PASSED" ; \
+			echo "TEST ./$< $${opt} PASSED" ; \
 		else \
-			echo "TEST $$i FAILED" ; \
+			echo "TEST ./$< $${opt} FAILED" ; \
 			exit 1; \
 		fi \
 	done

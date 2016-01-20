@@ -43,7 +43,7 @@ unsigned off = VC_OFF_V2;
 
 bool CProtoModSRPMux::pushDown(BufChain bc)
 {
-unsigned vc;
+int      vc;
 unsigned off = VC_OFF_V2;
 
 	if ( bc->getLen() != 1 ) {
@@ -73,11 +73,11 @@ unsigned off = VC_OFF_V2;
 int CSRPPort::iMatch(ProtoPortMatchParams *cmp)
 {
 int rval = 0;
-	if ( cmp->srpVersion_.doMatch_ && cmp->srpVersion_.val_ == getProtoVersion() ) {
+	if ( cmp->srpVersion_.doMatch_ && static_cast<INoSsiDev::ProtocolVersion>(cmp->srpVersion_.val_) == getProtoVersion() ) {
 		cmp->srpVersion_.matchedBy_ = getSelfAsProtoPort();
 		rval++;
 	}
-	if ( cmp->srpVC_.doMatch_ && static_cast<INoSsiDev::ProtocolVersion>(cmp->srpVC_.val_) == getVC() ) {
+	if ( cmp->srpVC_.doMatch_ && static_cast<int>(cmp->srpVC_.val_) == getVC() ) {
 		cmp->srpVC_.matchedBy_ = getSelfAsProtoPort();
 		rval++;
 	}

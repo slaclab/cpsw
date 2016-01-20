@@ -150,7 +150,7 @@ protected:
 	}
 
 	virtual ProtoPort findProtoPort(ProtoPortMatchParams *);
-	friend CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
+	friend CUdpSRPAddressImpl::CUdpSRPAddressImpl(IAddress::AKey, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc);
 
 public:
 	CNoSsiDevImpl(Key &key, const char *name, const char *ip);
