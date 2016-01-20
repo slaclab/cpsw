@@ -203,6 +203,7 @@ static void usage(const char *nm)
 int
 main(int argc, char **argv)
 {
+int         rval    = 0;
 const char *ip_addr = "192.168.2.10";
 bool        use_mem = false;
 int        *i_p;
@@ -372,6 +373,7 @@ uint16_t u16;
 				//not yet synchronized
 				if ( i > SYNC_LIMIT ) {
 					fprintf(stderr,"Stream unable to synchronize: FAILED\n");
+					rval = 1;
 					break;
 				}
 				shots++;
@@ -388,5 +390,5 @@ uint16_t u16;
 	throw;
 }
 
-	return 0;
+	return rval;
 }
