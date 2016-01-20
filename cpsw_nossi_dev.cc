@@ -772,16 +772,25 @@ DynTimeout::DynTimeout(const CTimeout &iniv)
 	clock_gettime( CLOCK_MONOTONIC, &lastUpdate_.tv_ );
 }
 
+void DynTimeout::setLastUpdate()
+{
+	if ( clock_gettime( CLOCK_MONOTONIC, &lastUpdate_.tv_ ) ) {
+		throw IOError("clock_gettime failed! :", errno);
+	}
+	nSinceLast_ = 0;
+}
+
 void DynTimeout::reset(const CTimeout &iniv)
 {
-	clock_gettime( CLOCK_MONOTONIC, &lastUpdate_.tv_ );
-	dynTimeout_ = iniv;
 	maxRndTrip_.set(0);
+	dynTimeout_ = iniv;
+	setLastUpdate();
 }
 
 void DynTimeout::relax()
 {
 	dynTimeout_ += dynTimeout_;
+	setLastUpdate();
 }
 
 void DynTimeout::update(const struct timespec *now, const struct timespec *then)

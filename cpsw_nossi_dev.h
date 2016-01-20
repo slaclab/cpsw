@@ -28,6 +28,8 @@ private:
 	CTimeout lastUpdate_;
 	CTimeout dynTimeout_;
 	unsigned nSinceLast_;
+protected:
+	void  setLastUpdate();
 public:
 	DynTimeout(const CTimeout &iniv);
 
