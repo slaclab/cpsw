@@ -311,7 +311,8 @@ unsigned       nios;
 		// use pselect: does't modify the timeout and it's a timespec
 		selres = ::pselect( tx_.getSd() + 1, NULL, &fds, NULL, &timeout->tv_, NULL );
 		if ( selres < 0  ) {
-			throw IOError("::pselect() error: ", errno);
+			perror("::pselect() - dropping message due to error");
+			return;
 		}
 		if ( selres == 0 ) {
 #ifdef UDP_DEBUG
@@ -325,18 +326,8 @@ unsigned       nios;
 	sndres = writev( tx_.getSd(), iov, nios );
 
 	if ( sndres < 0 ) {
-		perror("send");
-		switch ( errno ) {
-			case EAGAIN:
-#if EAGAIN != EWOULDBLOCK
-			case EWOULDBLOCK:
-#endif
-				// TIMEOUT or cannot send right now
-				return;
-
-			default:
-				throw IOError("::send() error: ", errno);
-		}
+		perror("::writev() - dropping message due to error");
+		return;
 	}
 
 #ifdef UDP_DEBUG
