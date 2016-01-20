@@ -7,7 +7,7 @@
 #define QUEUE_PUSH_RETRY_INTERVAL 1000 //nano-seconds
 
 CBufQueue::CBufQueue(size_type n)
-: queue< IBufChain*, boost::lockfree::fixed_sized< true > >(n),
+: CBufQueueBase(n),
   n_(n)
 {
 	if ( sem_init( &rd_sem_, 0, 0 ) ) {
@@ -20,7 +20,7 @@ CBufQueue::CBufQueue(size_type n)
 }
 
 CBufQueue::CBufQueue(const CBufQueue &orig)
-: queue< IBufChain*, boost::lockfree::fixed_sized< true > >(orig.n_),
+: CBufQueueBase(orig.n_),
   n_(orig.n_)
 {
 	if ( sem_init( &rd_sem_, 0, 0 ) ) {
