@@ -12,7 +12,7 @@
 
 #include <sched.h>
 
-#define UDP_DEBUG
+//#define UDP_DEBUG
 //#define UDP_DEBUG_STRM
 
 CSockSd::CSockSd()
@@ -327,6 +327,11 @@ unsigned       nios;
 
 	if ( sndres < 0 ) {
 		perror("::writev() - dropping message due to error");
+#ifdef UDP_DEBUG
+// this could help debugging the occasinal EPERM I get here...
+#warning FIXME
+abort();
+#endif
 		return;
 	}
 
