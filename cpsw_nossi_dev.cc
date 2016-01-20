@@ -229,7 +229,9 @@ struct timespec retry_then;
 		xchn->insert( xbuf, 0, sizeof(xbuf[0])*put );
 
 		struct timespec then, now;
-		clock_gettime(CLOCK_REALTIME, &then);
+		if ( clock_gettime(CLOCK_REALTIME, &then) ) {
+			throw IOError("clock_gettime(then) failed", errno);
+		}
 
 		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
@@ -242,7 +244,9 @@ struct timespec retry_then;
 				goto retry;
 			}
 
-			clock_gettime(CLOCK_REALTIME, &now);
+			if ( clock_gettime(CLOCK_REALTIME, &now) ) {
+				throw IOError("clock_gettime(now) failed", errno);
+			}
 
 			got = rchn->getSize();
 
@@ -543,7 +547,9 @@ struct timespec retry_then;
 		}
 
 		struct timespec then, now;
-		clock_gettime(CLOCK_REALTIME, &then);
+		if ( clock_gettime(CLOCK_REALTIME, &then) ) {
+			throw IOError("clock_gettime(then) failed", errno);
+		}
 
 		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
@@ -556,7 +562,9 @@ struct timespec retry_then;
 				goto retry;
 			}
 
-			clock_gettime(CLOCK_REALTIME, &now);
+			if ( clock_gettime(CLOCK_REALTIME, &now) ) {
+				throw IOError("clock_gettime(now) failed", errno);
+			}
 
 			got = rchn->getSize();
 			if ( rchn->getLen() > 1 )
