@@ -806,6 +806,9 @@ CTimeout diff(*now);
 		dynTimeout_+= dynTimeout_;
 		nSinceLast_ = 0;
 	} else if ( nSinceLast_ > 1000 ) {
+		maxRndTrip_.tv_.tv_sec  >>= 1;
+		maxRndTrip_.tv_.tv_nsec >>= 1;
+		lastUpdate_.set( *now );
 		dynTimeout_.tv_.tv_sec  >>= 1;
 		dynTimeout_.tv_.tv_nsec >>= 1;
 		nSinceLast_ = 0;
