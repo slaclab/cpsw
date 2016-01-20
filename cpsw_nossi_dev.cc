@@ -337,7 +337,7 @@ struct timespec retry_then;
 
 		return sbytes;
 
-retry: 
+retry:
 		dynTimeout_.relax();
 		nRetries_++;
 
@@ -497,7 +497,7 @@ struct timespec retry_then;
 	i++;
 
 	if ( merge_first ) {
-		if ( doSwapV1 ) 
+		if ( doSwapV1 )
 			swpw( first_word );
 		iov[i].iov_base = first_word;
 		iov[i].iov_len  = sizeof(SRPWord);
@@ -581,7 +581,7 @@ struct timespec retry_then;
 #endif
 			memcpy( &got_tid, rbuf + ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ? sizeof(SRPWord) : 0 ), sizeof(SRPWord) );
 			if ( doSwap ) {
-				swp32( &got_tid ); 
+				swp32( &got_tid );
 			}
 		} while ( tid != (got_tid & tidMsk_) );
 
