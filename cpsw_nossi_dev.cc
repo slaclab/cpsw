@@ -121,6 +121,23 @@ uint32_t v;
 	memcpy( buf, &v, sizeof(SRPWord) );
 }
 
+#ifdef NOSSI_DEBUG
+static void time_retry(struct timespec *then, int attempt, const char *pre, ProtoPort me)
+{
+struct timespec now;
+
+	if ( clock_gettime(CLOCK_REALTIME, &now) ) {
+		throw IOError("clock_gettime(time_retry) failed", errno);
+	}
+	if ( attempt > 0 ) {
+		CTimeout xx(now);
+		xx -= CTimeout(*then);
+		printf("%s -- retry (attempt %d) took %"PRId64"us\n", pre, attempt, xx.getUs());
+	}
+	*then = now;
+}
+#endif
+
 #define CMD_READ  0x00000000
 #define CMD_WRITE 0x40000000
 
@@ -141,6 +158,9 @@ int      got;
 int      nWords;
 int      expected = 0;
 uint32_t tid = getTid();
+#ifdef NOSSI_DEBUG
+struct timespec retry_then;
+#endif
 
 
 	if ( sbytes == 0 )
@@ -216,6 +236,9 @@ uint32_t tid = getTid();
 		do {
 			BufChain rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
+#ifdef NOSSI_DEBUG
+				time_retry( &retry_then, attempt, "READ", protoStack_ );
+#endif
 				goto retry;
 			}
 
@@ -372,6 +395,9 @@ struct iovec  iov[5];
 int      got;
 int      nWords;
 uint32_t tid = getTid();
+#ifdef NOSSI_DEBUG
+struct timespec retry_then;
+#endif
 
 	if ( dbytes == 0 )
 		return 0;
@@ -524,6 +550,9 @@ uint32_t tid = getTid();
 		do {
 			BufChain rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
+#ifdef NOSSI_DEBUG
+				time_retry( &retry_then, attempt, "WRITE", protoStack_ );
+#endif
 				goto retry;
 			}
 
