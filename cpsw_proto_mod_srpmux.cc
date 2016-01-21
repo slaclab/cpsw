@@ -41,7 +41,7 @@ unsigned off = VC_OFF_V2;
 	return bc;
 }
 
-bool CProtoModSRPMux::pushDown(BufChain bc)
+bool CProtoModSRPMux::pushDown(BufChain bc, const CTimeout *rel_timeout)
 {
 int      vc;
 unsigned off = VC_OFF_V2;
@@ -67,7 +67,7 @@ unsigned off = VC_OFF_V2;
 	if ( downstream_[vc].expired() )
 		return false; // nothing attached to this port; drop
 
-	return SRPPort( downstream_[vc] )->pushDownstream(bc);
+	return SRPPort( downstream_[vc] )->pushDownstream(bc, rel_timeout);
 }
 
 int CSRPPort::iMatch(ProtoPortMatchParams *cmp)

@@ -158,7 +158,12 @@ void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 #ifdef UDP_DEBUG
 		bool st=
 #endif
-			owner_->pushDown( bufch );
+			// do NOT wait indefinitely
+			// could be that the queue is full with
+			// retry replies they will only discover
+			// next time they care about reading from
+			// this VC...
+			owner_->pushDown( bufch, &TIMEOUT_NONE );
 
 #ifdef UDP_DEBUG
 			printf("UDP got %d", (int)got);

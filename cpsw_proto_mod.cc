@@ -44,14 +44,44 @@ CBufQueue::~CBufQueue()
 	sem_destroy( &wr_sem_ );
 }
 
-bool CBufQueue::push(BufChain *owner)
+static int
+sem_obtain(sem_t *sema_p, bool wait, const CTimeout *abs_timeout)
+{
+int sem_stat;
+
+	if ( ! wait || ( abs_timeout && abs_timeout->isNone() ) ) {
+		sem_stat = sem_trywait( sema_p );
+	} else if ( ! abs_timeout || abs_timeout->isIndefinite() ) {
+		sem_stat = sem_wait( sema_p );
+	} else {
+		sem_stat = sem_timedwait( sema_p, &abs_timeout->tv_ );
+	}
+
+	if ( sem_stat ) {
+		switch ( errno ) {
+			case EAGAIN:
+			case ETIMEDOUT:
+				break;
+			case EINVAL:
+				throw InvalidArgError("invalid timeout arg");
+			case EINTR:
+				throw IntrError("interrupted by signal");
+			default:
+				throw IOError("sem__xxwait failed", errno);
+		}
+	}
+	return sem_stat;
+}
+
+
+bool CBufQueue::push(BufChain *owner, bool wait, const CTimeout *abs_timeout)
 {
 // keep a ref in case we have to undo
 BufChain ref = *owner;
 
 	// wait for a slot
-	if ( sem_wait( &wr_sem_ ) ) {
-		throw InternalError("FATAL ERROR -- blocking for queue semaphore failed");
+	if ( sem_obtain( &wr_sem_, wait, abs_timeout ) ) {
+		return false;
 	}
 
 	IBufChain::take_ownership(owner);
@@ -79,10 +109,7 @@ BufChain ref = *owner;
 
 BufChain CBufQueue::pop(bool wait, const CTimeout *abs_timeout)
 {
-int sem_stat = wait ?
-	                   ( abs_timeout ? sem_timedwait( &rd_sem_, &abs_timeout->tv_ )
-	                                 : sem_wait( &rd_sem_ ) )
-                    : sem_trywait( &rd_sem_ );
+int sem_stat = sem_obtain( &rd_sem_, wait, abs_timeout );
 
 	if ( 0 == sem_stat ) {
 		IBufChain *raw_ptr;
@@ -96,29 +123,8 @@ int sem_stat = wait ?
 		return rval;
 	}
 
-	switch ( errno ) {
-		case EAGAIN:
-		case ETIMEDOUT:
-			return BufChain( reinterpret_cast<BufChain::element_type *>(0) );
-		case EINVAL:
-			throw InvalidArgError("invalid timeout arg");
-		case EINTR:
-			throw IntrError("interrupted by signal");
-		default:
-			break;
-	}
-
-	throw IOError("sem__xxwait failed");
-}
-
-BufChain CBufQueue::pop(const CTimeout *timeout)
-{
-	return pop( true, timeout );
-}
-
-BufChain CBufQueue::tryPop()
-{
-	return pop(false, 0);
+	// timeout (or trywait failed)
+	return BufChain( reinterpret_cast<BufChain::element_type *>(0) );
 }
 
 CTimeout CBufQueue::getAbsTimeout(const CTimeout *rel_timeout)

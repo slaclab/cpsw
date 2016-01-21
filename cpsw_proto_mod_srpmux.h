@@ -60,7 +60,7 @@ public:
 	// in case there is no downstream module
 	virtual SRPPort createPort(int vc);
 
-	virtual bool pushDown(BufChain bc);
+	virtual bool pushDown(BufChain bc, const CTimeout *rel_timeout);
 
 	virtual SRPPort findPort(int vc)
 	{

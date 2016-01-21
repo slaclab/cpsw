@@ -91,7 +91,7 @@ public:
 	virtual ProtoPort getUpstreamPort()                = 0;
 	virtual ProtoMod  getUpstreamProtoMod()            = 0;
 
-	virtual bool pushDown(BufChain)                    = 0;
+	virtual bool pushDown(BufChain, const CTimeout *rel_timeout) = 0;
 
 	virtual void dumpInfo(FILE *)                      = 0;
 
@@ -109,15 +109,33 @@ private:
 
 protected:
 	BufChain pop(bool wait, const CTimeout * abs_timeout);
+	bool    push(BufChain *owner, bool wait, const CTimeout *abs_timeout);
 
 public:
 	CBufQueue(size_type n);
 	CBufQueue(const CBufQueue &);
 
-	bool     push(BufChain *owner);
 
-	BufChain pop(const CTimeout *abs_timeout);
-	BufChain tryPop();
+	BufChain pop(const CTimeout *abs_timeout)
+	{
+		return pop(true, abs_timeout);
+	}
+
+	BufChain tryPop()
+	{
+		return pop(false, 0);
+	}
+
+
+	bool     push(BufChain *owner, const CTimeout *abs_timeout)
+	{
+		return push(owner, true, abs_timeout);
+	}
+
+	bool     tryPush(BufChain *owner)
+	{
+		return push(owner, false, 0);
+	}
 
 	CTimeout getAbsTimeout(const CTimeout *rel_timeout);
 
@@ -193,12 +211,18 @@ public:
 		}
 	}
 
-	virtual bool pushDownstream(BufChain bc)
+	virtual bool pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 	{
-		if ( outputQueue_ )
-			return outputQueue_->push( &bc );
-		else
-			return ProtoMod( downstream_ )->pushDown( bc );
+		if ( outputQueue_ ) {
+			if ( !rel_timeout ) {
+				return outputQueue_->push( &bc, 0 );
+			} else {
+				CTimeout abst( getAbsTimeout( rel_timeout ) );
+				return outputQueue_->push( &bc, &abst );
+			}
+		} else {
+			return ProtoMod( downstream_ )->pushDown( bc, rel_timeout );
+		}
 	}
 	// getAbsTimeout is not a member of the CTimeout class:
 	// the clock to be used is implementation dependent.
@@ -323,10 +347,10 @@ public:
 	{
 	}
 
-	virtual bool pushDown(BufChain bc)
+	virtual bool pushDown(BufChain bc, const CTimeout *rel_timeout)
 	{
 		// out of downstream port
-		return pushDownstream( bc );
+		return pushDownstream( bc, rel_timeout );
 	}
 
 
