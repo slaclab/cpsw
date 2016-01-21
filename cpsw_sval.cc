@@ -121,6 +121,11 @@ public:
 		return cl->read( &it, &args );
 	}
 
+	virtual int64_t write(uint8_t *buf, uint64_t size)
+	{
+		return -1;
+	}
+
 };
 
 Stream IStream::create(Path p)
