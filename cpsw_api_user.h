@@ -236,7 +236,7 @@ public:
 //   CTimeout()
 //      the default constructor builds an INDEFINITE timeout
 //
-// and there are operators '+=' and '-='
+// and there are operators '+=',  '-=', '<'
 //
 #include <cpsw_api_timeout.h>
 
@@ -248,38 +248,8 @@ class IStream {
 public:
 	virtual int64_t read(uint8_t *buf, size_t size, CTimeout timeout = TIMEOUT_INDEFINITE, uint64_t off = 0) = 0;
 
+
 	static Stream create(Path p);
-};
-
-// Event AKA Interrupt interface
-
-class IEventSource {
-public:
-	typedef uint32_t EventID;
-	class IEvent {
-		public:
-		virtual EventID getID()                                = 0;
-		virtual size_t  getPayloadSize()                       = 0;
-		virtual size_t  getPayload(uint8_t *buf, size_t bufsz) = 0;
-		virtual ~IEvent() {};
-	};
-	// NOTE: the user must ensure an EventListener is removed before
-	//       it is destroyed since we don't oblige the user to provide
-	//       a shared pointer here.
-	virtual void addListener(EventID,    IEventListener *) = 0;
-	virtual void removeListener(EventID, IEventListener *) = 0;
-	virtual ~IEventSource() {}
-
-	static EventSource create(Path p);
-};
-
-class IEventListener {
-public:
-	// the 'notify' callback must not hold on to a reference
-	// to the Event object - it becomes invalid upon return
-	// from notify.
-	virtual void notify(IEventSource::IEvent *e) = 0;
-	virtual ~IEventListener() {}
 };
 
 #endif
