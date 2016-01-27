@@ -51,7 +51,7 @@ cpsw_nossi_tst_run:     RUN_OPTS='' '-V1 -p8191'
 
 cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191'
 
-cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 100'
+cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 30'
 
 # error percentage should be ~double of the value used for udpsrv (-L)
 cpsw_stream_tst_run:    RUN_OPTS='-e 10'
