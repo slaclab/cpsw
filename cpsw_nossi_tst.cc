@@ -77,7 +77,7 @@ const char *ip_addr = "127.0.0.1";
 int        *i_p;
 int         vers    = 2;
 int         port    = 8192;
-unsigned sizes[]    = { 1, 4, 8, 12, 16, 22, 32, 45 };
+unsigned sizes[]    = { 1, 4, 8, 12, 16, 22, 32, 45, 64 };
 unsigned lsbs[]     = { 0, 3 };
 unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 
@@ -132,14 +132,15 @@ unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 
 					v_le->getVal( &v_got, 1 );
 					uint64_t shft_le = (offs[off_idx]*8 + lsbs[lsb_idx]);
-					if ( v_got != (v = ((v_expect >> shft_le) & ((((uint64_t)1)<<sizes[size_idx]) - 1 ))) ) {
+					uint64_t msk     = sizes[size_idx] > 63 ? 0xffffffffffffffffULL : ((((uint64_t)1)<<sizes[size_idx]) - 1 );
+					if ( v_got != (v = ((v_expect >> shft_le) & msk)) ) {
 						fprintf(stderr,"Mismatch (%s - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_le->getName(), v_le->getSizeBits(), sizes[size_idx], v_got, v);
 						throw TestFailed();
 					}
 
 					v_be->getVal( &v_got, 1 );
 					uint64_t shft_be = ((sizeof(v_expect) - (offs[off_idx] + v_be->getSize()))*8 + lsbs[lsb_idx]);
-					if ( v_got != (v = ((v_expect >> shft_be) & ((((uint64_t)1)<<sizes[size_idx]) - 1 ))) ) {
+					if ( v_got != (v = ((v_expect >> shft_be) & msk)) ) {
 						fprintf(stderr,"Mismatch (%s - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_be->getName(), v_be->getSizeBits(), sizes[size_idx], v_got, v);
 						throw TestFailed();
 					}
@@ -166,8 +167,9 @@ unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 
 					uint64_t shft_le = (offs[off_idx]*8 + lsbs[lsb_idx]);
 					uint64_t shft_be = ((sizeof(v_expect) - (offs[off_idx] + v_be->getSize()))*8 + lsbs[lsb_idx]);
-					uint64_t msk_le  = ((((uint64_t)1)<<sizes[size_idx]) - 1 ) << shft_le;
-					uint64_t msk_be  = ((((uint64_t)1)<<sizes[size_idx]) - 1 ) << shft_be;
+					uint64_t msk     = sizes[size_idx] > 63 ? 0xffffffffffffffffULL : ((((uint64_t)1)<<sizes[size_idx]) - 1 );
+					uint64_t msk_le  = msk << shft_le;
+					uint64_t msk_be  = msk << shft_be;
 
 					for (int patt=0; patt < 2; patt++ ) {
 						clr.clr( patt );
