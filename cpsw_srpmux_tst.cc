@@ -75,6 +75,7 @@ static void* test_thread(void* arg)
 char nm[100];
 int loops = 20;
 intptr_t vc_idx = reinterpret_cast<intptr_t>(arg);
+void *rval = (void*)-1;
 
 	sprintf(nm, "comm/mmio_vc_%"PRIdPTR"/val", vc_idx);
 	printf("starting test thread %s\n", nm);
@@ -95,10 +96,7 @@ intptr_t vc_idx = reinterpret_cast<intptr_t>(arg);
 				v->getVal( myData.mem_[2],       myData.getNelms() );
 			} catch (IOError &e) {
 				fprintf(stderr,"IO Error in thread %s; is 'udpsrv' running?\n", nm);
-				Path comm_addr( p->clone() );
-				comm_addr->up();
-				comm_addr->tail()->dump();
-				return (void*)-1;
+				goto bail;
 			}
 			if ( memcmp( myData.mem_[loops&1], myData.mem_[2], myData.getNelms() * sizeof(M::ELT) ) ) {
 
@@ -116,17 +114,23 @@ intptr_t vc_idx = reinterpret_cast<intptr_t>(arg);
 						break;
 					}
 				}
-				return (void*)-1;
+				goto bail;
 			}
 		}
+		// success
+		rval = (void*)0;
 
+bail:
+		// print some statistics
+		Path comm_addr( p->clone() );
+		comm_addr->up();
+		comm_addr->tail()->dump();
 	} catch (CPSWError &e) {
 		fprintf(stderr,"CPSW Error in thread %s: %s\n", nm, e.getInfo().c_str());
-		return (void*)-1;
 	}
 
 	printf("leaving test thread %s OK\n", nm);
-	return (void*)0;
+	return rval;
 }
 
 int
