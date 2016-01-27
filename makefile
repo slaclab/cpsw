@@ -47,11 +47,14 @@ FILTERED_TBINS=$(filter-out $(TEST_AXIV_$(TEST_AXIV)), $(TBINS))
 RUN_OPTS=''
 
 # run for V2 and V1
-cpsw_nossi_tst_run:RUN_OPTS='' '-V1 -p8191'
+cpsw_nossi_tst_run:     RUN_OPTS='' '-V1 -p8191'
 
-cpsw_srpmux_tst_run:RUN_OPTS='' '-V1 -p8191'
+cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191'
 
-cpsw_axiv_udp_tst_run:RUN_OPTS='' '-S 100'
+cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 100'
+
+# error percentage should be ~double of the value used for udpsrv (-L)
+cpsw_stream_tst_run:    RUN_OPTS='-e 10'
 
 all: tbins
 

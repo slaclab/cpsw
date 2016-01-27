@@ -9,7 +9,7 @@
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-h] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>]\n", nm);
+	fprintf(stderr,"Usage: %s [-h] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent]\n", nm);
 }
 int
 main(int argc, char **argv)
@@ -19,8 +19,9 @@ int64_t  got;
 int      i;
 CAxisFrameHeader hdr;
 int      quiet = 1;
-int      fram, lfram, errs, goodf;
-int      attempts;
+int      fram, lfram;
+unsigned errs, goodf;
+unsigned attempts;
 unsigned*i_p;
 
 	unsigned iQDepth = 40;
@@ -28,8 +29,9 @@ unsigned*i_p;
 	unsigned ldFrameWinSize = 5;
 	unsigned ldFragWinSize  = 5;
 	unsigned timeoutUs = 10000000;
+	unsigned err_percent = 0;
 
-	while ( (i=getopt(argc, argv, "d:l:L:hT:")) > 0 ) {
+	while ( (i=getopt(argc, argv, "d:l:L:hT:e:")) > 0 ) {
 		i_p = 0;
 		switch ( i ) {
 			case 'q': i_p = &iQDepth;        break;
@@ -37,6 +39,7 @@ unsigned*i_p;
 			case 'L': i_p = &ldFrameWinSize; break;
 			case 'l': i_p = &ldFragWinSize;  break;
 			case 'T': i_p = &timeoutUs;      break;
+			case 'e': i_p = &err_percent;    break;
 			case 'h': usage(argv[0]); return 0;
 		}
 		if ( i_p && 1 != sscanf(optarg,"%i",i_p)) {
@@ -52,6 +55,11 @@ unsigned*i_p;
 
 	if ( iQDepth > 5000 || oQDepth > 5000 ) {
 		fprintf(stderr,"Queue Depth seems too large...\n");
+		goto bail;
+	}
+
+	if ( err_percent > 100 ) {
+		fprintf(stderr,"-e <err_percent> must be in 0..100\n");
 		goto bail;
 	}
 
@@ -72,7 +80,7 @@ Field    data = IField::create("data");
 	attempts = 0;
 	while ( goodf < NGOOD ) {
 
-		if ( ++attempts > goodf + 100 ) {
+		if ( ++attempts > goodf + (goodf*err_percent)/100 + 10 ) {
 			fprintf(stderr,"Too many attempts\n");
 			goto bail;
 		}
@@ -116,7 +124,8 @@ Field    data = IField::create("data");
 
 	if ( errs ) {
 		fprintf(stderr,"%d frames missing (got %d)\n", errs, goodf);	
-		goto bail;
+		if ( errs*100 > err_percent * NGOOD )
+			goto bail;
 	}
 
 
