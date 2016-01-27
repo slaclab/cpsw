@@ -107,7 +107,7 @@ public:
 	{
 	}
 
-	virtual int64_t read(uint8_t *buf, uint64_t size, CTimeout timeout, uint64_t off)
+	virtual int64_t read(uint8_t *buf, uint64_t size, const CTimeout timeout, uint64_t off)
 	{
 		CompositePathIterator it( &p_);
 		Address cl = it->c_p_;
@@ -121,7 +121,7 @@ public:
 		return cl->read( &it, &args );
 	}
 
-	virtual int64_t write(uint8_t *buf, uint64_t size)
+	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeout)
 	{
 		return -1;
 	}

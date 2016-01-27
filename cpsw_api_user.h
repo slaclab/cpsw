@@ -246,9 +246,9 @@ static const CTimeout TIMEOUT_INDEFINITE;
 
 class IStream {
 public:
-	virtual int64_t read(uint8_t *buf, uint64_t size, CTimeout timeout = TIMEOUT_INDEFINITE, uint64_t off = 0) = 0;
+	virtual int64_t read(uint8_t *buf, uint64_t size,  const CTimeout timeout = TIMEOUT_INDEFINITE, uint64_t off = 0) = 0;
 
-	virtual int64_t write(uint8_t *buf, uint64_t size) = 0;
+	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeout = TIMEOUT_NONE) = 0;
 
 	static Stream create(Path p);
 };
