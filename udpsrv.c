@@ -124,23 +124,46 @@ typedef struct streamer_args {
 	struct sockaddr_in peer;
 	unsigned           sim_loss;
 	unsigned           n_frags;
+	unsigned           fram;
 	unsigned           scramble;
+	unsigned           busy;
+	pthread_mutex_t    mtx;
 } streamer_args;
 
 typedef struct srp_args {
 	const char *       ina;
 	int                port;
 	int                v1;
+	unsigned           sim_loss;
 } srp_args;
+
+static void mustLock(pthread_mutex_t *m)
+{
+	if ( pthread_mutex_lock( m ) ) {
+		perror("FATAL ERROR -- unable to lock mutex!");
+		exit(1);
+	}
+}
+
+static void mustUnlock(pthread_mutex_t *m)
+{
+	if ( pthread_mutex_unlock( m ) ) {
+		perror("FATAL ERROR -- unable to unlock mutex!");
+		exit(1);
+	}
+}
 
 void *poller(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
-char      buf[8];
+char      buf[2048];
+int       got;
 socklen_t l;
 
-	while ( (l=sizeof(sa->peer), recvfrom(sa->sd, buf, sizeof(buf), 0, (struct sockaddr*)&sa->peer, &l)) >= 0 ) {
-		fprintf(stderr,"Poller: Contacted by %d\n", ntohs(sa->peer.sin_port));
+	while ( (l=sizeof(sa->peer), got = recvfrom(sa->sd, buf, sizeof(buf), 0, (struct sockaddr*)&sa->peer, &l)) >= 0 ) {
+		if ( l < 8 ) {
+			fprintf(stderr,"Poller: Contacted by %d\n", ntohs(sa->peer.sin_port));
+		}
 	}
 	perror("Poller thread failed");
 	exit(1);
@@ -175,7 +198,7 @@ static int depth = 0;
 	idx = (rand() >> 16) & (sa->scramble-1);
 
 	/* simulate packet loss */
-	if ( !sa->sim_loss || rand() > (RAND_MAX/100)*sa->sim_loss ) {
+	if ( !sa->sim_loss || ( (double)rand() > ((double)RAND_MAX/100.)*(double)sa->sim_loss/(double)sa->n_frags ) ) {
 		if ( sendto(sa->sd, bufmem[idx], sizeof(bufmem[idx]), 0, (struct sockaddr*)&sa->peer, sizeof(sa->peer)) < 0 ) {
 			perror("fragmenter: write");
 			switch ( errno ) {
@@ -197,7 +220,6 @@ void *fragger(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
 unsigned frag = 0;
-unsigned fram = 0;
 uint64_t h;
 struct iovec iov[2];
 int      i;
@@ -208,12 +230,13 @@ int      idx  = 0;
 			sleep(4);
 			continue;
 		}
-		h = mkhdr(fram, frag);
+
+		h = mkhdr(sa->fram, frag);
 		for ( i=0; i<HEADSIZE; i++ ) {
 			bufmem[idx][i] = h;
 			h           = h>>8; 
 		}
-		memset(bufmem[idx] + i, (fram << 4) | (frag & 0xf), FRAGLEN);
+		memset(bufmem[idx] + i, (sa->fram << 4) | (frag & 0xf), FRAGLEN);
 		i += FRAGLEN;
 		bufmem[idx][i] = (sa->n_frags-1 == frag) ? EOFRAG : 0;
 		i++;
@@ -222,7 +245,7 @@ int      idx  = 0;
 
 		if ( ++frag >= sa->n_frags ) {
 			frag = 0;
-			fram++;
+			sa->fram++;
 			struct timespec ts;
 			ts.tv_sec  = 0;
 			ts.tv_nsec = 10000000;
@@ -311,11 +334,16 @@ printf("got %d, exp %d\n", got, expected);
 			size = (got - expected)/4;
 		}
 
+		if ( rand() < (RAND_MAX/100)*srp_arg->sim_loss ) {
+			/* simulated packet loss */
+			continue;
+		}
+
 		if ( off + 4*size > sizeof(mem) ) {
 			fprintf(stderr,"%s request out of range (off %d, size %d)\n", CMD_IS_RD(addr) ? "read" : "write", off, size);
 			size=0;
 			memset( &rbuf[2+size], 0xff, 4);
-		} else {
+		} else { 
 			if ( CMD_IS_RD(addr) ) {
 				memcpy((void*) &rbuf[2], mem+off, size*4);
 				payload_swap( v1, &rbuf[2], size );
@@ -516,6 +544,12 @@ struct srp_args      *srp_arg = 0;
 		s_arg->sim_loss             = sim_loss;
 		s_arg->n_frags              = n_frags;
 		s_arg->scramble             = scramble;
+		s_arg->fram                 = 0;
+		if ( pthread_mutex_init( &s_arg->mtx, NULL ) ) {
+			perror("pthread_mutex_init failed:");
+			goto bail;
+		}
+
 		if ( s_arg->sd < 0 )
 			goto bail;
 		if ( pthread_create( &poller_tid, 0, poller, (void*)s_arg ) ) {
@@ -536,9 +570,10 @@ struct srp_args      *srp_arg = 0;
 			fprintf(stderr,"No Memory\n");
 			goto bail;
 		}
-		srp_arg->ina   = ina;
-		srp_arg->port  = v1port;
-		srp_arg->v1    = 1;
+		srp_arg->ina      = ina;
+		srp_arg->port     = v1port;
+		srp_arg->v1       = 1;
+		srp_arg->sim_loss = sim_loss;
 
 		if ( pthread_create( &srp_tid, 0, srpHandler, (void*)srp_arg ) ) {
 			perror("pthread_create [srpHandler]");
@@ -549,8 +584,9 @@ struct srp_args      *srp_arg = 0;
 
 	if ( v1port >= 0 || v2port >= 0 ) {
 		srp_args arg;
-		arg.ina  = ina;
-		arg.port = (arg.v1 = v2port < 0) ? v1port : v2port; 
+		arg.ina      = ina;
+		arg.port     = (arg.v1 = v2port < 0) ? v1port : v2port; 
+		arg.sim_loss = sim_loss;
 	
 		rval = (uintptr_t)srpHandler( &arg );
 	}
