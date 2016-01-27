@@ -1,7 +1,7 @@
 #include <cpsw_proto_mod_srpmux.h>
 
-#define VC_OFF_V2 3 // little endian
-#define VC_OFF_V1 4 // big endian
+#define VC_OFF_V2 3 // v2 is little endian
+#define VC_OFF_V1 4 // v1 is big endian
 
 
 SRPPort CProtoModSRPMux::createPort(int vc)
