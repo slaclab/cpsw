@@ -6,8 +6,7 @@
 #include <errno.h>
 #include <pthread.h>
 
-#define DEPACK_DEBUG
-
+//#define DEPACK_DEBUG
 
 static unsigned getNum(uint8_t *p, unsigned bit_offset, unsigned bit_size)
 {
