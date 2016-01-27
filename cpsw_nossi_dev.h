@@ -47,7 +47,7 @@ public:
 
 class CCommAddressImpl : public CAddressImpl {
 protected:
-	ProtoPort      protoStack_;
+	ProtoPortImpl  protoStack_;
 
 public:
 	CCommAddressImpl(AKey k)

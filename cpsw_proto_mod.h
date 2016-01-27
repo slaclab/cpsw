@@ -21,6 +21,9 @@ typedef shared_ptr<IProtoPort> ProtoPort;
 class IProtoMod;
 typedef shared_ptr<IProtoMod> ProtoMod;
 
+class CPortImpl;
+typedef shared_ptr<CPortImpl> ProtoPortImpl;
+
 // find a protocol stack based on parameters
 class ProtoPortMatchParams {
 public:
