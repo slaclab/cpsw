@@ -300,7 +300,7 @@ unsigned       nios;
 	// a) the chain describes a gather list (one UDP message assembled from chain)
 	// b) the chain describes a fragmented frame (multiple messages sent)
 	// We follow a) here...
-	// If they were to frament a large frame they have to push each
+	// If they were to fragment a large frame they have to push each
 	// fragment individually.
 
 	for (nios=0, b=bc->getHead(); nios<bc->getLen(); nios++, b=b->getNext()) {

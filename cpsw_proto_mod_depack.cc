@@ -366,6 +366,16 @@ CFrame  *frame         = &frameWin_[frameIdx];
 	return true;
 }
 
+BufChain CProtoModDepack::processOutput(BufChain bc)
+{
+#define SAFETY 40 // in case there are IP options or other stuff
+
+	// ugly hack - limit to ethernet MTU
+	if ( bc->getSize() > 1500 - 14 - 20 - 8 - SAFETY )
+		throw InvalidArgError("Outgoing data cannot be fragmented (not implemented in firmware)");
+	return bc;
+}
+
 void CProtoModDepack::releaseFrames(bool onlyComplete)
 {
 	while ( releaseOldestFrame( onlyComplete ) )

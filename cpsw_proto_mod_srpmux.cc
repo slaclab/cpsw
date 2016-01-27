@@ -23,7 +23,8 @@ SRPPort CProtoModSRPMux::createPort(int vc)
 BufChain CSRPPort::processOutput(BufChain bc)
 {
 unsigned off = VC_OFF_V2;
-	if ( bc->getLen() != 1 ) {
+
+	if ( bc->getSize() > 1500/*mtu*/ - 14 /*eth*/ - 20 /*ip*/ - 8/*udp*/ - 40 /* safeguard */ ) {
 		throw InternalError("CSRPPort::processOutput -- expect only 1 buffer");
 	}
 
@@ -46,7 +47,7 @@ bool CProtoModSRPMux::pushDown(BufChain bc, const CTimeout *rel_timeout)
 int      vc;
 unsigned off = VC_OFF_V2;
 
-	if ( bc->getLen() != 1 ) {
+	if ( bc->getSize() > 1500/*mtu*/ - 14 /*eth*/ - 20 /*ip*/ - 8/*udp*/ - 40 /* safeguard */ ) {
 		return false;
 	}
 
