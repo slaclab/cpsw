@@ -160,20 +160,22 @@ protected:
 	FrameID        oldestFrame_;
 	vector<CFrame> frameWin_;
 
-	void processBuffer(Buf);
+	virtual void processBuffer(Buf);
 
-	void frameSync(CAxisFrameHeader *);
+	virtual void frameSync(CAxisFrameHeader *);
 
-	void threadBody();
+	virtual void threadBody();
 
-	void releaseFrames(bool onlyComplete);
+	virtual void releaseFrames(bool onlyComplete);
 
-	bool releaseOldestFrame(bool onlyComplete);
+	virtual bool releaseOldestFrame(bool onlyComplete);
 
-	void startTimeout(CFrame *frame);
+	virtual BufChain processOutput(BufChain bc);
 
-	unsigned toFrameIdx(unsigned frameNo) { return frameNo & ( frameWinSize_ - 1 ); }
-	unsigned toFragIdx(unsigned fragNo)   { return fragNo  & ( fragWinSize_  - 1 ); }
+	virtual void startTimeout(CFrame *frame);
+
+	virtual unsigned toFrameIdx(unsigned frameNo) { return frameNo & ( frameWinSize_ - 1 ); }
+	virtual unsigned toFragIdx(unsigned fragNo)   { return fragNo  & ( fragWinSize_  - 1 ); }
 
 	static void *pthreadBody(void *);
 
@@ -182,13 +184,13 @@ protected:
 public:
 	CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned long timeoutUS);
 
-	~CProtoModDepack();
+	virtual ~CProtoModDepack();
 
 	virtual void dumpInfo(FILE *f);
 
 	virtual CProtoModDepack * clone(Key &k) { return new CProtoModDepack( *this, k ); }
 
-	const char *getName() const { return "AXIS Depack"; }
+	virtual const char *getName() const { return "AXIS Depack"; }
 };
 
 #endif
