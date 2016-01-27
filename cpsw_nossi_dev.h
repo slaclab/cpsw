@@ -80,6 +80,8 @@ private:
 	mutable DynTimeout dynTimeout_;
 	unsigned         retryCnt_;
 	mutable unsigned nRetries_;
+	mutable unsigned nWrites_;
+	mutable unsigned nReads_;
 	uint8_t          vc_;
 	bool             needSwap_;
 	mutable uint32_t tid_;

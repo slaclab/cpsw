@@ -34,6 +34,8 @@ CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion versio
  dynTimeout_(usrTimeout_),
  retryCnt_(retryCnt),
  nRetries_(0),
+ nWrites_(0),
+ nReads_(0),
  vc_(vc),
  tid_(0),
  mutex_(0)
@@ -380,6 +382,8 @@ unsigned sbytes = args->nbytes_;
 
 	rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes);
 
+	nReads_++;
+
 	return rval;
 }
 
@@ -677,6 +681,7 @@ uint8_t  msk1   = args->msk1_;
 
 	rval += writeBlk_unlocked(node, args->cacheable_, src, off, dbytes, msk1, args->mskn_);
 
+	nWrites_++;
 	return rval;
 
 }
@@ -689,8 +694,10 @@ void CUdpSRPAddressImpl::dump(FILE *f) const
 	fprintf(f,"  SRP Protocol Version: %8u\n",   protoVersion_);
 	fprintf(f,"  Timeout (user)      : %8"PRIu64"us\n", usrTimeout_.getUs());
 	fprintf(f,"  Timeout (dynamic)   : %8"PRIu64"us\n", dynTimeout_.get().getUs());
-	fprintf(f,"  Retry Count         : %8u\n",   retryCnt_);
-	fprintf(f,"  # of retries        : %8u\n",   nRetries_);
+	fprintf(f,"  Retry Limit         : %8u\n",   retryCnt_);
+	fprintf(f,"  # of retried ops    : %8u\n",   nRetries_);
+	fprintf(f,"  # of writes (OK)    : %8u\n",   nWrites_);
+	fprintf(f,"  # of reads  (OK)    : %8u\n",   nReads_);
 	fprintf(f,"  Virtual Channel     : %8u\n",   vc_);
 }
 
