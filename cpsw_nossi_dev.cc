@@ -803,7 +803,13 @@ BufChain bch;
 
 uint64_t CUdpStreamAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
-	throw InternalError("streaming write not implemented");
+BufChain bch = IBufChain::create();
+uint64_t rval;
+
+	bch->insert( args->src_, args->off_, args->nbytes_ );
+	rval = bch->getSize();
+
+	return protoStack_->pushDownstream( bch, &args->timeout_ ) ? rval : 0;
 }
 
 DynTimeout::DynTimeout(const CTimeout &iniv)
