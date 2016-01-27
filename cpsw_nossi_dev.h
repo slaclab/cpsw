@@ -23,8 +23,11 @@ struct Mutex;
 
 class DynTimeout {
 private:
+	static const uint64_t AVG_SHFT  = 8; // time-constant for averager v(n+1) = v(n) + (x - v(n))/(1<<AVG_SHFT)
+	static const uint64_t MARG_SHFT = 2; // timeout is avg << MARG_SHFT
+	static const uint64_t CAP_US    = 5000; // empirical low-limit (under non-RT system)
 	CTimeout maxRndTrip_;
-	CTimeout avgRndTrip_;
+	uint64_t avgRndTrip_;
 	CTimeout lastUpdate_;
 	CTimeout dynTimeout_;
 	unsigned nSinceLast_;

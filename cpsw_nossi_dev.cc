@@ -22,6 +22,7 @@ struct Mutex {
 };
 
 //#define NOSSI_DEBUG
+//#ifdef TIMEOUT_DEBUG
 
 #define MAXWORDS 256
 
@@ -829,12 +830,8 @@ uint64_t CUdpStreamAddressImpl::write(CompositePathIterator *node, CWriteArgs *a
 }
 
 DynTimeout::DynTimeout(const CTimeout &iniv)
-: maxRndTrip_(0),
-  avgRndTrip_(iniv),
-  dynTimeout_(iniv),
-  nSinceLast_(0)
 {
-	clock_gettime( CLOCK_MONOTONIC, &lastUpdate_.tv_ );
+	reset( iniv );
 }
 
 void DynTimeout::setLastUpdate()
@@ -842,42 +839,54 @@ void DynTimeout::setLastUpdate()
 	if ( clock_gettime( CLOCK_MONOTONIC, &lastUpdate_.tv_ ) ) {
 		throw IOError("clock_gettime failed! :", errno);
 	}
+	uint64_t new_timeout = avgRndTrip_ >> (AVG_SHFT-MARG_SHFT);
+	dynTimeout_.set( new_timeout );
 	nSinceLast_ = 0;
 }
 
 void DynTimeout::reset(const CTimeout &iniv)
 {
 	maxRndTrip_.set(0);
-	dynTimeout_ = iniv;
+	avgRndTrip_ = iniv.getUs() << (AVG_SHFT-MARG_SHFT);
 	setLastUpdate();
+#ifdef TIMEOUT_DEBUG
+	printf("dynTimeout reset to %"PRId64"\n", dynTimeout_.getUs());
+#endif
 }
 
 void DynTimeout::relax()
 {
-	dynTimeout_ += dynTimeout_;
-	setLastUpdate();
+uint64_t timeout_cap = CAP_US<<(AVG_SHFT-MARG_SHFT);
+	// when the timeout becomes too small then I experienced
+	// some kind of scheduling problem where packets seem to
+	// arrive but not all threads processing them upstream
+	// seem to get CPU time quickly enough.
+	// We mitigate by capping the timeout if that happens.
+	if ( avgRndTrip_ < timeout_cap ) {
+		avgRndTrip_ = timeout_cap;
+		setLastUpdate();
+	}
+#ifdef TIMEOUT_DEBUG
+	printf("RETRY (timeout %"PRId64")\n", dynTimeout_.getUs());
+#endif
 }
 
 void DynTimeout::update(const struct timespec *now, const struct timespec *then)
 {
 CTimeout diff(*now);
+int64_t  diffus;
 
 	diff -= CTimeout( *then );
 
-	if ( maxRndTrip_ < diff ) {
-		maxRndTrip_ = diff;
-		lastUpdate_.set( *now );
-		dynTimeout_ = maxRndTrip_ + maxRndTrip_;
-		dynTimeout_+= dynTimeout_;
-		nSinceLast_ = 0;
-	} else if ( nSinceLast_ > 1000 ) {
-		maxRndTrip_.tv_.tv_sec  >>= 1;
-		maxRndTrip_.tv_.tv_nsec >>= 1;
-		lastUpdate_.set( *now );
-		dynTimeout_.tv_.tv_sec  >>= 1;
-		dynTimeout_.tv_.tv_nsec >>= 1;
-		nSinceLast_ = 0;
-	} else {
-		nSinceLast_++;
-	}
+	avgRndTrip_ += (diffus = diff.getUs() - (avgRndTrip_ >> AVG_SHFT));
+
+	setLastUpdate();
+#ifdef TIMEOUT_DEBUG
+	printf("dynTimeout update to %"PRId64" (rnd %"PRId64" -- diff %"PRId64", avg %"PRId64" = 128*%"PRId64")\n",
+		dynTimeout_.getUs(),
+		diff.getUs(),
+		diffus,
+		avgRndTrip_,
+		avgRndTrip_>>AVG_SHFT);
+#endif
 }
