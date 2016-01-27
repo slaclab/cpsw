@@ -403,7 +403,7 @@ int      totbytes;
 struct iovec  iov[5];
 int      got;
 int      nWords;
-uint32_t tid = getTid();
+uint32_t tid;
 int      iov_pld = -1;
 #ifdef NOSSI_DEBUG
 struct timespec retry_then;
@@ -486,6 +486,7 @@ struct timespec retry_then;
 	if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
 		xbuf[put++] = vc_ << 24;
 	}
+	tid         = getTid();
 	xbuf[put++] = tid;
 	xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
 
