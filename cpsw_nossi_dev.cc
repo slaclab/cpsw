@@ -791,45 +791,14 @@ void CUdpStreamAddressImpl::dump(FILE *f) const
 
 uint64_t CUdpStreamAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
-uint64_t   rval = 0;
-uint64_t    off = args->off_;
-unsigned sbytes = args->nbytes_;
-uint8_t    *dst = args->dst_;
-BufChain    bch;
-Buf           b;
+BufChain bch;
 
 	bch = protoStack_->pop( &args->timeout_, IProtoPort::REL_TIMEOUT  );
 
-	if ( ! bch || ! (b = bch->getHead()) )
+	if ( ! bch )
 		return 0;
 
-	while ( b->getSize() <= off ) {
-		off -= b->getSize();	
-		if ( ! (b = b->getNext()) )
-			return 0;
-	}
-
-	do {
-
-		unsigned l = b->getSize() - off;
-
-		if ( l > sbytes )
-			l = sbytes;
-
-		memcpy( dst, b->getPayload() + off, l );
-		rval   += l;
-		dst    += l;
-		sbytes -= l;
-
-		if ( ! (b = b->getNext()) ) {
-			return rval;
-		}
-
-		off = 0;
-
-	} while ( sbytes > 0 );
-
-	return rval;
+	return bch->extract( args->dst_, args->off_, args->nbytes_ );
 }
 
 uint64_t CUdpStreamAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
