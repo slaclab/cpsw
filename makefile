@@ -65,6 +65,7 @@ test: $(addsuffix _run,$(FILTERED_TBINS))
 
 %_tst_run: %_tst
 	@for opt in $(RUN_OPTS) ; do \
+	    echo "Running ./$< $${opt}"; \
 		if ./$< $${opt} ; then \
 			echo "TEST ./$< $${opt} PASSED" ; \
 		else \

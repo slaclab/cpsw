@@ -166,6 +166,8 @@ protected:
 
 	virtual void threadBody();
 
+	virtual void modStartup();
+
 	virtual void releaseFrames(bool onlyComplete);
 
 	virtual bool releaseOldestFrame(bool onlyComplete);

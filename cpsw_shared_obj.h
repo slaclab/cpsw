@@ -55,6 +55,14 @@ protected:
 			}
 	};
 
+	// No subclass must start a thread from a constructor
+	// if the thread uses the 'self' pointer because
+	// it is not available yet.
+	// Instead: create/start all threads from the 'start' method.
+	virtual void start()
+	{
+	}
+
 private:
 	weak_ptr<CShObj> self_;
 
@@ -73,12 +81,22 @@ private:
 		throw MustNotCopyError();
 	}
 
+	void startRedirector()
+	{
+		start();
+	}
+
 
 	template <typename P>
 	static shared_ptr<P> setSelf(P *p)
 	{
 	shared_ptr<P> me( p );
 		p->self_ = me;
+
+		// safe to start threads after self_ is set...
+		// this starts threads in new and cloned objects!
+		p->startRedirector();
+
 		return me;
 	}
 
