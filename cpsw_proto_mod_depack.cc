@@ -114,8 +114,12 @@ CProtoModDepack::CProtoModDepack(CProtoModDepack &orig, Key &k)
 CProtoModDepack::~CProtoModDepack()
 {
 void *ign;
-	pthread_cancel( tid_ );
-	pthread_join( tid_ , &ign );
+	if ( pthread_cancel( tid_ ) ) {
+		throw InternalError("CProtoModDepack::~CProtoModDepack - pthread_cancel failed", errno);
+	}
+	if ( pthread_join( tid_ , &ign ) ) {
+		throw InternalError("CProtoModDepack::~CProtoModDepack - pthread_join failed", errno);
+	}
 }
 
 void * CProtoModDepack::pthreadBody(void *arg)
