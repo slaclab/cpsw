@@ -302,13 +302,19 @@ public:
 	{
 	}
 
+	// subclasses may want to start threads
+	// once the module is attached
+	virtual void modStartup()
+	{
+	}
+
 	virtual void attach(ProtoPort upstream)
 	{
 		if ( upstream_ )
 			throw ConfigurationError("Already have an upstream module");
 		upstream_ = upstream;
+		modStartup();
 	}
-
 
 	virtual ProtoPort getUpstreamPort()
 	{

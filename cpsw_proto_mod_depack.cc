@@ -76,8 +76,12 @@ CProtoModDepack::CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, u
 	  oldestFrame_( CFrame::NO_FRAME ),
 	  frameWin_( frameWinSize_, CFrame(fragWinSize_) )
 {
+}
+
+void CProtoModDepack::modStartup()
+{
 	if ( pthread_create( &tid_, 0, pthreadBody, this ) ) {
-		throw IOError("unable to create thread ", errno);
+		throw InternalError("unable to create thread ", errno);
 	}
 }
 
@@ -105,9 +109,6 @@ CProtoModDepack::CProtoModDepack(CProtoModDepack &orig, Key &k)
 	  oldestFrame_( CFrame::NO_FRAME ),
 	  frameWin_( frameWinSize_, CFrame(fragWinSize_) )
 {
-	if ( pthread_create( &tid_, 0, pthreadBody, this ) ) {
-		throw IOError("unable to create thread ", errno);
-	}
 }
 
 
@@ -142,6 +143,7 @@ void CProtoModDepack::threadBody()
 #ifdef DEPACK_DEBUG
 printf("depack: trying to pop\n");
 #endif
+
 			// wait for new datagram
 			BufChain bufch = upstream_->pop( frame->running_ ? & frame->timeout_ : 0, IProtoPort::ABS_TIMEOUT );
 

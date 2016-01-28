@@ -142,8 +142,8 @@ public:
 		if ( ! downstream_.expired() ) {
 			throw ConfigurationError("Already a module attached downstream");
 		}
-		m->attach( getSelfAs<SRPPort>() );
 		downstream_ = m;
+		m->attach( getSelfAs<SRPPort>() );
 	}
 
 	virtual ProtoPort getUpstreamPort()
