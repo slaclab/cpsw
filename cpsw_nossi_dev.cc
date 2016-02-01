@@ -809,7 +809,9 @@ uint64_t rval;
 	bch->insert( args->src_, args->off_, args->nbytes_ );
 	rval = bch->getSize();
 
-	return protoStack_->pushDownstream( bch, &args->timeout_ ) ? rval : 0;
+	protoStack_->push( bch, &args->timeout_, IProtoPort::REL_TIMEOUT );
+
+	return rval;
 }
 
 DynTimeout::DynTimeout(const CTimeout &iniv)
