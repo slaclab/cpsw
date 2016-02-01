@@ -26,7 +26,9 @@ TSRCS+= cpsw_buf_tst.cc
 TSRCS+= cpsw_stream_tst.cc
 TSRCS+= cpsw_srpmux_tst.cc
 
-SRCS = $(LSRCS) $(TSRCS)
+ASRCS+= crc32-le-tbl-4.c
+
+SRCS = $(LSRCS) $(TSRCS) $(ASRCS)
 
 CXXFLAGS = -I. $(BOOSTINCP) -g -Wall -O2
 CFLAGS=-O2 -g -I.
@@ -78,16 +80,19 @@ cpsw_nossi_tst: udpsrv
 
 cpsw_nossi_tst_LIBS+=-lboost_system -lpthread
 cpsw_axiv_udp_tst_LIBS+=-lboost_system -lpthread
-cpsw_stream_tst_LIBS+=-lboost_system -lpthread
+cpsw_stream_tst_LIBS+=-lboost_system -lpthread -ltstaux
 cpsw_srpmux_tst_LIBS+=-lboost_system -lpthread
 
-udpsrv: udpsrv.c
-	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+udpsrv: udpsrv.c libtstaux.a
+	$(CC) $(CFLAGS) -o $@ $^ -L. -lpthread -ltstaux
 
-%_tst: %_tst.cc libcpsw.a
+%_tst: %_tst.cc libcpsw.a libtstaux.a
 	$(CXX) $(CXXFLAGS) -o $@ $< -L. $(BOOSTLIBP) -lcpsw $($@_LIBS)
 
 libcpsw.a: $(LSRCS:%.cc=%.o)
+	$(AR) cr $@ $^
+
+libtstaux.a: $(ASRCS:%.cc=%.o) $(ASRCS:%.c=%.o)
 	$(AR) cr $@ $^
 
 deps: $(SRCS)
