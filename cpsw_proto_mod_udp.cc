@@ -314,7 +314,7 @@ unsigned       nios;
 		FD_SET( tx_.getSd(), &fds );
 
 		// use pselect: does't modify the timeout and it's a timespec
-		selres = ::pselect( tx_.getSd() + 1, NULL, &fds, NULL, &timeout->tv_, NULL );
+		selres = ::pselect( tx_.getSd() + 1, NULL, &fds, NULL, !timeout || timeout->isIndefinite() ? NULL : &timeout->tv_, NULL );
 		if ( selres < 0  ) {
 			perror("::pselect() - dropping message due to error");
 			return;

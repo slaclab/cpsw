@@ -1,5 +1,6 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_proto_mod_depack.h>
+#include <crc32-le-tbl-4.h>
 
 #include <stdio.h>
 #define __STDC_FORMAT_MACROS
@@ -16,13 +17,15 @@ main(int argc, char **argv)
 {
 uint8_t  buf[100000];
 int64_t  got;
-int      i;
+unsigned i;
+int      opt;
 CAxisFrameHeader hdr;
 int      quiet = 1;
 int      fram, lfram;
 unsigned errs, goodf;
 unsigned attempts;
 unsigned*i_p;
+uint32_t crc;
 
 	unsigned iQDepth = 40;
 	unsigned oQDepth =  5;
@@ -31,19 +34,20 @@ unsigned*i_p;
 	unsigned timeoutUs = 10000000;
 	unsigned err_percent = 0;
 
-	while ( (i=getopt(argc, argv, "d:l:L:hT:e:")) > 0 ) {
+	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:")) > 0 ) {
 		i_p = 0;
-		switch ( i ) {
+		switch ( opt ) {
 			case 'q': i_p = &iQDepth;        break;
 			case 'Q': i_p = &oQDepth;        break;
 			case 'L': i_p = &ldFrameWinSize; break;
 			case 'l': i_p = &ldFragWinSize;  break;
 			case 'T': i_p = &timeoutUs;      break;
 			case 'e': i_p = &err_percent;    break;
-			case 'h': usage(argv[0]); return 0;
+			default:
+			case 'h': usage(argv[0]); return 1;
 		}
 		if ( i_p && 1 != sscanf(optarg,"%i",i_p)) {
-			fprintf(stderr, "Unable to scan arg to option '-%c'\n", i);
+			fprintf(stderr, "Unable to scan arg to option '-%c'\n", opt);
 			goto bail;
 		}
 	}
@@ -85,10 +89,29 @@ Field    data = IField::create("data");
 			goto bail;
 		}
 
+		if ( (attempts & 31) == 0 ) {
+			// once in a while try to write something...
+			// udpsrv will jam the CRC if they receive
+			// corrupted data;	
+			crc = crc32_le_t4( -1, buf, 100 ) ^ -1;
+			for ( i=0; i<sizeof(crc); i++ ) {
+				buf[100+i] = crc & 0xff;
+				crc >>= 8;
+			}
+			got = strm->write( buf, 100 + i );
+		}
+
 		got = strm->read( buf, sizeof(buf), CTimeout(8000000), 0 );
+
 		printf("Read %"PRIu64" octets\n", got);
 		if ( 0 == got ) {
 			fprintf(stderr,"Read -- timeout. Is udpsrv running?\n");
+			goto bail;
+		}
+
+		// udpsrv computes CRC over payload only (excluding stream header + tail byte)
+		if ( CRC32_LE_POSTINVERT_GOOD ^ -1 ^ crc32_le_t4(-1, buf + 8, got - 9) ) {
+			fprintf(stderr,"Read -- frame with bad CRC (jammed write message?)\n");
 			goto bail;
 		}
 
@@ -111,7 +134,7 @@ Field    data = IField::create("data");
 
 
 		if ( ! quiet ) {
-			for ( i=0; i<got - (int)hdr.getSize() - (int)hdr.getTailSize(); i++ ) {
+			for ( i=0; i<got - hdr.getSize() - hdr.getTailSize(); i++ ) {
 				printf("0x%02x ", buf[hdr.getSize() + i]);
 			}
 			printf("\n");

@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include <errno.h>
+#include <crc32-le-tbl-4.h>
 
 #define DEBUG
 
@@ -126,8 +127,8 @@ typedef struct streamer_args {
 	unsigned           n_frags;
 	unsigned           fram;
 	unsigned           scramble;
-	unsigned           busy;
 	pthread_mutex_t    mtx;
+	unsigned           jam;
 } streamer_args;
 
 typedef struct srp_args {
@@ -153,23 +154,6 @@ static void mustUnlock(pthread_mutex_t *m)
 	}
 }
 
-void *poller(void *arg)
-{
-struct streamer_args *sa = (struct streamer_args*)arg;
-char      buf[2048];
-int       got;
-socklen_t l;
-
-	while ( (l=sizeof(sa->peer), got = recvfrom(sa->sd, buf, sizeof(buf), 0, (struct sockaddr*)&sa->peer, &l)) >= 0 ) {
-		if ( l < 8 ) {
-			fprintf(stderr,"Poller: Contacted by %d\n", ntohs(sa->peer.sin_port));
-		}
-	}
-	perror("Poller thread failed");
-	exit(1);
-	return 0;
-}
-
 static uint64_t mkhdr(unsigned fram, unsigned frag)
 {
 uint64_t rval;
@@ -183,6 +167,68 @@ uint64_t rval;
 	rval = rval << VERSBITS;
 	rval |= VERS & ((1<<VERSBITS)-1);
 	return rval;
+}
+
+static int insert_header(uint8_t *hbuf, unsigned fram, unsigned frag)
+{
+uint64_t h;
+int      i;
+	h = mkhdr(fram, frag);
+	for ( i=0; i<HEADSIZE; i++ ) {
+		hbuf[i] = h;
+		h       = h>>8; 
+	}
+	return i;
+}
+
+static int append_tail(uint8_t *tbuf, int eof)
+{
+	*tbuf = eof ? EOFRAG : 0;
+	return 1;
+}
+
+
+void *poller(void *arg)
+{
+struct streamer_args *sa = (struct streamer_args*)arg;
+char          buf[2048];
+int           got;
+socklen_t     l;
+struct iovec  iov[3];
+struct msghdr mh;
+
+uint8_t       hbuf[HEADSIZE];
+uint8_t       tbuf;
+
+	mh.msg_name       = (struct sockaddr*)&sa->peer;
+	mh.msg_namelen    = sizeof( sa->peer ); 
+	mh.msg_iov        = iov;
+	mh.msg_iovlen     = sizeof(iov)/sizeof(iov[0]);
+	mh.msg_control    = 0;
+	mh.msg_controllen = 0;
+	mh.msg_flags      = 0;
+
+	while ( (l=sizeof(sa->peer), got = recvfrom(sa->sd, buf, sizeof(buf), 0, (struct sockaddr*)&sa->peer, &l)) >= 0 ) {
+		if ( got <= 8 ) {
+			fprintf(stderr,"Poller: Contacted by %d\n", ntohs(sa->peer.sin_port));
+		} else {
+			/* This is for testing the stream-write feature. We don't actually send anything
+			 * meaningful back.
+			 * The test just verifies that the data we receive from the stream writer is
+			 * correct (it's crc anyways).
+			 * If this is not the case then we let the test program know by corrupting
+			 * the stream data we send back on purpose.
+			 */
+			if ( crc32_le_t4(-1, buf, got) ^ -1 ^ CRC32_LE_POSTINVERT_GOOD ) {
+				fprintf(stderr,"Received message (size %d) with bad CRC\n", got);
+				sa->jam = 100;
+printf("JAM\n");
+			}
+		}
+	}
+	perror("Poller thread failed");
+	exit(1);
+	return 0;
 }
 
 static int send_shuffled(int idx, struct streamer_args *sa)
@@ -220,10 +266,11 @@ void *fragger(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
 unsigned frag = 0;
-uint64_t h;
 struct iovec iov[2];
-int      i;
+int      i,j;
 int      idx  = 0;
+uint32_t crc  = -1;
+int      end_of_frame;
 
 	while (1) {
 		if ( 0 == ntohs( sa->peer.sin_port ) ) {
@@ -231,20 +278,38 @@ int      idx  = 0;
 			continue;
 		}
 
-		h = mkhdr(sa->fram, frag);
-		for ( i=0; i<HEADSIZE; i++ ) {
-			bufmem[idx][i] = h;
-			h           = h>>8; 
-		}
+		i  = 0;
+		i += insert_header(bufmem[idx], sa->fram, frag);
+
 		memset(bufmem[idx] + i, (sa->fram << 4) | (frag & 0xf), FRAGLEN);
+
+		end_of_frame = (sa->n_frags - 1 == frag);
+
+		crc = crc32_le_t4(crc, bufmem[idx] + i, end_of_frame ? FRAGLEN - sizeof(crc) : FRAGLEN);
+
+		if ( end_of_frame ) {
+			crc ^= -1;
+			if ( sa->jam ) {
+				crc ^= 0xdeadbeef;
+				sa->jam--; // assume atomic access...
+if ( ! sa->jam )
+printf("JAM cleared\n");
+			}
+			for ( j =0; j<sizeof(crc); j++ ) {
+				* (bufmem[idx] + i + FRAGLEN - sizeof(crc) + j) = crc & 0xff;
+				crc >>= 8;
+			}
+		}
+
 		i += FRAGLEN;
-		bufmem[idx][i] = (sa->n_frags-1 == frag) ? EOFRAG : 0;
-		i++;
+
+		i += append_tail( &bufmem[idx][i], end_of_frame );
 
 		idx = send_shuffled(idx, sa);
 
 		if ( ++frag >= sa->n_frags ) {
 			frag = 0;
+			crc  = -1;
 			sa->fram++;
 			struct timespec ts;
 			ts.tv_sec  = 0;
@@ -545,6 +610,7 @@ struct srp_args      *srp_arg = 0;
 		s_arg->n_frags              = n_frags;
 		s_arg->scramble             = scramble;
 		s_arg->fram                 = 0;
+		s_arg->jam                  = 0;
 		if ( pthread_mutex_init( &s_arg->mtx, NULL ) ) {
 			perror("pthread_mutex_init failed:");
 			goto bail;

@@ -123,7 +123,18 @@ public:
 
 	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeout)
 	{
-		return -1;
+		CompositePathIterator it( &p_);
+		Address cl = it->c_p_;
+		CWriteArgs args;
+
+		args.cacheable_ = ie_->getCacheable();
+		args.off_       = 0;
+		args.src_       = buf;
+		args.nbytes_    = size;
+		args.msk1_      = 0;
+		args.mskn_      = 0;
+		args.timeout_   = timeout;
+		return cl->write( &it, &args );
 	}
 
 };
