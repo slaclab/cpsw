@@ -8,9 +8,11 @@
 
 #define NGOOD 200
 
+#undef  DEBUG
+
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-h] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent]\n", nm);
+	fprintf(stderr,"Usage: %s [-h] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent] [-n n_frames]\n", nm);
 }
 int
 main(int argc, char **argv)
@@ -26,6 +28,7 @@ unsigned errs, goodf;
 unsigned attempts;
 unsigned*i_p;
 uint32_t crc;
+unsigned ngood = NGOOD;
 
 	unsigned iQDepth = 40;
 	unsigned oQDepth =  5;
@@ -34,7 +37,7 @@ uint32_t crc;
 	unsigned timeoutUs = 10000000;
 	unsigned err_percent = 0;
 
-	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:")) > 0 ) {
+	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:")) > 0 ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'q': i_p = &iQDepth;        break;
@@ -43,6 +46,7 @@ uint32_t crc;
 			case 'l': i_p = &ldFragWinSize;  break;
 			case 'T': i_p = &timeoutUs;      break;
 			case 'e': i_p = &err_percent;    break;
+			case 'n': i_p = &ngood;          break;
 			default:
 			case 'h': usage(argv[0]); return 1;
 		}
@@ -82,7 +86,7 @@ Field    data = IField::create("data");
 	errs     = 0;
 	goodf    = 0;
 	attempts = 0;
-	while ( goodf < NGOOD ) {
+	while ( goodf < ngood ) {
 
 		if ( ++attempts > goodf + (goodf*err_percent)/100 + 10 ) {
 			fprintf(stderr,"Too many attempts\n");
@@ -103,7 +107,9 @@ Field    data = IField::create("data");
 
 		got = strm->read( buf, sizeof(buf), CTimeout(8000000), 0 );
 
+#ifdef DEBUG
 		printf("Read %"PRIu64" octets\n", got);
+#endif
 		if ( 0 == got ) {
 			fprintf(stderr,"Read -- timeout. Is udpsrv running?\n");
 			goto bail;
@@ -126,7 +132,9 @@ Field    data = IField::create("data");
 		}
 		
 		fram = hdr.getFrameNo();
+#ifdef DEBUG
 		printf("Frame # %4i\n", fram);
+#endif
 
 		if ( lfram >= 0 && lfram + 1 != fram ) {
 			errs++;
@@ -147,7 +155,7 @@ Field    data = IField::create("data");
 
 	if ( errs ) {
 		fprintf(stderr,"%d frames missing (got %d)\n", errs, goodf);	
-		if ( errs*100 > err_percent * NGOOD )
+		if ( errs*100 > err_percent * ngood )
 			goto bail;
 	}
 

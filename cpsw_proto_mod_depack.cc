@@ -8,16 +8,16 @@
 
 //#define DEPACK_DEBUG
 
-static unsigned getNum(uint8_t *p, unsigned bit_offset, unsigned bit_size)
+static uint64_t getNum(uint8_t *p, unsigned bit_offset, unsigned bit_size)
 {
-int i;
+int      i;
 unsigned shift = bit_offset % 8;
 unsigned rval;
 
-	p += bit_offset/8;
-
 	if ( bit_size == 0 )
 		return 0;
+
+	p += bit_offset/8;
 
 	// protocol uses little-endian representation
 	rval = 0;
@@ -30,6 +30,49 @@ unsigned rval;
 	rval &= (1<<bit_size)-1;
 
 	return rval;
+}
+
+static void setNum(uint8_t *p, unsigned bit_offset, unsigned bit_size, uint64_t val)
+{
+int      i,l;
+unsigned shift = bit_offset % 8;
+uint8_t  msk1, mskn;
+
+	if ( bit_size == 0 )
+		return;
+
+	p += bit_offset/8;
+
+	// mask of bits to preserve in the first and last word, respectively.
+
+	l = (shift + bit_size + 7)/8;
+
+	// l is > 0
+
+	msk1 = (1 << shift) - 1;
+
+    mskn = ~ ( (1 << ((shift + bit_size) % 8)) - 1 );
+
+	if ( 1 == l ) {
+		msk1 |= mskn;
+	}
+
+	val <<= shift;
+
+	// protocol uses little-endian representation
+
+	// l cannot be 0 here
+	p[0] = (val & ~msk1) | (p[0] & msk1);
+	val >>= 8;
+
+	for ( i = 1; i < l-1; i++ ) {
+		p[i] = val;
+		val >>= 8;
+	}
+
+	if ( i < l ) {
+		p[i] = (val & ~mskn) | (p[i] & mskn);
+	}
 }
 
 bool CAxisFrameHeader::parse(uint8_t *hdrBase, size_t hdrSize)
@@ -48,7 +91,23 @@ bool CAxisFrameHeader::parse(uint8_t *hdrBase, size_t hdrSize)
 	frameNo_ = getNum( hdrBase, FRAME_NO_BIT_OFFSET, FRAME_NO_BIT_SIZE );
 	fragNo_  = getNum( hdrBase, FRAG_NO_BIT_OFFSET,  FRAG_NO_BIT_SIZE  );
 
+	tDest_   = getNum( hdrBase, TDEST_BIT_OFFSET,    TDEST_BIT_SIZE );
+	tId_     = getNum( hdrBase, TID_BIT_OFFSET,      TID_BIT_SIZE );
+	tUsr1_   = getNum( hdrBase, TUSR1_BIT_OFFSET,    TUSR1_BIT_SIZE );
+
 	return true;
+}
+
+void CAxisFrameHeader::insert(uint8_t *hdrBase, size_t hdrSize)
+{
+	if ( hdrSize < getSize() )
+		throw InvalidArgError("Insufficient space for header");
+	setNum( hdrBase, VERSION_BIT_OFFSET,  VERSION_BIT_SIZE,  vers_    );
+	setNum( hdrBase, FRAME_NO_BIT_OFFSET, FRAME_NO_BIT_SIZE, frameNo_ );
+	setNum( hdrBase, FRAG_NO_BIT_OFFSET,  FRAG_NO_BIT_SIZE,  fragNo_  );
+	setNum( hdrBase, TDEST_BIT_OFFSET,    TDEST_BIT_SIZE,    0        );
+	setNum( hdrBase, TID_BIT_OFFSET,      TID_BIT_SIZE,      0        );
+	setNum( hdrBase, TUSR1_BIT_OFFSET,    TUSR1_BIT_SIZE,    0        );
 }
 
 
@@ -375,6 +434,32 @@ CFrame  *frame         = &frameWin_[frameIdx];
 BufChain CProtoModDepack::processOutput(BufChain bc)
 {
 #define SAFETY 40 // in case there are IP options or other stuff
+CAxisFrameHeader hdr( frameIdGen_.newFrameID(), 0 );
+Buf    b;
+
+	// Prepend header
+	try {
+		b = bc->getHead();
+		b->setPayload( b->getPayload() - hdr.getSize() );
+	} catch (InvalidArgError) {
+		// no space - must prepend a new buffer
+		b = bc->createAtHead();
+		b->setSize( hdr.getSize() );
+	}
+
+	hdr.insert( b->getPayload(), hdr.getSize() );
+
+	b = bc->getTail();
+
+	// Append tail
+	try {
+		b->setSize( b->getSize() + hdr.getTailSize() );
+	} catch (InvalidArgError) {
+		b = bc->createAtTail();
+		b->setSize( hdr.getTailSize() );
+	}
+
+	hdr.setTailEOF( b->getPayload() + b->getSize() - hdr.getTailSize(), true );
 
 	// ugly hack - limit to ethernet MTU
 	if ( bc->getSize() > 1500 - 14 - 20 - 8 - SAFETY )

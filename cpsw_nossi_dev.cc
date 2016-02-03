@@ -806,7 +806,18 @@ uint64_t CUdpStreamAddressImpl::write(CompositePathIterator *node, CWriteArgs *a
 BufChain bch = IBufChain::create();
 uint64_t rval;
 
-	bch->insert( args->src_, args->off_, args->nbytes_ );
+// Reserve some headroom in case protocols want to use it (they could prepend buffers
+// but reserving is more efficient).
+static const unsigned HEADROOM=32;
+
+	bch->insert( args->src_, args->off_ + HEADROOM, args->nbytes_ );
+
+	Buf b( bch->getHead() );
+	if ( ! b ) {
+		throw InternalError("No buffer after insert?");
+	}
+	b->setPayload( b->getPayload() + HEADROOM );
+
 	rval = bch->getSize();
 
 	protoStack_->push( bch, &args->timeout_, IProtoPort::REL_TIMEOUT );

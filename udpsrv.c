@@ -191,7 +191,7 @@ static int append_tail(uint8_t *tbuf, int eof)
 void *poller(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
-char          buf[2048];
+uint8_t       buf[2048];
 int           got;
 socklen_t     l;
 struct iovec  iov[3];
@@ -199,6 +199,8 @@ struct msghdr mh;
 
 uint8_t       hbuf[HEADSIZE];
 uint8_t       tbuf;
+
+int           lfram = -1;
 
 	mh.msg_name       = (struct sockaddr*)&sa->peer;
 	mh.msg_namelen    = sizeof( sa->peer ); 
@@ -209,9 +211,58 @@ uint8_t       tbuf;
 	mh.msg_flags      = 0;
 
 	while ( (l=sizeof(sa->peer), got = recvfrom(sa->sd, buf, sizeof(buf), 0, (struct sockaddr*)&sa->peer, &l)) >= 0 ) {
-		if ( got <= 8 ) {
+		if ( got < 4 ) {
 			fprintf(stderr,"Poller: Contacted by %d\n", ntohs(sa->peer.sin_port));
 		} else {
+			unsigned vers, fram, frag, tdest, tid, tusr1, tail;
+
+			if ( got < 9 ) {
+				sa->jam = 100; // frame not even large enough to be valid
+				continue;
+			}
+
+			vers  = buf[0] & 0xf;
+			fram  = (buf[1]<<8) | (buf[0]>>4);
+			frag  = (((buf[4]<<8) | buf[3])<<8) | buf[2];
+			tdest = buf[5];
+			tid   = buf[6];
+			tusr1 = buf[7];
+
+			tail  = buf[got-1];
+
+#ifdef DEBUG
+			printf("Got stream message:\n");
+			printf("   Version %d -- Frame #%d, frag #%d, tdest 0x%02x, tid 0x%02x, tusr1 0x%02x\n",
+			       vers,
+			       fram,
+			       frag,
+			       tdest,
+			       tid,
+			       tusr1);
+#endif
+
+			if ( vers != 0 || frag != 0 || tdest != 0 || tid != 0 || tusr1 != 0 ) {
+				fprintf(stderr,"UDPSRV: Invalid stream header received\n");
+				sa->jam = 100;
+				continue;
+			}
+
+			// assume 1st frame of a new instance of the test program always starts at 0
+			if ( fram > 0 ) {
+				if ( lfram + 1 != fram ) {
+					fprintf(stderr,"UDPSRV: Non-consecutive stream header received\n");
+					sa->jam = 100;
+					continue;
+				}
+			}
+			lfram = fram;
+
+			if ( tail != 0x80 ) {
+				fprintf(stderr,"UDPSRV: Invalid stream tailbyte received\n");
+				sa->jam = 100;
+				continue;
+			}
+	
 			/* This is for testing the stream-write feature. We don't actually send anything
 			 * meaningful back.
 			 * The test just verifies that the data we receive from the stream writer is
@@ -219,7 +270,7 @@ uint8_t       tbuf;
 			 * If this is not the case then we let the test program know by corrupting
 			 * the stream data we send back on purpose.
 			 */
-			if ( crc32_le_t4(-1, buf, got) ^ -1 ^ CRC32_LE_POSTINVERT_GOOD ) {
+			if ( crc32_le_t4(-1, buf + 8, got - 9) ^ -1 ^ CRC32_LE_POSTINVERT_GOOD ) {
 				fprintf(stderr,"Received message (size %d) with bad CRC\n", got);
 				sa->jam = 100;
 printf("JAM\n");

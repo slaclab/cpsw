@@ -2,6 +2,7 @@
 #define CPSW_PROTO_MOD_DEPACK_H
 
 #include <boost/intrusive/list.hpp>
+#include <boost/atomic.hpp>
 #include <vector>
 
 #include <cpsw_api_user.h>
@@ -9,6 +10,8 @@
 
 #include <pthread.h>
 
+using boost::atomic;
+using boost::memory_order_relaxed;
 using std::vector;
 
 typedef unsigned FrameID;
@@ -22,11 +25,15 @@ class IProtoModDepack : public virtual IProtoMod {
 };
 
 class CAxisFrameHeader {
-public:
+private:
 	FrameID      frameNo_;
 	FragID       fragNo_;
 	ProtoVersion vers_;
+	uint8_t      tDest_;
+	uint8_t      tId_;
+	uint8_t      tUsr1_;
 
+public:
 	static const unsigned VERSION_BIT_OFFSET  =  0;
 	static const unsigned VERSION_BIT_SIZE    =  4;
 	static const unsigned FRAME_NO_BIT_OFFSET =  4;
@@ -34,6 +41,13 @@ public:
 	static const unsigned FRAG_NO_BIT_OFFSET  = 16; 
 	static const unsigned FRAG_NO_BIT_SIZE    = 24; 
 	static const unsigned FRAG_MAX            = (1<<FRAG_NO_BIT_SIZE) - 1;
+
+	static const unsigned TDEST_BIT_OFFSET    = 40;
+	static const unsigned TDEST_BIT_SIZE      =  8;
+	static const unsigned TID_BIT_OFFSET      = 40;
+	static const unsigned TID_BIT_SIZE        =  8;
+	static const unsigned TUSR1_BIT_OFFSET    = 56;
+	static const unsigned TUSR1_BIT_SIZE      =  8;
 
 	static const unsigned FRAG_LAST_BIT       =  7;
 
@@ -43,8 +57,37 @@ public:
 
 	static const unsigned V0_TAIL_SIZE        =  1;
 
-public:
+	class CAxisFrameNoAllocator {
+	private:
+		atomic<FrameID> frameNo_;
+	public:
+		CAxisFrameNoAllocator()
+		:frameNo_(0)
+		{
+		}
+
+		FrameID newFrameID()
+		{
+		FrameID id;
+		unsigned shft = (8*sizeof(FrameID)-FRAME_NO_BIT_SIZE);
+			id = frameNo_.fetch_add( (1<<shft), memory_order_relaxed ) >> shft;
+			return id & ((1<<FRAME_NO_BIT_SIZE) - 1);
+		}
+	};
+
+	CAxisFrameHeader(unsigned frameNo = 0, unsigned fragNo = 0)
+	:frameNo_(frameNo),
+	 fragNo_(fragNo),
+	 vers_(VERSION_0),
+	 tDest_(0),
+	 tId_(0),
+	 tUsr1_(0)
+	{
+	}
+
 	bool parse(uint8_t *hdrBase, size_t hdrSize);
+	
+	void insert(uint8_t *hdrBase, size_t hdrSize);
 
 	FrameID      getFrameNo() { return frameNo_; }
 	FragID       getFragNo()  { return fragNo_;  }
@@ -66,7 +109,8 @@ public:
 
 	size_t       getTailSize() { return V0_TAIL_SIZE;   }
 
-	static bool getTailEOF(uint8_t *tailbuf) { return (*tailbuf) & (1<<FRAG_LAST_BIT); }
+	static bool getTailEOF(uint8_t *tailbuf)           { return (*tailbuf) & (1<<FRAG_LAST_BIT);    }
+	static void setTailEOF(uint8_t *tailbuf, bool eof) { (*tailbuf) = eof ? (1<<FRAG_LAST_BIT) : 0; }
 
 };
 
@@ -151,6 +195,8 @@ private:
 	unsigned pastLastDrops_;
 
 	CTimeout timeout_;
+
+	CAxisFrameHeader::CAxisFrameNoAllocator frameIdGen_;
 
 	pthread_t tid_;
 protected:
