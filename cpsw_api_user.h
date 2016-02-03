@@ -188,10 +188,10 @@ public:
 	// NOTE: nelms must be large enough to hold ALL values addressed by the
 	//       underlying Path. The range of indices may be reduced using the
 	//       'range' argument.
-	virtual unsigned getVal(uint64_t *p, unsigned nelms, IndexRange *range = 0)      = 0;
-	virtual unsigned getVal(uint32_t *p, unsigned nelms, IndexRange *range = 0)      = 0;
-	virtual unsigned getVal(uint16_t *p, unsigned nelms, IndexRange *range = 0)      = 0;
-	virtual unsigned getVal(uint8_t  *p, unsigned nelms, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint64_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint32_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint16_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint8_t  *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
 	virtual ~IScalVal_RO () {}
 
 	// Throws an exception if path doesn't point to an object which supports this interface
@@ -205,10 +205,10 @@ public:
 	// NOTE: nelms must be large enough to hold ALL values addressed by the
 	//       underlying Path. The range of indices may be reduced using the
 	//       'range' argument.
-	virtual unsigned setVal(uint64_t *p, unsigned nelms, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint32_t *p, unsigned nelms, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint16_t *p, unsigned nelms, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint8_t  *p, unsigned nelms, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint64_t *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint32_t *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint16_t *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint8_t  *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
 	virtual unsigned setVal(uint64_t  v, IndexRange *range = 0) = 0; // set all elements to same value
 	virtual ~IScalVal_WO () {}
 
