@@ -1,126 +1,162 @@
+
 #include <cpsw_api_user.h>
 #include <cpsw_path.h>
-#include <cpsw_hub.h>
+#include <cpsw_entry.h>
+#include <cpsw_sval.h>
+#include <cpsw_address.h>
 
-class IEntryAdapt : public virtual IEntry {
-protected:
-	shared_ptr<const IntEntryImpl> ie;
-	Path     p;
+using boost::dynamic_pointer_cast;
 
-	IEntryAdapt(Path p, shared_ptr<const IntEntryImpl> ie)
-	:ie(ie), p(p)
-	{
-		if ( p->empty() )
-			throw InvalidPathError("<EMPTY>");
-		if ( p->tail()->getEntry() != ie )
-			throw InternalError("inconsistent args passed to IEntryAdapt");
-		if ( UNKNOWN == p->tail()->getByteOrder() ) {
-			throw ConfigurationError("Configuration Error: byte-order not set");
-		}
-	}
-public:
-	virtual const char *getName()  const { return ie->getName(); }
-	virtual uint64_t    getSize() const { return ie->getSize(); }
-};
-
-class IIntEntryAdapt : public IEntryAdapt, public virtual IScalVal_Base {
-private:
-	int nelms;
-public:
-	IIntEntryAdapt(Path p, shared_ptr<const IntEntryImpl> ie) : IEntryAdapt(p, ie), nelms(-1) {}
-	virtual bool     isSigned()    const { return ie->isSigned();    }
-	virtual int      getLsBit()    const { return ie->getLsBit();    }
-	virtual uint64_t getSizeBits() const { return ie->getSizeBits(); }
-	virtual unsigned getWordSwap() const { return ie->getWordSwap(); }
-	virtual unsigned getNelms();
-};
-
-class ScalVal_ROAdapt : public virtual IScalVal_RO, public virtual IIntEntryAdapt {
-public:
-	ScalVal_ROAdapt(Path p, shared_ptr<const IntEntryImpl> ie)
-	: IIntEntryAdapt(p, ie)
-	{
-	}
-
-	virtual unsigned getVal(uint8_t  *, unsigned, unsigned);
-
-	template <typename E> unsigned getVal(E *e, unsigned nelms) {
-		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E) );
-	}
-
-	virtual unsigned getVal(uint64_t *p, unsigned n) { return getVal<uint64_t>(p,n); }
-	virtual unsigned getVal(uint32_t *p, unsigned n) { return getVal<uint32_t>(p,n); }
-	virtual unsigned getVal(uint16_t *p, unsigned n) { return getVal<uint16_t>(p,n); }
-	virtual unsigned getVal(uint8_t  *p, unsigned n) { return getVal<uint8_t> (p,n); }
-
-};
-
-class ScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {
-public:
-	ScalVal_WOAdapt(Path p, shared_ptr<const IntEntryImpl> ie)
-	: IIntEntryAdapt(p, ie)
-	{
-	}
-
-	template <typename E> unsigned setVal(E *e, unsigned nelms) {
-		return setVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E) );
-	}
-
-	virtual unsigned setVal(uint8_t  *, unsigned, unsigned);
-
-	virtual unsigned setVal(uint64_t *p, unsigned n) { return setVal<uint64_t>(p,n); }
-	virtual unsigned setVal(uint32_t *p, unsigned n) { return setVal<uint32_t>(p,n); }
-	virtual unsigned setVal(uint16_t *p, unsigned n) { return setVal<uint16_t>(p,n); }
-	virtual unsigned setVal(uint8_t  *p, unsigned n) { return setVal<uint8_t> (p,n); }
-
-	virtual unsigned setVal(uint64_t  v) { throw InternalError("FIXME"); }
-};
-
-class ScalVal_Adapt : public virtual ScalVal_ROAdapt, public virtual ScalVal_WOAdapt, public virtual IScalVal {
-public:
-	ScalVal_Adapt(Path p, shared_ptr<const IntEntryImpl> ie)
-	: IIntEntryAdapt(p, ie), ScalVal_ROAdapt(p, ie), ScalVal_WOAdapt(p, ie)
-	{
-	}
-};
-
-template <typename EIMPL, typename IMPL, typename IFAC> static IFAC check_interface(Path p)
+IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
+	:CShObj(k),
+	 ie_(ie), p_(p->clone())
 {
-shared_ptr<const EIMPL> e = boost::dynamic_pointer_cast<const EIMPL, EntryImpl>( p->tail()->getEntry() );
+	if ( p->empty() )
+		throw InvalidPathError("<EMPTY>");
+
+	Address  a = CompositePathIterator( &p )->c_p_;
+
+	if ( a->getEntryImpl() != ie )
+		throw InternalError("inconsistent args passed to IEntryAdapt");
+	if ( UNKNOWN == a->getByteOrder() ) {
+		throw ConfigurationError("Configuration Error: byte-order not set");
+	}
+}
+
+template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p)
+{
+	if ( p->empty() )
+		throw InvalidArgError("Empty Path");
+
+	Address a = CompositePathIterator( &p )->c_p_;
+	shared_ptr<const typename IMPL::element_type> e = dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
 	if ( e ) {
-		return IFAC( make_shared<IMPL>(p, e) );
+		ADAPT rval = CShObj::template create<ADAPT>(p, e);
+		return rval;
 	}
 	throw InterfaceNotImplementedError( p );
 }
 
-ScalVal_RO IScalVal_RO::create(Path p)
+static uint64_t b2B(uint64_t bits)
 {
-	// could try other implementations of this interface here
-	return check_interface<IntEntryImpl, ScalVal_ROAdapt, ScalVal_RO>( p );
+	return (bits + 7)/8;
 }
 
+CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
+: CEntryImpl(
+		k,
+		name,
+		wordSwap > 0 && wordSwap != b2B(sizeBits) ? b2B(sizeBits) + (lsBit ? 1 : 0) : b2B(sizeBits + lsBit)
+	),
+	is_signed_(is_signed),
+	ls_bit_(lsBit),
+	size_bits_(sizeBits),
+	mode_(mode),
+	wordSwap_(wordSwap)
+{
+unsigned byteSize = b2B(sizeBits);
+
+	if ( wordSwap == byteSize )
+		wordSwap = this->wordSwap_ = 0;
+
+	if ( wordSwap > 0 ) {
+		if ( ( byteSize % wordSwap ) != 0 ) {
+			throw InvalidArgError("wordSwap does not divide size");
+		}
+	}
+}
+
+IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
+{
+	return CShObj::create<IntEntryImpl>(name, sizeBits, is_signed, lsBit, mode, wordSwap);
+}
+
+CScalVal_Adapt::CScalVal_Adapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+	: IIntEntryAdapt(k, p, ie), CScalVal_ROAdapt(k, p, ie), CScalVal_WOAdapt(k, p, ie)
+{
+}
+
+CScalVal_WOAdapt::CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+	: IIntEntryAdapt(k, p, ie)
+{
+	// merging a word-swapped entity with a bit-size that is
+	// not a multiple of 8 would require more complex bitmasks
+	// than what our current 'write' method supports.
+	if ( (ie->getSizeBits() % 8) && ie->getWordSwap() )
+		throw InvalidArgError("Word-swap only supported if size % 8 == 0");
+}
+
+
+ScalVal_RO IScalVal_RO::create(Path p)
+{
+ScalVal_ROAdapt rval = check_interface<ScalVal_ROAdapt, IntEntryImpl>( p );
+	if ( rval ) {
+		if ( ! (rval->getMode() & IIntField::RO) ) 
+			throw InterfaceNotImplementedError( p );
+	}
+	return rval;
+}
+
+class CStreamAdapt;
+typedef shared_ptr<CStreamAdapt> StreamAdapt;
+
+class CStreamAdapt : public IEntryAdapt, public virtual IStream {
+public:
+	CStreamAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
+	: IEntryAdapt(k, p, ie)
+	{
+	}
+
+	virtual int64_t read(uint8_t *buf, size_t size, CTimeout timeout, uint64_t off)
+	{
+		CompositePathIterator it( &p_);
+		Address cl = it->c_p_;
+		CReadArgs args;
+
+		args.cacheable_ = ie_->getCacheable();
+		args.dst_       = buf;
+		args.nbytes_    = size;
+		args.off_       = off;
+		args.timeout_   = timeout;
+		return cl->read( &it, &args );
+	}
+
+};
+
+Stream IStream::create(Path p)
+{
+StreamAdapt rval = check_interface<StreamAdapt, EntryImpl>( p );
+	return rval;
+}
+
+#if 0
+// without caching and bit-level access at the SRP protocol level we cannot
+// support write-only yet.
 ScalVal_WO IScalVal_WO::create(Path p)
 {
-	// could try other implementations of this interface here
-	return check_interface<IntEntryImpl, ScalVal_WOAdapt, ScalVal_WO>( p );
+ScalVal_WOAdapt rval = check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
+	if ( rval ) {
+		if ( ! (rval->getMode() & IIntField::WO) ) 
+			throw InterfaceNotImplementedError( p );
+	}
+	return rval;
 }
+#endif
 
 ScalVal IScalVal::create(Path p)
 {
-	// could try other implementations of this interface here
-	return check_interface<IntEntryImpl, ScalVal_Adapt, ScalVal>( p );
+ScalVal_Adapt rval = check_interface<ScalVal_Adapt, IntEntryImpl>( p );
+	if ( rval ) {
+		if ( rval->getMode() != IIntField::RW )
+			throw InterfaceNotImplementedError( p );
+	}
+	return rval;
 }
 
 
 unsigned IIntEntryAdapt::getNelms()
 {
-	if ( nelms < 0 ) {
-		CompositePathIterator it( & p );
-		while ( ! it.atEnd() )
-			++it;
-		nelms = it.getNelmsRight();
-	}
-	return nelms;	
+	return p_->getNelms();
 }
 
 class SignExtender {
@@ -154,7 +190,9 @@ public:
 	{
 		int j           = signByte;
 
-		//printf("SE signByte %i, signBit %x\n", signByte, signBit);
+#ifdef SVAL_DEBUG
+printf("SE signByte %i, signBit %x\n", signByte, signBit);
+#endif
 		if ( isSigned && (ibufp[signByte] & signBit) != 0 ) {
 			obufp[j] = ibufp[j] | ~signMsk;
 			j += jinc;
@@ -254,22 +292,54 @@ public:
 	}
 };
 
+class SlicedPathIterator : public CompositePathIterator {
+public:
+	// 'suffix' (if used) must live for as long as this object is used
+	Path suffix;
+	
+	SlicedPathIterator(Path p, IndexRange *range)
+	:CompositePathIterator( &p )
+	{
+		if ( range && range->size() > 0 ) {
+			int f = (*this)->idxf_;
+			int t = (*this)->idxt_;
+			if ( range->size() != 1 ) {
+				throw InvalidArgError("Currently only 1-level of indices supported, sorry");
+			}
+			if ( range->getFrom() >= 0 )
+				f = range->getFrom();
+			if ( range->getTo() >= 0 )
+				t = range->getTo();
+			if ( f < (*this)->idxf_ || t > (*this)->idxt_ || t < f )
+				throw InvalidArgError("Array indices out of range");
+			if ( f != (*this)->idxf_ || t != (*this)->idxt_ ) {
+				suffix = IPath::create();
+				Address cl = (*this)->c_p_;
+				++(*this);
+				IPathImpl::toPathImpl( suffix )->append( cl, f, t );
+				(*this).append(suffix);
+			}
+		}
+	}
+};
 
-unsigned ScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz)
+unsigned CScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
 {
-CompositePathIterator it( & p );
-Child            cl        = it->c_p;
-uint64_t         off       = 0;
-unsigned         sbytes    = IEntryAdapt::getSize(); // byte-size including lsb shift
-unsigned         nbytes    = (getSizeBits() + 7)/8;  // byte-size w/o lsb shift
-unsigned         dbytes    = elsz;
-unsigned         ibuf_nchars;
-int              lsb       = getLsBit();
-ByteOrder        hostEndian= hostByteOrder();
-ByteOrder        targetEndian= cl->getByteOrder();
+SlicedPathIterator it( p_, range );
 
-	if ( (unsigned)getNelms() <= nelms )
-		nelms = getNelms();
+Address          cl           = it->c_p_;
+uint64_t         off          = 0;
+unsigned         sbytes       = getSize(); // byte-size including lsb shift
+unsigned         nbytes       = (getSizeBits() + 7)/8;  // byte-size w/o lsb shift
+unsigned         dbytes       = elsz;
+int              lsb          = getLsBit();
+ByteOrder        hostEndian   = hostByteOrder();
+ByteOrder        targetEndian = cl->getByteOrder();
+unsigned         ibuf_nchars;
+unsigned         nelmsOnPath  = it->nelmsLeft_;
+
+	if ( nelms >= nelmsOnPath )
+		nelms = nelmsOnPath;
 	else
 		throw InvalidArgError("Invalid Argument: buffer too small");
 
@@ -290,8 +360,15 @@ ByteOrder        targetEndian= cl->getByteOrder();
 			ibufp += (dbytes-sbytes) * nelms;
 		}
 	}
+
+	CReadArgs args;
+
+	args.cacheable_ = ie_->getCacheable();
+	args.dst_       = ibufp;
+	args.nbytes_    = sbytes;
+	args.off_       = off;
 	
-	cl->read( &it, ie->getCacheable(), ibufp, sbytes, off, sbytes );
+	cl->read( &it, &args );
 
 	bool sign_extend = getSizeBits() < 8*dbytes;
 	bool truncate    = getSizeBits() > 8*dbytes;
@@ -370,9 +447,10 @@ ByteOrder        targetEndian= cl->getByteOrder();
 	return nelms;
 }
 
-#if 0
-static void prib(uint8_t *b)
+#ifdef SVAL_DEBUG
+static void prib(const char *pre, uint8_t *b)
 {
+printf("%s - ", pre);
 for (int i=0; i<9; i++ ) {
 	printf("%02x ", b[i]);
 }
@@ -380,12 +458,12 @@ for (int i=0; i<9; i++ ) {
 }
 #endif
 
-unsigned ScalVal_WOAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz)
+unsigned CScalVal_WOAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
 {
-CompositePathIterator it( & p );
-Child            cl = it->c_p;
+SlicedPathIterator   it( p_, range );
+Address          cl = it->c_p_;
 uint64_t         off = 0;
-unsigned         dbytes   = IEntryAdapt::getSize(); // byte-size including lsb shift
+unsigned         dbytes   = getSize(); // byte-size including lsb shift
 uint64_t         sizeBits = getSizeBits();
 unsigned         nbytes   = (sizeBits + 7)/8;  // byte-size w/o lsb shift
 unsigned         sbytes   = elsz;
@@ -394,12 +472,12 @@ ByteOrder        hostEndian= hostByteOrder();
 ByteOrder        targetEndian = cl->getByteOrder();
 uint8_t          msk1     = 0x00;
 uint8_t          mskn     = 0x00;
+unsigned         nelmsOnPath = it->nelmsLeft_;
 
-	if ( (unsigned)getNelms() <= nelms )
-		nelms = getNelms();
+	if ( nelms >= nelmsOnPath )
+		nelms = nelmsOnPath;
 	else
 		throw InvalidArgError("not enough values supplied");
-
 
 	bool sign_extend = sizeBits > 8*sbytes;
 	bool truncate    = sizeBits < 8*sbytes;
@@ -461,29 +539,250 @@ uint8_t          mskn     = 0x00;
 			mskn = tmp;
 		}
 
+#ifdef SVAL_DEBUG
+printf("For NELMS %i, iinc %i, ioff %i, oinc %i, ooff %i, noff %i\n", nelms, iinc, ioff, oinc, ooff, noff);
+#endif
 		for ( n = nelms-1; n >= 0; n--, oidx += oinc, iidx += iinc ) {
 
+#ifdef SVAL_DEBUG
+prib("orig", ibufp+iidx);
+#endif
 			memcpy( obufp + oidx + ooff, ibufp + iidx + ioff, dbytes >= sbytes ? sbytes : dbytes );
+#ifdef SVAL_DEBUG
+prib("after memcpy", obufp + oidx);
+#endif
 
 			if ( sign_extend ) {
-				signExtend.work(obufp + oidx + ooff, obufp + oidx + ooff);
+				signExtend.work(obufp + oidx, obufp + oidx);
+#ifdef SVAL_DEBUG
+prib("sign-extended", obufp + oidx);
+#endif
 			}
 
 			if ( wlen  > 0 ) {
 				wordSwap.work( obufp + oidx + noff );
+#ifdef SVAL_DEBUG
+prib("word-swapped", obufp + oidx);
+#endif
 			}
 
 			if ( lsb != 0 ) {
 				bits.shiftLeft( obufp + oidx );
+#ifdef SVAL_DEBUG
+prib("shifted", obufp + oidx);
+#endif
 			}
 
 			if ( targetEndian != hostEndian ) {
 				byteSwap.work( obufp + oidx );
+#ifdef SVAL_DEBUG
+prib("byte-swapped", obufp + oidx);
+#endif
 			}
 		}
 	}
 
-	cl->write( &it, ie->getCacheable(), obufp, dbytes, off, dbytes, msk1, mskn );
+	CWriteArgs args;
+
+	args.cacheable_ = ie_->getCacheable();
+	args.src_       = obufp;
+	args.off_       = off;
+	args.nbytes_    = dbytes;
+	args.msk1_      = msk1;
+	args.mskn_      = mskn;
+	
+	cl->write( &it, &args );
 
 	return nelms;
+}
+	
+unsigned CScalVal_WOAdapt::setVal(uint64_t  v, IndexRange *r)
+{
+unsigned nelms;
+
+
+	if ( r ) {
+		int f = r->getFrom();
+		int t = r->getTo();
+
+		if ( f < 0 && t < 0 ) {
+			nelms = getNelms();
+		} else {
+			CompositePathIterator it( &p_ );
+			if ( f < 0 )
+				f = it->idxf_; 
+			if ( t < 0 )
+				t = it->idxt_; 
+			t = t - f + 1;
+			int d = it.getNelmsRight();
+			if ( t >= 0 && t < d )
+				d = t;
+			nelms = it.getNelmsLeft() * d;
+		}
+	} else {
+		nelms = getNelms();
+	}
+
+	// since reads may be collapsed at a lower layer we simply build an array here
+	if ( getSize() <= sizeof(uint8_t) ) {
+		uint8_t vals[nelms];
+		for ( unsigned i=0; i<nelms; i++ )
+			vals[i] = v;
+		return setVal(vals, nelms, r);
+	} else if ( getSize() <= sizeof(uint16_t) ) {
+		uint16_t vals[nelms];
+		for ( unsigned i=0; i<nelms; i++ )
+			vals[i] = v;
+		return setVal(vals, nelms, r);
+	} else if ( getSize() <= sizeof(uint32_t) ) {
+		uint32_t vals[nelms];
+		for ( unsigned i=0; i<nelms; i++ )
+			vals[i] = v;
+		return setVal(vals, nelms, r);
+	} else {
+		uint64_t vals[nelms];
+		for ( unsigned i=0; i<nelms; i++ )
+			vals[i] = v;
+		return setVal(vals, nelms, r);
+	}
+}
+
+CIntEntryImpl::CBuilder::CBuilder(Key &k)
+:CShObj(k)
+{
+	init();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::clone()
+{
+	return CShObj::clone( getSelfAs<BuilderImpl>() );
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::name(const char *name)
+{
+	name_ = name ? std::string(name) : std::string();
+	return getSelfAs<BuilderImpl>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::sizeBits(uint64_t sizeBits)
+{
+	sizeBits_ = sizeBits;
+	return getSelfAs<BuilderImpl>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::isSigned(bool isSigned)
+{
+	isSigned_ = isSigned;
+	return getSelfAs<BuilderImpl>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::lsBit(int lsBit)
+{
+	lsBit_    = lsBit;
+	return getSelfAs<BuilderImpl>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::mode(Mode mode)
+{
+	mode_     = mode;
+	return getSelfAs<BuilderImpl>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::wordSwap(unsigned wordSwap)
+{
+	wordSwap_ = wordSwap;
+	return getSelfAs<BuilderImpl>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::reset()
+{
+	init();
+	return getSelfAs<BuilderImpl>();
+}
+
+void CIntEntryImpl::CBuilder::init()
+{
+	name_     = std::string();
+	sizeBits_ = DFLT_SIZE_BITS;
+	lsBit_    = DFLT_LS_BIT;
+	isSigned_ = DFLT_IS_SIGNED;
+	mode_     = DFLT_MODE;
+    wordSwap_ = DFLT_WORD_SWAP;
+}
+
+IntField CIntEntryImpl::CBuilder::build()
+{
+	return build( name_.c_str() );
+}
+
+IntField CIntEntryImpl::CBuilder::build(const char *name)
+{
+	return CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_);
+}
+
+IIntField::Builder  CIntEntryImpl::CBuilder::create()
+{
+	return CShObj::create< shared_ptr<CIntEntryImpl::CBuilder> >();
+}
+
+IIntField::Builder IIntField::IBuilder::create()
+{
+	return CIntEntryImpl::CBuilder::create();
+}
+
+IndexRange::IndexRange(int from, int to)
+:std::vector< std::pair<int,int> >(1)
+{
+	if ( from >= 0 && to >= 0 && to < from )
+		throw InvalidArgError("Invalid index range");
+	setFrom( from );
+	setTo( to );
+	(*this)[0].first = from;
+	(*this)[0].first = from;
+}
+
+IndexRange::IndexRange(int fromto)
+:std::vector< std::pair<int,int> >(1)
+{
+	setFromTo( fromto );
+}
+
+int IndexRange::getFrom()
+{
+	return (*this)[0].first;
+}
+
+int IndexRange::getTo()
+{
+	return (*this)[0].second;
+}
+
+void IndexRange::setFrom(int f)
+{
+	(*this)[0].first = f;
+}
+
+void IndexRange::setTo(int t)
+{
+	(*this)[0].second = t;
+}
+
+void IndexRange::setFromTo(int i)
+{
+	setFrom( i );
+	setTo( i );
+}
+
+void IndexRange::setFromTo(int f, int t)
+{
+	setFrom( f );
+	setTo( t );
+}
+
+IndexRange & IndexRange::operator++()
+{
+	int newFrom = getTo() + 1;
+	setTo( newFrom + getTo() - getFrom() );
+	setFrom( newFrom );
+	return *this;
 }

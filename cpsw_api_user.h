@@ -5,6 +5,7 @@
 #include <list>
 #include <string.h>
 #include <boost/shared_ptr.hpp>
+#include <vector>
 
 using std::list;
 using boost::shared_ptr;
@@ -16,25 +17,51 @@ class IPath;
 class IScalVal_RO;
 class IScalVal_WO;
 class IScalVal;
-class CompositePathIterator;
 typedef shared_ptr<const IHub>   Hub;
 typedef shared_ptr<const IChild> Child;
+typedef shared_ptr<const IEntry> Entry;
 typedef shared_ptr<IPath>        Path;
 typedef shared_ptr<IScalVal_RO>  ScalVal_RO;
 typedef shared_ptr<IScalVal_WO>  ScalVal_WO;
 typedef shared_ptr<IScalVal>     ScalVal;
-class EventListener;
+class IEventListener;
+class IEventSource;
+typedef shared_ptr<IEventSource> EventSource;
+class IStream;
+typedef shared_ptr<IStream> Stream;
+
+typedef shared_ptr< std::vector<Child> > Children;
 
 #include <cpsw_error.h>
 
 // The hierarchy of things
 
-// A node 
+// An entity
+//
+// The same entity can be referenced from different places
+// in the hierarchy.
+
+// NOTE: the strings returned by 'getName()', 'getDescription()'
+//       are only valid while a shared pointer to containing object
+//       is held.
 class IEntry {
 public:
-	virtual const char *getName()  const = 0;
-	virtual uint64_t    getSize() const = 0;
+	virtual const char *getName()        const = 0;
+	virtual uint64_t    getSize()        const = 0;
+	virtual const char *getDescription() const = 0;
+	virtual Hub         isHub()          const = 0;
 	virtual ~IEntry() {}
+};
+
+// A node which connects an entry with a hub
+
+class IChild : public virtual IEntry {
+	public:
+		virtual       Hub       getOwner()     const = 0;
+		virtual       unsigned  getNelms()     const = 0;
+		virtual       void      dump(FILE*)    const = 0;
+		virtual       void      dump()         const = 0;
+		virtual ~IChild() {}
 };
 
 class IPath {
@@ -55,21 +82,24 @@ public:
 	virtual Child       tail()                 const = 0;
 	virtual std::string toString()             const = 0;
 	virtual void        dump(FILE *)           const = 0;
-	// verify the 'hub' is at the tail of this path
-	virtual bool        verifyAtTail(Hub)            = 0;
+	// verify the 'head' of 'p' is identical with the tail of this path
+	virtual bool        verifyAtTail(Path p)         = 0;
 	// append a copy of another path to this one.
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
 	virtual void        append(Path p)               = 0;
-	// append to this path
-	// Note: an exception is thrown if this->verifyAtTail( child->owner() ) evaluates to 'false'.
-	virtual void        append(Child c)              = 0;
 	
 	// append a copy of another path to a copy of this one and return the new copy
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
 	virtual Path        concat(Path p)         const = 0;
 
+	// make a copy of this path
+	virtual Path        clone()                const = 0;
+
+	virtual unsigned    getNelms()             const = 0;
+
 	// create an empty path
 	static  Path        create();             // absolute; starting at root
+	static  Path        create(const char*);  // absolute; starting at root
 	static  Path        create(Hub);          // relative; starting at passed arg
 
 	virtual ~IPath() {}
@@ -79,9 +109,11 @@ public:
 class IHub : public virtual IEntry {
 public:
 	// find all entries matching 'path' in or underneath this hub
-	virtual Path           findByName(const char *path)         = 0;
+	virtual Path       findByName(const char *path)      = 0;
 
-		virtual Child      getChild(const char *name)     const = 0;
+	virtual Child      getChild(const char *name)  const = 0;
+
+	virtual Children   getChildren()               const = 0;
 };
 
 // Base interface to integral values
@@ -90,19 +122,76 @@ public:
 	virtual unsigned getNelms()               = 0; // if array
 	virtual uint64_t getSizeBits()      const = 0; // size in bits
 	virtual bool     isSigned()         const = 0;
+	virtual Path     getPath()          const = 0;
 	virtual ~IScalVal_Base () {}
+};
+
+
+// IndexRange can be used to programmatically access a subset
+// of a ScalVal.
+// Assume, e.g., that ScalVal 'v' refers to an array with 100
+// elements:
+//
+//    v = IScalVal::create( path_prefix->findByName( "something[400-500]" ) );
+//
+// If you want to read just element 456 then you can
+//
+//    IndexRange rng(456);
+//
+//    v->getVal( buf, 1, &rng );
+//
+// IndexRange also allows for easy iteration through an array:
+// Assume you want to read in chunks of 10 elements:
+//
+//    IndexRange rng(400, 409);
+//
+//    for (unsigned i=0; i<10; i++, ++rng) { // prefix increment is more efficient
+//       v->getVal( buf, 10, &rng );
+//    }
+//
+// NOTES:
+//   - range must address a slice *within* the limits of the ScalVal itself.
+//     E.g., in the above example you could not address element 300.
+//   - IndexRange has no knowledge of ScalVal. It is the user's responsibility
+//     to ensure the entire index range falls within the ScalVal's limits
+//     (otherwise you incur an exception).
+//   - For now only the rightmost array can be sliced. Support for multiple
+//     dimensions can be added in the future.
+//
+//     E.g., if you have a ScalVal:  "container[0-3]/value[0-100]"
+//     then you can only slice 'value'.
+//
+class IndexRange : public std::vector< std::pair<int,int> > {
+public:
+	// ranges are inclusive, i.e., from=3, to=7 covers 3,4,5,6,7
+	IndexRange(int from, int to);
+	IndexRange(int fromto);
+	virtual int  getFrom();
+	virtual int  getTo();
+	virtual void setFrom(int);
+	virtual void setTo(int);
+	virtual void setFromTo(int);
+	virtual void setFromTo(int from, int to);
+
+	// increment: (from, to) := ( to + 1,  to + to - from + 1 )
+	virtual IndexRange &operator++();
+
+	virtual ~IndexRange(){}
 };
 
 // Read-only interface to an integral value.
 // Any size (1..64 bits) is represented by
 // a (sign-extended) uint.
-
 class IScalVal_RO : public virtual IScalVal_Base {
 public:
-	virtual unsigned getVal(uint64_t *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into 64-bit (array)
-	virtual unsigned getVal(uint32_t *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into 32-bit (array)
-	virtual unsigned getVal(uint16_t *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into 16-bit (array)
-	virtual unsigned getVal(uint8_t  *p, unsigned nelms)      = 0; // (possibly truncating, sign-extending) read into  8-bit (array)
+    // (possibly truncating, sign-extending) read into 64/32/16/8-bit (array)
+	// NOTE: nelms must be large enough to hold ALL values addressed by the
+	//       underlying Path. The range of indices may be reduced using the
+	//       'range' argument.
+	virtual unsigned getVal(uint64_t *p, unsigned nelms, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint32_t *p, unsigned nelms, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint16_t *p, unsigned nelms, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint8_t  *p, unsigned nelms, IndexRange *range = 0)      = 0;
 	virtual ~IScalVal_RO () {}
 
 	// Throws an exception if path doesn't point to an object which supports this interface
@@ -112,11 +201,15 @@ public:
 // Write-only:
 class IScalVal_WO : public virtual IScalVal_Base {
 public:
-	virtual unsigned setVal(uint64_t *p, unsigned nelms) = 0; // (possibly truncating) write from 64-bit value(s)
-	virtual unsigned setVal(uint32_t *p, unsigned nelms) = 0; // (possibly truncating) write from 32-bit value(s)
-	virtual unsigned setVal(uint16_t *p, unsigned nelms) = 0; // (possibly truncating) write from 16-bit value(s)
-	virtual unsigned setVal(uint8_t  *p, unsigned nelms) = 0; // (possibly truncating) write from  8-bit value(s)
-	virtual unsigned setVal(uint64_t  v) = 0; // set all elements to same value
+    // (possibly truncating) write from 64/32/16/8-bit (array)
+	// NOTE: nelms must be large enough to hold ALL values addressed by the
+	//       underlying Path. The range of indices may be reduced using the
+	//       'range' argument.
+	virtual unsigned setVal(uint64_t *p, unsigned nelms, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint32_t *p, unsigned nelms, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint16_t *p, unsigned nelms, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint8_t  *p, unsigned nelms, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint64_t  v, IndexRange *range = 0) = 0; // set all elements to same value
 	virtual ~IScalVal_WO () {}
 
 	// Throws an exception if path doesn't point to an object which supports this interface
@@ -133,23 +226,60 @@ public:
 // Analogous to ScalVal there could be interfaces to double, enums, strings...
 
 
-// Event AKA Interrupt interface
+// We don't want the timeout class to clutter this header.
+//
+// The most important features are
+//
+//   CTimeout( uint64_t        timeout_microseconds );
+//   CTimeout( struct timespec timeout              );
+//   CTimeout( time_t          seconds              , long nanoseconds );
+//   CTimeout()
+//      the default constructor builds an INDEFINITE timeout
+//
+// and there are operators '+=' and '-='
+//
+#include <cpsw_api_timeout.h>
 
-class EventSource {
+static const CTimeout TIMEOUT_NONE( 0, 0 );
+static const CTimeout TIMEOUT_INDEFINITE;
+
+
+class IStream {
 public:
-	class Event {
-		public:
-		virtual ~Event() {};
-	};
-	virtual void addListener(Event *, EventListener *)    = 0;
-	virtual void removeListener(Event *, EventListener *) = 0;
-	virtual ~EventSource() {}
+	virtual int64_t read(uint8_t *buf, size_t size, CTimeout timeout = TIMEOUT_INDEFINITE, uint64_t off = 0) = 0;
+
+	static Stream create(Path p);
 };
 
-class EventListener {
+// Event AKA Interrupt interface
+
+class IEventSource {
 public:
-	virtual void notify(EventSource::Event *e) = 0;
-	virtual ~EventListener() {}
+	typedef uint32_t EventID;
+	class IEvent {
+		public:
+		virtual EventID getID()                                = 0;
+		virtual size_t  getPayloadSize()                       = 0;
+		virtual size_t  getPayload(uint8_t *buf, size_t bufsz) = 0;
+		virtual ~IEvent() {};
+	};
+	// NOTE: the user must ensure an EventListener is removed before
+	//       it is destroyed since we don't oblige the user to provide
+	//       a shared pointer here.
+	virtual void addListener(EventID,    IEventListener *) = 0;
+	virtual void removeListener(EventID, IEventListener *) = 0;
+	virtual ~IEventSource() {}
+
+	static EventSource create(Path p);
+};
+
+class IEventListener {
+public:
+	// the 'notify' callback must not hold on to a reference
+	// to the Event object - it becomes invalid upon return
+	// from notify.
+	virtual void notify(IEventSource::IEvent *e) = 0;
+	virtual ~IEventListener() {}
 };
 
 #endif

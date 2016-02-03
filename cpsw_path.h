@@ -4,13 +4,21 @@
 #include <list>
 #include <vector>
 #include <cpsw_api_user.h>
+
 #include <cstdarg>
 
-struct PathEntry {
-	Child  c_p;
-	int    idxf, idxt;
+class IAddress;
+typedef shared_ptr<IAddress> Address;
 
-	PathEntry(Child a, int idxf = 0, int idxt = -1);
+class CDevImpl;
+typedef shared_ptr<const CDevImpl> ConstDevImpl;
+
+struct PathEntry {
+	Address  c_p_;
+	int      idxf_, idxt_;
+	unsigned nelmsLeft_;
+
+	PathEntry(Address a, int idxf = 0, int idxt = -1, unsigned nelmsLeft = 1);
 };
 
 typedef std::vector<PathEntry>  PathEntryContainer;
@@ -21,9 +29,10 @@ typedef std::vector<PathEntry>  PathEntryContainer;
 // iterator is in use!
 class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 	private:
-		bool                                  at_end;
-		std::vector<PathEntryContainer::reverse_iterator> l;
-		unsigned                              nelmsRight;
+		bool                                  at_end_;
+		std::vector<PathEntryContainer::reverse_iterator> l_;
+		unsigned                              nelmsRight_;
+		unsigned                              nelmsLeft_;
 
 	public:
 		// construct from a single path 
@@ -33,16 +42,22 @@ class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 
 		unsigned getNelmsRight()
 		{
-			return nelmsRight;
+			return nelmsRight_;
+		}
+
+		unsigned getNelmsLeft()
+		{
+			return nelmsLeft_ * (atEnd() ? 1 : (*this)->nelmsLeft_);
 		}
 
 		bool atEnd()
 		{
-			return at_end;
+			return at_end_;
 		}
 
 		// can path 'p' be concatenated with this one, i.e.,
-		// is the origin of 'p' identical with this' tail?
+		// is the origin of 'p' identical with the element
+		// this iterator points to?
 		bool validConcatenation(Path p);
 
 		void append(Path p);
@@ -56,5 +71,17 @@ class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 
 		void dump(FILE *f) const;
 };
+
+class IPathImpl : public IPath {
+public:
+	virtual void         append(Address, int f, int t) = 0;
+	virtual PathEntry    tailAsPathEntry() const = 0;
+	virtual ConstDevImpl originAsDevImpl() const = 0;
+	virtual ConstDevImpl parentAsDevImpl() const = 0;
+
+	static  IPathImpl   *toPathImpl(Path p);
+
+};
+
 
 #endif

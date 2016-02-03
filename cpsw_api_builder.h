@@ -2,19 +2,27 @@
 #define CPSW_API_BUILDER_H
 
 #include <cpsw_api_user.h>
-#include <boost/interprocess/smart_ptr/unique_ptr.hpp>
 
-using boost::interprocess::unique_ptr;
+// ************** BIG NOTE ****************
+//   The builder API is NOT THREAD SAFE. 
+// ****************************************
+
 using boost::static_pointer_cast;
 
 class IVisitor;
 class IField;
-class IAddress;
+class CEntryImpl;
+class FKey;
 class IDev;
 
-typedef shared_ptr<IAddress> Address;
-typedef shared_ptr<IField>   Field;
-typedef shared_ptr<IDev>     Dev;
+typedef shared_ptr<IField>     Field;
+typedef shared_ptr<IDev>       Dev;
+typedef shared_ptr<CEntryImpl> EntryImpl;
+
+
+typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21 } ByteOrder;
+
+ByteOrder hostByteOrder();
 
 class IVisitable {
 public:
@@ -26,23 +34,17 @@ public:
 	virtual ~IVisitable() {}
 };
 
-class EntryImpl;
-typedef shared_ptr<EntryImpl> Entry;
-
-typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21 } ByteOrder;
-
-ByteOrder hostByteOrder();
-
-
 class IField : public virtual IEntry, public virtual IVisitable {
 public:
-	// the enum is ordered in increasing 'loosenes' of the cacheable attribute
+	// the enum is ordered in increasing 'looseness' of the cacheable attribute
 	typedef enum Cacheable { UNKNOWN_CACHEABLE = 0, NOT_CACHEABLE, WT_CACHEABLE, WB_CACHEABLE } Cacheable;
 public:
-	virtual Cacheable getCacheable()           const = 0;
-	virtual void      setCacheable(Cacheable)        = 0;
+	virtual Cacheable getCacheable()                 const = 0;
+	virtual void      setCacheable(Cacheable)              = 0;
+	virtual void      setDescription(const char *)         = 0;
+	virtual void      setDescription(const std::string &)  = 0;
 	virtual ~IField() {}
-	virtual Entry     getSelf()                      = 0;
+	virtual EntryImpl getSelf()                            = 0;
 
 	static Field create(const char *name, uint64_t size = 0);
 };
@@ -53,6 +55,8 @@ public:
 	virtual ~IDev() {}
 
 	static Dev create(const char *name, uint64_t size = 0);
+
+	static Dev getRootDev();
 };
 
 class IVisitor {
@@ -81,7 +85,7 @@ typedef shared_ptr<IMemDev> MemDev;
 class IMemDev : public virtual IDev {
 public:
 	virtual void            addAtAddress(Field child, unsigned nelms = 1) = 0;
-	virtual uint8_t * const getBufp() = 0;
+	virtual uint8_t * const getBufp() const = 0;
 
 	static MemDev create(const char *name, uint64_t size);
 };
@@ -92,7 +96,11 @@ typedef shared_ptr<INoSsiDev> NoSsiDev;
 
 class INoSsiDev : public virtual IDev {
 public:
-	virtual void addAtAddress(Field child, unsigned dport, unsigned timeoutUs = 200, unsigned retryCnt = 5) = 0;
+	typedef enum ProtocolVersion { SRP_UDP_V1 = 1, SRP_UDP_V2 = 2 } ProtocolVersion;
+
+	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 1000, unsigned retryCnt = 5, uint8_t vc = 0) = 0;
+	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth = 32, unsigned outQDepth = 16, unsigned ldFrameWinSize = 4, unsigned ldFragWinSize = 4, unsigned nUdpThreads = 2) = 0;
+
 	virtual const char *getIpAddressString() const = 0;
 
 	static NoSsiDev create(const char *name, const char *ipaddr);
@@ -103,10 +111,41 @@ typedef shared_ptr<IIntField> IntField;
 
 class IIntField: public virtual IField {
 public:
+	typedef enum Mode { RO = 1, WO = 2, RW = 3 } Mode;
+
+	static const uint64_t DFLT_SIZE_BITS = 32;
+	static const bool     DFLT_IS_SIGNED = false;
+	static const int      DFLT_LS_BIT    =  0;
+	static const Mode     DFLT_MODE      = RW;
+	static const unsigned DFLT_WORD_SWAP =  0;
+
+	class IBuilder;
+	typedef shared_ptr<IBuilder> Builder;
+
+	class IBuilder {
+	public:
+		virtual Builder name(const char *)    = 0;
+		virtual Builder sizeBits(uint64_t)    = 0;
+		virtual Builder isSigned(bool)        = 0;
+		virtual Builder lsBit(int)            = 0;
+		virtual Builder mode(Mode)            = 0;
+		virtual Builder wordSwap(unsigned)    = 0;
+		virtual Builder reset()               = 0;
+
+		virtual IntField build()              = 0;
+		virtual IntField build(const char*)   = 0;
+
+		virtual Builder clone() = 0;	
+
+		static Builder create();
+	};
+
 	virtual bool     isSigned()    const = 0;
 	virtual int      getLsBit()    const = 0;
 	virtual uint64_t getSizeBits() const = 0;
+	virtual Mode     getMode()     const = 0;
 
-	static IntField create(const char *name, uint64_t sizeBits, bool is_Signed = false, int lsBit = 0, unsigned wordSwap=0);
+	static IntField create(const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_Signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP);
 };
+
 #endif

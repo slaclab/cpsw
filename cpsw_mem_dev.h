@@ -3,28 +3,40 @@
 
 #include <cpsw_hub.h>
 
+class CMemDevImpl;
+typedef shared_ptr<CMemDevImpl> MemDevImpl;
+
 // pseudo-device with memory backing (for testing)
 
-class MemDevAddressImpl : public AddressImpl {
+class CMemAddressImpl : public CAddressImpl {
 	public:
-		MemDevAddressImpl(AKey key, unsigned nelms = 1);
+		CMemAddressImpl(AKey key, unsigned nelms = 1);
 
-		virtual uint64_t read(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, unsigned dbytes, uint64_t off, unsigned sbytes) const;
-		virtual uint64_t write(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, unsigned sbytes, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
+		// ANY subclass must implement clone(AKey) !
+		virtual CMemAddressImpl *clone(AKey k) { return new CMemAddressImpl( *this ); }
+
+		virtual uint64_t read(CompositePathIterator *node, CReadArgs *args)   const;
+		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 };
 
-class MemDevImpl : public DevImpl, public virtual IMemDev {
+class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	private:
-		uint8_t * const buf;
+		uint8_t * buf_;
+	protected:
+		CMemDevImpl(CMemDevImpl &orig, Key &k);
+
 	public:
+		CMemDevImpl(Key &k, const char *name, uint64_t size);
 
-		virtual uint8_t * const getBufp() { return buf; }
-
-		MemDevImpl(FKey k, uint64_t size);
+		CMemDevImpl & operator=(CMemDevImpl &orig);
 
 		virtual void addAtAddress(Field child, unsigned nelms = 1);
 
-		virtual ~MemDevImpl();
+		virtual uint8_t * const getBufp() const { return buf_; }
+
+		virtual CMemDevImpl *clone(Key &k) { return new CMemDevImpl( *this, k ); }
+
+		virtual ~CMemDevImpl();
 };
 
 #endif
