@@ -537,8 +537,8 @@ struct timespec retry_then;
 		if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
 			bufsz += sizeof(SRPWord);
 		}
+		BufChain rchn;
 		uint8_t *rbuf;
-
 		BufChain xchn   = IBufChain::create();
 		unsigned bufoff = 0;
 		for ( i=0; i<iovlen; i++ ) {
@@ -554,7 +554,7 @@ struct timespec retry_then;
 		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
 		do {
-			BufChain rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
+			rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
 #ifdef NOSSI_DEBUG
 				time_retry( &retry_then, attempt, "WRITE", protoStack_ );
