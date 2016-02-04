@@ -335,11 +335,10 @@ uint16_t u16;
 		throw TestFailed();	
 	}
 
-	{
+	if ( length > 0 ) {
 		printf("PRBS Regs:\n");
-		unsigned i;
 		uint32_t v;
-		for ( i=0; i<vals.size(); i++ ) {
+		for (unsigned i=0; i<vals.size(); i++ ) {
 			vals[i]->getVal( &v, 1 );
 			printf("%14s: %d\n", vals[i]->getName(), v );
 		}
@@ -349,12 +348,9 @@ uint16_t u16;
 		packetLength->setVal( &v, 1 );
 		v = 1;
 		oneShot->setVal( &v, 1 );
-	}
 
-	if ( length > 0 ) {
 		pthread_t tid;
 		void     *ign;
-		int i;
 		struct timespec p;
 		ThreadArg arg;
 		p.tv_sec  = period/1000;
@@ -362,7 +358,7 @@ uint16_t u16;
 		if ( pthread_create( &tid, 0, rxThread, &arg ) ) {
 			perror("pthread_create");
 		}
-		for (i = 0; i<shots; i++) {
+		for (int i = 0; i<shots; i++) {
 			struct timespec dly = p;
 			nanosleep( &dly, 0 );
 			oneShot->setVal( 1 );
