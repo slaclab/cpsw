@@ -39,6 +39,9 @@ public:
 	const CTimeout &get()  const { return  dynTimeout_; }
 	const CTimeout *getp() const { return &dynTimeout_; }
 
+	const CTimeout &getMaxRndTrip() const { return maxRndTrip_; }
+	const CTimeout  getAvgRndTrip() const;
+
 	void update(const struct timespec *now, const struct timespec *then);
 
 	void relax();

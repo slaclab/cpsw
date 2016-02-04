@@ -695,6 +695,8 @@ void CUdpSRPAddressImpl::dump(FILE *f) const
 	fprintf(f,"  SRP Protocol Version: %8u\n",   protoVersion_);
 	fprintf(f,"  Timeout (user)      : %8"PRIu64"us\n", usrTimeout_.getUs());
 	fprintf(f,"  Timeout (dynamic)   : %8"PRIu64"us\n", dynTimeout_.get().getUs());
+	fprintf(f,"  max Roundtrip time  : %8"PRIu64"us\n", dynTimeout_.getMaxRndTrip().getUs());
+	fprintf(f,"  avg Roundtrip time  : %8"PRIu64"us\n", dynTimeout_.getAvgRndTrip().getUs());
 	fprintf(f,"  Retry Limit         : %8u\n",   retryCnt_);
 	fprintf(f,"  # of retried ops    : %8u\n",   nRetries_);
 	fprintf(f,"  # of writes (OK)    : %8u\n",   nWrites_);
@@ -840,10 +842,16 @@ void DynTimeout::setLastUpdate()
 	nSinceLast_ = 0;
 }
 
+const CTimeout
+DynTimeout::getAvgRndTrip() const
+{
+	return CTimeout( avgRndTrip_ >> AVG_SHFT );
+}
+
 void DynTimeout::reset(const CTimeout &iniv)
 {
 	maxRndTrip_.set(0);
-	avgRndTrip_ = iniv.getUs() << (AVG_SHFT-MARG_SHFT);
+	avgRndTrip_ = iniv.getUs() << AVG_SHFT;
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
 	printf("dynTimeout reset to %"PRId64"\n", dynTimeout_.getUs());
@@ -873,6 +881,9 @@ CTimeout diff(*now);
 int64_t  diffus;
 
 	diff -= CTimeout( *then );
+	
+	if ( maxRndTrip_ < diff )
+		maxRndTrip_ = diff;
 
 	avgRndTrip_ += (diffus = diff.getUs() - (avgRndTrip_ >> AVG_SHFT));
 
