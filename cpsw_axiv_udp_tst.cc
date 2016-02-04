@@ -269,7 +269,7 @@ uint16_t u16;
 	mmio->addAtAddress( sysm, 0x10000 );
 	mmio->addAtAddress( prbs, 0x30000 );
 
-	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, 8192 );
+	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, 8192, 500 /*us*/ );
 
 	if ( length > 0 )
 		root->addAtStream( IField::create("dataSource"), 8193, 10000000 /* us */ );
@@ -384,6 +384,12 @@ uint16_t u16;
 		printf("%d shots were fired; %d frames received\n", shots, arg.nFrames());
 		printf("(Difference to requested shots are due to synchronization)\n");
 	}
+
+	// try to get better statistics for the average timeout
+	for (int i=0; i<1000; i++ )
+		counter->getVal( &u32, 1 );
+
+	root->findByName("mmio")->tail()->dump(stdout);
 
 } catch (CPSWError &e) {
 	printf("CPSW Error: %s\n", e.getInfo().c_str());
