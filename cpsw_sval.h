@@ -2,7 +2,7 @@
 #define CPSW_SVAL_H
 
 #include <cpsw_api_builder.h>
-#include <cpsw_entry.h>
+#include <cpsw_entry_adapt.h>
 
 using boost::static_pointer_cast;
 using boost::weak_ptr;
@@ -17,24 +17,6 @@ typedef shared_ptr<CScalVal_WOAdapt> ScalVal_WOAdapt;
 class CScalVal_Adapt;
 typedef shared_ptr<CScalVal_Adapt>   ScalVal_Adapt;
 
-class IEntryAdapt : public virtual IEntry, public CShObj {
-protected:
-	shared_ptr<const CEntryImpl> ie_;
-	Path                         p_;
-
-
-protected:
-	IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie);
-
-	// clone not implemented (should not be needed)
-
-public:
-	virtual const char *getName()        const { return ie_->getName(); }
-	virtual const char *getDescription() const { return ie_->getDescription(); }
-	virtual uint64_t    getSize()        const { return ie_->getSize(); }
-	virtual Hub         isHub()          const { return ie_->isHub();   }
-	virtual Path        getPath()        const { return p_->clone();    }
-};
 
 class CIntEntryImpl : public CEntryImpl, public virtual IIntField {
 public:
@@ -146,6 +128,8 @@ public:
 	virtual unsigned getVal(uint32_t *p, unsigned n, IndexRange *r=0) { return getVal<uint32_t>(p,n,r); }
 	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0) { return getVal<uint16_t>(p,n,r); }
 	virtual unsigned getVal(uint8_t  *p, unsigned n, IndexRange *r=0) { return getVal<uint8_t> (p,n,r); }
+
+	static ScalVal_ROAdapt create(Path);
 };
 
 class CScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {
@@ -164,11 +148,14 @@ public:
 	virtual unsigned setVal(uint8_t  *p, unsigned n, IndexRange *r=0) { return setVal<uint8_t> (p,n,r); }
 
 	virtual unsigned setVal(uint64_t  v, IndexRange *r=0);
+
+	static ScalVal_WOAdapt create(Path);
 };
 
 class CScalVal_Adapt : public virtual CScalVal_ROAdapt, public virtual CScalVal_WOAdapt, public virtual IScalVal {
 public:
 	CScalVal_Adapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+	static ScalVal_Adapt create(Path);
 };
 
 #endif

@@ -1,41 +1,12 @@
 
 #include <cpsw_api_user.h>
 #include <cpsw_path.h>
-#include <cpsw_entry.h>
+#include <cpsw_entry_adapt.h>
 #include <cpsw_sval.h>
 #include <cpsw_address.h>
 
-using boost::dynamic_pointer_cast;
-
-IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
-	:CShObj(k),
-	 ie_(ie), p_(p->clone())
-{
-	if ( p->empty() )
-		throw InvalidPathError("<EMPTY>");
-
-	Address  a = CompositePathIterator( &p )->c_p_;
-
-	if ( a->getEntryImpl() != ie )
-		throw InternalError("inconsistent args passed to IEntryAdapt");
-	if ( UNKNOWN == a->getByteOrder() ) {
-		throw ConfigurationError("Configuration Error: byte-order not set");
-	}
-}
-
-template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p)
-{
-	if ( p->empty() )
-		throw InvalidArgError("Empty Path");
-
-	Address a = CompositePathIterator( &p )->c_p_;
-	shared_ptr<const typename IMPL::element_type> e = dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
-	if ( e ) {
-		ADAPT rval = CShObj::template create<ADAPT>(p, e);
-		return rval;
-	}
-	throw InterfaceNotImplementedError( p );
-}
+class CStreamAdapt;
+typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
 static uint64_t b2B(uint64_t bits)
 {
@@ -89,16 +60,13 @@ CScalVal_WOAdapt::CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImp
 
 ScalVal_RO IScalVal_RO::create(Path p)
 {
-ScalVal_ROAdapt rval = check_interface<ScalVal_ROAdapt, IntEntryImpl>( p );
+ScalVal_ROAdapt rval = IEntryAdapt::check_interface<ScalVal_ROAdapt, IntEntryImpl>( p );
 	if ( rval ) {
 		if ( ! (rval->getMode() & IIntField::RO) ) 
 			throw InterfaceNotImplementedError( p );
 	}
 	return rval;
 }
-
-class CStreamAdapt;
-typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
 class CStreamAdapt : public IEntryAdapt, public virtual IStream {
 public:
@@ -141,7 +109,7 @@ public:
 
 Stream IStream::create(Path p)
 {
-StreamAdapt rval = check_interface<StreamAdapt, EntryImpl>( p );
+StreamAdapt rval = IEntryAdapt::check_interface<StreamAdapt, EntryImpl>( p );
 	return rval;
 }
 
@@ -150,7 +118,7 @@ StreamAdapt rval = check_interface<StreamAdapt, EntryImpl>( p );
 // support write-only yet.
 ScalVal_WO IScalVal_WO::create(Path p)
 {
-ScalVal_WOAdapt rval = check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
+ScalVal_WOAdapt rval = IEntryAdapt::check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
 	if ( rval ) {
 		if ( ! (rval->getMode() & IIntField::WO) ) 
 			throw InterfaceNotImplementedError( p );
@@ -161,7 +129,7 @@ ScalVal_WOAdapt rval = check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
 
 ScalVal IScalVal::create(Path p)
 {
-ScalVal_Adapt rval = check_interface<ScalVal_Adapt, IntEntryImpl>( p );
+ScalVal_Adapt rval = IEntryAdapt::check_interface<ScalVal_Adapt, IntEntryImpl>( p );
 	if ( rval ) {
 		if ( rval->getMode() != IIntField::RW )
 			throw InterfaceNotImplementedError( p );

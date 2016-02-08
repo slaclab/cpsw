@@ -7,6 +7,7 @@
 -include mak.local
 
 LSRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
+LSRCS+= cpsw_entry_adapt.cc
 LSRCS+= cpsw_sval.cc
 LSRCS+= cpsw_mmio_dev.cc
 LSRCS+= cpsw_mem_dev.cc
