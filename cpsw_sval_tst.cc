@@ -44,7 +44,7 @@ template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL
 uint8_t *buf = m->getBufp();
 	swp( (uint8_t*)&got, sizeof(got), nat);
 	printf("Mismatch (width %li, swap len %i, mem: %sE, host: %s, %ssigned, %s-writeback) @%i, got 0x%04"PRIx64", exp 0x%04"PRIx64"\n",
-			sizeof(EL),
+			(long int)sizeof(EL),
 			wlen,
 			LE == mem ? "L":"B",
 			nat == hostByteOrder() ? "NAT" : "INV",

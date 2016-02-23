@@ -140,7 +140,7 @@ void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 		if ( got > 0 ) {
 
 #ifdef UDP_DEBUG
-		unsigned i;
+		int      i;
 #ifdef UDP_DEBUG_STRM
 		uint8_t  *p = buf->getPayload();
 		unsigned fram = (p[1]<<4) | (p[0]>>4);
