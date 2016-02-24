@@ -114,7 +114,7 @@ run_tests: $(addsuffix _run,$(FILTERED_TBINS))
 %_tst_run: %_tst
 	@for opt in $(RUN_OPTS) ; do \
 	    echo "Running ./$< $${opt}"; \
-		if ./$< $${opt} ; then \
+        if ( export LD_LIBRARY_PATH="$$LD_LIBRARY_PATH $(BOOSTLIBP:-L%=:%)"; ./$< $${opt} ) ; then \
 			echo "TEST ./$< $${opt} PASSED" ; \
 		else \
 			echo "TEST ./$< $${opt} FAILED" ; \
