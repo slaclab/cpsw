@@ -1,9 +1,5 @@
 SRCDIR=.
 
-#HARCH=linux-x86_64
-#BOOSTINCP=-I/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/include
-#BOOSTLIBP=-L/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/lib
-
 ARCHES=host
 TARCH=host
 
