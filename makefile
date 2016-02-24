@@ -89,6 +89,7 @@ cpsw_stream_tst_run:    RUN_OPTS='-e 10'
 # default target
 multi-all:
 
+test:sub-host-run_tests
 
 multi-%:$(patsubst %,sub-%-%,$(ARCHES))
 	true
@@ -107,7 +108,7 @@ all: tbins
 
 tbins: $(TBINS)
 
-test: $(addsuffix _run,$(FILTERED_TBINS))
+run_tests: $(addsuffix _run,$(FILTERED_TBINS))
 	@echo "ALL TESTS PASSED"
 
 %_tst_run: %_tst
