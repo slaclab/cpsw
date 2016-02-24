@@ -10,9 +10,11 @@ AR_host:=$(AR)
 BOOSTINCP=$(BOOSTINCP_$(TARCH))
 BOOSTLIBP=$(BOOSTLIBP_$(TARCH))
 
-CC=$(CC_$(TARCH))
-CXX=$(CXX_$(TARCH))
-AR=$(AR_$(TARCH))
+CROSS=$(CROSS_$(TARCH))
+
+CC =$(CROSS)$(or $(CC_$(TARCH)),gcc)
+CXX=$(CROSS)$(or $(CXX_$(TARCH)),g++)
+AR =$(CROSS)$(or $(AR_$(TARCH)),ar)
 
 #include local definitions
 
