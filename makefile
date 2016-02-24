@@ -128,8 +128,8 @@ cpsw_axiv_udp_tst_LIBS+=-lboost_system -lpthread
 cpsw_stream_tst_LIBS+=-lboost_system -lpthread -ltstaux
 cpsw_srpmux_tst_LIBS+=-lboost_system -lpthread
 
-udpsrv: udpsrv.c $(MSRCS:%.cc=%.o) libtstaux.a
-	$(CC) $(CFLAGS) -o $@ $^ -L. -lpthread -ltstaux
+udpsrv: udpsrv.o $(MSRCS:%.cc=%.o) libtstaux.a
+	$(CXX) $(CFLAGS) -o $@ $^ -L. -lpthread -ltstaux
 
 %_tst: %_tst.cc libcpsw.a libtstaux.a
 	$(CXX) $(CXXFLAGS) -o $@ $< -L. $(BOOSTLIBP) -lcpsw $($@_LIBS)
