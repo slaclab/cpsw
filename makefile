@@ -1,10 +1,36 @@
+SRCDIR=.
 
 #HARCH=linux-x86_64
 #BOOSTINCP=-I/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/include
 #BOOSTLIBP=-L/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/lib
 
+ARCHES=host
+TARCH=host
+
+CC_host:=$(CC)
+CXX_host:=$(CXX)
+AR_host:=$(AR)
+
+BOOSTINCP=$(BOOSTINCP_$(TARCH))
+BOOSTLIBP=$(BOOSTLIBP_$(TARCH))
+
+CC=$(CC_$(TARCH))
+CXX=$(CXX_$(TARCH))
+AR=$(AR_$(TARCH))
+
 #include local definitions
--include mak.local
+
+# mak.local should define desired
+# target architectures and respective
+# toolchains. E.g.,
+
+# ARCHES=xxx yyy
+# CC_xxx=<path-to-CC-for-target-xxx>
+# CC_yyy=<path-to-CC-for-target-yyy>
+# BOOSTINCP_xxx=-I<path-to-boost-includes-for-target-xxx>
+# BOOSTINCP_yyy=-I<path-to-boost-includes-for-target-yyy>
+
+-include $(SRCDIR)/mak.local
 
 LSRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 LSRCS+= cpsw_entry_adapt.cc
@@ -34,10 +60,12 @@ MSRCS+=udpsrv_mod_axiprom.cc
 
 SRCS = $(LSRCS) $(TSRCS) $(ASRCS) $(MSRCS)
 
-CXXFLAGS = -I. $(BOOSTINCP) -g -Wall -O2
-CFLAGS=-O2 -g -I.
+CXXFLAGS = -I$(SRCDIR) $(BOOSTINCP) -g -Wall -O2
+CFLAGS=-O2 -g -I$(SRCDIR)
 
-TBINS=$(patsubst %.cc,%,$(wildcard *_tst.cc))
+VPATH=$(SRCDIR)
+
+TBINS=$(patsubst $(SRCDIR)/%.cc,%,$(wildcard $(SRCDIR)/*_tst.cc))
 
 TEST_AXIV_YES=
 TEST_AXIV_NO=cpsw_axiv_udp_tst
@@ -61,6 +89,23 @@ cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 30'
 
 # error percentage should be ~double of the value used for udpsrv (-L)
 cpsw_stream_tst_run:    RUN_OPTS='-e 10'
+
+# default target
+multi-all:
+
+
+multi-%:$(patsubst %,sub-%-%,$(ARCHES))
+	true
+
+
+sub-%:TWORDS=$(subst -, ,$@)
+sub-%:TARCH=$(patsubst %-$(lastword $(TWORDS)),%,$(patsubst sub-%,%,$@))
+sub-%:TARGT=$(lastword 3,$(subst -, ,$@))
+
+sub-%:
+	mkdir -p O.$(TARCH)
+	make -C O.$(TARCH) -f ../makefile SRCDIR=.. TARCH=$(subst -,_,$(TARCH)) $(TARGT)
+
 
 all: tbins
 
@@ -104,6 +149,7 @@ deps: $(SRCS) udpsrv.c
 
 clean:
 	$(RM) deps *.o *_tst udpsrv
+	$(RM) -r O.*
 
 -include deps
 
