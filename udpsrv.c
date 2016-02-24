@@ -12,8 +12,6 @@
 #include <errno.h>
 #include <crc32-le-tbl-4.h>
 
-#define DEBUG
-
 #define CMD_MSK    (0x3fffffff)
 #define CMD_WR(a)  (0x40000000 | (((a)>>2)&CMD_MSK))
 #define CMD_RD(a)  (0x00000000 | (((a)>>2)&CMD_MSK))
@@ -69,8 +67,6 @@ union { uint16_t s; uint8_t c[2]; } u = { .s = 1 };
 // protocol wants LE
 #define bs32(v1, x) swp32(v1 ? BE : LE, x)
 
-
-uint8_t mem[1024*1024] = {0};
 
 static void usage(const char *nm)
 {
@@ -374,6 +370,8 @@ printf("JAM cleared\n");
 	return 0;
 }
 
+struct udpsrv_range *udpsrv_ranges = 0;
+
 static void* srpHandler(void *arg)
 {
 srp_args *srp_arg = (srp_args*)arg;
@@ -383,6 +381,7 @@ struct msghdr mh;
 struct iovec  iov[2];
 int      niov = 0;
 int      i;
+int      st;
 int      expected;
 unsigned off;
 int      n, got, put;
@@ -393,6 +392,7 @@ uint32_t rbuf[2048];
 uint32_t header = 0;
 struct   sockaddr_in you;
 int      v1 = srp_arg->v1;
+struct udpsrv_range *range;
 
 	if ( (sd = getsock( srp_arg->ina, srp_arg->port ) ) < 0 )
 		goto bail;
@@ -455,93 +455,41 @@ printf("got %d, exp %d\n", got, expected);
 			continue;
 		}
 
-		if ( off + 4*size > sizeof(mem) ) {
-			fprintf(stderr,"%s request out of range (off %d, size %d)\n", CMD_IS_RD(addr) ? "read" : "write", off, size);
-			size=0;
-			memset( &rbuf[2+size], 0xff, 4);
-		} else { 
-			if ( CMD_IS_RD(addr) ) {
-				memcpy((void*) &rbuf[2], mem+off, size*4);
-				payload_swap( v1, &rbuf[2], size );
-			} else {
-				payload_swap( v1, &rbuf[2], (got-expected)/4 );
-				if ( off <= REGBASE + REG_RO_OFF && off + 4*size >= REGBASE + REG_RO_OFF + REG_RO_SZ ) {
-					/* disallow write; set status */
-					memset(&rbuf[2+size], 0xff, 4);
-#ifdef DEBUG
-if ( debug )
-	printf("Rejecting write to read-only region\n");
-#endif
+		st = -1;
+
+		for ( range = udpsrv_ranges; range; range=range->next ) {
+			if ( off >= range->base && off < range->base + range->size ) {
+				if ( off + 4*size > range->size ) {
+					fprintf(stderr,"%s request out of range (off %d, size %d)\n", CMD_IS_RD(addr) ? "read" : "write", off, size);
 				} else {
-					memcpy(mem + off, (void*)&rbuf[2], got-expected);
-					if ( off <= REGBASE + REG_CLR_OFF && off + 4*size >= REGBASE + REG_CLR_OFF + 4 ) {
-						if (    mem[REGBASE + REG_CLR_OFF]
-						     || mem[REGBASE + REG_CLR_OFF + 1]
-						     || mem[REGBASE + REG_CLR_OFF + 2]
-						     || mem[REGBASE + REG_CLR_OFF + 3]
-						   ) {
-							memset( mem + REGBASE + REG_SCR_OFF, 0xff, REG_SCR_SZ );
-							/* write array in LE; first and last word have special pattern */
-							mem[REGBASE + REG_ARR_OFF + 0] = 0xaa;
-							mem[REGBASE + REG_ARR_OFF + 1] = 0xbb;
-							mem[REGBASE + REG_ARR_OFF + 2] = 0xcc;
-							mem[REGBASE + REG_ARR_OFF + 3] = 0xdd;
-							for ( i=4; i<REG_ARR_SZ-4; i+=2 ) {
-								mem[REGBASE + REG_ARR_OFF + i + 0] = i>>(0+1); // i.e., i/2
-								mem[REGBASE + REG_ARR_OFF + i + 1] = i>>(8+1);
-							}
-							mem[REGBASE + REG_ARR_OFF + i + 0] = 0xfa;
-							mem[REGBASE + REG_ARR_OFF + i + 1] = 0xfb;
-							mem[REGBASE + REG_ARR_OFF + i + 2] = 0xfc;
-							mem[REGBASE + REG_ARR_OFF + i + 3] = 0xfd;
-#ifdef DEBUG
-if ( debug )
-	printf("Setting\n");
-#endif
-						} else {
-							memset( mem + REGBASE + REG_SCR_OFF, 0x00, REG_SCR_SZ );
-							/* write array in BE; first and last word have special pattern */
-							mem[REGBASE + REG_ARR_OFF + 0] = 0xdd;
-							mem[REGBASE + REG_ARR_OFF + 1] = 0xcc;
-							mem[REGBASE + REG_ARR_OFF + 2] = 0xbb;
-							mem[REGBASE + REG_ARR_OFF + 3] = 0xaa;
-							for ( i=4; i<REG_ARR_SZ-4; i+=2 ) {
-								mem[REGBASE + REG_ARR_OFF + i + 1] = i>>(0+1); // i.e., i/2
-								mem[REGBASE + REG_ARR_OFF + i + 0] = i>>(8+1);
-							}
-							mem[REGBASE + REG_ARR_OFF + i + 0] = 0xfd;
-							mem[REGBASE + REG_ARR_OFF + i + 1] = 0xfc;
-							mem[REGBASE + REG_ARR_OFF + i + 2] = 0xfb;
-							mem[REGBASE + REG_ARR_OFF + i + 3] = 0xfa;
-#ifdef DEBUG
-if ( debug )
-	printf("Clearing\n");
-#endif
-						}
-						memset( mem + REGBASE + REG_CLR_OFF, 0xaa, 4 );
+					if ( CMD_IS_RD(addr) ) {
+						st = range->read( &rbuf[2], size, off - range->base, debug );
+						payload_swap( v1, &rbuf[2], size );
+					} else {
+						payload_swap( v1, &rbuf[2], (got-expected)/4 );
+						st = range->write( &rbuf[2], size, off - range->base, debug );
 					}
-				}
-			}
-			memset((void*) &rbuf[2+size], 0, 4);
-
 #ifdef DEBUG
-if (debug) {
-			if ( CMD_IS_RD(addr) )
-				printf("Read from");
-			else
-				printf("Writing to");
+					if (debug) {
+						if ( CMD_IS_RD(addr) )
+							printf("Read ");
+						else
+							printf("Wrote ");
 
-			printf(" %x (%d); %d words (xid %x)\n", off, off, size, xid);
+						printf("(xid %x)\n", xid);
 
-			for ( n=0; n<size*4; n++ ) {
-				printf("%02x ",mem[off+n]);	
-				if ( (n & 15) == 15 ) printf("\n");
-			}
-			if ( n & 15 )
-				printf("\n");
-}
+					}
 #endif
+				}
+				break;
+			}
 		}
+
+		if ( st ) {
+			size=0;
+		}
+		memset( &rbuf[2+size], st ? 0xff : 0x00, 4);
+
 		bs32(v1, rbuf[2+size] );
 
 		iov[niov].iov_len = (size+3)*4;
@@ -551,8 +499,8 @@ if (debug) {
 			goto bail;
 		}
 #ifdef DEBUG
-if ( debug )
-	printf("put %i\n", put);
+		if ( debug )
+			printf("put %i\n", put);
 #endif
 
 	}
@@ -595,7 +543,6 @@ int    have_srp     = 0;
 struct streamer_args *s_arg   = 0;
 struct srp_args      *srp_arg = 0;
 
-	sprintf(mem + 0x800, "Hello");
 
 	signal( SIGINT, sh );
 
@@ -640,11 +587,6 @@ struct srp_args      *srp_arg = 0;
 	if ( sport <= 0 && v1port <= 0 && v2port <= 0 ) {
 		fprintf(stderr,"At least one of -s, -p, -P must be > 0\n");
 		goto bail;
-	}
-
-	for ( i=0; i<16; i+=2 ) {
-		mem[REGBASE+i/2]    = (i<<4)|(i+1);
-		mem[REGBASE+15-i/2] = (i<<4)|(i+1);
 	}
 
 	if ( sport >= 0 ) {
