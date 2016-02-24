@@ -1,7 +1,5 @@
 #include <udpsrv_regdefs.h>
 #include <string.h>
-#define _STDC_FORMAT_MACROS
-#include <inttypes.h>
 #include <stdio.h>
 
 #define PROMSIZE (1024*1024)

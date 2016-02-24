@@ -23,8 +23,8 @@
 
 #define DEBUG
 
-#define _STDC_FORMAT_MACROS
-#include <stdint.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 struct udpsrv_range;
 

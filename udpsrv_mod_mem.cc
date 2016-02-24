@@ -1,7 +1,5 @@
 #include <udpsrv_regdefs.h>
 #include <stdio.h>
-#define _STDC_FORMAT_MACROS
-#include <inttypes.h>
 #include <string.h>
 
 uint8_t mem[MEM_SIZE] = {0};
