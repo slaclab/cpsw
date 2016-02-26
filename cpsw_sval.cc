@@ -290,12 +290,13 @@ public:
 			if ( range->size() != 1 ) {
 				throw InvalidArgError("Currently only 1-level of indices supported, sorry");
 			}
-			if ( range->getFrom() >= 0 )
-				f = range->getFrom();
 			if ( range->getTo() >= 0 )
-				t = range->getTo();
-			if ( f < (*this)->idxf_ || t > (*this)->idxt_ || t < f )
+				t = f + range->getTo();
+			if ( range->getFrom() >= 0 )
+				f += range->getFrom();
+			if ( f < (*this)->idxf_ || t > (*this)->idxt_ || t < f ) {
 				throw InvalidArgError("Array indices out of range");
+			}
 			if ( f != (*this)->idxf_ || t != (*this)->idxt_ ) {
 				suffix = IPath::create();
 				Address cl = (*this)->c_p_;
@@ -322,10 +323,11 @@ ByteOrder        targetEndian = cl->getByteOrder();
 unsigned         ibuf_nchars;
 unsigned         nelmsOnPath  = it->nelmsLeft_;
 
-	if ( nelms >= nelmsOnPath )
+	if ( nelms >= nelmsOnPath ) {
 		nelms = nelmsOnPath;
-	else
+	} else {
 		throw InvalidArgError("Invalid Argument: buffer too small");
+	}
 
 	if ( sbytes > dbytes )
 		ibuf_nchars = sbytes * nelms;
@@ -595,8 +597,12 @@ unsigned nelms;
 			CompositePathIterator it( &p_ );
 			if ( f < 0 )
 				f = it->idxf_; 
+			else
+				f = it->idxf_ + f;
 			if ( t < 0 )
 				t = it->idxt_; 
+			else
+				t = it->idxf_ + t;
 			t = t - f + 1;
 			int d = it.getNelmsRight();
 			if ( t >= 0 && t < d )

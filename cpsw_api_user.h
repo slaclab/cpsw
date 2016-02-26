@@ -136,14 +136,14 @@ public:
 //
 // If you want to read just element 456 then you can
 //
-//    IndexRange rng(456);
+//    IndexRange rng(56);
 //
 //    v->getVal( buf, 1, &rng );
 //
 // IndexRange also allows for easy iteration through an array:
 // Assume you want to read in chunks of 10 elements:
 //
-//    IndexRange rng(400, 409);
+//    IndexRange rng(0, 9);
 //
 //    for (unsigned i=0; i<10; i++, ++rng) { // prefix increment is more efficient
 //       v->getVal( buf, 10, &rng );
