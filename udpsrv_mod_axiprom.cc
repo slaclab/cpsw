@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define PROMSIZE (1024*1024)
+#define PROMSIZE (1024*1024*32)
 
 #define MODE_32 (1<<0)
 
@@ -53,6 +53,18 @@ static uint8_t  datareg[PGSIZE*4] = {0};
 static uint8_t  promdat[PROMSIZE] = {0};
 
 static bool     writeEn = false;
+static bool     a32Mode = false;
+static bool     resetEn = false;
+
+static void reset()
+{
+	modereg = 0;
+	addrreg = 0;
+	cmndreg = 0;
+	writeEn = false;
+	a32Mode = false;
+	resetEn = false;
+}
 
 static int readreg(uint32_t *data, uint32_t nwrds, uint32_t off, int debug)
 {
@@ -81,6 +93,7 @@ int sz = ERASE_SIZE;
 		if ( addrreg + sz > PROMSIZE )
 			sz = PROMSIZE - addrreg;
 		memset( &promdat[addrreg], 0xff, sz);
+		writeEn = false;
 	}
 }
 
@@ -94,6 +107,7 @@ int i;
 		for (i=0; i<sz; i++ ) {
 			promdat[addrreg + i] &= datareg[i]; 
 		}
+		writeEn = false;
 	}
 }
 
@@ -112,6 +126,10 @@ int i;
 
 static int mcheck(bool is32, void (*proc)())
 {
+	if ( !!(modereg & MODE_32) != !! a32Mode ) {
+		fprintf(stderr,"INCONSISTENT 32-bit MODE SETTING: modereg %d, PROM addressing mode %d\n", modereg, a32Mode);
+		return -1;
+	}
 	if ( is32 == !!(modereg & MODE_32) ) {
 		proc();
 		return 0;
@@ -166,12 +184,39 @@ uint32_t ncmd;
 				case WRITE_MASK | WRITE_DISABLE_CMD:
 					writeEn = false;
 				break;
-					
+
+				case WRITE_MASK | ADDR_ENTER_CMD:
+					if ( writeEn )
+						a32Mode = true;
+					writeEn = false;
+				break;
+
+				case WRITE_MASK | ADDR_EXIT_CMD:
+					a32Mode = false;
+				break;
+
+				case WRITE_MASK | ENABLE_RESET_CMD:
+					resetEn = true;
+				break;
+
+				case WRITE_MASK | RESET_CMD:
+					if ( resetEn ) {
+						reset();
+					}
+				break;
+
+				case WRITE_MASK | WRITE_NONVOLATILE_CONFIG | 2:
+				case WRITE_MASK | WRITE_VOLATILE_CONFIG | 2:
+					fprintf(stderr,"AXIPROM: WARNING -- config regs not implemented\n");
+				break;
+
+
 				default:
 					goto fault;
 			}
 			cmndreg = ncmd;
 		break;
+
 		case AXI_SPI_EEPROM_DATA_OFF      :
 			if ( nwrds > PGSIZE )
 				nwrds = PGSIZE;
