@@ -459,8 +459,9 @@ printf("got %d, exp %d\n", got, expected);
 
 		for ( range = udpsrv_ranges; range; range=range->next ) {
 			if ( off >= range->base && off < range->base + range->size ) {
-				if ( off + 4*size > range->size ) {
-					fprintf(stderr,"%s request out of range (off %d, size %d)\n", CMD_IS_RD(addr) ? "read" : "write", off, size);
+				if ( off + 4*size > range->base + range->size ) {
+					fprintf(stderr,"%s request out of range (off 0x%x, size %d)\n", CMD_IS_RD(addr) ? "read" : "write", off, 4*size);
+					fprintf(stderr,"range base 0x%x, size %d\n", range->base, range->size);
 				} else {
 					if ( CMD_IS_RD(addr) ) {
 						st = range->read( &rbuf[2], size, off - range->base, debug );
@@ -485,6 +486,12 @@ printf("got %d, exp %d\n", got, expected);
 			}
 		}
 
+		
+#ifdef DEBUG
+		if ( debug && ! range ) {
+			printf("No range matched 0x%08"PRIx32"\n", off);
+		}
+#endif
 		if ( st ) {
 			size=0;
 		}
