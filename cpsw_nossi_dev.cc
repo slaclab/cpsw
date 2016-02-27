@@ -335,8 +335,9 @@ struct timespec retry_then;
 			swp32( &status );
 			swp32( &header );
 		}
-		if ( status )
+		if ( status ) {
 			throw BadStatusError("reading SRP", status);
+		}
 
 		return sbytes;
 
