@@ -123,7 +123,6 @@ typedef struct streamer_args {
 	unsigned           n_frags;
 	unsigned           fram;
 	unsigned           scramble;
-	pthread_mutex_t    mtx;
 	unsigned           jam;
 } streamer_args;
 
@@ -133,22 +132,6 @@ typedef struct srp_args {
 	int                v1;
 	unsigned           sim_loss;
 } srp_args;
-
-static void mustLock(pthread_mutex_t *m)
-{
-	if ( pthread_mutex_lock( m ) ) {
-		perror("FATAL ERROR -- unable to lock mutex!");
-		exit(1);
-	}
-}
-
-static void mustUnlock(pthread_mutex_t *m)
-{
-	if ( pthread_mutex_unlock( m ) ) {
-		perror("FATAL ERROR -- unable to unlock mutex!");
-		exit(1);
-	}
-}
 
 static uint64_t mkhdr(unsigned fram, unsigned frag)
 {
@@ -190,21 +173,7 @@ struct streamer_args *sa = (struct streamer_args*)arg;
 uint8_t       buf[2048];
 int           got;
 socklen_t     l;
-struct iovec  iov[3];
-struct msghdr mh;
-
-uint8_t       hbuf[HEADSIZE];
-uint8_t       tbuf;
-
 int           lfram = -1;
-
-	mh.msg_name       = (struct sockaddr*)&sa->peer;
-	mh.msg_namelen    = sizeof( sa->peer ); 
-	mh.msg_iov        = iov;
-	mh.msg_iovlen     = sizeof(iov)/sizeof(iov[0]);
-	mh.msg_control    = 0;
-	mh.msg_controllen = 0;
-	mh.msg_flags      = 0;
 
 	while ( (l=sizeof(sa->peer), got = recvfrom(sa->sd, buf, sizeof(buf), 0, (struct sockaddr*)&sa->peer, &l)) >= 0 ) {
 		if ( got < 4 ) {
@@ -313,7 +282,6 @@ void *fragger(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
 unsigned frag = 0;
-struct iovec iov[2];
 int      i,j;
 int      idx  = 0;
 uint32_t crc  = -1;
@@ -380,11 +348,10 @@ int      sd;
 struct msghdr mh;
 struct iovec  iov[2];
 int      niov = 0;
-int      i;
 int      st;
 int      expected;
 unsigned off;
-int      n, got, put;
+int      got, put;
 uint32_t addr = 0;
 uint32_t xid  = 0;
 uint32_t size = 16;
@@ -531,16 +498,14 @@ main(int argc, char **argv)
 {
 int      rval = 1;
 int      opt;
-char    *c_a;
 int     *i_a;
-int      i;
 int      v2port   = V2PORT_DEF;
 int      v1port   = V1PORT_DEF;
 int      sport    = SPORT_DEF;
 const char *ina   = INA_DEF;
-unsigned n_frags  = NFRAGS;
-unsigned sim_loss = SIMLOSS_DEF;
-unsigned scramble = SCRMBL_DEF;
+int      n_frags  = NFRAGS;
+int      sim_loss = SIMLOSS_DEF;
+int      scramble = SCRMBL_DEF;
 
 pthread_t poller_tid, fragger_tid, srp_tid;
 int    have_poller  = 0;
@@ -554,7 +519,6 @@ struct srp_args      *srp_arg = 0;
 	signal( SIGINT, sh );
 
 	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:")) > 0 ) {
-		c_a = 0;
 		i_a = 0;
 		switch ( opt ) {
 			case 'h': usage(argv[0]); return 0;
@@ -611,10 +575,6 @@ struct srp_args      *srp_arg = 0;
 		s_arg->scramble             = scramble;
 		s_arg->fram                 = 0;
 		s_arg->jam                  = 0;
-		if ( pthread_mutex_init( &s_arg->mtx, NULL ) ) {
-			perror("pthread_mutex_init failed:");
-			goto bail;
-		}
 
 		if ( s_arg->sd < 0 )
 			goto bail;
