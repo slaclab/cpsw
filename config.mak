@@ -45,3 +45,5 @@
 # boostlib_DIR_xxx, boostlib_DIR_default, boostlib_DIR
 # if 'boost' libraries cannot be found automatically by
 # the (cross) tools.
+# Note 'boostlib_DIR' (& friends) must be absolute paths
+# or relative to $(CPSW_DIR).

@@ -76,7 +76,7 @@ define PROG_template
 
 $(2)_OBJS=$$(patsubst %.cpp,%.o,$$(patsubst %.cc,%.o,$$(patsubst %.c,%.o,$$($(2)_SRCS))))
 
-$(1): $$($(2)_OBJS) $$(wildcard $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst -,_,$$(lib))_DIR_$$(TARCH))/lib$$(lib).a $$($$(subst -,_,$$(lib))_DIR)/lib$$(lib).a lib$$(lib).a)))
+$(1): $$($(2)_OBJS) $$(wildcard $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst -,_,$$(lib))_DIR_$$(TARCH))/lib$$(lib).a $$($$(subst -,_,$$(lib))_DIR)/lib$$(lib).a O.$$(TARCH)/lib$$(lib).a)))
 
 SRCS+=$$($(2)_SRCS)
 
@@ -101,7 +101,9 @@ $(PROGRAMS) $(TESTPROGRAMS):LIBS=$($(subst -,_,$@)_LIBS)
 
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS  = -L.
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(subst -,_,$(lib))_DIR) $($(subst -,_,$(lib))_DIR_$(TARCH)))))
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(call ADD_updir,$(subst :, ,$(cpswlib_DIRS))))
+# don't apply ADD_updir to cpswlib_DIRS because CPSW_DIR already was 'upped'.
+# This means that e.g. boostlib_DIR must be absolute or relative to CPSW_DIR
+$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -l,$(LIBS))
 
 $(PROGRAMS) $(TESTPROGRAMS):
