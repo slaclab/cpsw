@@ -27,6 +27,10 @@ CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool i
 {
 unsigned byteSize = b2B(sizeBits);
 
+	if ( lsBit > 7 ) {
+		throw InvalidArgError("lsBit (bit shift) must be in 0..7");
+	}
+
 	if ( wordSwap == byteSize )
 		wordSwap = this->wordSwap_ = 0;
 
