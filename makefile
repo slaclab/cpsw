@@ -1,74 +1,75 @@
-SRCDIR=.
 
-ARCHES=host
-TARCH=host
+CPSW_DIR=.
 
-CC_host:=$(CC)
-CXX_host:=$(CXX)
-AR_host:=$(AR)
+include $(CPSW_DIR)/defs.mak
 
-BOOSTINCP=$(BOOSTINCP_$(TARCH))
-BOOSTLIBP=$(BOOSTLIBP_$(TARCH))
+cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
+cpsw_SRCS+= cpsw_entry_adapt.cc
+cpsw_SRCS+= cpsw_sval.cc
+cpsw_SRCS+= cpsw_mmio_dev.cc
+cpsw_SRCS+= cpsw_mem_dev.cc
+cpsw_SRCS+= cpsw_nossi_dev.cc
+cpsw_SRCS+= cpsw_buf.cc
+cpsw_SRCS+= cpsw_proto_mod.cc
+cpsw_SRCS+= cpsw_proto_mod_depack.cc
+cpsw_SRCS+= cpsw_proto_mod_udp.cc
+cpsw_SRCS+= cpsw_proto_mod_srpmux.cc
 
-CROSS=$(CROSS_$(TARCH))
+STATIC_LIBRARIES+=cpsw
 
-CC =$(CROSS)$(or $(CC_$(TARCH)),gcc)
-CXX=$(CROSS)$(or $(CXX_$(TARCH)),g++)
-AR =$(CROSS)$(or $(AR_$(TARCH)),ar)
+tstaux_SRCS+= crc32-le-tbl-4.c
 
-#include local definitions
+STATIC_LIBRARIES+=tstaux
 
-# mak.local should define desired
-# target architectures and respective
-# toolchains. E.g.,
+udpsrv_SRCS = udpsrv.c
+udpsrv_SRCS+= udpsrv_mod_mem.cc
+udpsrv_SRCS+= udpsrv_mod_axiprom.cc
 
-# ARCHES=xxx yyy
-# CC_xxx=<path-to-CC-for-target-xxx>
-# CC_yyy=<path-to-CC-for-target-yyy>
-# BOOSTINCP_xxx=-I<path-to-boost-includes-for-target-xxx>
-# BOOSTINCP_yyy=-I<path-to-boost-includes-for-target-yyy>
+udpsrv_LIBS = tstaux cpsw pthread
 
--include $(SRCDIR)/mak.local
+PROGRAMS   += udpsrv
 
-LSRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
-LSRCS+= cpsw_entry_adapt.cc
-LSRCS+= cpsw_sval.cc
-LSRCS+= cpsw_mmio_dev.cc
-LSRCS+= cpsw_mem_dev.cc
-LSRCS+= cpsw_nossi_dev.cc
-LSRCS+= cpsw_buf.cc
-LSRCS+= cpsw_proto_mod.cc
-LSRCS+= cpsw_proto_mod_depack.cc
-LSRCS+= cpsw_proto_mod_udp.cc
-LSRCS+= cpsw_proto_mod_srpmux.cc
+cpsw_path_tst_SRCS       = cpsw_path_tst.cc
+cpsw_path_tst_LIBS       = $(CPSW_LIBS)
+TESTSPROGRAMS           +=cpsw_path_tst
 
-TSRCS = cpsw_path_tst.cc
-TSRCS+= cpsw_sval_tst.cc
-TSRCS+= cpsw_large_tst.cc
-TSRCS+= cpsw_nossi_tst.cc
-TSRCS+= cpsw_axiv_udp_tst.cc
-TSRCS+= cpsw_buf_tst.cc
-TSRCS+= cpsw_stream_tst.cc
-TSRCS+= cpsw_srpmux_tst.cc
+cpsw_shared_obj_tst_SRCS = cpsw_shared_obj_tst.cc
+cpsw_shared_obj_tst_LIBS = $(CPSW_LIBS)
 
-ASRCS+= crc32-le-tbl-4.c
+cpsw_sval_tst_SRCS       = cpsw_sval_tst.cc
+cpsw_sval_tst_LIBS       = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_sval_tst
 
-MSRCS+=udpsrv_mod_mem.cc
-MSRCS+=udpsrv_mod_axiprom.cc
+cpsw_large_tst_SRCS      = cpsw_large_tst.cc
+cpsw_large_tst_LIBS      = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_large_tst
 
-SRCS = $(LSRCS) $(TSRCS) $(ASRCS) $(MSRCS)
+cpsw_nossi_tst_SRCS      = cpsw_nossi_tst.cc
+cpsw_nossi_tst_LIBS      = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_nossi_tst
 
-CXXFLAGS = -I$(SRCDIR) $(BOOSTINCP) -g -Wall -O2
-CFLAGS=-O2 -g -I$(SRCDIR)
+cpsw_axiv_udp_tst_SRCS   = cpsw_axiv_udp_tst.cc
+cpsw_axiv_udp_tst_LIBS   = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_axiv_udp_tst
 
-VPATH=$(SRCDIR)
+cpsw_buf_tst_SRCS        = cpsw_buf_tst.cc
+cpsw_buf_tst_LIBS        = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_buf_tst
 
-TBINS=$(patsubst $(SRCDIR)/%.cc,%,$(wildcard $(SRCDIR)/*_tst.cc))
+cpsw_stream_tst_SRCS     = cpsw_stream_tst.cc
+cpsw_stream_tst_LIBS     = $(CPSW_LIBS)
+cpsw_stream_tst_LIBS    += tstaux
+TESTPROGRAMS            += cpsw_stream_tst
+
+cpsw_srpmux_tst_SRCS     = cpsw_srpmux_tst.cc
+cpsw_srpmux_tst_LIBS     = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_srpmux_tst
 
 TEST_AXIV_YES=
 TEST_AXIV_NO=cpsw_axiv_udp_tst
+DISABLED_TESTPROGRAMS=$(TEST_AXIV_$(TEST_AXIV))
 
-FILTERED_TBINS=$(filter-out $(TEST_AXIV_$(TEST_AXIV)), $(TBINS))
+include $(CPSW_DIR)/rules.mak
 
 # may override for individual test targets which will be
 # executed with for all option sets, eg:
@@ -76,7 +77,6 @@ FILTERED_TBINS=$(filter-out $(TEST_AXIV_$(TEST_AXIV)), $(TBINS))
 #    some_tst_run:RUN_OPTS='' '-a -b'
 #
 # (will run once w/o opts, a second time with -a -b)
-RUN_OPTS=''
 
 # run for V2 and V1
 cpsw_nossi_tst_run:     RUN_OPTS='' '-V1 -p8191'
@@ -88,70 +88,4 @@ cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 30'
 # error percentage should be ~double of the value used for udpsrv (-L)
 cpsw_stream_tst_run:    RUN_OPTS='-e 10'
 
-# default target
-multi-all:
-
-test:sub-host-run_tests
-
-multi-%:$(patsubst %,sub-%-%,$(ARCHES))
-	true
-
-
-sub-%:TWORDS=$(subst -, ,$@)
-sub-%:TARCH=$(patsubst %-$(lastword $(TWORDS)),%,$(patsubst sub-%,%,$@))
-sub-%:TARGT=$(lastword 3,$(subst -, ,$@))
-
-sub-%:
-	mkdir -p O.$(TARCH)
-	make -C O.$(TARCH) -f ../makefile SRCDIR=.. TARCH=$(subst -,_,$(TARCH)) $(TARGT)
-
-
-all: tbins
-
-tbins: $(TBINS)
-
-run_tests: $(addsuffix _run,$(FILTERED_TBINS))
-	@echo "ALL TESTS PASSED"
-
-%_tst_run: %_tst
-	@for opt in $(RUN_OPTS) ; do \
-	    echo "Running ./$< $${opt}"; \
-        if ( export LD_LIBRARY_PATH="$$LD_LIBRARY_PATH $(BOOSTLIBP:-L%=:%)"; ./$< $${opt} ) ; then \
-			echo "TEST ./$< $${opt} PASSED" ; \
-		else \
-			echo "TEST ./$< $${opt} FAILED" ; \
-			exit 1; \
-		fi \
-	done
-
 cpsw_nossi_tst: udpsrv
-
-cpsw_nossi_tst_LIBS+=-lboost_system -lpthread
-cpsw_axiv_udp_tst_LIBS+=-lboost_system -lpthread
-cpsw_stream_tst_LIBS+=-lboost_system -lpthread -ltstaux
-cpsw_srpmux_tst_LIBS+=-lboost_system -lpthread
-
-udpsrv: udpsrv.o $(MSRCS:%.cc=%.o) libtstaux.a
-	$(CXX) $(CFLAGS) -o $@ $^ -L. -lpthread -ltstaux
-
-%_tst: %_tst.cc libcpsw.a libtstaux.a
-	$(CXX) $(CXXFLAGS) -o $@ $< -L. $(BOOSTLIBP) -lcpsw $($@_LIBS)
-
-libcpsw.a: $(LSRCS:%.cc=%.o)
-	$(AR) cr $@ $^
-
-libtstaux.a: $(ASRCS:%.cc=%.o) $(ASRCS:%.c=%.o)
-	$(AR) cr $@ $^
-
-deps: $(SRCS) udpsrv.c
-	$(CXX) $(CXXFLAGS) -MM $^ > $@
-
-clean:
-	$(RM) deps *.o *_tst udpsrv
-	$(RM) -r O.*
-
--include deps
-
-# invoke with :  eval `make libpath`
-libpath:
-	@echo export LD_LIBRARY_PATH=$(BOOSTLIBP:-L%=%)
