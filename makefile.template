@@ -4,6 +4,10 @@
 
 CPSW_DIR=<path_to_cpsw>
 
+# from 'release.mak' CPSW_DIR and other variables
+# which define package locations may be overridden.
+-include ./release.mak
+
 include $(CPSW_DIR)/defs.mak
 
 # List libraries to build:
