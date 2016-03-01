@@ -22,17 +22,18 @@ CC     =$(CROSS)$(or $(CC_$(TARNM)),$(CC_default),gcc)
 CXX    =$(CROSS)$(or $(CXX_$(TARNM)),$(CXX_default),g++)
 AR     =$(CROSS)$(or $(AR_$(TARNM)),$(AR_default),ar)
 RANLIB =$(CROSS)$(or $(RANLIB_$(TARNM)),$(RANLIB_default),ranlib)
+INSTALL=install -C
 
 # Tool options
 OPT_CXXFLAGS=-g -Wall -O2
 OPT_CFLAGS  =-g -Wall -O2
 
-CXXFLAGS = $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS))
+CXXFLAGS = $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
 CXXFLAGS+= $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
 CXXFLAGS+= $(OPT_CXXFLAGS)
 CXXFLAGS+= $(USR_CXXFLAGS) $(or $(USR_CXXFLAGS_$(TARNM)),$(USR_CXXFLAGS_default))
 
-CFLAGS   = $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS))
+CFLAGS   = $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
 CFLAGS  += $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
 CFLAGS  += $(OPT_CFLAGS)
 CFLAGS  += $(USR_CFLAGS)   $(or $(USR_CFLAGS_$(TARNM)),$(USR_CFLAGS_default))

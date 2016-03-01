@@ -1,15 +1,27 @@
 # Rules for CPSW makefiles
 
 # default target
-multi-all:
+multi-top: multi-install_headers multi-all
+	@true
 
 # run tests (on host)
 test:sub-$(HARCH)-run_tests
 
+multi-install_headers: install_headers
+
 # 'multi-target'; execute a target for all architectures:
 # If the user has a target 'xxx' defined in his/her makefile
-# then 'multi-xxx' builds that target in all arch-subdirs.
-multi-%:$(patsubst %,sub-%-%,$(ARCHES))
+# then 'multi-arch-xxx' builds that target in all arch-subdirs.
+multi-arch-%: $(patsubst %,sub-%-%,$(ARCHES))
+	@true
+
+# 'multi-target'; execute a target for all subdirs:
+# If the user has a target 'xxx' defined in his/her makefile
+# then 'multi-subdir-xxx' builds that target in all subdirs.
+multi-subdir-%: $(patsubst %,sub-./%-%,$(SUBDIRS))
+	@true
+
+multi-%: multi-subdir-% multi-arch-%
 	@true
 
 # 'sub-x-y' builds target 'y' for architecture 'x'
@@ -31,18 +43,37 @@ sub-%:TARNM=$(subst -,_,$(TARCH))
 # which (with UPDIR set to ../ expands to /a/b/c ../../e)
 #
 define ADD_updir
-$(foreach dir,$(1),$(addprefix $(if $(dir:/%=),$(UPDIR)),$(dir)))
+$(foreach dir,$(1),$(addprefix $(if $(dir:/%=),$(or $(2),$(UPDIR))),$(dir)))
 endef
 
 # recurse into subdirectory
+
+# subdir make
+sub-./%:
+	$(QUIET)$(MAKE) $(QUIET:%=-s) -C  $(TARCH)  UPDIR=../$(UPDIR) \
+         CPSW_DIR="$(call ADD_updir,$(CPSW_DIR),../)" \
+         INSTALL_DIR="$(call ADD_updir,$(INSTALL_DIR),../)" \
+         "multi-$(TARGT)"
+
+# No need to step into O.<arch> subdir to clean; it will be removed anyways
+sub-%-clean:
+	@true
+
+# No need to step into O.<arch> subdir to install headers
+sub-%-install_headers:
+	@true
+
+# arch-subdir make
 sub-%:
 	$(QUIET)mkdir -p O.$(TARCH)
-	$(QUIET)$(MAKE) $(QUIET:%=-s) -C  O.$(TARCH) -f ../makefile SRCDIR=.. UPDIR=../ \
-         CPSW_DIR="$(addprefix $(if $(CPSW_DIR:/%=),../),$(CPSW_DIR))" \
-         INCLUDE_DIRS="$(foreach dir,$(INCLUDE_DIRS),$(addprefix $(if $(dir:/%=),../),$(dir)))" \
+	$(QUIET)$(MAKE) $(QUIET:%=-s) -C  O.$(TARCH) -f ../makefile SRCDIR=.. UPDIR=../$(UPDIR) \
+         CPSW_DIR="$(call ADD_updir,$(CPSW_DIR),../)" \
+         INCLUDE_DIRS="$(call ADD_updir,$(INCLUDE_DIRS),../)" \
+         INSTALL_DIR="$(call ADD_updir,$(INSTALL_DIR),../)" \
          TARNM="$(TARNM)" \
          TARCH="$(TARCH)" \
          "$(TARGT)"
+
 
 # Template to assemble static libraries
 # Argument 1 is the name of the library (*without* 'lib' prefix or '.a' suffix)
@@ -79,7 +110,7 @@ define PROG_template
 
 $(2)_OBJS=$$(patsubst %.cpp,%.o,$$(patsubst %.cc,%.o,$$(patsubst %.c,%.o,$$($(2)_SRCS))))
 
-$(1): $$($(2)_OBJS) $$(wildcard $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst -,_,$$(lib))_DIR_$$(TARNM))/lib$$(lib).a $$($$(subst -,_,$$(lib))_DIR)/lib$$(lib).a O.$$(TARCH)/lib$$(lib).a)))
+$(1): $$($(2)_OBJS) $$(wildcard $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst -,_,$$(lib))_DIR_$$(TARNM))/lib$$(lib).a $$($$(subst -,_,$$(lib))_DIR)/lib$$(lib).a O.$$(TARCH)/lib$$(lib).a),))
 
 SRCS+=$$($(2)_SRCS)
 
@@ -103,16 +134,17 @@ $(PROGRAMS) $(TESTPROGRAMS):OBJS=$($(subst -,_,$@)_OBJS)
 $(PROGRAMS) $(TESTPROGRAMS):LIBS=$($(subst -,_,$@)_LIBS)
 
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS  = -L.
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(subst -,_,$(lib))_DIR) $($(subst -,_,$(lib))_DIR_$(TARNM)))))
+$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(subst -,_,$(lib))_DIR) $($(subst -,_,$(lib))_DIR_$(TARNM)),)))
 # don't apply ADD_updir to cpswlib_DIRS because CPSW_DIR already was 'upped'.
 # This means that e.g. boostlib_DIR must be absolute or relative to CPSW_DIR
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
+$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(INSTALL_DIR:%=%/lib/$(TARCH)))
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -l,$(LIBS))
 
 $(PROGRAMS) $(TESTPROGRAMS):
 	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS)
 
-all: $(TGTS)
+all: $(TGTS) install
 
 run_tests: $(addsuffix _run,$(FILTERED_TBINS))
 	@echo "ALL TESTS PASSED"
@@ -129,12 +161,37 @@ $(addsuffix _run,$(FILTERED_TBINS)):%_run: %
 	done
 
 
+ifneq ($(SRCS),)
 deps: $(SRCS)
 	$(CXX) $(CXXFLAGS) -MM $^ > $@
+endif
 
-clean:
+clean: multi-subdir-clean
 	$(RM) deps *.o *_tst udpsrv
 	$(RM) -r O.*
+
+install_headers:
+	@if [ -n "$(INSTALL_DIR)" ] ; then \
+		echo "Installing Headers $(HEADERS)" ; \
+		if [ -n "$(HEADERS)" ] ; then \
+			mkdir -p $(INSTALL_DIR)/include ;\
+			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(HEADERS)) $(INSTALL_DIR)/include ;\
+		fi ;\
+	fi
+
+install:
+	@if [ -n "$(INSTALL_DIR)" ] ; then \
+		if [ -n "$(STATIC_LIBRARIES)" ] ; then \
+			mkdir -p $(INSTALL_DIR)/lib/$(TARCH) ;\
+			echo "Installing Libraries $(STATIC_LIBRARIES:%=%lib.a)" ; \
+			$(INSTALL) $(foreach lib,$(STATIC_LIBRARIES),$(lib:%=lib%.a)) $(INSTALL_DIR)/lib/$(TARCH) ;\
+		fi ;\
+		if [ -n "$(PROGRAMS)" ] ; then \
+			mkdir -p $(INSTALL_DIR)/bin/$(TARCH) ;\
+			echo "Installing Programs $(PROGRAMS)" ; \
+			$(INSTALL) $(PROGRAMS) $(INSTALL_DIR)/bin/$(TARCH) ;\
+		fi \
+	fi
 
 ifdef TARCH
 -include deps
