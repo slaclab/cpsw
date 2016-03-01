@@ -4,7 +4,7 @@
 multi-all:
 
 # run tests (on host)
-test:sub-$(or $(findstring host,$(ARCHES)),$(firstword $(ARCHES)))-run_tests
+test:sub-$(HARCH)-run_tests
 
 # 'multi-target'; execute a target for all architectures:
 # If the user has a target 'xxx' defined in his/her makefile
