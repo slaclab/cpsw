@@ -36,8 +36,8 @@ endef
 
 # recurse into subdirectory
 sub-%:
-	mkdir -p O.$(TARCH)
-	$(MAKE) -C O.$(TARCH) -f ../makefile SRCDIR=.. UPDIR=../ \
+	$(QUIET)mkdir -p O.$(TARCH)
+	$(QUIET)$(MAKE) $(QUIET:%=-s) -C  O.$(TARCH) -f ../makefile SRCDIR=.. UPDIR=../ \
          CPSW_DIR="$(addprefix $(if $(CPSW_DIR:/%=),../),$(CPSW_DIR))" \
          INCLUDE_DIRS="$(foreach dir,$(INCLUDE_DIRS),$(addprefix $(if $(dir:/%=),../),$(dir)))" \
          TARNM="$(TARNM)" \
@@ -141,5 +141,10 @@ ifdef TARCH
 endif
 
 # invoke with :  eval `make libpath`
+ifndef TARCH
+libpath:QUIET=@
+libpath:sub-$(HARCH)-libpath
+else
 libpath:
 	@echo export LD_LIBRARY_PATH="$(cpswlib_DIRS)$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}"
+endif
