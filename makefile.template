@@ -6,7 +6,10 @@ CPSW_DIR=<path_to_cpsw>
 
 # from 'release.mak' CPSW_DIR and other variables
 # which define package locations may be overridden.
--include ./release.mak
+# Note: must include from $(SRCDIR) (which is redefined
+#       when recursing into subdirs).
+SRCDIR=.
+-include $(SRCDIR)/release.mak
 
 include $(CPSW_DIR)/defs.mak
 
