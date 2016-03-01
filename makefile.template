@@ -13,6 +13,13 @@ SRCDIR=.
 
 include $(CPSW_DIR)/defs.mak
 
+# Recurse into subdirectories (prior to making this directory)
+SUBDIRS += mySubdir1 mySubdir2
+
+# Headers to be installed (must exist prior to building or
+# you must add a rule to pre-build them)
+HEADERS += myHeader.h
+
 #The following variables are set:
 #TARCH=<current target architecture>
 #TARNM is used in makefile variable names:

@@ -3,6 +3,8 @@ CPSW_DIR=.
 
 include $(CPSW_DIR)/defs.mak
 
+HEADERS = cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h
+
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
 cpsw_SRCS+= cpsw_sval.cc
