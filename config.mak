@@ -6,7 +6,9 @@
 # arbitrarily but should not characters besides
 # [0-9][a-z][A-Z][.][-][_]
 
-# By default the 'host' architecture is built.
+# By default the 'host' architecture is built. But
+# you can redefine the name of the host architecture:
+# HARCH = www
 
 # Assuming you also want 'xxx' and 'yyy' then you'd
 # add these to the 'ARCHES' variable:

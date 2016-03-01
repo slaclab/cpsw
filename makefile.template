@@ -10,6 +10,11 @@ CPSW_DIR=<path_to_cpsw>
 
 include $(CPSW_DIR)/defs.mak
 
+#The following variables are set:
+#TARCH=<current target architecture>
+#TARNM is used in makefile variable names:
+#TARNM=<current target architecture with '-' replaced by '_'>
+
 # List libraries to build:
 STATIC_LIBRARIES += myLib
 

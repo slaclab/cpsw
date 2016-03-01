@@ -19,6 +19,7 @@ multi-%:$(patsubst %,sub-%-%,$(ARCHES))
 sub-%:TWORDS=$(subst -, ,$@)
 sub-%:TARGT=$(lastword $(TWORDS))
 sub-%:TARCH=$(patsubst %-$(TARGT),%,$(patsubst sub-%,%,$@))
+sub-%:TARNM=$(subst -,_,$(TARCH))
 
 # Function which checks a list of words (supposedly directories)
 # and prepends $(UPDIR) to each one of them that doesn't start
@@ -39,7 +40,9 @@ sub-%:
 	$(MAKE) -C O.$(TARCH) -f ../makefile SRCDIR=.. UPDIR=../ \
          CPSW_DIR="$(addprefix $(if $(CPSW_DIR:/%=),../),$(CPSW_DIR))" \
          INCLUDE_DIRS="$(foreach dir,$(INCLUDE_DIRS),$(addprefix $(if $(dir:/%=),../),$(dir)))" \
-         TARCH="$(subst -,_,$(TARCH))" "$(TARGT)"
+         TARNM="$(TARNM)" \
+         TARCH="$(TARCH)" \
+         "$(TARGT)"
 
 # Template to assemble static libraries
 # Argument 1 is the name of the library (*without* 'lib' prefix or '.a' suffix)
@@ -52,11 +55,11 @@ lib$(1).a: $$($(2)_OBJS)
 
 SRCS+=$$($(2)_SRCS)
 
-$(1):CXXFLAGS+=$$($(2)_CXXFLAGS) $$($(2)_CXXFLAGS_$$(TARCH))
-$(1):CFLAGS  +=$$($(2)_CFLAGS)   $$($(2)_CFLAGS_$$(TARCH))
+$(1):CXXFLAGS+=$$($(2)_CXXFLAGS) $$($(2)_CXXFLAGS_$$(TARNM))
+$(1):CFLAGS  +=$$($(2)_CFLAGS)   $$($(2)_CFLAGS_$$(TARNM))
 
-$(2)_CXXFLAGS_$$(TARCH)?= $$($(2)_CXXFLAGS_default)
-$(2)_CFLAGS_$$(TARCH)  ?= $$($(2)_CFLAGS_default)
+$(2)_CXXFLAGS_$$(TARNM)?= $$($(2)_CXXFLAGS_default)
+$(2)_CFLAGS_$$(TARNM)  ?= $$($(2)_CFLAGS_default)
 
 endef
 
@@ -76,17 +79,17 @@ define PROG_template
 
 $(2)_OBJS=$$(patsubst %.cpp,%.o,$$(patsubst %.cc,%.o,$$(patsubst %.c,%.o,$$($(2)_SRCS))))
 
-$(1): $$($(2)_OBJS) $$(wildcard $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst -,_,$$(lib))_DIR_$$(TARCH))/lib$$(lib).a $$($$(subst -,_,$$(lib))_DIR)/lib$$(lib).a O.$$(TARCH)/lib$$(lib).a)))
+$(1): $$($(2)_OBJS) $$(wildcard $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst -,_,$$(lib))_DIR_$$(TARNM))/lib$$(lib).a $$($$(subst -,_,$$(lib))_DIR)/lib$$(lib).a O.$$(TARCH)/lib$$(lib).a)))
 
 SRCS+=$$($(2)_SRCS)
 
-$(1):LDFLAGS +=$$($(2)_LDFLAGS)  $$($(2)_LDFLAGS_$$(TARCH))
-$(1):CXXFLAGS+=$$($(2)_CXXFLAGS) $$($(2)_CXXFLAGS_$$(TARCH))
-$(1):CFLAGS  +=$$($(2)_CFLAGS)   $$($(2)_CFLAGS_$$(TARCH))
+$(1):LDFLAGS +=$$($(2)_LDFLAGS)  $$($(2)_LDFLAGS_$$(TARNM))
+$(1):CXXFLAGS+=$$($(2)_CXXFLAGS) $$($(2)_CXXFLAGS_$$(TARNM))
+$(1):CFLAGS  +=$$($(2)_CFLAGS)   $$($(2)_CFLAGS_$$(TARNM))
 
-$(2)_CXXFLAGS_$$(TARCH)?= $$($(2)_CXXFLAGS_default)
-$(2)_CFLAGS_$$(TARCH)  ?= $$($(2)_CFLAGS_default)
-$(2)_LDFLAGS_$$(TARCH) ?= $$($(2)_LDFLAGS_default)
+$(2)_CXXFLAGS_$$(TARNM)?= $$($(2)_CXXFLAGS_default)
+$(2)_CFLAGS_$$(TARNM)  ?= $$($(2)_CFLAGS_default)
+$(2)_LDFLAGS_$$(TARNM) ?= $$($(2)_LDFLAGS_default)
 
 endef
 
@@ -100,7 +103,7 @@ $(PROGRAMS) $(TESTPROGRAMS):OBJS=$($(subst -,_,$@)_OBJS)
 $(PROGRAMS) $(TESTPROGRAMS):LIBS=$($(subst -,_,$@)_LIBS)
 
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS  = -L.
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(subst -,_,$(lib))_DIR) $($(subst -,_,$(lib))_DIR_$(TARCH)))))
+$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(subst -,_,$(lib))_DIR) $($(subst -,_,$(lib))_DIR_$(TARNM)))))
 # don't apply ADD_updir to cpswlib_DIRS because CPSW_DIR already was 'upped'.
 # This means that e.g. boostlib_DIR must be absolute or relative to CPSW_DIR
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))

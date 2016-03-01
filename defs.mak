@@ -1,7 +1,9 @@
 # (Default) Definitions for CPSW Makefiles
 
+# host architecture
+HARCH=host
 # Architectures to build
-ARCHES=host
+ARCHES=$(HARCH)
 
 # Save default (host) tools
 CC_host    :=$(CC)
@@ -13,13 +15,13 @@ RANLIB_host:=$(or $(RANLIB),ranlib)
 #
 # For a host build this should be empty (since we assume the tools to be in PATH)
 # but the user may override by defining CROSS_host...
-CROSS=$(if $(findstring undefined,$(origin CROSS_$(TARCH))),$(CROSS_default),$(CROSS_$(TARCH)))
+CROSS=$(if $(findstring undefined,$(origin CROSS_$(TARNM))),$(CROSS_default),$(CROSS_$(TARNM)))
 
 # Tools
-CC     =$(CROSS)$(or $(CC_$(TARCH)),$(CC_default),gcc)
-CXX    =$(CROSS)$(or $(CXX_$(TARCH)),$(CXX_default),g++)
-AR     =$(CROSS)$(or $(AR_$(TARCH)),$(AR_default),ar)
-RANLIB =$(CROSS)$(or $(RANLIB_$(TARCH)),$(RANLIB_default),ranlib)
+CC     =$(CROSS)$(or $(CC_$(TARNM)),$(CC_default),gcc)
+CXX    =$(CROSS)$(or $(CXX_$(TARNM)),$(CXX_default),g++)
+AR     =$(CROSS)$(or $(AR_$(TARNM)),$(AR_default),ar)
+RANLIB =$(CROSS)$(or $(RANLIB_$(TARNM)),$(RANLIB_default),ranlib)
 
 # Tool options
 OPT_CXXFLAGS=-g -Wall -O2
@@ -28,14 +30,14 @@ OPT_CFLAGS  =-g -Wall -O2
 CXXFLAGS = $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS))
 CXXFLAGS+= $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
 CXXFLAGS+= $(OPT_CXXFLAGS)
-CXXFLAGS+= $(USR_CXXFLAGS) $(or $(USR_CXXFLAGS_$(TARCH)),$(USR_CXXFLAGS_default))
+CXXFLAGS+= $(USR_CXXFLAGS) $(or $(USR_CXXFLAGS_$(TARNM)),$(USR_CXXFLAGS_default))
 
 CFLAGS   = $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS))
-CXXFLAGS+= $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
+CFLAGS  += $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
 CFLAGS  += $(OPT_CFLAGS)
-CFLAGS  += $(USR_CFLAGS)   $(or $(USR_CFLAGS_$(TARCH)),$(USR_CFLAGS_default))
+CFLAGS  += $(USR_CFLAGS)   $(or $(USR_CFLAGS_$(TARNM)),$(USR_CFLAGS_default))
 
-LDFLAGS  = $(USR_LDFLAGS)  $(or $(USR_LDFLAGS_$(TARCH)), $(USR_LDFLAGS_default))
+LDFLAGS  = $(USR_LDFLAGS)  $(or $(USR_LDFLAGS_$(TARNM)), $(USR_LDFLAGS_default))
 
 VPATH=$(SRCDIR)
 
@@ -46,9 +48,9 @@ RUN_OPTS=''
 # Libraries currently required by CPSW itself (and thus by anything using it)
 
 # colon separated dirlist
-cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(or $(boostinc_DIR_$(TARCH)), $(boostinc_DIR_default), $(boostinc_DIR)))
+cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(or $(boostinc_DIR_$(TARNM)), $(boostinc_DIR_default), $(boostinc_DIR)))
 # colon separated dirlist
-cpswlib_DIRS=$(CPSW_DIR)/O.$(TARCH)$(addprefix :,$(or $(boostlib_DIR_$(TARCH)), $(boostlib_DIR_default), $(boostlib_DIR)))
+cpswlib_DIRS=$(CPSW_DIR)/O.$(TARCH)$(addprefix :,$(or $(boostlib_DIR_$(TARNM)), $(boostlib_DIR_default), $(boostlib_DIR)))
 
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
 CPSW_LIBS   = cpsw boost_system pthread
