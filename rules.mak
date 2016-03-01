@@ -9,6 +9,8 @@ test:sub-$(HARCH)-run_tests
 
 multi-install_headers: install_headers
 
+multi-clean: clean
+
 # 'multi-target'; execute a target for all architectures:
 # If the user has a target 'xxx' defined in his/her makefile
 # then 'multi-arch-xxx' builds that target in all arch-subdirs.
