@@ -169,7 +169,7 @@ deps: $(SRCS)
 endif
 
 clean: multi-subdir-clean
-	$(RM) deps *.o *_tst udpsrv
+	$(RM) deps git_version_string.h
 	$(RM) -r O.*
 
 install_headers: git_version_string.h
