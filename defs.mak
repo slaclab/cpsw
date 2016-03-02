@@ -11,6 +11,8 @@ CXX_host   :=$(CXX)
 AR_host    :=$(AR)
 RANLIB_host:=$(or $(RANLIB),ranlib)
 
+GIT_VERSION_STRING:=$(shell echo -n '"'`git describe --always --dirty`'"')
+
 # if CROSS_xxx (for target architecture 'xxx' is not defined then try CROSS_default)
 #
 # For a host build this should be empty (since we assume the tools to be in PATH)
@@ -28,12 +30,14 @@ INSTALL=install -C
 OPT_CXXFLAGS=-g -Wall -O2
 OPT_CFLAGS  =-g -Wall -O2
 
-CXXFLAGS = $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
+CXXFLAGS+= $(addprefix -DGIT_VERSION_STRING=,$(GIT_VERSION_STRING:%='%'))
+CXXFLAGS+= $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
 CXXFLAGS+= $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
 CXXFLAGS+= $(OPT_CXXFLAGS)
 CXXFLAGS+= $(USR_CXXFLAGS) $(or $(USR_CXXFLAGS_$(TARNM)),$(USR_CXXFLAGS_default))
 
-CFLAGS   = $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
+CXXFLAGS+= $(addprefix -DGIT_VERSION_STRING=,$(GIT_VERSION_STRING:%='%'))
+CFLAGS  += $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
 CFLAGS  += $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
 CFLAGS  += $(OPT_CFLAGS)
 CFLAGS  += $(USR_CFLAGS)   $(or $(USR_CFLAGS_$(TARNM)),$(USR_CFLAGS_default))
