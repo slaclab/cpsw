@@ -172,7 +172,7 @@ clean: multi-subdir-clean
 	$(RM) deps *.o *_tst udpsrv
 	$(RM) -r O.*
 
-install_headers:
+install_headers: git_version_string.h
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		echo "Installing Headers $(HEADERS)" ; \
 		if [ -n "$(HEADERS)" ] ; then \
@@ -194,6 +194,20 @@ install:
 			$(INSTALL) $(PROGRAMS) $(INSTALL_DIR)/bin/$(TARCH) ;\
 		fi \
 	fi
+
+git_version_string.h: FORCE
+	@if grep "$(GIT_VERSION_STRING)" $@ > /dev/null 2>&1 ; then \
+		true ; \
+	else \
+		echo "VERSION REMADE" ; \
+		$(RM) $@ ; \
+		echo '#ifndef GIT_VERSION_STRING_H' >  $@ ;\
+		echo '#define GIT_VERSION_STRING_H' >> $@ ;\
+		echo '#define GIT_VERSION_STRING "'$(GIT_VERSION_STRING)'"' >> $@ ;\
+		echo '#endif' >> $@ ; \
+	fi
+
+FORCE:
 
 ifdef TARCH
 -include deps
