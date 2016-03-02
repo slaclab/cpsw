@@ -141,7 +141,7 @@ $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(c
 # This means that e.g. boostlib_DIR must be absolute or relative to CPSW_DIR
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(INSTALL_DIR:%=%/lib/$(TARCH)))
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -l,$(LIBS))
+$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS:%=-l%),$(lib:%.a=-Wl,-Bstatic % -Wl,-Bdynamic))
 
 $(PROGRAMS) $(TESTPROGRAMS):
 	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS)

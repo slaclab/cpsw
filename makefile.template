@@ -50,9 +50,12 @@ INCLUDE_DIRS     += somewhere
 # List them *without* 'lib' prefix or any suffix.
 # Don't forget to add $(CPSW_LIBS) in order to link CPSW
 # and any dependent libraries.
+
+# You can enforce linking a static version of a particular
+# library by appending '.a' (still no 'lib' prefix)
 myProg_LIBS      += someLib $(CPSW_LIBS)
 
-myTest_LIBS      += someLib $(CPSW_LIBS)
+myTest_LIBS      += someStaticLib.a $(CPSW_LIBS)
 myOtherTest_LIBS += someLib $(CPSW_LIBS)
 
 # Tell them where to look for 'someLib' -- this example
