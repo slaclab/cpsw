@@ -196,7 +196,7 @@ install:
 	fi
 
 git_version_string.h: FORCE
-	@if grep "$(GIT_VERSION_STRING)" $@ > /dev/null 2>&1 ; then \
+	if grep '$(GIT_VERSION_STRING)' $@ > /dev/null 2>&1 ; then \
 		true ; \
 	else \
 		echo "VERSION REMADE" ; \
