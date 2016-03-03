@@ -52,7 +52,7 @@ public:
 
         virtual void executeCommand(Path p) const 
         {
-//		AxiVersion axiv = IAxiVersion::create( IPath::create(p->parent()) );
+//		AxiVersion axiv = IAxiVersion::create( IPath::create( p ) );
 //		axiv->MasterReset();
         }
 };
@@ -71,7 +71,7 @@ public:
 		uint64_t u64 = 0;
 		ScalVal c = IScalVal::create( p->findByName( "counter" ) );
 		c->setVal( &u64, 1 );
-//		AxiVersion axiv = IAxiVersion::create( IPath::create(p->parent()) );
+//		AxiVersion axiv = IAxiVersion::create( IPath::create( p ) ) );
 //		axiv->CounterReset();
         }
 };
