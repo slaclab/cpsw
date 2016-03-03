@@ -50,9 +50,9 @@ public:
         CMasterResetImpl(Key &k, const char* name):
         CCommandImpl(k, name) {}
 
-        virtual void executeCommand(Path p) const 
+        virtual void executeCommand(Path pParent) const 
         {
-//		AxiVersion axiv = IAxiVersion::create( IPath::create( p ) );
+//		AxiVersion axiv = IAxiVersion::create( IPath::create( pParent ) );
 //		axiv->MasterReset();
         }
 };
@@ -65,13 +65,13 @@ public:
         CCounterResetImpl(Key &k, const char* name):
         CCommandImpl(k, name) {}
 
-        virtual void executeCommand(Path p) const 
+        virtual void executeCommand(Path pParent) const 
         {
 		printf("Counter reset\n");
 		uint64_t u64 = 0;
-		ScalVal c = IScalVal::create( p->findByName( "counter" ) );
+		ScalVal c = IScalVal::create( pParent->findByName( "counter" ) );
 		c->setVal( &u64, 1 );
-//		AxiVersion axiv = IAxiVersion::create( IPath::create( p ) ) );
+//		AxiVersion axiv = IAxiVersion::create( IPath::create( pParent ) ) );
 //		axiv->CounterReset();
         }
 };
