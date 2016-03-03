@@ -15,16 +15,16 @@ Command_Adapt rval = IEntryAdapt::check_interface<Command_Adapt, CommandImpl>( p
 
 CommandField ICommandField::create(const char *name)
 {
-        return CShObj::create<CommandImpl>(name, 1);
+        return CShObj::create<CommandImpl>(name);
 }
 
-CCommandImpl::CCommandImpl( Key &k, const char *name, uint64_t size):
-	CEntryImpl(k, name, size)
+CCommandImpl::CCommandImpl(Key &k, const char *name):
+	CEntryImpl(k, name, 1)
 {
 
 }
 
-void CCommandImpl::executeCommand( Path p ) const
+void CCommandImpl::executeCommand(Path p) const
 {
 	throw InterfaceNotImplementedError( p );
 }

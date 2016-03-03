@@ -48,7 +48,7 @@ typedef shared_ptr<CMasterResetImpl> MasterResetImpl;
 class CMasterResetImpl: public CCommandImpl {
 public:
         CMasterResetImpl(Key &k, const char* name):
-        CCommandImpl(k, name, 1) {}
+        CCommandImpl(k, name) {}
 
         virtual void executeCommand(Path p) const 
         {
@@ -63,7 +63,7 @@ typedef shared_ptr<CCounterResetImpl> CounterResetImpl;
 class CCounterResetImpl: public CCommandImpl {
 public:
         CCounterResetImpl(Key &k, const char* name):
-        CCommandImpl(k, name, 1) {}
+        CCommandImpl(k, name) {}
 
         virtual void executeCommand(Path p) const 
         {
