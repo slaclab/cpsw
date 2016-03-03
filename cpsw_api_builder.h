@@ -153,7 +153,6 @@ typedef shared_ptr<ICommandField> CommandField;
 
 class ICommandField: public virtual IField {
 public:
-        virtual void executeCommand( Path ) const = 0;
         static CommandField create(const char *name);
 };
 
