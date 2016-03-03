@@ -1,5 +1,6 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_mmio_dev.h>
+#include <cpsw_command.h>
 #include <boost/atomic.hpp>
 
 #include <string.h>
@@ -41,15 +42,55 @@ public:
 	CAXIVersImpl(Key &k, const char *name);
 };
 
+class CMasterResetImpl;
+typedef shared_ptr<CMasterResetImpl> MasterResetImpl;
+
+class CMasterResetImpl: public CCommandImpl {
+public:
+        CMasterResetImpl(Key &k, const char* name):
+        CCommandImpl(k, name, 1) {}
+
+        virtual void executeCommand(Path p) const 
+        {
+//		AxiVersion axiv = IAxiVersion::create( IPath::create(p->parent()) );
+//		axiv->MasterReset();
+        }
+};
+
+class CCounterResetImpl;
+typedef shared_ptr<CCounterResetImpl> CounterResetImpl;
+
+class CCounterResetImpl: public CCommandImpl {
+public:
+        CCounterResetImpl(Key &k, const char* name):
+        CCommandImpl(k, name, 1) {}
+
+        virtual void executeCommand(Path p) const 
+        {
+		printf("Counter reset\n");
+		uint64_t u64 = 0;
+		ScalVal c = IScalVal::create( p->findByName( "counter" ) );
+		c->setVal( &u64, 1 );
+//		AxiVersion axiv = IAxiVersion::create( IPath::create(p->parent()) );
+//		axiv->MasterReset();
+        }
+};
+
+
 AXIVers IAXIVers::create(const char *name)
 {
 AXIVersImpl v = CShObj::create<AXIVersImpl>(name);
 Field f;
+	f = CShObj::create<MasterResetImpl>("Command");
+	v->CMMIODevImpl::addAtAddress( f , 1 );
+	f = CShObj::create<CounterResetImpl>("CounterReset");
+	v->CMMIODevImpl::addAtAddress( f , 1 );
+
 	f = IIntField::create("dnaValue", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f , 0x08 );
 	f = IIntField::create("fdSerial", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f, 0x10 );
-	f = IIntField::create("counter",  32, false, 0, IIntField::RO);
+	f = IIntField::create("counter",  32, false, 0, IIntField::RW);
 	v->CMMIODevImpl::addAtAddress( f, 0x24 );
 	f = IIntField::create("bldStamp",  8, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f, 0x800, VLEN  );
@@ -204,7 +245,7 @@ int
 main(int argc, char **argv)
 {
 int         rval    = 0;
-const char *ip_addr = "192.168.2.10";
+const char *ip_addr = "192.168.2.20";
 bool        use_mem = false;
 int        *i_p;
 int         vers    = 2;
@@ -278,6 +319,11 @@ uint16_t u16;
 
 	// can use raw memory for testing instead of UDP
 	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );
+
+        Command cmd = ICommand::create( pre->findByName("mmio/vers/Command") );
+        cmd->execute();
+        Command rst = ICommand::create( pre->findByName("mmio/vers/CounterReset") );
+        rst->execute();
 
 	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
 	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );

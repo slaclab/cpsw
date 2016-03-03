@@ -253,4 +253,14 @@ public:
 	static Stream create(Path p);
 };
 
+class ICommand;
+typedef shared_ptr<ICommand> Command;
+
+class ICommand: public virtual IEntry {
+public:
+        virtual void execute() = 0;
+        static Command create(Path p);
+};
+
+
 #endif
