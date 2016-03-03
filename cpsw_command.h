@@ -12,7 +12,7 @@ typedef shared_ptr<CCommandImpl> CommandImpl;
 
 class CCommandImpl : public CEntryImpl, public virtual ICommandField {
 public:
-        virtual void executeCommand( Path p ) const {}
+        virtual void executeCommand( Path p ) const;
         CCommandImpl(Key &k, const char* name, uint64_t size);
 };
 

@@ -24,6 +24,11 @@ CCommandImpl::CCommandImpl( Key &k, const char *name, uint64_t size):
 
 }
 
+void CCommandImpl::executeCommand( Path p ) const
+{
+	throw InterfaceNotImplementedError( p );
+}
+
 CCommand_Adapt::CCommand_Adapt(Key &k,  Path p, shared_ptr<const CCommandImpl> ie):
 	IEntryAdapt(k, p, ie)
 {
@@ -35,6 +40,5 @@ Command CCommand_Adapt::create(Path p)
 {
 	Command_Adapt comm = IEntryAdapt::check_interface<Command_Adapt, CommandImpl>( p );
 	return comm;
-
 }
 
