@@ -22,7 +22,7 @@ struct Mutex {
 };
 
 //#define NOSSI_DEBUG
-//#ifdef TIMEOUT_DEBUG
+//#define TIMEOUT_DEBUG
 
 #define MAXWORDS 256
 
@@ -862,15 +862,19 @@ void DynTimeout::reset(const CTimeout &iniv)
 void DynTimeout::relax()
 {
 uint64_t timeout_cap = CAP_US<<(AVG_SHFT-MARG_SHFT);
+
+	// increase
+	avgRndTrip_ += (dynTimeout_.getUs()<<1) - (avgRndTrip_ >> AVG_SHFT);
+
 	// when the timeout becomes too small then I experienced
-	// some kind of scheduling problem where packets seem to
+	// some kind of scheduling problem where packets
 	// arrive but not all threads processing them upstream
 	// seem to get CPU time quickly enough.
 	// We mitigate by capping the timeout if that happens.
 	if ( avgRndTrip_ < timeout_cap ) {
 		avgRndTrip_ = timeout_cap;
-		setLastUpdate();
 	}
+	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
 	printf("RETRY (timeout %"PRId64")\n", dynTimeout_.getUs());
 #endif

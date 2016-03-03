@@ -77,7 +77,7 @@ static void usage(const char *nm)
 	fprintf(stderr, "        -d          : enable debugging messages (may slow down)\n");
 #endif
 	fprintf(stderr, "        -S <depth>  : scramble packet order (arg is ld2(scramble-length))\n");
-	fprintf(stderr, "        -L <percent>: lose/drop <percent> pacets\n");
+	fprintf(stderr, "        -L <percent>: lose/drop <percent> packets\n");
 	fprintf(stderr, " Defaults: -a %s -P %d -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, V2PORT_DEF, V1PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
 }
 
