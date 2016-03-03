@@ -82,9 +82,9 @@ AXIVers IAXIVers::create(const char *name)
 AXIVersImpl v = CShObj::create<AXIVersImpl>(name);
 Field f;
 	f = CShObj::create<MasterResetImpl>("Command");
-	v->CMMIODevImpl::addAtAddress( f , 1 );
+	v->CDevImpl::addAtAddress( f , 1 );
 	f = CShObj::create<CounterResetImpl>("CounterReset");
-	v->CMMIODevImpl::addAtAddress( f , 1 );
+	v->CDevImpl::addAtAddress( f , 1 );
 
 	f = IIntField::create("dnaValue", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f , 0x08 );
