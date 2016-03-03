@@ -27,9 +27,8 @@ CCommandImpl::CCommandImpl( Key &k, const char *name, uint64_t size):
 CCommand_Adapt::CCommand_Adapt(Key &k,  Path p, shared_ptr<const CCommandImpl> ie):
 	IEntryAdapt(k, p, ie)
 {
-	pParent_= p; 
+	pParent_= p->clone(); 
 	pParent_->up(); 
-
 }
 
 Command CCommand_Adapt::create(Path p)
