@@ -322,8 +322,8 @@ uint16_t u16;
 
         Command cmd = ICommand::create( pre->findByName("mmio/vers/Command") );
         cmd->execute();
-        Command rst = ICommand::create( pre->findByName("mmio/vers/CounterReset") );
-        rst->execute();
+        Command counterRst = ICommand::create( pre->findByName("mmio/vers/CounterReset") );
+        counterRst->execute();
 
 	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
 	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
