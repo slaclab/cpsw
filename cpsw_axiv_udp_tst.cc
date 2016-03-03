@@ -72,7 +72,7 @@ public:
 		ScalVal c = IScalVal::create( p->findByName( "counter" ) );
 		c->setVal( &u64, 1 );
 //		AxiVersion axiv = IAxiVersion::create( IPath::create(p->parent()) );
-//		axiv->MasterReset();
+//		axiv->CounterReset();
         }
 };
 
