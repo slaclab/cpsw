@@ -11,6 +11,8 @@
 
 #include <udpsrv_regdefs.h>
 
+#include <cpsw_obj_cnt.h>
+
 using boost::dynamic_pointer_cast;
 
 class TestFailed {};
@@ -256,6 +258,11 @@ unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 	} catch (CPSWError &e) {
 		printf("CPSW Error: %s\n", e.getInfo().c_str());
 		throw;
+	}
+
+	if ( CpswObjCounter::report() ) {
+		printf("Leaked Objects!\n");
+		throw TestFailed();
 	}
 
 	printf("SRP - UDP test PASSED\n");

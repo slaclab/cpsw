@@ -6,6 +6,7 @@
 #include <string.h>
 #include <boost/shared_ptr.hpp>
 #include <vector>
+#include <string>
 
 using std::list;
 using boost::shared_ptr;
@@ -17,6 +18,7 @@ class IPath;
 class IScalVal_RO;
 class IScalVal_WO;
 class IScalVal;
+class IEnum;
 typedef shared_ptr<const IHub>   Hub;
 typedef shared_ptr<const IChild> Child;
 typedef shared_ptr<const IEntry> Entry;
@@ -24,6 +26,8 @@ typedef shared_ptr<IPath>        Path;
 typedef shared_ptr<IScalVal_RO>  ScalVal_RO;
 typedef shared_ptr<IScalVal_WO>  ScalVal_WO;
 typedef shared_ptr<IScalVal>     ScalVal;
+typedef shared_ptr<IEnum>        Enum;
+typedef shared_ptr<const std::string> CString;
 class IEventListener;
 class IEventSource;
 typedef shared_ptr<IEventSource> EventSource;
@@ -116,6 +120,50 @@ public:
 	virtual Children   getChildren()               const = 0;
 };
 
+// Enum class
+class IEnum {
+public:
+	typedef std::pair< CString, uint64_t>                 Item;
+	typedef std::iterator<std::input_iterator_tag, Item>  IteratorBase;
+
+	class IIterator {
+	public:
+		virtual IIterator    & operator++()               = 0;
+		virtual Item           operator*()                = 0;
+		virtual bool           operator==(IIterator *)    = 0;
+		virtual               ~IIterator() {}
+	};
+
+	class iterator : public IteratorBase {
+		private:
+			char rawmem[32];
+
+			IIterator *ifp;
+		public:
+			iterator(const IEnum*,bool);
+			iterator(const iterator&);
+			iterator();
+			iterator     & operator=(const iterator&);
+
+			iterator     & operator++()        { ++(*ifp); return *this;   }
+			Item           operator*()         { return *(*ifp);           }
+			bool operator==(const iterator &b) { return (*ifp)==b.ifp;     }
+			bool operator!=(const iterator &b) { return ! ((*ifp)==b.ifp); }
+
+			~iterator() { ifp->~IIterator(); }
+	};
+
+	virtual iterator begin()       const = 0;
+	virtual iterator end()         const = 0;
+
+	virtual unsigned getNelms()    const = 0;
+
+	virtual Item map(uint64_t)           = 0;
+	virtual Item map(const char *)       = 0;
+
+	virtual ~IEnum() {}
+};
+
 // Base interface to integral values
 class IScalVal_Base : public virtual IEntry {
 public:
@@ -123,6 +171,7 @@ public:
 	virtual uint64_t getSizeBits()      const = 0; // size in bits
 	virtual bool     isSigned()         const = 0;
 	virtual Path     getPath()          const = 0;
+	virtual Enum     getEnum()          const = 0;
 	virtual ~IScalVal_Base () {}
 };
 
@@ -192,6 +241,7 @@ public:
 	virtual unsigned getVal(uint32_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
 	virtual unsigned getVal(uint16_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
 	virtual unsigned getVal(uint8_t  *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(CString  *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
 	virtual ~IScalVal_RO () {}
 
 	// Throws an exception if path doesn't point to an object which supports this interface
@@ -205,11 +255,13 @@ public:
 	// NOTE: nelms must be large enough to hold ALL values addressed by the
 	//       underlying Path. The range of indices may be reduced using the
 	//       'range' argument.
-	virtual unsigned setVal(uint64_t *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint32_t *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint16_t *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint8_t  *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint64_t  v, IndexRange *range = 0) = 0; // set all elements to same value
+	virtual unsigned setVal(uint64_t    *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint32_t    *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint16_t    *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint8_t     *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(const char* *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint64_t     v, IndexRange *range = 0) = 0; // set all elements to same value
+	virtual unsigned setVal(const char*  v, IndexRange *range = 0) = 0; // set all elements to same value
 	virtual ~IScalVal_WO () {}
 
 	// Throws an exception if path doesn't point to an object which supports this interface

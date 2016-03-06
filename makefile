@@ -12,6 +12,8 @@ cpsw_SRCS+= cpsw_mmio_dev.cc
 cpsw_SRCS+= cpsw_mem_dev.cc
 cpsw_SRCS+= cpsw_nossi_dev.cc
 cpsw_SRCS+= cpsw_buf.cc
+cpsw_SRCS+= cpsw_enum.cc
+cpsw_SRCS+= cpsw_obj_cnt.cc
 cpsw_SRCS+= cpsw_proto_mod.cc
 cpsw_SRCS+= cpsw_proto_mod_depack.cc
 cpsw_SRCS+= cpsw_proto_mod_udp.cc
@@ -33,10 +35,11 @@ PROGRAMS   += udpsrv
 
 cpsw_path_tst_SRCS       = cpsw_path_tst.cc
 cpsw_path_tst_LIBS       = $(CPSW_LIBS)
-TESTSPROGRAMS           +=cpsw_path_tst
+TESTPROGRAMS            += cpsw_path_tst
 
 cpsw_shared_obj_tst_SRCS = cpsw_shared_obj_tst.cc
 cpsw_shared_obj_tst_LIBS = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_shared_obj_tst
 
 cpsw_sval_tst_SRCS       = cpsw_sval_tst.cc
 cpsw_sval_tst_LIBS       = $(CPSW_LIBS)
@@ -66,6 +69,11 @@ TESTPROGRAMS            += cpsw_stream_tst
 cpsw_srpmux_tst_SRCS     = cpsw_srpmux_tst.cc
 cpsw_srpmux_tst_LIBS     = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_srpmux_tst
+
+cpsw_enum_tst_SRCS     = cpsw_enum_tst.cc
+cpsw_enum_tst_LIBS     = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_enum_tst
+
 
 TEST_AXIV_YES=
 TEST_AXIV_NO=cpsw_axiv_udp_tst

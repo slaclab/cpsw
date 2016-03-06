@@ -1,5 +1,6 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_hub.h>
+#include <cpsw_obj_cnt.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -386,9 +387,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 
 }
 
-	if ( cpsw_obj_count != 1 ) {
-		// the default 'root' device node is still alive
-		printf("CPSW object count %i (expected 1)\n", cpsw_obj_count);
+	if ( CpswObjCounter::report(true) ) {
 		throw TestFailed("Unexpected object count");
 	}
 

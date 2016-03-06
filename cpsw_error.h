@@ -76,6 +76,12 @@ class AddrOutOfRangeError: public CPSWError {
 		AddrOutOfRangeError(const char *s) : CPSWError(s) {}
 };
 
+class ConversionError: public CPSWError {
+	public:
+		ConversionError(const char *s) : CPSWError(s) {}
+};
+
+
 class InterfaceNotImplementedError: public CPSWError {
 	public:
 		InterfaceNotImplementedError( Path p ) : CPSWError( p ) {}

@@ -19,7 +19,6 @@ typedef shared_ptr<IField>     Field;
 typedef shared_ptr<IDev>       Dev;
 typedef shared_ptr<CEntryImpl> EntryImpl;
 
-
 typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21 } ByteOrder;
 
 ByteOrder hostByteOrder();
@@ -106,6 +105,39 @@ public:
 	static NoSsiDev create(const char *name, const char *ipaddr);
 };
 
+class IMutableEnum;
+typedef shared_ptr<IMutableEnum> MutableEnum;
+
+class IMutableEnum : public IEnum {
+public:
+	// optional function to transform a numerical
+	// value before applying the reverse map:
+	//
+	//  read -> transform -> mapFromNumToString
+	//
+	// This can be used, e.g., to map any nonzero
+	// value to 1 for a boolean-style enum.
+	typedef uint64_t (*TransformFunc)(uint64_t in);
+
+	virtual void add(const char *enum_string, uint64_t enum_num) = 0;
+
+	static MutableEnum create(TransformFunc f);
+
+	// Create with variable argument list. The list are NULL-terminated
+	// pairs of { const char *, int }:
+	//
+	//   create( f, "honey", 0, "marmelade", 2, NULL );
+	//
+	// NOTE: the numerical values are **int**. If you need 64-bit
+	//       values then you must the 'add' method.
+	static MutableEnum create(TransformFunc f, ...);
+
+	static MutableEnum create();
+};
+
+extern Enum const enumBool;
+extern Enum const enumYesNo;
+
 class IIntField;
 typedef shared_ptr<IIntField> IntField;
 
@@ -130,6 +162,8 @@ public:
 		virtual Builder lsBit(int)            = 0;
 		virtual Builder mode(Mode)            = 0;
 		virtual Builder wordSwap(unsigned)    = 0;
+		virtual Builder setEnum(Enum)         = 0;
+
 		virtual Builder reset()               = 0;
 
 		virtual IntField build()              = 0;

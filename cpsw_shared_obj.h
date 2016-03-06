@@ -2,6 +2,8 @@
 #define CPSW_SHARED_OBJ_H
 // Object referenced via shared pointer
 
+#include <cpsw_obj_cnt.h>
+
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 
@@ -9,15 +11,15 @@ using boost::shared_ptr;
 using boost::weak_ptr;
 using boost::static_pointer_cast;
 
-class CShObj;
-
-
 class CShObj {
 public:
 	class StolenKeyError           {};
 	class MustNotAssignError       {};
 	class MustNotCopyError         {};
 	class CloneNotImplementedError {};
+
+	static CpswObjCounter & sh_ocnt_();
+
 protected:
 
 	typedef shared_ptr<CShObj> ShObj;
@@ -107,6 +109,7 @@ protected:
 			throw StolenKeyError();
 		}
 		self_.reset();
+		++sh_ocnt_();
 	}
 
 	template <typename AS> AS getSelfAs()
@@ -126,10 +129,12 @@ public:
 		if ( ! k.isValid() ) {
 			throw StolenKeyError();
 		}
+		++sh_ocnt_();
 	}
 
 	virtual ~CShObj()
 	{
+		--sh_ocnt_();
 	}
 
 	// EVERY subclass must provide a covariant version of this!

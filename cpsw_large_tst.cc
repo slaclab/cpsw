@@ -1,6 +1,7 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_mmio_dev.h>
 #include <cpsw_hub.h>
+#include <cpsw_obj_cnt.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -150,8 +151,8 @@ uint64_t   uv;
 	printf("Name lookup:                        %8"PRIu64"us\n", lkup_us);
 	printf("Reading (from memory pseudo device) %8"PRIu64"us\n", read_us);
 
-	if ( cpsw_obj_count != 1 ) {
-		fprintf(stderr,"FAILED -- %i Objects leaked!\n", cpsw_obj_count - 1);
+	if ( CpswObjCounter::report() ) {
+		fprintf(stderr,"FAILED -- Objects leaked!\n");
 		throw TestFailed();
 	}
 

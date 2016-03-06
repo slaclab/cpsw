@@ -1,3 +1,5 @@
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 #include <cpsw_api_user.h>
 #include <cpsw_path.h>
@@ -13,7 +15,7 @@ static uint64_t b2B(uint64_t bits)
 	return (bits + 7)/8;
 }
 
-CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
+CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap, Enum enm)
 : CEntryImpl(
 		k,
 		name,
@@ -23,7 +25,8 @@ CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool i
 	ls_bit_(lsBit),
 	size_bits_(sizeBits),
 	mode_(mode),
-	wordSwap_(wordSwap)
+	wordSwap_(wordSwap),
+	enum_(enm)
 {
 unsigned byteSize = b2B(sizeBits);
 
@@ -437,6 +440,34 @@ unsigned         nelmsOnPath  = it->nelmsLeft_;
 	return nelms;
 }
 
+unsigned CScalVal_ROAdapt::getVal(CString *strs, unsigned nelms, IndexRange *range)
+{
+uint64_t buf[nelms];
+unsigned got,i;
+Enum     enm = getEnum();
+
+	got = getVal(buf, nelms, range);
+
+	if ( enm ) {
+		for ( i=0; i < got; i++ ) {
+			IEnum::Item item = enm->map(buf[i]);
+			strs[i] = item.first;
+		}
+	} else {
+		char strbuf[100];
+		const char *fmt = isSigned() ? "%" PRIi64 : "%" PRIu64;
+		strbuf[sizeof(strbuf)-1] = 0;
+		for ( i=0; i < got; i++ ) {
+			snprintf(strbuf, sizeof(strbuf) - 1, fmt, buf[i]);
+			strs[i] = make_shared<string>( strbuf );
+		}
+	}
+	while ( i < nelms )
+		strs[i].reset();
+
+	return got;
+}
+
 #ifdef SVAL_DEBUG
 static void prib(const char *pre, uint8_t *b)
 {
@@ -585,20 +616,38 @@ prib("byte-swapped", obufp + oidx);
 
 	return nelms;
 }
-	
-unsigned CScalVal_WOAdapt::setVal(uint64_t  v, IndexRange *r)
+
+unsigned CScalVal_WOAdapt::setVal(const char* *strs, unsigned nelms, IndexRange *range)
 {
-unsigned nelms;
+uint64_t buf[nelms];
+unsigned i;
+Enum     enm = getEnum();
 
+	if ( enm ) {
+		for ( i=0; i<nelms; i++ ) {
+			IEnum::Item item = enm->map( strs[i] );
+			buf[i] = item.second;
+		}
+	} else {
+		const char *fmt = isSigned() ? "%"SCNi64 : "%"SCNu64;
+		for ( i=0; i<nelms; i++ ) {
+			if ( 1 != sscanf(strs[i],fmt,&buf[i]) ) {
+				throw ConversionError("CScalVal_RO::setVal -- unable to scan string into number");
+			}
+		}
+	}
 
+	return setVal(buf, nelms, range);
+}
+
+static unsigned nelmsFromIdx(IndexRange *r, Path p, unsigned nelms)
+{
 	if ( r ) {
 		int f = r->getFrom();
 		int t = r->getTo();
 
-		if ( f < 0 && t < 0 ) {
-			nelms = getNelms();
-		} else {
-			CompositePathIterator it( &p_ );
+		if ( f >= 0 || t >= 0 ) {
+			CompositePathIterator it( &p );
 			if ( f < 0 )
 				f = it->idxf_; 
 			else
@@ -613,9 +662,24 @@ unsigned nelms;
 				d = t;
 			nelms = it.getNelmsLeft() * d;
 		}
-	} else {
-		nelms = getNelms();
 	}
+	return nelms;
+}
+
+unsigned CScalVal_WOAdapt::setVal(const char *v, IndexRange *r)
+{
+unsigned nelms = nelmsFromIdx(r, p_, getNelms());
+const char *arg[nelms];
+unsigned i;
+	for (i=0; i<nelms; i++ )
+		arg[i] = v;
+
+	return setVal(arg, nelms, r);
+}
+	
+unsigned CScalVal_WOAdapt::setVal(uint64_t  v, IndexRange *r)
+{
+unsigned nelms = nelmsFromIdx(r, p_, getNelms());
 
 	// since reads may be collapsed at a lower layer we simply build an array here
 	if ( getSize() <= sizeof(uint8_t) ) {
@@ -688,6 +752,12 @@ IIntField::Builder CIntEntryImpl::CBuilder::wordSwap(unsigned wordSwap)
 	return getSelfAs<BuilderImpl>();
 }
 
+IIntField::Builder CIntEntryImpl::CBuilder::setEnum(Enum enm)
+{
+	enum_ = enm;
+	return getSelfAs<BuilderImpl>();
+}
+
 IIntField::Builder CIntEntryImpl::CBuilder::reset()
 {
 	init();
@@ -711,7 +781,7 @@ IntField CIntEntryImpl::CBuilder::build()
 
 IntField CIntEntryImpl::CBuilder::build(const char *name)
 {
-	return CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_);
+	return CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_, enum_);
 }
 
 IIntField::Builder  CIntEntryImpl::CBuilder::create()
