@@ -3,9 +3,11 @@
 #include <cpsw_entry.h>
 #include <ctype.h>
 
+#include <cpsw_obj_cnt.h>
+
 #include <stdint.h>
 
-int cpsw_obj_count = 0;
+static DECLARE_OBJ_COUNTER( ocnt, "EntryImpl", 1 ) // root device
 
 CEntryImpl::CEntryImpl(Key &k, const char *name, uint64_t size)
 : CShObj(k),
@@ -21,7 +23,7 @@ const char *cptr;
                      && '-' != *cptr  )
 					throw InvalidIdentError(name_);
 	}
-	cpsw_obj_count++;
+	++ocnt();
 }
 
 CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
@@ -32,11 +34,12 @@ CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
   cacheable_(ei.cacheable_),
   locked_( false )
 {
+	++ocnt();
 }
 
 CEntryImpl::~CEntryImpl()
 {
-	cpsw_obj_count--;
+	--ocnt();
 }
 
 void CEntryImpl::setDescription(const char *desc)

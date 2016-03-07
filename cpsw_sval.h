@@ -28,6 +28,7 @@ public:
 		int         lsBit_;	
 		Mode        mode_;
         unsigned    wordSwap_;
+		Enum        enum_;
 
 	protected:
 		typedef shared_ptr<CBuilder> BuilderImpl;
@@ -41,7 +42,8 @@ public:
 		 isSigned_ (orig.isSigned_),
 		 lsBit_    (orig.lsBit_),
 		 mode_     (orig.mode_),
-         wordSwap_ (orig.wordSwap_)
+         wordSwap_ (orig.wordSwap_),
+         enum_     (orig.enum_)
 		{
 		}
 
@@ -55,6 +57,7 @@ public:
 		virtual Builder lsBit(int);
 		virtual Builder mode(Mode);
 		virtual Builder wordSwap(unsigned);
+		virtual Builder setEnum(Enum);
 		virtual Builder reset();
 
 		virtual IntField build();
@@ -70,10 +73,11 @@ private:
 	uint64_t size_bits_;
 	Mode     mode_;
 	unsigned wordSwap_;
+	Enum     enum_;
 public:
 
 
-	CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP);
+	CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP, Enum enm = Enum());
 
 	CIntEntryImpl(CIntEntryImpl &orig, Key &k)
 	:CEntryImpl(orig, k),
@@ -81,7 +85,8 @@ public:
 	 ls_bit_(orig.ls_bit_),
 	 size_bits_(orig.size_bits_),
 	 mode_(orig.mode_),
-	 wordSwap_(orig.wordSwap_)
+	 wordSwap_(orig.wordSwap_),
+	 enum_(orig.enum_)
 	{
 	}
 
@@ -91,6 +96,7 @@ public:
 	virtual uint64_t getSizeBits() const { return size_bits_; }
 	virtual unsigned getWordSwap() const { return wordSwap_;  }
 	virtual Mode     getMode()     const { return mode_;      }
+	virtual Enum     getEnum()     const { return enum_;      }
 };
 
 class IIntEntryAdapt : public IEntryAdapt, public virtual IScalVal_Base {
@@ -105,6 +111,8 @@ public:
 	virtual IIntField::Mode     getMode()     const { return asIntEntry()->getMode(); }
 	virtual Path     getPath()     const { return IEntryAdapt::getPath(); }
 	virtual unsigned getNelms();
+
+	virtual Enum     getEnum()     const { return asIntEntry()->getEnum(); }
 
 protected:
 	virtual shared_ptr<const CIntEntryImpl> asIntEntry() const { return static_pointer_cast<const CIntEntryImpl, const CEntryImpl>(ie_); }
@@ -128,6 +136,7 @@ public:
 	virtual unsigned getVal(uint32_t *p, unsigned n, IndexRange *r=0) { return getVal<uint32_t>(p,n,r); }
 	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0) { return getVal<uint16_t>(p,n,r); }
 	virtual unsigned getVal(uint8_t  *p, unsigned n, IndexRange *r=0) { return getVal<uint8_t> (p,n,r); }
+	virtual unsigned getVal(CString  *p, unsigned n, IndexRange *r=0);
 
 	static ScalVal_ROAdapt create(Path);
 };
@@ -142,12 +151,14 @@ public:
 
 	virtual unsigned setVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
 
-	virtual unsigned setVal(uint64_t *p, unsigned n, IndexRange *r=0) { return setVal<uint64_t>(p,n,r); }
-	virtual unsigned setVal(uint32_t *p, unsigned n, IndexRange *r=0) { return setVal<uint32_t>(p,n,r); }
-	virtual unsigned setVal(uint16_t *p, unsigned n, IndexRange *r=0) { return setVal<uint16_t>(p,n,r); }
-	virtual unsigned setVal(uint8_t  *p, unsigned n, IndexRange *r=0) { return setVal<uint8_t> (p,n,r); }
+	virtual unsigned setVal(uint64_t    *p, unsigned n, IndexRange *r=0) { return setVal<uint64_t>(p,n,r); }
+	virtual unsigned setVal(uint32_t    *p, unsigned n, IndexRange *r=0) { return setVal<uint32_t>(p,n,r); }
+	virtual unsigned setVal(uint16_t    *p, unsigned n, IndexRange *r=0) { return setVal<uint16_t>(p,n,r); }
+	virtual unsigned setVal(uint8_t     *p, unsigned n, IndexRange *r=0) { return setVal<uint8_t> (p,n,r); }
+	virtual unsigned setVal(const char* *p, unsigned n, IndexRange *r=0);
 
-	virtual unsigned setVal(uint64_t  v, IndexRange *r=0);
+	virtual unsigned setVal(uint64_t     v, IndexRange *r=0);
+	virtual unsigned setVal(const char*  v, IndexRange *r=0);
 
 	static ScalVal_WOAdapt create(Path);
 };

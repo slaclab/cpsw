@@ -338,6 +338,9 @@ printf("JAM cleared\n");
 	return 0;
 }
 
+/* in bss; should thus be initialized before 
+ * any of the range constructors are executed
+ */
 struct udpsrv_range *udpsrv_ranges = 0;
 
 static void* srpHandler(void *arg)

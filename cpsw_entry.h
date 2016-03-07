@@ -15,9 +15,6 @@ class   Visitor;
 class   CEntryImpl;
 typedef shared_ptr<CEntryImpl> EntryImpl;
 
-// debugging
-extern int cpsw_obj_count;
-
 class CEntryImpl: public virtual IField, public CShObj {
 	private:
 		// WARNING -- when modifying fields you might need to
