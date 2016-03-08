@@ -10,20 +10,24 @@ using boost::make_shared;
 
 #define QUEUE_PUSH_RETRY_INTERVAL 1000 //nano-seconds
 
-CBufQueue::CBufQueue(size_type n)
+CBufQueue::CBufQueue(size_type n, BufSync rd_sync, BufSync wr_sync)
 : CBufQueueBase(n),
-  n_(n)
+  n_(n),
+  rd_sync_(rd_sync),
+  wr_sync_(wr_sync)
 {
-	rd_sync_ = make_shared<CSemBufSync>( 0  );
-	wr_sync_ = make_shared<CSemBufSync>( n_ );
+	if ( ! rd_sync_ )
+		rd_sync_ = make_shared<CSemBufSync>( 0  );
+	if ( ! wr_sync_ )
+		wr_sync_ = make_shared<CSemBufSync>( n_ );
 }
 
 CBufQueue::CBufQueue(const CBufQueue &orig)
 : CBufQueueBase(orig.n_),
   n_(orig.n_)
 {
-	rd_sync_ = make_shared<CSemBufSync>( 0  );
-	wr_sync_ = make_shared<CSemBufSync>( n_ );
+	rd_sync_ = orig.rd_sync_->clone();
+	wr_sync_ = orig.wr_sync_->clone();
 }
 
 CBufQueue::~CBufQueue()
@@ -104,8 +108,17 @@ CTimeout IBufSync::clockRealtimeGetAbsTimeout(const CTimeout *rel_timeout)
 
 
 CSemBufSync::CSemBufSync(int val)
+: ini_(val)
 {
 	if ( sem_init( &sem_, 0, val ) ) {
+		throw InternalError("Unable to create semaphore", errno);
+	}
+}
+
+CSemBufSync::CSemBufSync(const CSemBufSync &orig)
+: ini_( orig.ini_ )
+{
+	if ( sem_init( &sem_, 0, ini_ ) ) {
 		throw InternalError("Unable to create semaphore", errno);
 	}
 }

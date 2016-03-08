@@ -106,23 +106,29 @@ public:
 
 typedef queue< IBufChain *, boost::lockfree::fixed_sized< true > > CBufQueueBase;
 
+class IBufSync;
+typedef shared_ptr<IBufSync> BufSync;
+
 class IBufSync {
 public:
 	virtual bool getEvent( bool wait, const CTimeout *abs_timeout ) = 0;
 	virtual void postEvent()                                        = 0;
+
+	virtual BufSync clone()                                         = 0;
 
 	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)     = 0;
 
 	static CTimeout clockRealtimeGetAbsTimeout(const CTimeout *rel_timeout);
 };
 
-typedef shared_ptr<IBufSync> BufSync;
 
 class CSemBufSync : public IBufSync {
 private:
+	int   ini_;
 	sem_t sem_;
 public:
 	CSemBufSync(int val = 0);
+	CSemBufSync(const CSemBufSync &orig);
 
 	virtual bool getEvent( bool wait, const CTimeout *);
 
@@ -131,6 +137,12 @@ public:
 	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)
 	{
 		return clockRealtimeGetAbsTimeout( rel_timeout );
+	}
+
+	virtual BufSync clone()
+	{
+	CSemBufSync *p = new CSemBufSync( *this );
+		return BufSync( p );
 	}
 
 	virtual ~CSemBufSync();
@@ -148,7 +160,7 @@ protected:
 	bool    push(BufChain *owner, bool wait, const CTimeout *abs_timeout);
 
 public:
-	CBufQueue(size_type n);
+	CBufQueue(size_type n, BufSync rd_sync = BufSync(), BufSync wr_sync = BufSync());
 	CBufQueue(const CBufQueue &);
 
 
