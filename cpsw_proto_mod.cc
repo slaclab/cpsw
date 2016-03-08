@@ -46,7 +46,7 @@ bool CBufQueue::push(BufChain *owner, bool wait, const CTimeout *abs_timeout)
 BufChain ref = *owner;
 
 	// wait for a slot
-	if ( ! wr_sync_->getEvent( wait, abs_timeout ) ) {
+	if ( ! wr_sync_->getSlot( wait, abs_timeout ) ) {
 		return false;
 	}
 
@@ -56,11 +56,11 @@ BufChain ref = *owner;
 	// (*owner) has been reset
 
 	if ( bounded_push( ref.get() ) ) {
-		rd_sync_->postEvent();
+		rd_sync_->putSlot();
 		return true;
 	} else {
 
-		wr_sync_->postEvent();
+		wr_sync_->putSlot();
 
 		// enqueue failed -- re-transfer smart pointer
 		// to owner...
@@ -74,13 +74,13 @@ BufChain ref = *owner;
 BufChain CBufQueue::pop(bool wait, const CTimeout *abs_timeout)
 {
 
-	if ( rd_sync_->getEvent(wait, abs_timeout) ) {
+	if ( rd_sync_->getSlot(wait, abs_timeout) ) {
 		IBufChain *raw_ptr;
 		if ( !CBufQueueBase::pop( raw_ptr ) ) {
 			throw InternalError("FATAL ERROR -- unable to pop even though we decremented the semaphore?");
 		}
 		BufChain rval = raw_ptr->yield_ownership();
-		wr_sync_->postEvent();
+		wr_sync_->putSlot();
 		return rval;
 	}
 
@@ -123,7 +123,7 @@ CSemBufSync::CSemBufSync(const CSemBufSync &orig)
 	}
 }
 
-void CSemBufSync::postEvent()
+void CSemBufSync::putSlot()
 {
 	if ( sem_post( &sem_ ) )
 		throw InternalError("Unable to post semaphore", errno);
@@ -135,7 +135,7 @@ CSemBufSync::~CSemBufSync()
 }
 
 
-bool CSemBufSync::getEvent(bool wait, const CTimeout *abs_timeout)
+bool CSemBufSync::getSlot(bool wait, const CTimeout *abs_timeout)
 {
 int sem_stat;
 

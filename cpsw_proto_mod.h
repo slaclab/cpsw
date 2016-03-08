@@ -111,8 +111,8 @@ typedef shared_ptr<IBufSync> BufSync;
 
 class IBufSync {
 public:
-	virtual bool getEvent( bool wait, const CTimeout *abs_timeout ) = 0;
-	virtual void postEvent()                                        = 0;
+	virtual bool getSlot( bool wait, const CTimeout *abs_timeout )  = 0;
+	virtual void putSlot()                                          = 0;
 
 	virtual BufSync clone()                                         = 0;
 
@@ -130,9 +130,9 @@ public:
 	CSemBufSync(int val = 0);
 	CSemBufSync(const CSemBufSync &orig);
 
-	virtual bool getEvent( bool wait, const CTimeout *);
+	virtual bool getSlot( bool wait, const CTimeout *);
 
-	virtual void postEvent();
+	virtual void putSlot();
 
 	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)
 	{
