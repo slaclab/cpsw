@@ -483,7 +483,7 @@ struct timespec now;
 	if ( clock_gettime( CLOCK_REALTIME, &now ) ) 
 		throw InternalError("clock_gettime failed");
 
-	frame->timeout_ = getAbsTimeout( &timeout_ );
+	frame->timeout_ = upstream_->getAbsTimeoutPop( &timeout_ );
 
 	frame->running_ = true;
 }

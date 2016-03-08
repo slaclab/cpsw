@@ -82,6 +82,9 @@ public:
 	virtual ProtoMod  getProtoMod()                    = 0;
 	virtual ProtoPort getUpstreamPort()                = 0;
 
+	virtual CTimeout  getAbsTimeoutPop (const CTimeout *) = 0;
+	virtual CTimeout  getAbsTimeoutPush(const CTimeout *) = 0;
+
 	virtual int       match(ProtoPortMatchParams*)     = 0;
 };
 
@@ -103,11 +106,41 @@ public:
 
 typedef queue< IBufChain *, boost::lockfree::fixed_sized< true > > CBufQueueBase;
 
+class IBufSync {
+public:
+	virtual bool getEvent( bool wait, const CTimeout *abs_timeout ) = 0;
+	virtual void postEvent()                                        = 0;
+
+	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)     = 0;
+
+	static CTimeout clockRealtimeGetAbsTimeout(const CTimeout *rel_timeout);
+};
+
+typedef shared_ptr<IBufSync> BufSync;
+
+class CSemBufSync : public IBufSync {
+private:
+	sem_t sem_;
+public:
+	CSemBufSync(int val = 0);
+
+	virtual bool getEvent( bool wait, const CTimeout *);
+
+	virtual void postEvent();
+
+	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)
+	{
+		return clockRealtimeGetAbsTimeout( rel_timeout );
+	}
+
+	virtual ~CSemBufSync();
+};
+
 class CBufQueue : protected CBufQueueBase {
 private:
 	unsigned n_;
-	sem_t rd_sem_;
-	sem_t wr_sem_;
+	BufSync  rd_sync_;
+	BufSync  wr_sync_;
 	CBufQueue & operator=(const CBufQueue &orig) { throw InternalError("Must not assign"); }
 
 protected:
@@ -140,7 +173,15 @@ public:
 		return push(owner, false, 0);
 	}
 
-	CTimeout getAbsTimeout(const CTimeout *rel_timeout);
+	CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout)
+	{
+		return rd_sync_->getAbsTimeout( rel_timeout );
+	}
+
+	CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout)
+	{
+		return wr_sync_->getAbsTimeout( rel_timeout );
+	}
 
 	~CBufQueue();
 };
@@ -206,7 +247,7 @@ public:
 
 			if ( ! abs_timeout ) {
 				// arg is rel-timeout
-				CTimeout abst( getAbsTimeout( timeout ) );
+				CTimeout abst( getAbsTimeoutPop( timeout ) );
 				return outputQueue_->pop( &abst );
 			} else {
 				return outputQueue_->pop( timeout );
@@ -220,7 +261,7 @@ public:
 			if ( !rel_timeout ) {
 				return outputQueue_->push( &bc, 0 );
 			} else {
-				CTimeout abst( getAbsTimeout( rel_timeout ) );
+				CTimeout abst( getAbsTimeoutPush( rel_timeout ) );
 				return outputQueue_->push( &bc, &abst );
 			}
 		} else {
@@ -233,12 +274,21 @@ public:
 	// The conversion to abs-time should be a member
 	// of the same class which uses the clock-dependent
 	// resource...
-	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)
+
+	virtual CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout)
 	{
 		if ( ! outputQueue_ )
 			throw ConfigurationError("Cannot compute timeout w/o output queue");
-		return outputQueue_->getAbsTimeout( rel_timeout );
+		return outputQueue_->getAbsTimeoutPop( rel_timeout );
 	}
+
+	virtual CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout)
+	{
+		if ( ! outputQueue_ )
+			throw ConfigurationError("Cannot compute timeout w/o output queue");
+		return outputQueue_->getAbsTimeoutPush( rel_timeout );
+	}
+
 
 	virtual BufChain tryPop()
 	{

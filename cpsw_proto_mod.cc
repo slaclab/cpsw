@@ -4,32 +4,26 @@
 
 #include <errno.h>
 
+#include <boost/make_shared.hpp>
+
+using boost::make_shared;
+
 #define QUEUE_PUSH_RETRY_INTERVAL 1000 //nano-seconds
 
 CBufQueue::CBufQueue(size_type n)
 : CBufQueueBase(n),
   n_(n)
 {
-	if ( sem_init( &rd_sem_, 0, 0 ) ) {
-		throw InternalError("Unable to create semaphore");
-	}
-	if ( sem_init( &wr_sem_, 0, n_ ) ) {
-		sem_destroy( &rd_sem_ );
-		throw InternalError("Unable to create semaphore");
-	}
+	rd_sync_ = make_shared<CSemBufSync>( 0  );
+	wr_sync_ = make_shared<CSemBufSync>( n_ );
 }
 
 CBufQueue::CBufQueue(const CBufQueue &orig)
 : CBufQueueBase(orig.n_),
   n_(orig.n_)
 {
-	if ( sem_init( &rd_sem_, 0, 0 ) ) {
-		throw InternalError("Unable to create semaphore");
-	}
-	if ( sem_init( &wr_sem_, 0, n_ ) ) {
-		sem_destroy( &rd_sem_ );
-		throw InternalError("Unable to create semaphore");
-	}
+	rd_sync_ = make_shared<CSemBufSync>( 0  );
+	wr_sync_ = make_shared<CSemBufSync>( n_ );
 }
 
 CBufQueue::~CBufQueue()
@@ -40,39 +34,7 @@ CBufQueue::~CBufQueue()
 	while ( tryPop() ) {
 		;
 	}
-	sem_destroy( &rd_sem_ );
-	sem_destroy( &wr_sem_ );
 }
-
-static int
-sem_obtain(sem_t *sema_p, bool wait, const CTimeout *abs_timeout)
-{
-int sem_stat;
-
-	if ( ! wait || ( abs_timeout && abs_timeout->isNone() ) ) {
-		sem_stat = sem_trywait( sema_p );
-	} else if ( ! abs_timeout || abs_timeout->isIndefinite() ) {
-		sem_stat = sem_wait( sema_p );
-	} else {
-		sem_stat = sem_timedwait( sema_p, &abs_timeout->tv_ );
-	}
-
-	if ( sem_stat ) {
-		switch ( errno ) {
-			case EAGAIN:
-			case ETIMEDOUT:
-				break;
-			case EINVAL:
-				throw InvalidArgError("invalid timeout arg");
-			case EINTR:
-				throw IntrError("interrupted by signal");
-			default:
-				throw IOError("sem__xxwait failed", errno);
-		}
-	}
-	return sem_stat;
-}
-
 
 bool CBufQueue::push(BufChain *owner, bool wait, const CTimeout *abs_timeout)
 {
@@ -80,7 +42,7 @@ bool CBufQueue::push(BufChain *owner, bool wait, const CTimeout *abs_timeout)
 BufChain ref = *owner;
 
 	// wait for a slot
-	if ( sem_obtain( &wr_sem_, wait, abs_timeout ) ) {
+	if ( ! wr_sync_->getEvent( wait, abs_timeout ) ) {
 		return false;
 	}
 
@@ -90,14 +52,12 @@ BufChain ref = *owner;
 	// (*owner) has been reset
 
 	if ( bounded_push( ref.get() ) ) {
-		if ( sem_post( &rd_sem_ ) ) {
-			throw InternalError("FATAL ERROR -- unable to post reader semaphore");
-			// cannot easily clean up since the item is in the queue already
-		}
+		rd_sync_->postEvent();
 		return true;
 	} else {
 
-		sem_post( &wr_sem_ );
+		wr_sync_->postEvent();
+
 		// enqueue failed -- re-transfer smart pointer
 		// to owner...
 		*owner = ref->yield_ownership();
@@ -109,17 +69,14 @@ BufChain ref = *owner;
 
 BufChain CBufQueue::pop(bool wait, const CTimeout *abs_timeout)
 {
-int sem_stat = sem_obtain( &rd_sem_, wait, abs_timeout );
 
-	if ( 0 == sem_stat ) {
+	if ( rd_sync_->getEvent(wait, abs_timeout) ) {
 		IBufChain *raw_ptr;
 		if ( !CBufQueueBase::pop( raw_ptr ) ) {
 			throw InternalError("FATAL ERROR -- unable to pop even though we decremented the semaphore?");
 		}
 		BufChain rval = raw_ptr->yield_ownership();
-		if ( sem_post( &wr_sem_ ) ) {
-			throw InternalError("FATAL ERROR -- unable to post writer semaphore");
-		}
+		wr_sync_->postEvent();
 		return rval;
 	}
 
@@ -127,7 +84,7 @@ int sem_stat = sem_obtain( &rd_sem_, wait, abs_timeout );
 	return BufChain( reinterpret_cast<BufChain::element_type *>(0) );
 }
 
-CTimeout CBufQueue::getAbsTimeout(const CTimeout *rel_timeout)
+CTimeout IBufSync::clockRealtimeGetAbsTimeout(const CTimeout *rel_timeout)
 {
 	struct timespec ts;
 
@@ -144,3 +101,55 @@ CTimeout CBufQueue::getAbsTimeout(const CTimeout *rel_timeout)
 	}
 	return rval;
 }
+
+
+CSemBufSync::CSemBufSync(int val)
+{
+	if ( sem_init( &sem_, 0, val ) ) {
+		throw InternalError("Unable to create semaphore", errno);
+	}
+}
+
+void CSemBufSync::postEvent()
+{
+	if ( sem_post( &sem_ ) )
+		throw InternalError("Unable to post semaphore", errno);
+}
+
+CSemBufSync::~CSemBufSync()
+{
+	sem_destroy( &sem_ );
+}
+
+
+bool CSemBufSync::getEvent(bool wait, const CTimeout *abs_timeout)
+{
+int sem_stat;
+
+	if ( ! wait || ( abs_timeout && abs_timeout->isNone() ) ) {
+		sem_stat = sem_trywait( &sem_ );
+	} else if ( ! abs_timeout || abs_timeout->isIndefinite() ) {
+		sem_stat = sem_wait( &sem_ );
+	} else {
+		sem_stat = sem_timedwait( &sem_, &abs_timeout->tv_ );
+	}
+
+	if ( sem_stat ) {
+		switch ( errno ) {
+			case EAGAIN:
+			case ETIMEDOUT:
+				break;
+			case EINVAL:
+				throw InvalidArgError("invalid timeout arg");
+			case EINTR:
+				throw IntrError("interrupted by signal");
+			default:
+				throw IOError("sem__xxwait failed", errno);
+		}
+	}
+	return 0 == sem_stat;
+}
+
+
+
+
