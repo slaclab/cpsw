@@ -34,6 +34,10 @@ private:
 	BufImpl            next_; 
 	weak_ptr<CBufImpl> prev_;
 	unsigned beg_,  end_;
+	// no alignment of the data area is guaranteed - but this is not necessary
+	// as we always treat it what it is: a raw array of bytes.
+	// Any conversion to or from more structured types (including cardinals)
+	// should/must be performed explicitly!
 	uint8_t  data_[3*512 - 2*sizeof(prev_) - sizeof(CFreeListNode<CBufImpl>) - 2*sizeof(beg_)];
 protected:
 	virtual void     addToChain(BufImpl p, bool);
@@ -75,7 +79,7 @@ public:
 	// second/following node will return NULL.
 	//virtual ~CBufImpl() { }
 
-	static BufImpl getBuf(size_t capa);
+	static BufImpl getBuf(size_t capa, bool clip = false);
 
 	static CFreeList<CBufImpl> freeList;
 };
@@ -115,8 +119,8 @@ public:
 	virtual void     setSize(size_t s)  { size_  = s; }
 	virtual void     setLen(unsigned l) { len_   = l; }
 
-	virtual Buf      createAtHead();
-	virtual Buf      createAtTail();
+	virtual Buf      createAtHead(size_t capa, bool clip = false);
+	virtual Buf      createAtTail(size_t capa, bool clip = false);
 
 	virtual void     addAtHead(Buf b);
 	virtual void     addAtTail(Buf b);
@@ -327,17 +331,23 @@ void CBufImpl::split()
 	}
 }
 
-BufImpl CBufImpl::getBuf(size_t capa)
+BufImpl CBufImpl::getBuf(size_t capa, bool clip)
 {
+	if ( CAPA_MAX == capa )
+		capa = sizeof(data_);
+
 	if ( capa > sizeof(data_) ) {
-		throw InternalError("ATM all buffers are std. MTU size");
+		if ( clip )
+			capa = sizeof(data_);
+		else
+			throw InternalError("ATM all buffers are std. MTU size");
 	}
 	return freeList.alloc();
 }
 
-Buf IBuf::getBuf(size_t capa)
+Buf IBuf::getBuf(size_t capa, bool clip)
 {
-	return CBufImpl::getBuf( capa );
+	return CBufImpl::getBuf( capa, clip );
 }
 
 unsigned IBuf::numBufsAlloced()
@@ -405,16 +415,16 @@ BufChainImpl me = static_pointer_cast<BufChainImpl::element_type>( *current_owne
 	(*current_owner).reset();
 }
 
-Buf CBufChainImpl::createAtHead()
+Buf CBufChainImpl::createAtHead(size_t size, bool clip)
 {
-	Buf rval = IBuf::getBuf();
+	Buf rval = IBuf::getBuf(size, clip);
 	addAtHead(rval);
 	return rval;
 }
 
-Buf CBufChainImpl::createAtTail()
+Buf CBufChainImpl::createAtTail(size_t size, bool clip)
 {
-	Buf rval = IBuf::getBuf();
+	Buf rval = IBuf::getBuf(size, clip);
 	addAtTail(rval);
 	return rval;
 }
@@ -489,7 +499,7 @@ Buf      b, nxtb;
 	while ( off > 0 ) {
 		// off > 0 implies !b (and !nextb)
 		uint64_t delta;
-		b = createAtTail();
+		b = createAtTail( off, true );
 		delta = b->getCapacity();
 		if ( off < delta )
 			delta = off;
@@ -507,7 +517,7 @@ Buf      b, nxtb;
 	while ( size > 0 ) {
 
 		if ( ! b ) {
-			b = createAtTail();
+			b = createAtTail( size, true );
 		}
 
 		// there might be a on old buffer to overwrite...

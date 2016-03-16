@@ -443,7 +443,7 @@ Buf    b;
 		b->setPayload( b->getPayload() - hdr.getSize() );
 	} catch (InvalidArgError) {
 		// no space - must prepend a new buffer
-		b = bc->createAtHead();
+		b = bc->createAtHead( IBuf::CAPA_ETH_HDR );
 		b->setSize( hdr.getSize() );
 	}
 
@@ -455,14 +455,14 @@ Buf    b;
 	try {
 		b->setSize( b->getSize() + hdr.getTailSize() );
 	} catch (InvalidArgError) {
-		b = bc->createAtTail();
+		b = bc->createAtTail( IBuf::CAPA_ETH_HDR );
 		b->setSize( hdr.getTailSize() );
 	}
 
 	hdr.setTailEOF( b->getPayload() + b->getSize() - hdr.getTailSize(), true );
 
 	// ugly hack - limit to ethernet MTU
-	if ( bc->getSize() > 1500 - 14 - 20 - 8 - SAFETY )
+	if ( bc->getSize() > 1500 - 20 - 8 - SAFETY )
 		throw InvalidArgError("Outgoing data cannot be fragmented (not implemented in firmware)");
 	return bc;
 }

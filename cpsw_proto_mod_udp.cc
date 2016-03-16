@@ -123,7 +123,7 @@ CUdpHandlerThread::~CUdpHandlerThread()
 void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 {
 	ssize_t got;
-	Buf     buf = IBuf::getBuf();
+	Buf     buf = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 
 	while ( 1 ) {
 
@@ -177,7 +177,7 @@ void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 #endif
 
 			// get new buffer
-			buf = IBuf::getBuf();
+			buf = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 		}
 #ifdef UDP_DEBUG
 		else {

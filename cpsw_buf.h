@@ -77,7 +77,14 @@ public:
 
 	virtual         ~IBuf() {}
 
-	static Buf       getBuf(size_t capa = 1500 - 14 - 20 - 8);
+	const static size_t CAPA_ETH_BIG = 1500 - 20 - 8;
+	const static size_t CAPA_ETH_HDR = 128;
+	const static size_t CAPA_MAX     = SIZE_MAX; // only 64k afaik - but this is enough
+
+	// 'clip' == false throws if  request for 'capa' cannot
+	// be satisfied. 'clip' == true clips to max. available
+	// (caller can check via 'getCapacity()').
+	static Buf       getBuf(size_t capa, bool clip = false);
 
 	// if no buffers are available on the free-list then
 	// they are allocated from the heap. After use they go
@@ -110,8 +117,8 @@ public:
 	virtual unsigned getLen()   = 0;  // # of buffers in chain
 	virtual size_t   getSize()  = 0; // in bytes
 
-	virtual Buf createAtHead()  = 0;
-	virtual Buf createAtTail()  = 0;
+	virtual Buf createAtHead(size_t size, bool clip = false)  = 0;
+	virtual Buf createAtTail(size_t size, bool clip = false)  = 0;
 
 	virtual void addAtHead(Buf b) = 0;
 	virtual void addAtTail(Buf b) = 0;
