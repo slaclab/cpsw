@@ -20,6 +20,19 @@ SUBDIRS += mySubdir1 mySubdir2
 # you must add a rule to pre-build them)
 HEADERS += myHeader.h
 
+# Modification of headers listed in DEP_HEADERS triggers
+# re-computation of all dependencies.
+#
+# 'Ordinary' modification of headers (i.e., modifications which
+# do not change the dependencies themselves) are tracked
+# by the automatic dependency analysis.
+# However, if any of the DEP_HEADERS changes then *all* dependencies
+# are recomputed.
+# Normally, only dependencies for individual .c and .cc files are
+# recomputed as those change. 
+DEP_HEADERS += $(HEADERS)
+# DEP_HEADERS += xxx.h
+
 #The following variables are set:
 #TARCH=<current target architecture>
 #TARNM is used in makefile variable names:

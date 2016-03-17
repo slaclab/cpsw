@@ -163,16 +163,18 @@ $(addsuffix _run,$(FILTERED_TBINS)):%_run: %
 	done
 
 
+# We only track changes in .c and .cc files (and the .h files
+# they depend on.
 ifneq ($(SRCS),)
 deps: $(addsuffix .dp, $(basename $(SRCS)))
 	$(RM) $@
 	cat $^ > $@
 endif
 
-%.dp:%.cc
+%.dp:%.cc $(DEP_HEADERS)
 	$(CXX) $(CXXFLAGS) -MM $^ > $@
 
-%.dp:%.c
+%.dp:%.c $(DEP_HEADERS)
 	$(CC) $(CFLAGS) -MM $^ > $@
 
 clean: multi-subdir-clean

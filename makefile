@@ -18,6 +18,30 @@ cpsw_SRCS+= cpsw_proto_mod.cc
 cpsw_SRCS+= cpsw_proto_mod_depack.cc
 cpsw_SRCS+= cpsw_proto_mod_udp.cc
 cpsw_SRCS+= cpsw_proto_mod_srpmux.cc
+cpsw_SRCS+= cpsw_thread.cc
+
+DEP_HEADERS  = $(HEADERS)
+DEP_HEADERS += cpsw_address.h
+DEP_HEADERS += cpsw_buf.h
+DEP_HEADERS += cpsw_entry_adapt.h
+DEP_HEADERS += cpsw_entry.h
+DEP_HEADERS += cpsw_enum.h
+DEP_HEADERS += cpsw_freelist.h
+DEP_HEADERS += cpsw_hub.h
+DEP_HEADERS += cpsw_mem_dev.h
+DEP_HEADERS += cpsw_mmio_dev.h
+DEP_HEADERS += cpsw_nossi_dev.h
+DEP_HEADERS += cpsw_obj_cnt.h
+DEP_HEADERS += cpsw_path.h
+DEP_HEADERS += cpsw_proto_mod_depack.h
+DEP_HEADERS += cpsw_proto_mod.h
+DEP_HEADERS += cpsw_proto_mod_srpmux.h
+DEP_HEADERS += cpsw_proto_mod_udp.h
+DEP_HEADERS += cpsw_shared_obj.h
+DEP_HEADERS += cpsw_sval.h
+DEP_HEADERS += cpsw_thread.h
+DEP_HEADERS += crc32-le-tbl-4.h
+DEP_HEADERS += udpsrv_regdefs.h
 
 STATIC_LIBRARIES+=cpsw
 
