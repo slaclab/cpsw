@@ -3,6 +3,7 @@
 
 #include <cpsw_buf.h>
 #include <cpsw_proto_mod.h>
+#include <cpsw_thread.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -38,18 +39,9 @@ public:
 
 };
 
-class CUdpHandlerThread {
+class CUdpHandlerThread : public CRunnable {
 protected:
 	CSockSd        sd_;
-	pthread_t      tid_;
-	bool           running_;
-
-private:
-	static void * threadBody(void *arg);
-
-
-protected:
-	virtual void threadBody() = 0;
 
 public:
 	virtual void getMyAddr(struct sockaddr_in *addr_p)
@@ -57,13 +49,10 @@ public:
 		sd_.getMyAddr( addr_p );
 	}
 
-	CUdpHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me_p = NULL);
+	CUdpHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me_p = NULL);
 	CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me_p);
 
-	// only start after object is fully constructed
-	virtual void start();
-
-	virtual ~CUdpHandlerThread();
+	virtual ~CUdpHandlerThread() {}
 };
 
 class CUdpPeerPollerThread : public CUdpHandlerThread {
@@ -71,11 +60,14 @@ private:
 	unsigned pollSecs_;
 
 protected:
-	virtual void threadBody();
+
+	virtual void* threadBody();
 
 public:
-	CUdpPeerPollerThread(struct sockaddr_in *dest, struct sockaddr_in *me = NULL, unsigned pollSecs = 60);
+	CUdpPeerPollerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me = NULL, unsigned pollSecs = 60);
 	CUdpPeerPollerThread(CUdpPeerPollerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me);
+
+	virtual ~CUdpPeerPollerThread() { threadStop(); }
 };
 
 class CProtoModUdp : public CProtoMod {
@@ -92,11 +84,13 @@ protected:
 
 		protected:
 
-			virtual void threadBody();
+			virtual void* threadBody();
 
 		public:
-			CUdpRxHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
+			CUdpRxHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
 			CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
+
+			virtual ~CUdpRxHandlerThread() { threadStop(); }
 	};
 
 private:

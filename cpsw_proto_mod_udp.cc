@@ -42,18 +42,6 @@ CSockSd::~CSockSd()
 	close( sd_ );
 }
 
-void * CUdpHandlerThread::threadBody(void *arg)
-{
-	CUdpHandlerThread *obj = static_cast<CUdpHandlerThread *>(arg);
-	try {
-		obj->threadBody();
-	} catch ( CPSWError e ) {
-		fprintf(stderr,"CPSW Error (CUdpHandlerThread): %s\n", e.getInfo().c_str());
-		throw;
-	}
-	return 0;
-}
-
 static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
 {
 	int    optval = 1;
@@ -87,40 +75,19 @@ static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p, 
 		throw IOError("connect failed ", errno);
 }
 
-CUdpHandlerThread::CUdpHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me_p)
-: running_(false)
+CUdpHandlerThread::CUdpHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me_p)
+: CRunnable(name)
 {
 	sockIni( sd_.getSd(), dest, me_p, false );
 }
 
 CUdpHandlerThread::CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me_p)
-: running_(false)
+: CRunnable(orig)
 {
 	sockIni( sd_.getSd(), dest, me_p, false );
 }
 
-// only start after object is fully constructed
-void CUdpHandlerThread::start()
-{
-	if ( pthread_create( &tid_, NULL, threadBody, this ) )
-		throw IOError("unable to create thread ", errno);
-	running_ = true;
-}
-
-CUdpHandlerThread::~CUdpHandlerThread()
-{
-	void *rval;
-	if ( running_ ) {
-		if ( pthread_cancel( tid_ ) ) {
-			throw IOError("pthread_cancel: ", errno);
-		}
-		if ( pthread_join( tid_, &rval  ) ) {
-			throw IOError("pthread_join: ", errno);
-		}
-	}
-}
-
-void CProtoModUdp::CUdpRxHandlerThread::threadBody()
+void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 {
 	ssize_t got;
 	Buf     buf = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
@@ -185,21 +152,22 @@ void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 		}
 #endif
 	}
+	return NULL;
 }
 
-CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
-: CUdpHandlerThread(dest, me),
-  owner_( owner )
+CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
+: CUdpHandlerThread(name, dest, me),
+  owner_(owner)
 {
 }
 
 CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
-: CUdpHandlerThread( orig, dest, me),
-  owner_( owner )
+: CUdpHandlerThread( orig, dest, me ),
+  owner_(owner)
 {
 }
 
-void CUdpPeerPollerThread::threadBody()
+void * CUdpPeerPollerThread::threadBody()
 {
 	uint8_t buf[4];
 	memset( buf, 0, sizeof(buf) );
@@ -211,10 +179,11 @@ void CUdpPeerPollerThread::threadBody()
 		if ( sleep( pollSecs_ ) )
 			continue; // interrupted by signal
 	}
+	return NULL;
 }
 
-CUdpPeerPollerThread::CUdpPeerPollerThread(struct sockaddr_in *dest, struct sockaddr_in *me, unsigned pollSecs)
-: CUdpHandlerThread(dest, me),
+CUdpPeerPollerThread::CUdpPeerPollerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me, unsigned pollSecs)
+: CUdpHandlerThread(name, dest, me),
   pollSecs_(pollSecs)
 {
 }
@@ -234,22 +203,22 @@ void CProtoModUdp::spawnThreads(unsigned nRxThreads, int pollSeconds)
 
 	if ( poller_ ) {
 		// called from copy constructor
-		poller_ = new CUdpPeerPollerThread( *poller_, &dest_, &me);
+		poller_ = new CUdpPeerPollerThread(*poller_, &dest_, &me);
 	} else if ( pollSeconds > 0 ) {
-		poller_ = new CUdpPeerPollerThread( &dest_, &me, pollSeconds );
+		poller_ = new CUdpPeerPollerThread("UDP Poller (UDP protocol module)", &dest_, &me, pollSeconds );
 	}
 
 	// might be called by the copy constructor
 	rxHandlers_.clear();
 
 	for ( i=0; i<nRxThreads; i++ ) {
-		rxHandlers_.push_back( new CUdpRxHandlerThread( &dest_, &me, this ) );
+		rxHandlers_.push_back( new CUdpRxHandlerThread("UDP RX Handler (UDP protocol module)", &dest_, &me, this ) );
 	}
 
 	if ( poller_ )
-		poller_->start();
+		poller_->threadStart();
 	for ( i=0; i<rxHandlers_.size(); i++ ) {
-		rxHandlers_[i]->start();
+		rxHandlers_[i]->threadStart();
 	}
 }
 
