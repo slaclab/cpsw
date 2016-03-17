@@ -7,6 +7,7 @@
 
 #include <cpsw_api_user.h>
 #include <cpsw_proto_mod.h>
+#include <cpsw_thread.h>
 
 #include <pthread.h>
 
@@ -175,7 +176,7 @@ protected:
 	friend class CProtoModDepack;
 };
 
-class CProtoModDepack : public CProtoMod {
+class CProtoModDepack : public CProtoMod, public CRunnable {
 private:
 	unsigned badHeaderDrops_;
 	unsigned oldFrameDrops_;
@@ -198,7 +199,6 @@ private:
 
 	CAxisFrameHeader::CAxisFrameNoAllocator frameIdGen_;
 
-	pthread_t tid_;
 protected:
 	unsigned frameWinSize_;
 	unsigned fragWinSize_;
@@ -210,7 +210,7 @@ protected:
 
 	virtual void frameSync(CAxisFrameHeader *);
 
-	virtual void threadBody();
+	virtual void* threadBody();
 
 	virtual void modStartup();
 
@@ -224,8 +224,6 @@ protected:
 
 	virtual unsigned toFrameIdx(unsigned frameNo) { return frameNo & ( frameWinSize_ - 1 ); }
 	virtual unsigned toFragIdx(unsigned fragNo)   { return fragNo  & ( fragWinSize_  - 1 ); }
-
-	static void *pthreadBody(void *);
 
 	CProtoModDepack( CProtoModDepack &orig, Key &k );
 

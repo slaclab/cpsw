@@ -1,10 +1,10 @@
 #include <cpsw_proto_mod_depack.h>
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
+#include <cpsw_thread.h>
 
 #include <stdio.h>
 #include <errno.h>
-#include <pthread.h>
 
 //#define DEPACK_DEBUG
 
@@ -113,6 +113,7 @@ void CAxisFrameHeader::insert(uint8_t *hdrBase, size_t hdrSize)
 
 CProtoModDepack::CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, uint64_t timeoutUS)
 	: CProtoMod(k, oqueueDepth),
+	  CRunnable("'Depacketizer' protocol module"),
 	  badHeaderDrops_(0),
 	  oldFrameDrops_(0),
 	  newFrameDrops_(0),
@@ -139,13 +140,12 @@ CProtoModDepack::CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, u
 
 void CProtoModDepack::modStartup()
 {
-	if ( pthread_create( &tid_, 0, pthreadBody, this ) ) {
-		throw InternalError("unable to create thread ", errno);
-	}
+	threadStart();
 }
 
 CProtoModDepack::CProtoModDepack(CProtoModDepack &orig, Key &k)
 	: CProtoMod(orig, k),
+	  CRunnable(orig),
 	  badHeaderDrops_(0),
 	  oldFrameDrops_(0),
 	  newFrameDrops_(0),
@@ -173,28 +173,10 @@ CProtoModDepack::CProtoModDepack(CProtoModDepack &orig, Key &k)
 
 CProtoModDepack::~CProtoModDepack()
 {
-void *ign;
-	if ( pthread_cancel( tid_ ) ) {
-		throw InternalError("CProtoModDepack::~CProtoModDepack - pthread_cancel failed", errno);
-	}
-	if ( pthread_join( tid_ , &ign ) ) {
-		throw InternalError("CProtoModDepack::~CProtoModDepack - pthread_join failed", errno);
-	}
+	threadStop();
 }
 
-void * CProtoModDepack::pthreadBody(void *arg)
-{
-CProtoModDepack *obj = static_cast<CProtoModDepack*>( arg );
-	try {
-		obj->threadBody();
-	} catch ( CPSWError e ) {
-		fprintf(stderr,"CPSW Error (CUdpHandlerThread): %s\n", e.getInfo().c_str());
-		throw;
-	}
-	return 0;
-}
-
-void CProtoModDepack::threadBody()
+void * CProtoModDepack::threadBody()
 {
 	try {
 		while ( 1 ) {
@@ -234,6 +216,7 @@ printf("Depack input timeout (late: %ld.%ld)\n", del.tv_.tv_sec, del.tv_.tv_nsec
 	} catch ( IntrError e ) {
 		// signal received; terminate...
 	}
+	return NULL;
 }
 
 void CProtoModDepack::frameSync(CAxisFrameHeader *hdr_p)
