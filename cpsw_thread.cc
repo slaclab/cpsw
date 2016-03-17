@@ -1,14 +1,26 @@
 #include <cpsw_thread.h>
 #include <cpsw_error.h>
 
-void * Runnable::wrapper(void *arg)
-{
-Runnable *me = static_cast<Runnable*>(arg);
+#include <stdio.h>
 
-	return me->body();
+using std::string;
+
+void * CRunnable::wrapper(void *arg)
+{
+CRunnable *me = static_cast<CRunnable*>(arg);
+void     *rval;
+
+	try {
+		rval = me->threadBody();
+	} catch ( CPSWError e ) {
+		fprintf(stderr,"Thread '%s' -- CPSW Error: %s\n", me->getName().c_str(), e.getInfo().c_str());
+		throw;
+	}
+
+	return rval;
 }
 
-void Runnable::start()
+void CRunnable::threadStart()
 {
 int err;
 	if ( (err = pthread_create( &tid_, NULL, wrapper, this )) ) {
@@ -17,7 +29,7 @@ int err;
 	started_ = true;
 }
 
-void * Runnable::join()
+void * CRunnable::threadJoin()
 {
 void *rval;
 int   err;
@@ -28,7 +40,7 @@ int   err;
 	return rval;
 }
 
-void Runnable::cancel()
+void CRunnable::threadCancel()
 {
 int err;
 	if ( started_ && (err = pthread_cancel( tid_ )) ) {
@@ -36,11 +48,11 @@ int err;
 	}
 }
 
-bool Runnable::stop(void **r_p)
+bool CRunnable::threadStop(void **r_p)
 {
 	if ( started_ ) {
-		cancel();
-		void *val = join();
+		threadCancel();
+		void *val = threadJoin();
 		if (r_p)
 			*r_p = val;
 		return true;
@@ -49,7 +61,7 @@ bool Runnable::stop(void **r_p)
 }
 
 //NOTE: the most derived class should call 'stop'
-Runnable::~Runnable()
+CRunnable::~CRunnable()
 {
-	stop();
+	threadStop();
 }
