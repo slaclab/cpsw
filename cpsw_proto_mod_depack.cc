@@ -436,12 +436,11 @@ BufChain CProtoModDepack::processOutput(BufChain bc)
 #define SAFETY 40 // in case there are IP options or other stuff
 CAxisFrameHeader hdr( frameIdGen_.newFrameID(), 0 );
 Buf    b;
+size_t new_sz;
 
 	// Prepend header
-	try {
-		b = bc->getHead();
-		b->setPayload( b->getPayload() - hdr.getSize() );
-	} catch (InvalidArgError) {
+	b = bc->getHead();
+	if ( ! b->adjPayload( - hdr.getSize() ) ) {
 		// no space - must prepend a new buffer
 		b = bc->createAtHead( IBuf::CAPA_ETH_HDR );
 		b->setSize( hdr.getSize() );
@@ -452,9 +451,10 @@ Buf    b;
 	b = bc->getTail();
 
 	// Append tail
-	try {
-		b->setSize( b->getSize() + hdr.getTailSize() );
-	} catch (InvalidArgError) {
+	new_sz = b->getSize() + hdr.getTailSize();
+	if ( b->getAvail() >= new_sz ) {
+		b->setSize( new_sz );
+	} else {
 		b = bc->createAtTail( IBuf::CAPA_ETH_HDR );
 		b->setSize( hdr.getTailSize() );
 	}

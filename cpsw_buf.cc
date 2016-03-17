@@ -31,45 +31,48 @@ using boost::memory_order_acquire;
 class CBufImpl : public IBuf, public CFreeListNode<CBufImpl> {
 private:
 	weak_ptr<CBufChainImpl> chain_;
-	BufImpl            next_; 
-	weak_ptr<CBufImpl> prev_;
-	unsigned beg_,  end_;
+	BufImpl                 next_; 
+	weak_ptr<CBufImpl>      prev_;
+	unsigned short          beg_,  end_, capa_;
 	// no alignment of the data area is guaranteed - but this is not necessary
 	// as we always treat it what it is: a raw array of bytes.
 	// Any conversion to or from more structured types (including cardinals)
 	// should/must be performed explicitly!
-	uint8_t  data_[3*512 - 2*sizeof(prev_) - sizeof(CFreeListNode<CBufImpl>) - 2*sizeof(beg_)];
+	uint8_t  data_[];
 protected:
 	virtual void     addToChain(BufImpl p, bool);
 	virtual void     delFromChain();
 
 public:
-	CBufImpl(CFreeListNodeKey<CBufImpl> k);
+	CBufImpl(CFreeListNodeKey<CBufImpl> k, unsigned short capa);
 
 	virtual void     addToChain(BufChainImpl c);
 
-	size_t   getCapacity() { return sizeof(data_);                    }
-	size_t   getSize()     { return end_ - beg_;                      }
-	size_t   getAvail()    { return sizeof(data_) - end_;             }
-	uint8_t *getPayload()  { return data_ + beg_;                     }
+	virtual size_t   getCapacity() { return capa_; }
 
-	void     setSize(size_t);
-	void     setPayload(uint8_t*);
-	void     reinit();
+	virtual size_t   getSize()     { return end_ - beg_;                      }
+	virtual size_t   getAvail()    { return getCapacity() - end_;             }
+	virtual size_t   getHeadroom() { return beg_;                             }
+	virtual uint8_t *getPayload()  { return data_ + beg_;                     }
 
-	Buf      getNext()      { return next_; }
-	Buf      getPrev()      { return prev_.expired() ? NULLBUF : Buf(prev_);      }
+	virtual void     setSize(size_t);
+	virtual void     setPayload(uint8_t*);
+	virtual void     reinit();
+	virtual bool     adjPayload(ssize_t);
 
-	BufImpl  getNextImpl()  { return next_; }
-	BufImpl  getPrevImpl()  { return prev_.expired() ? NULLBUF : BufImpl(prev_);  }
+	virtual Buf      getNext()      { return next_; }
+	virtual Buf      getPrev()      { return prev_.expired() ? NULLBUF : Buf(prev_);      }
 
-	BufChainImpl getChainImpl() { return chain_.expired() ? NULLCHAIN : BufChainImpl(chain_); }
-	BufChain getChain();
+	virtual BufImpl  getNextImpl()  { return next_; }
+	virtual BufImpl  getPrevImpl()  { return prev_.expired() ? NULLBUF : BufImpl(prev_);  }
 
-	void     after(Buf);
-	void     before(Buf);
-	void     unlink();
-	void     split();
+	virtual BufChainImpl getChainImpl() { return chain_.expired() ? NULLCHAIN : BufChainImpl(chain_); }
+	virtual BufChain getChain();
+
+	virtual void     after(Buf);
+	virtual void     before(Buf);
+	virtual void     unlink();
+	virtual void     split();
 
 	// We don't need to unlink a buffer when it is destroyed:
 	// Only the first one in a chain can ever be destroyed (because
@@ -79,12 +82,17 @@ public:
 	// second/following node will return NULL.
 	//virtual ~CBufImpl() { }
 
-	static BufImpl getBuf(size_t capa, bool clip = false);
+	static const size_t HEADROOM = 32; // enough for rssi + packetizer
 
-	static CFreeList<CBufImpl> freeList;
+	static BufImpl getBuf(size_t capa, bool clip = false);
 };
 
-CFreeList<CBufImpl> CBufImpl::freeList;
+static CFreeList<CBufImpl> freeListBig  (0, 2048 - sizeof(CBufImpl));
+
+// free lists ordered in decreasing order of node size
+static CFreeList<CBufImpl> *freeListPool[] = {
+	&freeListBig
+};
 
 class CBufChainImpl : public IBufChain, public CFreeListNode<CBufChainImpl> {
 private:
@@ -135,10 +143,11 @@ public:
 
 CFreeList<CBufChainImpl> CBufChainImpl::freeList;
 
-CBufImpl::CBufImpl(CFreeListNodeKey<CBufImpl> k)
+CBufImpl::CBufImpl(CFreeListNodeKey<CBufImpl> k, unsigned short capa)
 : CFreeListNode<CBufImpl>( k ),
-  beg_(0),
-  end_(0)
+  beg_(HEADROOM),
+  end_(HEADROOM),
+  capa_(capa)
 {
 }
 
@@ -148,7 +157,7 @@ unsigned     old_size = getSize();
 unsigned     e;
 BufChainImpl c;
 
-	if ( (e = beg_ + s) > sizeof(data_) )
+	if ( (e = beg_ + s) > getCapacity() )
 		throw InvalidArgError("requested size too big");
 	end_ = e;
 
@@ -164,7 +173,7 @@ BufChainImpl c;
 
 	if ( !p ) {
 		beg_ = 0;
-	} else if ( p < data_ || p > data_ + sizeof(data_) ) {
+	} else if ( p < data_ || p > data_ + getCapacity() ) {
 		throw InvalidArgError("requested payload pointer out of range");
 	} else  {
 		beg_ = p - data_;
@@ -176,12 +185,27 @@ BufChainImpl c;
 	}
 }
 
+bool CBufImpl::adjPayload(ssize_t delta)
+{
+unsigned old_size = getSize();
+BufChainImpl c;
+
+	if ( delta > beg_ || delta > old_size )
+		return false;
+
+	beg_ += delta;
+
+	if ( (c=getChainImpl()) ) {
+		c->addSize( getSize() - old_size );
+	}
+	return true;
+}
+
 void CBufImpl::reinit()
 {
 unsigned     old_size = getSize();
 BufChainImpl c;
-	beg_ = 0;
-	end_ = 0;
+	beg_ = end_ = HEADROOM;
 	if ( (c=getChainImpl()) ) {
 		c->addSize( getSize() - old_size );
 	}
@@ -333,16 +357,23 @@ void CBufImpl::split()
 
 BufImpl CBufImpl::getBuf(size_t capa, bool clip)
 {
-	if ( CAPA_MAX == capa )
-		capa = sizeof(data_);
+unsigned maxcap = freeListPool[0]->getExtraSize();
 
-	if ( capa > sizeof(data_) ) {
-		if ( clip )
-			capa = sizeof(data_);
-		else
+CFreeList<CBufImpl> *flp = &freeListBig;
+
+	if ( CAPA_MAX == capa )
+		capa = maxcap;
+
+	if ( capa > maxcap ) {
+		if ( clip ) {
+			capa = maxcap;
+		} else {
+fprintf(stderr,"Requested: %ld, maxcap %d\n", capa, maxcap);
 			throw InternalError("ATM all buffers are std. MTU size");
+		}
 	}
-	return freeList.alloc();
+
+	return flp->alloc( flp->getExtraSize() );
 }
 
 Buf IBuf::getBuf(size_t capa, bool clip)
@@ -352,19 +383,30 @@ Buf IBuf::getBuf(size_t capa, bool clip)
 
 unsigned IBuf::numBufsAlloced()
 {
-	return CBufImpl::freeList.getNumAlloced();
+unsigned rval, i;
+	for ( i=0, rval=0; i<sizeof(freeListPool)/sizeof(freeListPool[0]); i++ ) {
+		rval += freeListPool[i]->getNumAlloced();
+	}
+	return rval;
 }
 
 unsigned IBuf::numBufsFree()
 {
-	return CBufImpl::freeList.getNumFree();
+unsigned rval, i;
+	for ( i=0, rval=0; i<sizeof(freeListPool)/sizeof(freeListPool[0]); i++ ) {
+		rval += freeListPool[i]->getNumFree();
+	}
+	return rval;
 }
 
 unsigned IBuf::numBufsInUse()
 {
-	return CBufImpl::freeList.getNumInUse();
+unsigned rval, i;
+	for ( i=0, rval=0; i<sizeof(freeListPool)/sizeof(freeListPool[0]); i++ ) {
+		rval += freeListPool[i]->getNumInUse();
+	}
+	return rval;
 }
-
 CBufChainImpl::CBufChainImpl( CFreeListNodeKey<CBufChainImpl> k )
 : CFreeListNode<CBufChainImpl>( k ),
   len_(0),

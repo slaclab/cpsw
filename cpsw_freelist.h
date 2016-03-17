@@ -42,8 +42,10 @@ protected:
 	}
 
 	friend shared_ptr<C> CFreeList<C>::alloc();
+	template <typename ARG> friend shared_ptr<C> CFreeList<C>::alloc(ARG);
 
 public:
+
 	CFreeListNode( CFreeListNodeKey<C> k )
 	{
 	}
@@ -57,13 +59,14 @@ public:
 	virtual ~CFreeListNode() {}
 };
 
-template <typename C> class CFreeListNodeAlloc : public std::allocator<C> {
+template <typename C> class CFreeListNodeAlloc {
 private:
 	atomic<unsigned int> *nAlloc_p_;
 	atomic<unsigned int> *nFree_p_;
+	unsigned              extra_;
 public:
-	CFreeListNodeAlloc( atomic<unsigned int> *nAlloc_p, atomic<unsigned int> *nFree_p )
-	:nAlloc_p_(nAlloc_p), nFree_p_(nFree_p)
+	CFreeListNodeAlloc( atomic<unsigned int> *nAlloc_p, atomic<unsigned int> *nFree_p, unsigned extra )
+	:nAlloc_p_(nAlloc_p), nFree_p_(nFree_p), extra_(extra)
 	{
 	}
 
@@ -73,8 +76,19 @@ public:
 #ifndef BOOST_LOCKFREE_FREELIST_INIT_RUNS_DTOR
 		nFree_p_->fetch_add(n, memory_order_release);
 #endif
-		return std::allocator<C>::allocate( n );
+		return (C*)::malloc( sizeof(C)*n + extra_ );
 	}
+
+	class BadDealloc {};
+
+	void deallocate(C *o, size_t n)
+	{
+		if ( n != 1 ) {
+			throw BadDealloc();
+		}
+		::free( o );
+	}
+
 };
 
 // NODE must be derived from CFreeListNode !
@@ -84,6 +98,7 @@ class CFreeList : public freelist_stack< NODE, CFreeListNodeAlloc<NODE> >
 private:
 	atomic<unsigned int> nAlloc_;
 	atomic<unsigned int> nFree_;
+	unsigned             extra_;
 
 protected:
 	class DTOR {
@@ -108,9 +123,10 @@ protected:
 public:
 	typedef CFreeListNodeAlloc<NODE> ALLOC;
 	typedef freelist_stack< NODE, ALLOC > BASE;
-	CFreeList(int n = 0)
-	:BASE( ALLOC( (nAlloc_=0, &nAlloc_ ), (nFree_ = 0, &nFree_) ) , n)
-	{}
+	CFreeList(int n = 0, unsigned extra = 0)
+	:BASE( ALLOC( (nAlloc_=0, &nAlloc_ ), (nFree_ = 0, &nFree_), extra ) , n),
+	 extra_( extra )
+	{ }
 
 	unsigned int getNumAlloced()
 	{
@@ -120,6 +136,11 @@ public:
 	unsigned int getNumFree()
 	{
 		return nFree_.load( memory_order_acquire );
+	}
+
+	unsigned getExtraSize()
+	{
+		return extra_;
 	}
 
 	unsigned int getNumInUse()
@@ -141,6 +162,17 @@ public:
 		return rval;
 	}
 
+	template <typename ARG> NODE *construct(CFreeListNodeKey<NODE> k, ARG arg)
+	{
+		const bool ThreadSafe = true;
+		const bool Bounded    = false;
+		NODE *rval = BASE::template construct<ThreadSafe,Bounded>( k, arg );
+		if ( rval )
+			nFree_.fetch_sub( 1, memory_order_release );
+		return rval;
+	}
+
+
 	void destruct(NODE *o)
 	{
 		const bool ThreadSafe = true;
@@ -151,6 +183,16 @@ public:
 	shared_ptr<NODE> alloc()
 	{
 		NODE *b = construct( CFreeListNodeKey<NODE>() );
+		if ( ! b )
+			throw InternalError("Unable to allocate Buffer");
+		shared_ptr<NODE> rval = shared_ptr<NODE>( b, DTOR(this) );
+		rval->setSelf( rval );
+		return rval;
+	}
+
+	template <typename ARG> shared_ptr<NODE> alloc(ARG a)
+	{
+		NODE *b = construct( CFreeListNodeKey<NODE>(), a );
 		if ( ! b )
 			throw InternalError("Unable to allocate Buffer");
 		shared_ptr<NODE> rval = shared_ptr<NODE>( b, DTOR(this) );

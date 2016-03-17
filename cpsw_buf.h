@@ -48,15 +48,26 @@ public:
 	virtual uint8_t *getPayload()         = 0;
 	// used portion (payload_end - payload_start + 1)
 	virtual size_t   getSize()            = 0;
-	// available portion (capacity - payload_end)
+	// available portion at tail (capacity - payload_end)
 	virtual size_t   getAvail()           = 0;
+	// available portion at head (payload_start - buffer_start)
+	virtual size_t   getHeadroom()        = 0;
+	//***************************************************************
+	// I.e., getHeadroom() + getSize() + getAvail() == getCapacity()
+	//***************************************************************
 
 	virtual void     setSize(size_t)      = 0;
-	// setting payload ptr to 0 resets to start
+	// setting payload ptr to 0 sets to start
 	// of buffer
 	virtual void     setPayload(uint8_t*) = 0;
+	// move payload pointer (adjusting the size)
+	// Returns 'true' on success and 'false' if
+	// there would not be space (payload + size
+	// left unmodified)
+	virtual bool     adjPayload(ssize_t)  = 0;
 	// reset payload ptr to start and size to capacity
 	virtual void     reinit()             = 0;
+
 
 	virtual Buf      getNext()            = 0;
 	virtual Buf      getPrev()            = 0;
