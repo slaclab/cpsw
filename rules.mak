@@ -164,9 +164,16 @@ $(addsuffix _run,$(FILTERED_TBINS)):%_run: %
 
 
 ifneq ($(SRCS),)
-deps: $(SRCS)
-	$(CXX) $(CXXFLAGS) -MM $^ > $@
+deps: $(addsuffix .dp, $(basename $(SRCS)))
+	$(RM) $@
+	cat $^ > $@
 endif
+
+%.dp:%.cc
+	$(CXX) $(CXXFLAGS) -MM $^ > $@
+
+%.dp:%.c
+	$(CC) $(CFLAGS) -MM $^ > $@
 
 clean: multi-subdir-clean
 	$(RM) deps git_version_string.h
