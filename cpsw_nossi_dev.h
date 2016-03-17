@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 
 #include <vector>
+#include <string>
 
 using std::vector;
 
@@ -148,7 +149,7 @@ public:
 class CNoSsiDevImpl : public CDevImpl, public virtual INoSsiDev {
 private:
 	in_addr_t        d_ip_;
-	string           ip_str_;
+	std::string      ip_str_;
 protected:
 	CNoSsiDevImpl(CNoSsiDevImpl &orig, Key &k)
 	: CDevImpl(orig, k)

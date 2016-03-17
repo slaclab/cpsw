@@ -4,6 +4,10 @@
 
 #include <cpsw_buf.h>
 
+#include <string>
+
+using std::string;
+
 #define NBUF 4
 
 class TestFailed {

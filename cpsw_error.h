@@ -2,108 +2,196 @@
 #define CPSW_ERROR_H
 
 #include <string>
-
-using std::string;
+#include <string.h>
+#include <stdint.h>
 
 class CPSWError {
-	private:
-		string name_;
-	public:
-		CPSWError(const string &s):name_(s) {}
-		CPSWError(const char *n):name_(n)  {}
+private:
+	std::string name_;
+public:
+	CPSWError(const std::string &s):name_(s)
+	{
+	}
 
-		virtual string &getInfo() { return name_; }
+	CPSWError(const char *n):name_(n)
+	{
+	}
 
+	virtual std::string &getInfo()
+	{
+		return name_;
+	}
 };
 
-class DuplicateNameError : public CPSWError {
-	public:
-		DuplicateNameError(const char *n) : CPSWError(n) {}
+class DuplicateNameError: public CPSWError {
+public:
+	DuplicateNameError(const char *n)
+	: CPSWError(n)
+	{
+	}
 };
 
-class NotDevError : public CPSWError {
-	public:
-		NotDevError(const char *n) : CPSWError(n) {}
+class NotDevError: public CPSWError {
+public:
+	NotDevError(const char *n)
+	: CPSWError(n)
+	{
+	}
 };
 
-class NotFoundError : public CPSWError {
-	public:
-		NotFoundError(const char *n) : CPSWError(n) {}
+class NotFoundError: public CPSWError {
+public:
+	NotFoundError(const char *n)
+	: CPSWError(n)
+	{
+	}
 };
 
-class InvalidPathError : public CPSWError {
-	public:
-		InvalidPathError(const string &n) : CPSWError(n) {}
+class InvalidPathError: public CPSWError {
+public:
+	InvalidPathError(const std::string &n)
+	: CPSWError(n)
+	{
+	}
 };
 
 class InvalidIdentError: public CPSWError {
-	public:
-		InvalidIdentError(const char   *n) : CPSWError(n) {}
-		InvalidIdentError(const string &n) : CPSWError(n) {}
+public:
+	InvalidIdentError(const char   *n)
+	: CPSWError(n)
+	{
+	}
+
+	InvalidIdentError(const std::string &n)
+	: CPSWError(n)
+	{
+	}
 };
 
 class InvalidArgError: public CPSWError {
-	public:
-		InvalidArgError(const char *n) : CPSWError(n)   {}
+public:
+	InvalidArgError(const char *n)
+	: CPSWError(n)
+	{
+	}
 };
 
 class AddressAlreadyAttachedError: public CPSWError {
-	public:
-		AddressAlreadyAttachedError(const char *n) : CPSWError(n)   {}
+public:
+	AddressAlreadyAttachedError(const char *n)
+	: CPSWError(n)
+	{
+	}
 };
 
 class ConfigurationError: public CPSWError {
-	public:
-		ConfigurationError(const char *s) : CPSWError(s) {}
+public:
+	ConfigurationError(const char *s)
+	: CPSWError(s)
+	{
+	}
+};
+
+class ErrnoError: public CPSWError {
+public:
+	int err_;
+	ErrnoError(const char *s)
+	: CPSWError( s )
+	{
+	}
+
+	ErrnoError(const std::string &s)
+	: CPSWError( s )
+	{
+	}
+
+
+	ErrnoError(const char *s, int err)
+	: CPSWError( std::string(s).append(": ").append(strerror(err)) ),
+	  err_( err )
+	{
+	}
 };
 
 
-class InternalError: public CPSWError {
-	public:
-		InternalError() : CPSWError("Internal Error") {}
-		InternalError(const char*s) : CPSWError(s) {}
-		InternalError(const char*s, int err)
-		: CPSWError( string(s).append(": ").append(strerror(err)) )
-		{
-		}
+class InternalError: public ErrnoError {
+public:
+	InternalError()
+	: ErrnoError("Internal Error")
+	{
+	}
+
+	InternalError(const char*s)
+	: ErrnoError(s)
+	{
+	}
+
+	InternalError(const char*s, int err)
+	: ErrnoError(s, err)
+	{
+	}
 };
 
 class AddrOutOfRangeError: public CPSWError {
-	public:
-		AddrOutOfRangeError(const char *s) : CPSWError(s) {}
+public:
+	AddrOutOfRangeError(const char *s)
+	: CPSWError(s)
+	{
+	}
 };
 
 class ConversionError: public CPSWError {
-	public:
-		ConversionError(const char *s) : CPSWError(s) {}
+public:
+	ConversionError(const char *s)
+	: CPSWError(s)
+	{
+	}
 };
 
 
 class InterfaceNotImplementedError: public CPSWError {
-	public:
-		InterfaceNotImplementedError( const string &s ) : CPSWError( s ) {}
+public:
+	InterfaceNotImplementedError( const std::string &s )
+	: CPSWError( s )
+	{
+	}
 };
 
-class IOError: public CPSWError {
-	public:
-		IOError( const char *s ) : CPSWError( s ) {}
-		IOError( string &s )     : CPSWError( s ) {}
-		IOError( const char *s, int err)
-		: CPSWError( string(s).append(": ").append(strerror(err)) )
-		{
-		}
+class IOError: public ErrnoError {
+public:
+	IOError( const char *s )
+	: ErrnoError( s )
+	{
+	}
+
+	IOError( std::string &s )
+	: ErrnoError( s )
+	{
+	}
+
+	IOError( const char *s, int err)
+	: ErrnoError( s, err )
+	{
+	}
 };
 
 class BadStatusError: public CPSWError {
-	protected:
-		int64_t status_;
-	public:
-		BadStatusError( const char *s, int64_t status) :CPSWError(s), status_(status) {}
+protected:
+	int64_t status_;
+public:
+	BadStatusError( const char *s, int64_t status)
+	:CPSWError( s ),
+	 status_(status)
+	{
+	}
 };
 
-class IntrError : public CPSWError {
-	public:
-		IntrError(const char *s) : CPSWError(s) {}
+class IntrError: public CPSWError {
+public:
+	IntrError(const char *s)
+	: CPSWError(s)
+	{
+	}
 };
 
 #endif

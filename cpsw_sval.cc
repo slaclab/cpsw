@@ -7,6 +7,10 @@
 #include <cpsw_sval.h>
 #include <cpsw_address.h>
 
+#include <string>
+
+using std::string;
+
 class CStreamAdapt;
 typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
