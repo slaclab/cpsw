@@ -70,7 +70,7 @@ ScalVal_RO IScalVal_RO::create(Path p)
 ScalVal_ROAdapt rval = IEntryAdapt::check_interface<ScalVal_ROAdapt, IntEntryImpl>( p );
 	if ( rval ) {
 		if ( ! (rval->getMode() & IIntField::RO) ) 
-			throw InterfaceNotImplementedError( p );
+			throw InterfaceNotImplementedError( p->toString() );
 	}
 	return rval;
 }
@@ -128,7 +128,7 @@ ScalVal_WO IScalVal_WO::create(Path p)
 ScalVal_WOAdapt rval = IEntryAdapt::check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
 	if ( rval ) {
 		if ( ! (rval->getMode() & IIntField::WO) ) 
-			throw InterfaceNotImplementedError( p );
+			throw InterfaceNotImplementedError( p->toString() );
 	}
 	return rval;
 }
@@ -139,7 +139,7 @@ ScalVal IScalVal::create(Path p)
 ScalVal_Adapt rval = IEntryAdapt::check_interface<ScalVal_Adapt, IntEntryImpl>( p );
 	if ( rval ) {
 		if ( rval->getMode() != IIntField::RW )
-			throw InterfaceNotImplementedError( p );
+			throw InterfaceNotImplementedError( p->toString() );
 	}
 	return rval;
 }

@@ -37,7 +37,7 @@ public:
 			ADAPT rval = CShObj::template create<ADAPT>(p, e);
 			return rval;
 		}
-		throw InterfaceNotImplementedError( p );
+		throw InterfaceNotImplementedError( p->toString() );
 	}
 };
 

@@ -11,7 +11,6 @@ class CPSWError {
 	public:
 		CPSWError(const string &s):name_(s) {}
 		CPSWError(const char *n):name_(n)  {}
-		CPSWError(const Path p):name_("FIXME") {}
 
 		virtual string &getInfo() { return name_; }
 
@@ -25,7 +24,6 @@ class DuplicateNameError : public CPSWError {
 class NotDevError : public CPSWError {
 	public:
 		NotDevError(const char *n) : CPSWError(n) {}
-		NotDevError(const Path  p) : CPSWError(p) {}
 };
 
 class NotFoundError : public CPSWError {
@@ -35,8 +33,7 @@ class NotFoundError : public CPSWError {
 
 class InvalidPathError : public CPSWError {
 	public:
-		InvalidPathError(const char *n) : CPSWError(n) {}
-		InvalidPathError(const Path  p) : CPSWError(p) {}
+		InvalidPathError(const string &n) : CPSWError(n) {}
 };
 
 class InvalidIdentError: public CPSWError {
@@ -84,7 +81,7 @@ class ConversionError: public CPSWError {
 
 class InterfaceNotImplementedError: public CPSWError {
 	public:
-		InterfaceNotImplementedError( Path p ) : CPSWError( p ) {}
+		InterfaceNotImplementedError( const string &s ) : CPSWError( s ) {}
 };
 
 class IOError: public CPSWError {

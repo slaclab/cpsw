@@ -444,7 +444,7 @@ bool PathImpl::verifyAtTail(ConstDevImpl h)
 static void append2(PathImpl *h, PathImpl *t)
 {
 	if ( ! h->verifyAtTail( t->originAsDevImpl() ) )
-		throw InvalidPathError(Path(t));
+		throw InvalidPathError( Path(t)->toString() );
 
 	PathImpl::iterator it = t->begin();
 
@@ -484,7 +484,7 @@ void PathImpl::append(Path p)
 void PathImpl::append(Address a, int f, int t)
 {
 	if ( ! verifyAtTail( a->getOwnerAsDevImpl() ) ) {
-		throw InvalidPathError( Path( this ) );
+		throw InvalidPathError( Path( this )->toString() );
 	}
 	push_back( PathEntry(a, f, t, getNelms()) );
 }
@@ -516,7 +516,7 @@ void CompositePathIterator::append(Path p)
 	if ( p->empty() )
 		return;
 	if ( ! validConcatenation( p ) ) {
-		throw InvalidPathError(p);
+		throw InvalidPathError( p->toString() );
 	}
 	if ( ! atEnd() ) {
 		l_.push_back( *this );
