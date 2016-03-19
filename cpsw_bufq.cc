@@ -13,8 +13,6 @@ using boost::make_shared;
 using boost::lockfree::queue;
 using boost::atomic;
 
-#undef SEMSYNC
-
 typedef queue< IBufChain *, boost::lockfree::fixed_sized< true > > CBufQueueBase;
 
 class IBufSync;
@@ -135,33 +133,6 @@ void CEventBufSync::putSlot()
 }
 
 
-#ifdef SEMSYNC
-class CSemBufSync : public IBufSync {
-private:
-	int   ini_;
-	sem_t sem_;
-public:
-	CSemBufSync(int val = 0);
-	CSemBufSync(const CSemBufSync &orig);
-
-	virtual bool getSlot( bool wait, const CTimeout *);
-
-	virtual void putSlot();
-
-	virtual void getAbsTimeout(CTimeout *abs_timeout, const CTimeout *rel_timeout)
-	{
-		clockRealtimeGetAbsTimeout(abs_timeout, rel_timeout );
-	}
-
-	virtual IEventSource *getEventSource()
-	{
-		return NULL;
-	}
-
-	virtual ~CSemBufSync();
-};
-#endif
-
 class CBufQueue : public IBufQueue, protected CBufQueueBase {
 private:
 	unsigned n_;
@@ -233,13 +204,8 @@ CBufQueue::CBufQueue(size_type n)
 : CBufQueueBase(n),
   n_(n)
 {
-#ifdef SEMSYNC
-	rd_sync_ = make_shared<CEventBufSync>( 0  );
-	wr_sync_ = make_shared<CSemBufSync>( n_ );
-#else
 	rd_sync_ = make_shared<CEventBufSync>( 0  );
 	wr_sync_ = make_shared<CEventBufSync>( n_ );
-#endif
 }
 
 BufQueue IBufQueue::create(unsigned n)
@@ -320,64 +286,3 @@ void IBufSync::clockRealtimeGetAbsTimeout(CTimeout *abs_timeout, const CTimeout 
 		*abs_timeout += *rel_timeout;
 	}
 }
-
-#ifdef SEMSYNC
-CSemBufSync::CSemBufSync(int val)
-: ini_(val)
-{
-	if ( sem_init( &sem_, 0, val ) ) {
-		throw InternalError("Unable to create semaphore", errno);
-	}
-}
-
-CSemBufSync::CSemBufSync(const CSemBufSync &orig)
-: ini_( orig.ini_ )
-{
-	if ( sem_init( &sem_, 0, ini_ ) ) {
-		throw InternalError("Unable to create semaphore", errno);
-	}
-}
-
-void CSemBufSync::putSlot()
-{
-	if ( sem_post( &sem_ ) )
-		throw InternalError("Unable to post semaphore", errno);
-}
-
-CSemBufSync::~CSemBufSync()
-{
-	sem_destroy( &sem_ );
-}
-
-
-bool CSemBufSync::getSlot(bool wait, const CTimeout *abs_timeout)
-{
-int sem_stat;
-
-	if ( ! wait || ( abs_timeout && abs_timeout->isNone() ) ) {
-		sem_stat = sem_trywait( &sem_ );
-	} else if ( ! abs_timeout || abs_timeout->isIndefinite() ) {
-		sem_stat = sem_wait( &sem_ );
-	} else {
-		sem_stat = sem_timedwait( &sem_, &abs_timeout->tv_ );
-	}
-
-	if ( sem_stat ) {
-		switch ( errno ) {
-			case EAGAIN:
-			case ETIMEDOUT:
-				break;
-			case EINVAL:
-				throw InvalidArgError("invalid timeout arg");
-			case EINTR:
-				throw IntrError("interrupted by signal");
-			default:
-				throw IOError("sem__xxwait failed", errno);
-		}
-	}
-	return 0 == sem_stat;
-}
-
-
-
-#endif
