@@ -136,11 +136,14 @@ void CEventBufSync::putSlot()
 class CBufQueue : public IBufQueue, protected CBufQueueBase {
 private:
 	unsigned n_;
-	BufSync  rd_sync_;
-	BufSync  wr_sync_;
-	CBufQueue & operator=(const CBufQueue &orig) { throw InternalError("Must not assign"); }
+	CEventBufSync rd_sync_impl_;
+	CEventBufSync wr_sync_impl_;
 
-	CBufQueue(const CBufQueue &orig); // must not copy
+	IBufSync     *rd_sync_;
+	IBufSync     *wr_sync_;
+
+	CBufQueue & operator=(const CBufQueue &orig); // must not assign
+	CBufQueue(const CBufQueue &orig);             // must not copy
 
 protected:
 	BufChain pop(bool wait, const CTimeout * abs_timeout);
@@ -202,10 +205,12 @@ public:
 
 CBufQueue::CBufQueue(size_type n)
 : CBufQueueBase(n),
-  n_(n)
+  n_(n),
+  rd_sync_impl_(0),
+  wr_sync_impl_(n),
+  rd_sync_( &rd_sync_impl_ ),
+  wr_sync_( &wr_sync_impl_ )
 {
-	rd_sync_ = make_shared<CEventBufSync>( 0  );
-	wr_sync_ = make_shared<CEventBufSync>( n_ );
 }
 
 BufQueue IBufQueue::create(unsigned n)
