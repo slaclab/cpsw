@@ -222,7 +222,7 @@ void CProtoModUdp::spawnThreads(unsigned nRxThreads, int pollSeconds)
 	}
 }
 
-CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nRxThreads, int pollSecs)
+CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, unsigned nRxThreads, int pollSecs)
 :CProtoMod(k, depth),
  dest_(*dest),
  poller_( NULL )

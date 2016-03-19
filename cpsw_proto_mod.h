@@ -3,16 +3,12 @@
 
 #include <cpsw_api_user.h>
 
-#include <boost/lockfree/queue.hpp>
 #include <boost/weak_ptr.hpp>
-#include <semaphore.h>
-#include <time.h>
 #include <stdio.h>
 
 #include <cpsw_buf.h>
 #include <cpsw_shared_obj.h>
 
-using boost::lockfree::queue;
 using boost::weak_ptr;
 
 class IProtoPort;
@@ -104,112 +100,18 @@ public:
 	virtual ~IProtoMod() {}
 };
 
-typedef queue< IBufChain *, boost::lockfree::fixed_sized< true > > CBufQueueBase;
-
-class IBufSync;
-typedef shared_ptr<IBufSync> BufSync;
-
-class IBufSync {
-public:
-	virtual bool getSlot( bool wait, const CTimeout *abs_timeout )  = 0;
-	virtual void putSlot()                                          = 0;
-
-	virtual BufSync clone()                                         = 0;
-
-	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)     = 0;
-
-	static CTimeout clockRealtimeGetAbsTimeout(const CTimeout *rel_timeout);
-};
-
-
-class CSemBufSync : public IBufSync {
-private:
-	int   ini_;
-	sem_t sem_;
-public:
-	CSemBufSync(int val = 0);
-	CSemBufSync(const CSemBufSync &orig);
-
-	virtual bool getSlot( bool wait, const CTimeout *);
-
-	virtual void putSlot();
-
-	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)
-	{
-		return clockRealtimeGetAbsTimeout( rel_timeout );
-	}
-
-	virtual BufSync clone()
-	{
-	CSemBufSync *p = new CSemBufSync( *this );
-		return BufSync( p );
-	}
-
-	virtual ~CSemBufSync();
-};
-
-class CBufQueue : protected CBufQueueBase {
-private:
-	unsigned n_;
-	BufSync  rd_sync_;
-	BufSync  wr_sync_;
-	CBufQueue & operator=(const CBufQueue &orig) { throw InternalError("Must not assign"); }
-
-protected:
-	BufChain pop(bool wait, const CTimeout * abs_timeout);
-	bool    push(BufChain *owner, bool wait, const CTimeout *abs_timeout);
-
-public:
-	CBufQueue(size_type n, BufSync rd_sync = BufSync(), BufSync wr_sync = BufSync());
-	CBufQueue(const CBufQueue &);
-
-
-	BufChain pop(const CTimeout *abs_timeout)
-	{
-		return pop(true, abs_timeout);
-	}
-
-	BufChain tryPop()
-	{
-		return pop(false, 0);
-	}
-
-
-	bool     push(BufChain *owner, const CTimeout *abs_timeout)
-	{
-		return push(owner, true, abs_timeout);
-	}
-
-	bool     tryPush(BufChain *owner)
-	{
-		return push(owner, false, 0);
-	}
-
-	CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout)
-	{
-		return rd_sync_->getAbsTimeout( rel_timeout );
-	}
-
-	CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout)
-	{
-		return wr_sync_->getAbsTimeout( rel_timeout );
-	}
-
-	~CBufQueue();
-};
-
 class CPortImpl : public IProtoPort {
 private:
 	weak_ptr< ProtoMod::element_type > downstream_;
-	CBufQueue *outputQueue_;
+	BufQueue                           outputQueue_;
 
 protected:
 
 	CPortImpl(const CPortImpl &orig)
-	: outputQueue_(orig.outputQueue_ ? new CBufQueue( *orig.outputQueue_ ) : NULL)
 	{
 		// would have to set downstream_ to
-		// the respective clone...
+		// the respective clone and clone
+		// the output queue...
 		throw InternalError("clone not implemented");
 	}
 
@@ -226,8 +128,8 @@ protected:
 	virtual ProtoPort getSelfAsProtoPort() = 0;
 
 public:
-	CPortImpl(CBufQueueBase::size_type n)
-	: outputQueue_( n > 0 ? new CBufQueue( n ) : NULL )
+	CPortImpl(unsigned n)
+	: outputQueue_( n > 0 ? IBufQueue::create( n ) : BufQueue() )
 	{
 	}
 
@@ -328,8 +230,6 @@ public:
 
 	virtual ~CPortImpl()
 	{
-		if ( outputQueue_ )
-			delete outputQueue_;
 	}
 
 	// return number of parameters matched by this port
@@ -370,6 +270,10 @@ public:
 	{
 	}
 
+	virtual void modShutdown()
+	{
+	}
+
 	virtual void attach(ProtoPort upstream)
 	{
 		if ( upstream_ )
@@ -392,7 +296,9 @@ public:
 		return rval;
 	}
 
-	virtual void dumpInfo(FILE *f) {}
+	virtual void dumpInfo(FILE *f)
+	{
+	}
 };
 
 // protocol module with single downstream port
@@ -412,7 +318,7 @@ protected:
 	}
 
 public:
-	CProtoMod(Key &k, CBufQueueBase::size_type n)
+	CProtoMod(Key &k, unsigned n)
 	: CShObj(k),
 	  CPortImpl(n)
 	{

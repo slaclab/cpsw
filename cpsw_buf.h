@@ -5,13 +5,17 @@
 #include <stdint.h>
 #include <time.h>
 
+#include <cpsw_event.h>
+
 using boost::shared_ptr;
 
 class IBuf;
 class IBufChain;
+class IBufQueue;
 
 typedef shared_ptr<IBuf> Buf;
 typedef shared_ptr<IBufChain> BufChain;
+typedef shared_ptr<IBufQueue> BufQueue;
 
 // NOTE: Buffer chains are NOT THREAD SAFE. It is the user's responsibility
 //       to properly synchronize.
@@ -107,7 +111,7 @@ public:
 
 
 class IBufChain {
-protected:
+public:
 	// The 'ownership' members are needed because lockfree::queue
 	// cannot hold smart pointers. Therefore, before pushing a
 	// smart pointer onto a lockfree queue we 'transfer' the
@@ -117,10 +121,6 @@ protected:
 	// is transferred back out of this object.
 	static  void     take_ownership( BufChain *p_owner );
 	virtual BufChain yield_ownership() = 0;
-
-	friend class CBufQueue;
-
-public:
 
 	virtual Buf getHead()       = 0;
 	virtual Buf getTail()       = 0;
@@ -146,6 +146,25 @@ public:
 	virtual ~IBufChain(){}
 
 	static BufChain create();
+};
+
+class IBufQueue {
+public:
+	virtual BufChain pop(const CTimeout *abs_timeout)                   = 0;
+	virtual BufChain tryPop()                                           = 0;
+
+	virtual bool     push(BufChain *owner, const CTimeout *abs_timeout) = 0;
+	virtual bool     tryPush(BufChain *owner)                           = 0;
+
+	virtual CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout)      = 0;
+	virtual CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout)     = 0;
+
+	virtual IEventSource *getReadEventSource()                          = 0;
+	virtual IEventSource *getWriteEventSource()                         = 0;
+
+	virtual ~IBufQueue() {}
+
+	static BufQueue create(unsigned size);
 };
 
 #endif

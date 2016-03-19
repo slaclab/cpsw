@@ -1,4 +1,5 @@
 #include <cpsw_proto_mod_srpmux.h>
+#include <cpsw_error.h>
 
 #define VC_OFF_V2 3 // v2 is little endian
 #define VC_OFF_V1 4 // v1 is big endian

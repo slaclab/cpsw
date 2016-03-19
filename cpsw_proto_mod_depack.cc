@@ -111,7 +111,7 @@ void CAxisFrameHeader::insert(uint8_t *hdrBase, size_t hdrSize)
 }
 
 
-CProtoModDepack::CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, uint64_t timeoutUS)
+CProtoModDepack::CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, uint64_t timeoutUS)
 	: CProtoMod(k, oqueueDepth),
 	  CRunnable("'Depacketizer' protocol module"),
 	  badHeaderDrops_(0),

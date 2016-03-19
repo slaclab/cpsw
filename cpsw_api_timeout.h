@@ -1,4 +1,7 @@
 #ifndef CPSW_API_TIMEOUT_H
+#define CPSW_API_TIMEOUT_H
+
+#include <cpsw_error.h>
 
 class CTimeout {
 protected:
@@ -109,6 +112,9 @@ public:
 		     || (lhs.tv_.tv_sec == rhs.tv_.tv_sec && lhs.tv_.tv_nsec < rhs.tv_.tv_nsec);
 	}
 };
+
+static const CTimeout TIMEOUT_NONE( 0, 0 );
+static const CTimeout TIMEOUT_INDEFINITE;
 
 #endif
 

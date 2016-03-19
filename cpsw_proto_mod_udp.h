@@ -117,7 +117,7 @@ protected:
 
 public:
 	// negative or zero 'pollSecs' avoids creating a poller thread
-	CProtoModUdp(Key &k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nRxThreads = 1, int pollSecs = 4);
+	CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, unsigned nRxThreads = 1, int pollSecs = 4);
 
 	CProtoModUdp(CProtoModUdp &orig, Key &k);
 

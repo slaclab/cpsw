@@ -10,6 +10,7 @@ void * CRunnable::wrapper(void *arg)
 CRunnable *me = static_cast<CRunnable*>(arg);
 void     *rval;
 
+fprintf(stderr,"Starting up '%s'\n", me->getName().c_str());
 	try {
 		rval = me->threadBody();
 	} catch ( CPSWError e ) {

@@ -228,7 +228,7 @@ protected:
 	CProtoModDepack( CProtoModDepack &orig, Key &k );
 
 public:
-	CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, uint64_t timeoutUS);
+	CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, uint64_t timeoutUS);
 
 	virtual ~CProtoModDepack();
 

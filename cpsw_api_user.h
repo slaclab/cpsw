@@ -292,9 +292,6 @@ public:
 //
 #include <cpsw_api_timeout.h>
 
-static const CTimeout TIMEOUT_NONE( 0, 0 );
-static const CTimeout TIMEOUT_INDEFINITE;
-
 
 class IStream {
 public:

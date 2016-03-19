@@ -108,9 +108,10 @@ private:
 	BufChain     yield_ownership();
 
 	friend class CBufImpl;
-	friend void IBufChain::take_ownership(BufChain*);
+	friend void  IBufChain::take_ownership(BufChain*);
 
 public:
+
 	CBufChainImpl( CFreeListNodeKey<CBufChainImpl> k );
 
 	virtual Buf      getHead()          { return head_; }
