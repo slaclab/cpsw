@@ -194,7 +194,7 @@ CUdpPeerPollerThread::CUdpPeerPollerThread(CUdpPeerPollerThread &orig, struct so
 {
 }
 
-void CProtoModUdp::spawnThreads(unsigned nRxThreads, int pollSeconds)
+void CProtoModUdp::createThreads(unsigned nRxThreads, int pollSeconds)
 {
 	unsigned i;
 	struct sockaddr_in me;
@@ -214,11 +214,26 @@ void CProtoModUdp::spawnThreads(unsigned nRxThreads, int pollSeconds)
 	for ( i=0; i<nRxThreads; i++ ) {
 		rxHandlers_.push_back( new CUdpRxHandlerThread("UDP RX Handler (UDP protocol module)", &dest_, &me, this ) );
 	}
+}
 
+void CProtoModUdp::modStartup()
+{
+unsigned i;
 	if ( poller_ )
 		poller_->threadStart();
 	for ( i=0; i<rxHandlers_.size(); i++ ) {
 		rxHandlers_[i]->threadStart();
+	}
+}
+
+void CProtoModUdp::modShutdown()
+{
+unsigned i;
+	if ( poller_ )
+		poller_->threadStop();
+
+	for ( i=0; i<rxHandlers_.size(); i++ ) {
+		rxHandlers_[i]->threadStop();
 	}
 }
 
@@ -228,7 +243,7 @@ CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, uns
  poller_( NULL )
 {
 	sockIni( tx_.getSd(), dest, 0, true );
-	spawnThreads( nRxThreads, pollSecs );
+	createThreads( nRxThreads, pollSecs );
 }
 
 CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)
@@ -237,7 +252,7 @@ CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)
  poller_(orig.poller_)
 {
 	sockIni( tx_.getSd(), &dest_, 0, true );
-	spawnThreads( orig.rxHandlers_.size(), -1 );
+	createThreads( orig.rxHandlers_.size(), -1 );
 }
 
 CProtoModUdp::~CProtoModUdp()

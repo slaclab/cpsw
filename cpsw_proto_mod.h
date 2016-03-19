@@ -97,6 +97,9 @@ public:
 
 	virtual void dumpInfo(FILE *)                      = 0;
 
+	virtual void modStartup()                          = 0;
+	virtual void modShutdown()                         = 0;
+
 	virtual ~IProtoMod() {}
 };
 
@@ -279,7 +282,6 @@ public:
 		if ( upstream_ )
 			throw ConfigurationError("Already have an upstream module");
 		upstream_ = upstream;
-		modStartup();
 	}
 
 	virtual ProtoPort getUpstreamPort()

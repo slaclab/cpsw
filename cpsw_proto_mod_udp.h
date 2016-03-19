@@ -100,7 +100,7 @@ protected:
 	std::vector< CUdpRxHandlerThread * > rxHandlers_;
 	CUdpPeerPollerThread                 *poller_;
 
-	void spawnThreads(unsigned nRxThreads, int pollSecons);
+	void createThreads(unsigned nRxThreads, int pollSecons);
 
 	virtual void doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout);
 
@@ -128,6 +128,9 @@ public:
 	virtual void dumpInfo(FILE *f);
 
 	virtual CProtoModUdp *clone(Key &k) { return new CProtoModUdp( *this, k ); }
+
+	virtual void modStartup();
+	virtual void modShutdown();
 
 	virtual ~CProtoModUdp();
 

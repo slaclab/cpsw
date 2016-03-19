@@ -51,10 +51,12 @@ public:
 class CCommAddressImpl : public CAddressImpl {
 protected:
 	ProtoPortImpl  protoStack_;
+	bool           running_;
 
 public:
 	CCommAddressImpl(AKey k)
-	: CAddressImpl(k)
+	: CAddressImpl(k),
+      running_(false)
 	{
 	}
 
@@ -73,6 +75,9 @@ public:
 	virtual ~CCommAddressImpl()
 	{
 	}
+
+	virtual void startProtoStack();
+	virtual void shutdownProtoStack();
 };
 
 class CUdpSRPAddressImpl : public CCommAddressImpl {

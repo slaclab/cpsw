@@ -143,6 +143,12 @@ void CProtoModDepack::modStartup()
 	threadStart();
 }
 
+void CProtoModDepack::modShutdown()
+{
+	threadStop();
+}
+
+
 CProtoModDepack::CProtoModDepack(CProtoModDepack &orig, Key &k)
 	: CProtoMod(orig, k),
 	  CRunnable(orig),

@@ -76,10 +76,12 @@ int                  nbits;
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
 
 	mutex_ = new Mutex();
+
 }
 
 CUdpSRPAddressImpl::~CUdpSRPAddressImpl()
 {
+	shutdownProtoStack();
 	if ( mutex_ )
 		delete mutex_;
 }
@@ -717,7 +719,9 @@ ProtoPortMatchParams cmp;
 void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
 {
 	IAddress::AKey k = getAKey();
-	add( make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc), child );
+	shared_ptr<CUdpSRPAddressImpl> addr = make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc);
+	add(addr , child );
+	addr->startProtoStack();
 }
 
 void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads)
@@ -726,7 +730,9 @@ void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs,
 		throw InvalidArgError("Cannot address same destination port from multiple instances");
 	}
 	IAddress::AKey k = getAKey();
-	add( make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads), child );
+	shared_ptr<CUdpStreamAddressImpl> addr = make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads);
+	add( addr, child );
+	addr->startProtoStack();
 }
 
 
@@ -827,6 +833,29 @@ static const unsigned HEADROOM=32;
 
 	return rval;
 }
+
+void CCommAddressImpl::startProtoStack()
+{
+	if ( protoStack_  && ! running_) {
+		ProtoMod m;
+		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
+			m->modStartup();
+		}
+		running_ = true;
+	}
+}
+
+void CCommAddressImpl::shutdownProtoStack()
+{
+	if ( protoStack_ && running_ ) {
+		ProtoMod m;
+		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
+			m->modShutdown();
+		}
+		running_ = false;
+	}
+}
+
 
 DynTimeout::DynTimeout(const CTimeout &iniv)
 {

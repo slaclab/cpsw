@@ -213,6 +213,7 @@ protected:
 	virtual void* threadBody();
 
 	virtual void modStartup();
+	virtual void modShutdown();
 
 	virtual void releaseFrames(bool onlyComplete);
 
