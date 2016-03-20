@@ -272,7 +272,7 @@ void CProtoModUdp::dumpInfo(FILE *f)
 	fprintf(f,"CProtoModUdp:\n");
 }
 
-void CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)
+bool CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)
 {
 fd_set         fds;
 int            selres, sndres;
@@ -301,14 +301,14 @@ unsigned       nios;
 		selres = ::pselect( tx_.getSd() + 1, NULL, &fds, NULL, !timeout || timeout->isIndefinite() ? NULL : &timeout->tv_, NULL );
 		if ( selres < 0  ) {
 			perror("::pselect() - dropping message due to error");
-			return;
+			return false;
 		}
 		if ( selres == 0 ) {
 #ifdef UDP_DEBUG
 			printf("UDP doPush -- pselect timeout\n");
 #endif
 			// TIMEOUT
-			return;
+			return false;
 		}
 	}
 
@@ -321,7 +321,7 @@ unsigned       nios;
 #warning FIXME
 abort();
 #endif
-		return;
+		return false;
 	}
 
 #ifdef UDP_DEBUG
@@ -330,6 +330,7 @@ abort();
 		printf(" %02x", ((unsigned char*)iov[0].iov_base)[i]);
 	printf("\n");
 #endif
+	return true;
 }
 
 int CProtoModUdp::iMatch(ProtoPortMatchParams *cmp)

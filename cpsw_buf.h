@@ -119,7 +119,7 @@ public:
 	// pointer inside the lockfree::queue.
 	// When taking elements off the queue the smart pointer
 	// is transferred back out of this object.
-	static  void     take_ownership( BufChain *p_owner );
+	static  void     take_ownership( BufChain p_owner );
 	virtual BufChain yield_ownership() = 0;
 
 	virtual Buf getHead()       = 0;
@@ -153,8 +153,8 @@ public:
 	virtual BufChain pop(const CTimeout *abs_timeout)                   = 0;
 	virtual BufChain tryPop()                                           = 0;
 
-	virtual bool     push(BufChain *owner, const CTimeout *abs_timeout) = 0;
-	virtual bool     tryPush(BufChain *owner)                           = 0;
+	virtual bool     push(BufChain b, const CTimeout *abs_timeout)      = 0;
+	virtual bool     tryPush(BufChain b)                                = 0;
 
 	virtual CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout)      = 0;
 	virtual CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout)     = 0;
@@ -172,6 +172,7 @@ public:
 	virtual void startup()                                              = 0;
 
 	virtual ~IBufQueue() {}
+
 
 	static BufQueue create(unsigned size);
 };

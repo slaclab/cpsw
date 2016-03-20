@@ -108,7 +108,7 @@ private:
 	BufChain     yield_ownership();
 
 	friend class CBufImpl;
-	friend void  IBufChain::take_ownership(BufChain*);
+	friend void  IBufChain::take_ownership(BufChain);
 
 public:
 
@@ -451,11 +451,10 @@ BufChain rval = strong_self_;
 	return rval;
 }
 
-void IBufChain::take_ownership(BufChain *current_owner)
+void IBufChain::take_ownership(BufChain current_owner)
 {
-BufChainImpl me = static_pointer_cast<BufChainImpl::element_type>( *current_owner );
+BufChainImpl me = static_pointer_cast<BufChainImpl::element_type>( current_owner );
 	me->strong_self_ = me;
-	(*current_owner).reset();
 }
 
 Buf CBufChainImpl::createAtHead(size_t size, bool clip)

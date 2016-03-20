@@ -102,16 +102,16 @@ protected:
 
 	void createThreads(unsigned nRxThreads, int pollSecons);
 
-	virtual void doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout);
+	virtual bool doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout);
 
-	virtual void push(BufChain bc, const CTimeout *timeout, bool abs_timeout)	
+	virtual bool push(BufChain bc, const CTimeout *timeout, bool abs_timeout)	
 	{
-		doPush(bc, true, timeout, abs_timeout);
+		return doPush(bc, true, timeout, abs_timeout);
 	}
 
-	virtual void tryPush(BufChain bc)
+	virtual bool tryPush(BufChain bc)
 	{
-		doPush(bc, false, NULL, true);
+		return doPush(bc, false, NULL, true);
 	}
 
 

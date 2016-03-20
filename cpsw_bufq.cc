@@ -150,11 +150,10 @@ private:
 
 protected:
 	BufChain pop(bool wait, const CTimeout * abs_timeout);
-	bool     push(BufChain *owner, bool wait, const CTimeout *abs_timeout);
+	bool     push(BufChain b, bool wait, const CTimeout *abs_timeout);
 
 public:
 	CBufQueue(size_type n);
-
 
 	virtual BufChain pop(const CTimeout *abs_timeout)
 	{
@@ -171,18 +170,20 @@ public:
 		return wr_sync_->getAvailSlots() <= 0;
 	}
 
-	virtual bool     push(BufChain *owner, const CTimeout *abs_timeout)
-	{
-		return push(owner, true, abs_timeout);
-	}
 	virtual bool isEmpty()
 	{
 		return rd_sync_->getAvailSlots() <= 0;
 	}
 
-	virtual bool     tryPush(BufChain *owner)
+
+	virtual bool     push(BufChain b, const CTimeout *abs_timeout)
 	{
-		return push(owner, false, 0);
+		return push(b, true, abs_timeout);
+	}
+
+	virtual bool     tryPush(BufChain b)
+	{
+		return push(b, false, 0);
 	}
 
 	virtual CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout)
@@ -275,31 +276,29 @@ unsigned i;
 
 }
 
-bool CBufQueue::push(BufChain *owner, bool wait, const CTimeout *abs_timeout)
+bool CBufQueue::push(BufChain b, bool wait, const CTimeout *abs_timeout)
 {
-// keep a ref in case we have to undo
-BufChain ref = *owner;
 
 	// wait for a slot
 	if ( ! wr_sync_->getSlot( wait, abs_timeout ) ) {
 		return false;
 	}
 
-	IBufChain::take_ownership(owner);
+	IBufChain::take_ownership(b);
 	// 1 ref inside the BufChain obj
 	// 1 ref in our local var
 	// (*owner) has been reset
 
-	if ( bounded_push( ref.get() ) ) {
+	if ( bounded_push( b.get() ) ) {
 		rd_sync_->putSlot();
 		return true;
 	} else {
 
 		wr_sync_->putSlot();
 
-		// enqueue failed -- re-transfer smart pointer
-		// to owner...
-		*owner = ref->yield_ownership();
+		// enqueue failed -- clear ownership stored
+		// in buffer
+		b->yield_ownership();
 
 		throw InternalError("Queue inconsistency???");
 	}
