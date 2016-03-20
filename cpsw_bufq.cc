@@ -23,6 +23,8 @@ public:
 	virtual bool getSlot( bool wait, const CTimeout *abs_timeout )  = 0;
 	virtual void putSlot()                                          = 0;
 
+	virtual unsigned getAvailSlots()                                = 0;
+
 	virtual void getAbsTimeout(CTimeout *abs_timeout, const CTimeout *rel_timeout) = 0;
 
 	virtual IEventSource *getEventSource()                          = 0;
@@ -58,7 +60,7 @@ public:
 	virtual unsigned getAvailSlots()
 	{
 	int v = slots_.load( memory_order_acquire );
-		return v < 0 ? 0 : (unsigned)v;
+		return v <= WATERMARK ? 0 : (unsigned)(v - WATERMARK);
 	}
 
 	virtual IEventSource *getEventSource()
@@ -135,7 +137,8 @@ void CEventBufSync::putSlot()
 
 class CBufQueue : public IBufQueue, protected CBufQueueBase {
 private:
-	unsigned n_;
+	unsigned      n_;
+	bool          isUp_;
 	CEventBufSync rd_sync_impl_;
 	CEventBufSync wr_sync_impl_;
 
@@ -163,10 +166,18 @@ public:
 		return pop(false, 0);
 	}
 
+	virtual bool isFull()
+	{
+		return wr_sync_->getAvailSlots() <= 0;
+	}
 
 	virtual bool     push(BufChain *owner, const CTimeout *abs_timeout)
 	{
 		return push(owner, true, abs_timeout);
+	}
+	virtual bool isEmpty()
+	{
+		return rd_sync_->getAvailSlots() <= 0;
 	}
 
 	virtual bool     tryPush(BufChain *owner)
@@ -198,6 +209,10 @@ public:
 		return NULL;
 	}
 
+	virtual void shutdown();
+
+	virtual void startup();
+
 	virtual ~CBufQueue();
 };
 
@@ -206,6 +221,7 @@ public:
 CBufQueue::CBufQueue(size_type n)
 : CBufQueueBase(n),
   n_(n),
+  isUp_(true),
   rd_sync_impl_(0),
   wr_sync_impl_(n),
   rd_sync_( &rd_sync_impl_ ),
@@ -223,9 +239,40 @@ CBufQueue::~CBufQueue()
 	// since there are raw pointers stored in the queue
 	// we must extract the shared_ptr ownership from all
 	// stored elements here.
-	while ( tryPop() ) {
-		;
+	shutdown();
+}
+
+void CBufQueue::shutdown()
+{
+unsigned i;
+
+	if ( ! isUp_ )
+		return;
+
+	isUp_ = false;
+
+	i = 0;
+	while ( i < n_ ) {
+		// eat up writer slots
+		while ( i < n_ && wr_sync_->getSlot( false, NULL ) )
+			i++;
+		while ( i < n_ && tryPop() )
+			i++;
 	}
+}
+
+void CBufQueue::startup()
+{
+unsigned i;
+
+	if ( isUp_ )
+		return;
+
+	isUp_ = true;
+
+	for ( i=0; i<n_; i++ )
+		wr_sync_->putSlot();
+
 }
 
 bool CBufQueue::push(BufChain *owner, bool wait, const CTimeout *abs_timeout)

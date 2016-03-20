@@ -162,6 +162,15 @@ public:
 	virtual IEventSource *getReadEventSource()                          = 0;
 	virtual IEventSource *getWriteEventSource()                         = 0;
 
+	virtual bool isFull()                                               = 0;
+	virtual bool isEmpty()                                              = 0;
+
+	// shutdown / startup are synchronized with other threads
+	// which use push/pop. However, multiple threads using 
+	// shutdown/startup must use explicit synchronization!
+	virtual void shutdown()                                             = 0;
+	virtual void startup()                                              = 0;
+
 	virtual ~IBufQueue() {}
 
 	static BufQueue create(unsigned size);
