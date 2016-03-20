@@ -8,6 +8,7 @@
 
 #include <cpsw_buf.h>
 #include <cpsw_shared_obj.h>
+#include <cpsw_event.h>
 
 using boost::weak_ptr;
 
@@ -72,16 +73,18 @@ public:
 	virtual BufChain tryPop()                          = 0;
 
 	// Successfully pushed buffers are unlinked from the chain
-	virtual void push(BufChain , const CTimeout *, bool abs_timeout) = 0;
-	virtual void tryPush(BufChain)                             = 0;
+	virtual bool push(BufChain , const CTimeout *, bool abs_timeout) = 0;
+	virtual bool tryPush(BufChain)                        = 0;
 
-	virtual ProtoMod  getProtoMod()                    = 0;
-	virtual ProtoPort getUpstreamPort()                = 0;
+	virtual ProtoMod  getProtoMod()                       = 0;
+	virtual ProtoPort getUpstreamPort()                   = 0;
+
+	virtual IEventSource *getReadEventSource()            = 0;
 
 	virtual CTimeout  getAbsTimeoutPop (const CTimeout *) = 0;
 	virtual CTimeout  getAbsTimeoutPush(const CTimeout *) = 0;
 
-	virtual int       match(ProtoPortMatchParams*)     = 0;
+	virtual int       match(ProtoPortMatchParams*)        = 0;
 };
 
 class IProtoMod {
@@ -136,6 +139,11 @@ public:
 	{
 	}
 
+	virtual IEventSource *getReadEventSource()
+	{
+		return outputQueue_ ? outputQueue_->getReadEventSource() : NULL;
+	}
+
 	virtual ProtoPort mustGetUpstreamPort() 
 	{
 	ProtoPort rval = getUpstreamPort();
@@ -176,10 +184,10 @@ public:
 	{
 		if ( outputQueue_ ) {
 			if ( !rel_timeout ) {
-				return outputQueue_->push( &bc, 0 );
+				return outputQueue_->push( bc, 0 );
 			} else {
-				CTimeout abst( getAbsTimeoutPush( rel_timeout ) );
-				return outputQueue_->push( &bc, &abst );
+				CTimeout abst( outputQueue_->getAbsTimeoutPush( rel_timeout ) );
+				return outputQueue_->push( bc, &abst );
 			}
 		} else {
 			return ProtoMod( downstream_ )->pushDown( bc, rel_timeout );
@@ -195,17 +203,14 @@ public:
 	virtual CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout)
 	{
 		if ( ! outputQueue_ )
-			throw ConfigurationError("Cannot compute timeout w/o output queue");
+			return mustGetUpstreamPort()->getAbsTimeoutPop( rel_timeout );
 		return outputQueue_->getAbsTimeoutPop( rel_timeout );
 	}
 
 	virtual CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout)
 	{
-		if ( ! outputQueue_ )
-			throw ConfigurationError("Cannot compute timeout w/o output queue");
-		return outputQueue_->getAbsTimeoutPush( rel_timeout );
+		return mustGetUpstreamPort()->getAbsTimeoutPush( rel_timeout );
 	}
-
 
 	virtual BufChain tryPop()
 	{
@@ -216,14 +221,14 @@ public:
 		}
 	}
 
-	virtual void push(BufChain bc, const CTimeout *timeout, bool abs_timeout)
+	virtual bool push(BufChain bc, const CTimeout *timeout, bool abs_timeout)
 	{
-		mustGetUpstreamPort()->push( processOutput( bc ), timeout, abs_timeout );
+		return mustGetUpstreamPort()->push( processOutput( bc ), timeout, abs_timeout );
 	}
 
-	virtual void tryPush(BufChain bc)
+	virtual bool tryPush(BufChain bc)
 	{
-		mustGetUpstreamPort()->tryPush( processOutput( bc ) );
+		return mustGetUpstreamPort()->tryPush( processOutput( bc ) );
 	}
 
 	virtual ProtoPort getUpstreamPort()
