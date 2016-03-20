@@ -1,3 +1,4 @@
+#include <cpsw_shared_obj.h>
 #include <cpsw_event.h>
 
 #include <vector>
@@ -100,19 +101,22 @@ public:
 	pthread_cond_t *getp() { return &cond_; }
 };
 
-class CEventSet : public IEventSet {
+class CEventSet : public IEventSet, public CShObj {
 protected:
 	typedef std::pair<IEventSource*, IEventHandler *> Binding;
+	typedef shared_ptr<CEventSet>                     EventSetImpl;
 private:
-	weak_ptr<CEventSet>   self_;
 	vector<Binding>       srcs_;
 
 	CMtx                  mtx_;
 	CCond                 cnd_;
 
+	CEventSet(const CEventSet &orig);
+	CEventSet operator=(const CEventSet &orig);
+
 public:
 
-	CEventSet():mtx_("EVS") {}
+	CEventSet(Key &k):CShObj(k), mtx_("EVS") {}
 
 	virtual void add(IEventSource *src, IEventHandler *h)
 	{
@@ -121,12 +125,12 @@ public:
 			if ( srcs_[i].first == src ) {
 				// replace existing
 				srcs_[i] = Binding(src,h);
-				src->setEventSet( EventSet(self_) );
+				src->setEventSet( getSelfAs<EventSetImpl>() );
 				return;
 			}
 		}
 		srcs_.push_back( Binding(src,h) );
-		src->setEventSet( EventSet(self_) );
+		src->setEventSet( getSelfAs<EventSetImpl>() );
 	}
 
 	virtual void del(IEventSource *src)
@@ -251,7 +255,8 @@ public:
 			throw InternalError("clock_gettime failed");
 	}
 
-	static shared_ptr<CEventSet> create();
+
+	static EventSetImpl create();
 };
 
 EventSet IEventSet::create()
@@ -259,11 +264,9 @@ EventSet IEventSet::create()
 	return CEventSet::create();
 }
 
-shared_ptr<CEventSet> CEventSet::create()
+CEventSet::EventSetImpl CEventSet::create()
 {
-shared_ptr<CEventSet> rval = make_shared<CEventSet>();
-	rval->self_ = rval;
-	return rval;
+	return CShObj::create<EventSetImpl>();
 }
 
 IEventSource::~IEventSource()
