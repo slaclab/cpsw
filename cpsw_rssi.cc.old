@@ -1,0 +1,447 @@
+#include <cpsw_api_user.h>
+#include <cpsw_error.h>
+
+#include <pthread.h>
+
+#include <boost/smart_ptr.hpp>
+#include <boost/atomic.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/locks.hpp>
+
+using boost::shared_ptr;
+using boost::atomic_flag;
+using boost::memory_order_relaxed;
+using boost::memory_order_release;
+using boost::memory_order_acquire;
+using boost::mutex;
+using boost::unique_lock;
+using boost::lock_guard;
+using boost::condition_variable;
+
+static void st16be(uint8_t *b, uint16_t v)
+{
+	b[0] = v >> 8;
+	b[1] = v;
+}
+
+static uint16_t ld16be(uint8_t *b)
+{
+	return (b[0] << 8 ) | b[1];
+}
+
+static void st32be(uint8_t *b, uint32_t v)
+{
+	b[0] = v >> 24;
+	b[1] = v >> 16;
+	b[2] = v >>  8;
+	b[3] = v >>  0;
+}
+
+static uint32_t ld32be(uint8_t *b)
+{
+	return (((( (b[0] << 8) | b[1] ) << 8 ) | b[2]) << 8 ) | b[3];
+}
+
+
+class RssiHeader {
+public:
+	const static uint8_t FLG_BSY = (1<<0);
+	const static uint8_t FLG_NUL = (1<<3);
+	const static uint8_t FLG_RST = (1<<4);
+	const static uint8_t FLG_EAC = (1<<5);
+	const static uint8_t FLG_ACK = (1<<6);
+	const static uint8_t FLG_SYN = (1<<7);
+
+private:
+	uint8_t  flags_;
+	uint8_t  hsize_;
+	uint8_t  seqNo_;
+	uint8_t  ackNo_;
+	uint16_t check_;
+
+protected:
+	bool     chkOk_;
+
+	// buffer size must already have been verified
+	virtual uint16_t cs(uint8_t *buf)
+	{
+	uint32_t cs_i = 0;
+	unsigned    i;
+		for ( i=0; i < buf[1]; i+=2 ) {
+			cs_i += ld16be( buf + i );
+		}
+		while ( cs_i > 0xffff ) {
+			cs_i = (cs_i & 0xffff) + (cs_i >> 16);
+		}
+		return (uint16_t)( (~cs_i) & 0xffff );
+	}
+
+	// buffer size must already have been verified
+	virtual void writeChksum(uint8_t *buf)
+	{
+		st16be( & buf[hsize_ - 2], 0 );
+		st16be( & buf[hsize_ - 2], cs( buf ) );
+	}
+
+public:
+
+	RssiHeader(uint8_t *buf, size_t bufsz, bool computeChksum)
+	{
+		if ( buf ) {
+			flags_ = buf[0];
+			if ( (hsize_ = buf[1]) > bufsz ) {
+				throw InvalidArgError("header size > buffer size ?");
+			}
+			seqNo_ = buf[2];
+			ackNo_ = buf[3];
+			check_ = ld16be( & buf[hsize_-2] );
+
+			if ( computeChksum ) {
+				chkOk_ = cs( buf ) == 0;
+			} else {
+				chkOk_ = true;
+			}
+		} else {
+			flags_ = 0;
+			hsize_ = 8;
+			ackNo_ = 0;
+			seqNo_ = 0;
+			check_ = 0;
+			chkOk_ =  ! computeChksum;
+		}
+	}
+
+	virtual void writeHeader(uint8_t *buf, size_t bufsz, bool addChksum)
+	{
+		if ( hsize_ > bufsz ) {
+			throw InvalidArgError("header size > buffer size ?");
+		}
+		buf[0] = flags_;
+		buf[1] = hsize_;
+		buf[2] = seqNo_;
+		buf[3] = ackNo_;
+		if ( addChksum )
+			writeChksum(buf);
+	}
+
+	uint8_t  getFlags() { return flags_; }
+	uint8_t  getHSize() { return hsize_; }
+	// use uint16_t for seq numbers (future enhancement?)
+	uint16_t getSeqNo() { return seqNo_; }
+	uint16_t getAcqNo() { return ackNo_; }
+	uint16_t getCheck() { return check_; }
+
+	bool     getChkOk() { return chkOk_; }
+
+	void     setFlags(uint8_t  v) { flags_ = v; }
+	void     setHSize(uint8_t  v) { hsize_ = v; }
+	void     setSeqNo(uint16_t v) { seqNo_ = static_cast<uint8_t>(v); }
+	void     setAckNo(uint16_t v) { ackNo_ = static_cast<uint8_t>(v); }
+	void     setCheck(uint16_t v) { check_ = v; }
+
+	virtual ~RssiHeader() {}
+};
+
+class RssiSynHeader : public RssiHeader {
+public:
+	const static uint8_t RSSI_VERSION_1 = 1;
+
+	const static uint8_t XFL_CHK = (1<<2);
+
+private:
+	uint8_t  xflgs_;
+	uint8_t  ossMX_;
+	uint16_t sgsMX_;
+	uint16_t rexTO_;
+	uint16_t cakTO_;
+	uint16_t nulTO_;
+	uint8_t  rexMX_;
+	uint8_t  cakMX_;
+	uint8_t  osaMX_;
+	uint8_t  units_;
+	uint32_t conID_;
+
+	RssiSynHeader(uint8_t *buf, size_t bufsz, bool computeChksum)
+	: RssiHeader(buf, bufsz, false)
+	{
+		if ( buf ) {
+			xflgs_ =           buf[ 4];
+			ossMX_ =           buf[ 5];
+			sgsMX_ = ld16be( & buf[ 6] );
+			rexTO_ = ld16be( & buf[ 8] );
+			cakTO_ = ld16be( & buf[10] );
+			nulTO_ = ld16be( & buf[12] );
+			rexMX_ =           buf[14];
+			cakMX_ =           buf[15];
+			osaMX_ =           buf[16];
+			units_ =           buf[17];
+			conID_ = ld32be( & buf[18] );
+			if ( computeChksum ) {
+				chkOk_ = cs( buf ) == 0;
+			} else {
+				chkOk_ = true;
+			}
+		} else {
+			setFlags( getFlags() | FLG_SYN );
+
+			xflgs_ = (RSSI_VERSION_1 << 4) | (1<<3) ;
+			ossMX_ = 0;
+			sgsMX_ = 0;
+			rexTO_ = 0;
+			cakTO_ = 0;
+			nulTO_ = 0;
+			rexMX_ = 0;
+			cakMX_ = 0;
+			osaMX_ = 0;
+			units_ = 0;
+			conID_ = 0;
+
+			setHSize( 24 );
+
+			chkOk_ = ! computeChksum;
+		}
+	}
+
+	virtual void writeHeader(uint8_t *buf, size_t bufsz, bool addChksum)
+	{
+		RssiHeader::writeHeader( buf, bufsz, false );
+		buf[4] = xflgs_;
+		buf[5] = ossMX_;
+		st16be( & buf[ 6], sgsMX_ );
+		st16be( & buf[ 8], rexTO_ );
+		st16be( & buf[10], cakTO_ );
+		st16be( & buf[12], nulTO_ );
+		buf[14] = rexMX_;
+		buf[15] = cakMX_;
+		buf[16] = osaMX_;
+		buf[17] = units_;
+		st32be( & buf[18], conID_ );
+		if ( addChksum )
+			writeChksum( buf );
+	}
+
+	virtual ~RssiSynHeader() {}
+};
+
+class Event {
+	virtual bool isPending();	
+	virtual void handle();
+};
+
+class EventSet {
+public:
+	virtual void   addEvent(Event );
+	virtual void   delEvent(Event );
+	virtual Event waitEvent();
+	virtual postEvent(Event );
+};
+
+rdSync:
+
+CondSync {
+
+cond;
+
+BufChain waitEvent()
+{
+	mutex_lock();
+	while ( 1 )
+		if ( tryPop() )
+			break;
+		else if ( xxx )
+		
+}
+
+bool getSlot(wait, abs_timeout)
+{
+	if ( ! wait ) {
+		do { 
+			if ( avail_.fetch_sub(1) > 0 )
+				return true;
+			// could be that postEvent here leaves 'avail' at 0
+		} while ( avail_.fetch_add(1) == 0 );
+		return false;
+    } else {
+		throw InternalError("this device is not intended to be used blocking here");
+	}
+}
+
+void putSlot()
+{
+	if ( avail_.fetch_add(1) == 0 ) {
+		// if reader has not yet gone to sleep
+		// we must wait for them to do so:
+		//   lock();
+		//      while ( ! getEvent() )
+		// => *** we could be running here *** <=
+		//         cond_wait();
+		//   unlock();
+		mutex_lock();
+		cond_signal();
+		mutex_unlock();
+	}
+}
+
+}
+
+
+class IPort {
+public:
+	virtual Buf pop() = 0;
+	virtual 
+	void    push(Buf) = 0;
+	virtual IPort() {}
+};
+
+class IQueue {
+public:
+	virtual Buf  tryPop()     = 0;
+	virtual bool tryPush(Buf) = 0;
+};
+
+typedef shared_ptr<IPort> Port;
+
+class IRssi {
+public:
+	virtual Port open() = 0;
+};
+
+class CRssiImpl;
+typedef shared_ptr<CRssiImpl> RssiImpl;
+
+class CRssiPortImpl : public IPort {
+private:
+	RssiImpl           owner_;
+	mutex              popMtx_;
+	mutex              pushMtx_;
+	mutex              threadMtx_;
+	condition_variable popEvent_;
+	condition_variable pushEvent_;
+	condition_variable threadEvent_;
+	atomic<int>        rxAvail_;
+	atomic<int>        txAvail_;
+	atomic<bool>       isOpen_;
+	
+public:
+
+	virtual Buf pop() 
+	{
+		{
+		unique_lock<mutex> lock( popMtx_ );
+		bool               isOpen;
+			while ( 0 == rxAvail_.load( memory_order_acquire ) && (isOpen = isOpen_.load( memory_order_acquire ))  )
+				popEvent_.wait( lock );
+			if ( ! isOpen ) {
+				// connection closed
+			}
+			// FIXME: if timeout return NULL
+
+			rxAvail_.fetch_sub(1, memory_order_acquire )
+		}
+
+		// FIXME: fetch and return RX;
+	}
+
+	virtual void push(Buf);
+
+	virtual void threadBody()
+	{
+		do {
+			unique_lock<mutex> lock( threadMtx_ );
+			threadEvent_.wait( threadMtx_ );
+			process_events();
+			if ( got_packet() && rxAvail_ == 
+		} while ( isOpen_.load( memory_order_acquire ) );
+
+		release();
+	}
+
+	virtual void release()
+	{
+		owner_->detach();
+		owner_.reset();
+	}
+
+	virtual ~CRssiPortImpl() {
+		
+	}
+};
+
+class CRssiImpl : public IRssi {
+private:
+	atomic_flag     inUse_;
+
+	Port            upstream;
+
+public:
+	virtual RssiConn open()
+	{
+
+		if ( inUse_.test_and_set() )
+			return RssiConn();
+
+		// do open
+
+		return make_shared(CRssiConnImpl);
+	}
+
+	virtual void detach()
+	{
+		inUse_.clear();
+	}
+};
+
+class RssiTimer {
+private:
+	RssiTimer       *next_;
+	RssiTimer       *prev_;
+
+	CTimeout         exp_;
+
+public:
+
+	RssiTimer( uint64_t exp )
+	: next_( NULL ),
+	  prev_( NULL ),
+	  exp_ (    0 )
+	{
+	}
+
+	void remove()
+	{
+		if ( next_ )
+			next_->prev_ = prev_;
+		if ( prev_ )
+			prev_->next_ = next_;
+		next_ = prev_ = NULL;
+	}
+
+	void addAfter(RssiTimer *el)
+	{
+		if ( next_ = el->next_ ) {
+			next_->prev_ = this;
+		}
+		el->next_ = this;
+		prev_ = el;
+	}
+
+	void insert(struct timespec exp)
+	{
+		remove();	
+		for ( el = lh(); el; el=el->next_ )
+			if ( el->next_ && exp < el->next_->exp_ )
+				addAfter( el );
+	}
+
+	static RssiTimer *lh()
+	{
+	static RssiTimer theList( 0 );
+		return & theList;
+	}
+
+	~RssiTimer()
+	{
+		remove();
+	}
+};
