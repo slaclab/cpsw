@@ -202,12 +202,12 @@ public:
 
 	virtual IEventSource *getReadEventSource()
 	{
-		return NULL;
+		return rd_sync_->getEventSource();
 	}
 
 	virtual IEventSource *getWriteEventSource()
 	{
-		return NULL;
+		return wr_sync_->getEventSource();
 	}
 
 	virtual void shutdown();
