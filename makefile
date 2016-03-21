@@ -44,6 +44,8 @@ DEP_HEADERS += cpsw_sval.h
 DEP_HEADERS += cpsw_thread.h
 DEP_HEADERS += crc32-le-tbl-4.h
 DEP_HEADERS += udpsrv_regdefs.h
+DEP_HEADERS += udpsrv_port.h
+DEP_HEADERS += udpsrv_util.h
 
 STATIC_LIBRARIES+=cpsw
 
@@ -52,6 +54,8 @@ tstaux_SRCS+= crc32-le-tbl-4.c
 STATIC_LIBRARIES+=tstaux
 
 udpsrv_SRCS = udpsrv.c
+udpsrv_SRCS+= udpsrv_port.cc
+udpsrv_SRCS+= udpsrv_util.cc
 udpsrv_SRCS+= udpsrv_mod_mem.cc
 udpsrv_SRCS+= udpsrv_mod_axiprom.cc
 

@@ -21,6 +21,7 @@
 #define CMD_ADDR(x)  ( (x)<<2 )
 
 #include <udpsrv_regdefs.h>
+#include <udpsrv_port.h>
 
 #define NFRAGS  20
 #define FRAGLEN 8
@@ -90,35 +91,8 @@ int i;
 		buf[i] = __builtin_bswap32( buf[i] );
 }
 
-static int getsock(const char *ina, unsigned short port)
-{
-int sd = -1;
-struct sockaddr_in me;
-
-	if ( (sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
-		perror("socket");
-		goto bail;
-	}
-
-	me.sin_family      = AF_INET;
-	me.sin_addr.s_addr = ina ? inet_addr(ina) : INADDR_ANY;
-	me.sin_port        = htons( (short)port );
-
-	if ( bind( sd, (struct sockaddr*)&me, sizeof(me) ) < 0 ) {
-		perror("bind");
-		goto bail;
-	}
-
-	return sd;
-
-bail:
-	close(sd);
-	return -1;
-}
-
 typedef struct streamer_args {
-	int                sd;
-	struct sockaddr_in peer;
+	UdpPrt             port;
 	unsigned           sim_loss;
 	unsigned           n_frags;
 	unsigned           fram;
@@ -127,8 +101,7 @@ typedef struct streamer_args {
 } streamer_args;
 
 typedef struct srp_args {
-	const char *       ina;
-	int                port;
+	UdpPrt             port;
 	int                v1;
 	unsigned           sim_loss;
 } srp_args;
@@ -170,14 +143,13 @@ static int append_tail(uint8_t *tbuf, int eof)
 void *poller(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
-uint8_t       buf[2048];
+uint8_t       buf[1500];
 int           got;
-socklen_t     l;
 int           lfram = -1;
 
-	while ( (l=sizeof(sa->peer), got = recvfrom(sa->sd, buf, sizeof(buf), 0, (struct sockaddr*)&sa->peer, &l)) >= 0 ) {
+	while ( (got = udpPrtRecv( sa->port, NULL, 0, buf, sizeof(buf))) >= 0 ) {
 		if ( got < 4 ) {
-			fprintf(stderr,"Poller: Contacted by %d\n", ntohs(sa->peer.sin_port));
+			fprintf(stderr,"Poller: Contacted by %d\n", udpPrtIsConn( sa->port ) );
 		} else {
 			unsigned vers, fram, frag, tdest, tid, tusr1, tail;
 
@@ -261,7 +233,7 @@ static int depth = 0;
 
 	/* simulate packet loss */
 	if ( !sa->sim_loss || ( (double)rand() > ((double)RAND_MAX/100.)*(double)sa->sim_loss/(double)sa->n_frags ) ) {
-		if ( sendto(sa->sd, bufmem[idx], sizeof(bufmem[idx]), 0, (struct sockaddr*)&sa->peer, sizeof(sa->peer)) < 0 ) {
+		if ( udpPrtSend( sa->port, NULL, 0, bufmem[idx], sizeof(bufmem[idx])) < 0 ) {
 			perror("fragmenter: write");
 			switch ( errno ) {
 				case EDESTADDRREQ:
@@ -288,7 +260,7 @@ uint32_t crc  = -1;
 int      end_of_frame;
 
 	while (1) {
-		if ( 0 == ntohs( sa->peer.sin_port ) ) {
+		if ( 0 == udpPrtIsConn( sa->port ) ) {
 			sleep(4);
 			continue;
 		}
@@ -347,10 +319,7 @@ static void* srpHandler(void *arg)
 {
 srp_args *srp_arg = (srp_args*)arg;
 uintptr_t rval = 1;
-int      sd;
-struct msghdr mh;
-struct iovec  iov[2];
-int      niov = 0;
+int      hsize, bsize;
 int      st;
 int      expected;
 unsigned off;
@@ -358,38 +327,28 @@ int      got, put;
 uint32_t addr = 0;
 uint32_t xid  = 0;
 uint32_t size = 16;
-uint32_t rbuf[2048];
+uint32_t rbuf[300];
 uint32_t header = 0;
-struct   sockaddr_in you;
 int      v1 = srp_arg->v1;
 struct udpsrv_range *range;
 
-	if ( (sd = getsock( srp_arg->ina, srp_arg->port ) ) < 0 )
-		goto bail;
+UdpPrt port = srp_arg->port;
 
 	expected = 12;
 
 	if ( v1 ) {
 		header = bs32( v1, 0 );
-		iov[niov].iov_base = &header;
-		iov[niov].iov_len  = sizeof(header);
+		hsize = sizeof(header);
 		expected += 4;
-		niov++;
+	} else {
+		hsize = 0;
 	}
 
 	while ( 1 ) {
 
-		memset( &mh, 0, sizeof(mh) );
-		mh.msg_name    = (struct sockaddr*)&you;
-		mh.msg_namelen = sizeof(you);
+		bsize = sizeof(rbuf);
 
-		iov[niov].iov_base = rbuf;
-		iov[niov].iov_len  = sizeof(rbuf);
-
-		mh.msg_iov    = iov;
-		mh.msg_iovlen = niov + 1;
-
-		got = recvmsg(sd, &mh, 0);
+		got = udpPrtRecv( port, &header, hsize, rbuf, bsize );
 		if ( got < 0 ) {
 			perror("read");
 			goto bail;
@@ -469,9 +428,9 @@ printf("got %d, exp %d\n", got, expected);
 
 		bs32(v1, rbuf[2+size] );
 
-		iov[niov].iov_len = (size+3)*4;
+		bsize = (size + 3) * 4;
 
-		if ( (put = sendmsg( sd, &mh, 0 )) < 0 ) {
+		if ( udpPrtSend( port, &header, hsize, rbuf, bsize ) < 0 ) {
 			perror("unable to send");
 			goto bail;
 		}
@@ -479,13 +438,12 @@ printf("got %d, exp %d\n", got, expected);
 		if ( debug )
 			printf("put %i\n", put);
 #endif
-
 	}
 
 	rval = 0;
 bail:
-	if ( sd >= 0 )
-		close( sd );
+	if ( port )
+		udpPrtDestroy( port );
 	return (void*)rval;
 }
 
@@ -569,17 +527,14 @@ struct srp_args      *srp_arg = 0;
 			fprintf(stderr,"No Memory\n");
 			goto bail;
 		}
-		s_arg->sd = getsock( ina, sport );
-		s_arg->peer.sin_family      = AF_INET;
-		s_arg->peer.sin_addr.s_addr = INADDR_ANY;
-		s_arg->peer.sin_port        = htons(0);
+		s_arg->port                 = udpPrtCreate( ina, sport );
 		s_arg->sim_loss             = sim_loss;
 		s_arg->n_frags              = n_frags;
 		s_arg->scramble             = scramble;
 		s_arg->fram                 = 0;
 		s_arg->jam                  = 0;
 
-		if ( s_arg->sd < 0 )
+		if ( ! s_arg->port )
 			goto bail;
 		if ( pthread_create( &poller_tid, 0, poller, (void*)s_arg ) ) {
 			perror("pthread_create [poller]");
@@ -599,8 +554,7 @@ struct srp_args      *srp_arg = 0;
 			fprintf(stderr,"No Memory\n");
 			goto bail;
 		}
-		srp_arg->ina      = ina;
-		srp_arg->port     = v1port;
+		srp_arg->port     = udpPrtCreate( ina, v1port );
 		srp_arg->v1       = 1;
 		srp_arg->sim_loss = sim_loss;
 
@@ -613,8 +567,7 @@ struct srp_args      *srp_arg = 0;
 
 	if ( v1port >= 0 || v2port >= 0 ) {
 		srp_args arg;
-		arg.ina      = ina;
-		arg.port     = (arg.v1 = v2port < 0) ? v1port : v2port; 
+		arg.port     = udpPrtCreate( ina, (arg.v1 = v2port < 0) ? v1port : v2port ); 
 		arg.sim_loss = sim_loss;
 	
 		rval = (uintptr_t)srpHandler( &arg );
@@ -639,9 +592,14 @@ bail:
 		pthread_join( srp_tid, &res );
 		rval += (uintptr_t)res;
 	}
-	if ( s_arg )
+	if ( s_arg ) {
+		if ( s_arg->port )
+			udpPrtDestroy( s_arg->port );
 		free( s_arg );
-	if ( srp_arg )
+	}
+	if ( srp_arg ) {
+		udpPrtDestroy( srp_arg->port );
 		free( srp_arg );
+	}
 	return rval;
 }
