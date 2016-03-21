@@ -9,14 +9,9 @@
 
 #include <stdint.h>
 
-#include <vector>
-
-#ifdef NO_CPSW
-#include <q.h>
-#else
 #include <cpsw_buf.h>
-#include <cpsw_proto_mod.h>
-#endif
+
+#include <vector>
 
 #include <boost/weak_ptr.hpp>
 using boost::weak_ptr;
@@ -25,45 +20,6 @@ using boost::weak_ptr;
 
 #ifdef RSSI_DEBUG
 extern int rssi_debug;
-#endif
-
-#if 0
-class CRssiPort;
-typedef shared_ptr<CRssiPort> RssiPort;
-
-class CRssiPort : public IProtoPort {
-
-protected:
-public:
-	CRssiPort();
-
-	virtual BufChain pop(const CTimeout *abs_timeout)
-	{
-		return outQ_->pop( abs_timeout );
-	}
-
-	virtual BufChain tryPop()
-	{
-		return outQ_->tryPop();
-	}
-
-	virtual bool push(BufChain b, const CTimeout *abs_timeout)
-	{
-		return inpQ_->push(b, abs_timeout);
-	}
-
-	virtual bool tryPush(BufChain b)
-	{
-		return inpQ_->tryPush(b);
-	}
-
-	// FIXME - just so we can create a circular structure for development/testing
-	virtual void attach(ProtoPort p) = 0;
-
-	virtual IEventSource *getReadEventSource();
-
-	virtual void dumpStats(FILE*) = 0;
-};
 #endif
 
 class IRxEventHandler : public IEventHandler {
@@ -135,7 +91,6 @@ private:
 	bool        isServer_;
 	const char *name_;
 	EventSet    eventSet_;
-	ProtoPort   upstream_;
 
 protected:
 	BufQueue    outQ_;
@@ -153,8 +108,6 @@ public:
 
 	const char *getName()  { return name_;     }
 	
-	ProtoPort     getUpstream() { return upstream_; }
-
 	virtual void dumpStats(FILE *);
 
 protected:
@@ -561,7 +514,10 @@ protected:
 	IAckTimer              *ackTimer() { return (IAckTimer*) this; }
 	INulTimer              *nulTimer() { return (INulTimer*) this; }
 
-	virtual void attach(ProtoPort p);
+	virtual void attach(IEventSource*);
+
+	virtual BufChain tryPopUpstream()      = 0;
+	virtual bool tryPushUpstream(BufChain) = 0;
 
 	void getAbsTime(CTimeout *to)
 	{

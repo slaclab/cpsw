@@ -1,5 +1,6 @@
-#include <q.h>
+#include <udpsrv_util.h>
 #include <udpsrv_port.h>
+#include <udpsrv_rssi_port.h>
 
 struct UdpPrt_ {
 	UdpPort port_;
@@ -7,7 +8,7 @@ struct UdpPrt_ {
 	UdpPrt_(const char *mtxnm):mtx_(mtxnm){}
 };
 
-UdpPrt udpPrtCreate(const char *ina, unsigned port)
+UdpPrt udpPrtCreate(const char *ina, unsigned port, int withRssi)
 {
 UdpPrt p = new UdpPrt_("udp_port");
 	p->port_ = IUdpPort::create(ina, port);

@@ -21,6 +21,99 @@ using boost::memory_order_acquire;
 using boost::memory_order_release;
 using boost::static_pointer_cast;
 
+class IEventBufSync;
+typedef shared_ptr<IEventBufSync> EventBufSync;
+
+class IBufSync {
+public:
+	virtual bool getSlot(bool, const CTimeout *)                = 0;
+	virtual void putSlot()                                      = 0;
+	virtual unsigned getMaxSlots()                              = 0;
+	virtual unsigned getAvailSlots()                            = 0;
+	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout) = 0;
+	virtual ~IBufSync() {}
+};
+
+typedef shared_ptr<IBufSync> BufSync;
+
+class IEventBufSync : public IBufSync {
+public:
+	virtual IEventSource *getEventSource() = 0;
+	virtual ~IEventBufSync() {}
+};
+
+class CEventBufSync : public IIntEventSource, public IEventBufSync, public IEventHandler {
+private:
+	unsigned    depth_;
+	int         water_;
+	atomic<int> slots_;
+	EventSet    evSet_;
+protected:
+	CEventBufSync(unsigned depth, unsigned water)
+	: depth_(depth),
+	  water_(water > depth - 1 ? depth - 1 : water),
+	  slots_(depth),
+	  evSet_(IEventSet::create())
+	{
+		evSet_->add( (IIntEventSource*)this, (IEventHandler*)this );
+	}
+public:
+	virtual bool getSlot(bool, const CTimeout *);
+	virtual void putSlot();
+	virtual ~CEventBufSync() {}
+
+	virtual IEventSource *getEventSource() { return this; }
+
+	virtual void handle(IIntEventSource *s) {}
+
+	virtual unsigned getMaxSlots()   { return depth_;        }
+	// this might temporarily yield too small a value (if 
+	// called while other threads are in getSlot().
+	virtual unsigned getAvailSlots()
+	{
+		int v = slots_.load(memory_order_acquire);
+		return v < 0 ? 0 : (unsigned)v;
+	}
+
+	virtual unsigned getWatermark() { return water_; }
+
+	virtual bool checkForEvent() {
+		int avail = getAvailSlots();
+		if ( avail > water_ ) {
+			setEventVal( avail );
+			return true;
+		}
+		return false;
+	}
+
+	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)
+	{
+		struct timespec ts;
+
+		if ( ! rel_timeout ) {
+			ts.tv_sec = (1<<30) + ((1<<30)-1);
+			ts.tv_nsec = 0;
+			return ts;
+		}
+
+		if ( clock_gettime( CLOCK_REALTIME, &ts ) )
+			throw InternalError("clock_gettime failed", errno);
+
+		ts.tv_nsec += rel_timeout->tv_.tv_nsec;
+		if ( ts.tv_nsec >= 1000000000 ) {
+			ts.tv_nsec -= 1000000000;
+			ts.tv_sec  += 1;
+		}
+		ts.tv_sec += rel_timeout->tv_.tv_sec;
+
+		return ts;
+	}
+
+
+	static EventBufSync create(unsigned depth=0, unsigned water = 0);
+};
+
+
 
 class CBuf : public IBuf, public IBufChain {
 private:
@@ -105,16 +198,21 @@ public:
 
 	virtual uint8_t* getPayload()  { return dat_ + off_; }
 	virtual size_t   getSize()     { return len_; }
-	virtual unsigned getCapacity() { return sizeof(dat_); }
+	virtual size_t   getCapacity() { return sizeof(dat_); }
 
 	virtual unsigned getLen()      { return chl_;         }
 
-	virtual Buf createAtHead(size_t s)
+	virtual Buf createAtHead(size_t s, bool clip)
 	{
 		if ( chl_ == 1 )
 			throw InternalError("Chains > 1 not implemented");
 		chl_++;
 		return Buf(self_);
+	}
+
+	virtual Buf createAtTail(size_t s, bool clip)
+	{
+		return createAtHead(s, clip);
 	}
 
 	virtual void     setPayload(uint8_t *p)
@@ -132,7 +230,7 @@ public:
 			len_ = end - off_;
 	}
 
-	virtual void setSize(unsigned len)
+	virtual void setSize(size_t   len)
 	{
 		if ( off_ + len > sizeof(dat_) )
 			len_ = sizeof(dat_) - len;
@@ -151,6 +249,11 @@ public:
 		return Buf();
 	}
 
+	virtual Buf getTail()
+	{
+		return getHead();
+	}
+
 	static void dumpStats()
 	{
 		FL::theFL().dump();
@@ -158,7 +261,7 @@ public:
 
 	class BadSize {};
 
-	virtual unsigned extract(void *dst, unsigned off, unsigned size)
+	virtual uint64_t extract(void *dst, uint64_t off, uint64_t size)
 	{
 		if ( off + size > getSize() )
 			throw BadSize();
@@ -168,16 +271,31 @@ public:
 		return size;
 	}
 
-	virtual unsigned insert(void *src, unsigned off, unsigned size)
+	virtual void insert(void *src, uint64_t off, uint64_t size)
 	{
 		if ( off_ + off + size > getCapacity() )
 			throw BadSize();
 		if ( off + size > getSize() )
 			setSize(off + size);
 		memcpy( getPayload() + off, src, size );
-
-		return size;
 	}
+
+	// unimplemented stuff
+	virtual BufChain yield_ownership()   { throw InternalError("Not Implemented"); }
+	virtual void     addAtHead(Buf)      { throw InternalError("Not Implemented"); }
+	virtual void     addAtTail(Buf)      { throw InternalError("Not Implemented"); }
+	virtual size_t   getAvail()          { throw InternalError("Not Implemented"); }
+	virtual size_t   getHeadroom()       { throw InternalError("Not Implemented"); }
+	virtual bool     adjPayload(ssize_t) { throw InternalError("Not Implemented"); }
+	virtual void     reinit()            { throw InternalError("Not Implemented"); }
+	virtual BufChain getChain()          { throw InternalError("Not Implemented"); }
+	virtual void     after(Buf)          { throw InternalError("Not Implemented"); }
+	virtual void     before(Buf)         { throw InternalError("Not Implemented"); }
+	virtual void     unlink()            { throw InternalError("Not Implemented"); }
+	virtual void     split()             { throw InternalError("Not Implemented"); }
+
+	virtual Buf      getNext()           { return Buf(); }
+	virtual Buf      getPrev()           { return Buf(); }
 
 	static BufChain createChain();
 	static Buf      createBuf();
@@ -200,21 +318,11 @@ shared_ptr<CBuf> rval( p, FL::D() );
 }
 
 
-Buf IBuf::get()
-{
-	return CBuf::createBuf();
-}
-
 BufChain IBufChain::create()
 {
 	return CBuf::createChain();
 }
 
-
-void IBuf::dumpStats()
-{
-	return CBuf::dumpStats();
-}
 
 class CQueue : public IBufQueue {
 private:
@@ -283,6 +391,11 @@ public:
 		return wrSync_->getAvailSlots() <= wwater_;
 	}
 
+	virtual bool isEmpty()
+	{
+		return rdSync_->getAvailSlots() <= 0;
+	}
+
 	virtual BufChain  pop(const CTimeout *abs_timeout)
 	{
 		return pop(true, abs_timeout);
@@ -349,13 +462,18 @@ public:
 	virtual IEventSource *getReadEventSource()  { return rdSync_->getEventSource(); }
 	virtual IEventSource *getWriteEventSource() { return wrSync_->getEventSource(); }
 
+	virtual CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout)
+	{
+		return rdSync_->getAbsTimeout( rel_timeout );
+	}
+
+	virtual CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout)
+	{
+		return wrSync_->getAbsTimeout( rel_timeout );
+	}
+
 	static BufQueue create(unsigned depth, unsigned wwater = 0);
 };
-
-BufSync CSemBufSync::create(unsigned depth)
-{
-	return make_shared<CSemBufSync>(depth);
-}
 
 BufQueue CQueue::create(unsigned depth, unsigned wwater)
 {
@@ -364,9 +482,9 @@ CQueue *p = new CQueue(depth, wwater);
 }
 
 	
-BufQueue IBufQueue::create(unsigned depth, unsigned wwater)
+BufQueue IBufQueue::create(unsigned depth)
 {
-	return CQueue::create(depth, wwater);
+	return CQueue::create(depth, 0);
 }
 
 bool CEventBufSync::getSlot(bool wait, const CTimeout *abs_timeout)
@@ -420,7 +538,7 @@ public:
 	CPort(unsigned depth)
 	: depth_(depth)
 	{
-		q_ = IBufQueue::create( depth_ ,0 );
+		q_ = IBufQueue::create( depth_ );
 	}
 
 	virtual IEventSource *getReadEventSource()        { return q_->getReadEventSource(); }

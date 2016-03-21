@@ -8,7 +8,7 @@ using std::vector;
 int rssi_debug = RSSI_DEBUG;
 #endif
 
-void CRssi::attach(ProtoPort upstreamPort)
+void CRssi::attach(IEventSource *upstreamReadEventSource)
 {
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 3 )
@@ -16,8 +16,7 @@ if ( rssi_debug > 3 )
 fprintf(stderr,"%s: attach\n", ""); 
 }
 #endif
-	upstream_ = upstreamPort;
-	eventSet_->add( upstreamPort->getReadEventSource(), recvEH() );
+	eventSet_->add( upstreamReadEventSource, recvEH() );
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 3 )
 {
@@ -186,7 +185,7 @@ fprintf(stderr," (state %s) %s", sss_->getName(), retrans ? "REX" : "");
 	if ( addChecksum_ )
 		hdr.writeChksum();
 
-	if ( ! getUpstream()->tryPush( bc ) ) {
+	if ( ! tryPushUpstream( bc ) ) {
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 0 )
 {

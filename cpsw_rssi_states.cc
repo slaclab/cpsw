@@ -93,7 +93,7 @@ BufChain bc;
 uint8_t  flags;
 bool     hasPayload;
 
-	if ( ! (bc = context->getUpstream()->tryPop()) ) {
+	if ( ! (bc = context->tryPopUpstream()) ) {
 		fprintf(stderr, "%s: SRC pending %d\n", context->getName(), src->isPending());
 		throw InternalError("Spurious wakeup ??");
 	}

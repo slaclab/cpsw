@@ -5,6 +5,7 @@
 #include <cpsw_proto_mod_depack.h>
 #include <cpsw_proto_mod_udp.h>
 #include <cpsw_proto_mod_srpmux.h>
+#include <cpsw_proto_mod_rssi.h>
 
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/locks.hpp>
@@ -43,6 +44,7 @@ CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion versio
 ProtoPortMatchParams cmp;
 ProtoModSRPMux       srpMuxMod;
 ProtoPort            srpPort;
+ProtoModRssi         rssiMod( CProtoModRssi::create() );
 NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
 int                  nbits;
 

@@ -527,7 +527,7 @@ struct srp_args      *srp_arg = 0;
 			fprintf(stderr,"No Memory\n");
 			goto bail;
 		}
-		s_arg->port                 = udpPrtCreate( ina, sport );
+		s_arg->port                 = udpPrtCreate( ina, sport, WITHOUT_RSSI );
 		s_arg->sim_loss             = sim_loss;
 		s_arg->n_frags              = n_frags;
 		s_arg->scramble             = scramble;
@@ -554,7 +554,7 @@ struct srp_args      *srp_arg = 0;
 			fprintf(stderr,"No Memory\n");
 			goto bail;
 		}
-		srp_arg->port     = udpPrtCreate( ina, v1port );
+		srp_arg->port     = udpPrtCreate( ina, v1port, WITHOUT_RSSI );
 		srp_arg->v1       = 1;
 		srp_arg->sim_loss = sim_loss;
 
@@ -567,7 +567,7 @@ struct srp_args      *srp_arg = 0;
 
 	if ( v1port >= 0 || v2port >= 0 ) {
 		srp_args arg;
-		arg.port     = udpPrtCreate( ina, (arg.v1 = v2port < 0) ? v1port : v2port ); 
+		arg.port     = udpPrtCreate( ina, ((arg.v1 = v2port < 0) ? v1port : v2port), WITHOUT_RSSI ); 
 		arg.sim_loss = sim_loss;
 	
 		rval = (uintptr_t)srpHandler( &arg );
