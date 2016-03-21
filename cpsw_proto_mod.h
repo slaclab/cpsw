@@ -183,8 +183,10 @@ public:
 	virtual bool pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 	{
 		if ( outputQueue_ ) {
-			if ( !rel_timeout ) {
+			if ( !rel_timeout || rel_timeout->isIndefinite() ) {
 				return outputQueue_->push( bc, 0 );
+			} else if ( rel_timeout->isNone() ) {
+				return outputQueue_->tryPush( bc );
 			} else {
 				CTimeout abst( outputQueue_->getAbsTimeoutPush( rel_timeout ) );
 				return outputQueue_->push( bc, &abst );
