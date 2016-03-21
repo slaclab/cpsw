@@ -3,21 +3,29 @@
 #include <udpsrv_rssi_port.h>
 
 struct UdpPrt_ {
-	UdpPort port_;
-	CMtx    mtx_;
+	UdpPort   udp_;
+	ProtoPort top_;
+	CMtx      mtx_;
 	UdpPrt_(const char *mtxnm):mtx_(mtxnm){}
 };
 
 UdpPrt udpPrtCreate(const char *ina, unsigned port, int withRssi)
 {
 UdpPrt p = new UdpPrt_("udp_port");
-	p->port_ = IUdpPort::create(ina, port);
+	p->udp_ = IUdpPort::create(ina, port);
+	if ( withRssi ) {
+		p->top_ = CRssiPort::create( true );
+		p->top_->attach( p->udp_ );
+	} else {
+		p->top_ = p->udp_;
+	}
 	return p;
 }
 
 void udpPrtDestroy(UdpPrt p)
 {
-	p->port_.reset();
+	p->top_.reset();
+	p->udp_.reset();
 	delete p;
 }
 
@@ -25,7 +33,7 @@ int udpPrtRecv(UdpPrt p, void *hdr, unsigned hsize, void *buf, unsigned size)
 {
 CMtx::lg( &p->mtx_ );
 
-BufChain bc = p->port_->pop( NULL );
+BufChain bc = p->top_->pop( NULL );
 	if ( ! bc )
 		return -1;
 
@@ -48,7 +56,7 @@ unsigned bufsz = bc->getSize();
 int udpPrtIsConn(UdpPrt p)
 {
 CMtx::lg( &p->mtx_ );
-	return p->port_->isConnected();
+	return p->udp_->isConnected();
 }
 
 int udpPrtSend(UdpPrt p, void *hdr, unsigned hsize, void *buf, unsigned size)
@@ -62,5 +70,5 @@ Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
 		bc->insert( hdr, 0, hsize );
 
 	bc->insert(buf, hsize, size);
-	return p->port_->push(bc, NULL) ? hsize + size : -1;
+	return p->top_->push(bc, NULL) ? hsize + size : -1;
 }
