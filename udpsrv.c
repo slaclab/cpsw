@@ -71,7 +71,7 @@ union { uint16_t s; uint8_t c[2]; } u = { .s = 1 };
 
 static void usage(const char *nm)
 {
-	fprintf(stderr, "usage: %s -a <inet_addr> -P <V2 port> [-s <stream_port>] [-f <n_frags>] [-L <loss_percent>] [-S <depth> ] [-V <protoVersion>]\n", nm);
+	fprintf(stderr, "usage: %s -a <inet_addr> -P <V2 port> [-s <stream_port>] [-f <n_frags>] [-L <loss_percent>] [-S <depth> ] [-V <protoVersion>] [-R]\n", nm);
 	fprintf(stderr, "        -P          : port where V2 SRP server is listening (-1 for none)\n");
 	fprintf(stderr, "        -p          : port where V1 SRP server is listening (-1 for none)\n");
 #ifdef DEBUG
@@ -79,6 +79,7 @@ static void usage(const char *nm)
 #endif
 	fprintf(stderr, "        -S <depth>  : scramble packet order (arg is ld2(scramble-length))\n");
 	fprintf(stderr, "        -L <percent>: lose/drop <percent> packets\n");
+	fprintf(stderr, "        -R          : enable RSSI\n");
 	fprintf(stderr, " Defaults: -a %s -P %d -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, V2PORT_DEF, V1PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
 }
 
@@ -470,6 +471,7 @@ pthread_t poller_tid, fragger_tid, srp_tid;
 int    have_poller  = 0;
 int    have_fragger = 0;
 int    have_srp     = 0;
+int    rssi         = WITHOUT_RSSI;
 
 struct streamer_args *s_arg   = 0;
 struct srp_args      *srp_arg = 0;
@@ -479,7 +481,7 @@ struct srp_args       arg;
 
 	signal( SIGINT, sh );
 
-	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:R")) > 0 ) {
 		i_a = 0;
 		switch ( opt ) {
 			case 'h': usage(argv[0]); return 0;
@@ -491,6 +493,7 @@ struct srp_args       arg;
 			case 'f': i_a = &n_frags;  break;
 			case 'L': i_a = &sim_loss; break;
 			case 'S': i_a = &scramble; break;
+			case 'R': rssi = WITH_RSSI;break;
 			default:
 				fprintf(stderr, "unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -527,7 +530,7 @@ struct srp_args       arg;
 			fprintf(stderr,"No Memory\n");
 			goto bail;
 		}
-		s_arg->port                 = udpPrtCreate( ina, sport, WITHOUT_RSSI );
+		s_arg->port                 = udpPrtCreate( ina, sport, rssi );
 		s_arg->sim_loss             = sim_loss;
 		s_arg->n_frags              = n_frags;
 		s_arg->scramble             = scramble;
@@ -554,7 +557,7 @@ struct srp_args       arg;
 			fprintf(stderr,"No Memory\n");
 			goto bail;
 		}
-		srp_arg->port     = udpPrtCreate( ina, v1port, WITH_RSSI );
+		srp_arg->port     = udpPrtCreate( ina, v1port, rssi );
 		srp_arg->v1       = 1;
 		srp_arg->sim_loss = sim_loss;
 
@@ -566,7 +569,7 @@ struct srp_args       arg;
 	}
 
 	if ( v1port >= 0 || v2port >= 0 ) {
-		arg.port     = udpPrtCreate( ina, ((arg.v1 = v2port < 0) ? v1port : v2port), WITH_RSSI ); 
+		arg.port     = udpPrtCreate( ina, ((arg.v1 = v2port < 0) ? v1port : v2port), rssi ); 
 		arg.sim_loss = sim_loss;
 	
 		rval = (uintptr_t)srpHandler( &arg );
