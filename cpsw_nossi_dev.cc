@@ -22,7 +22,7 @@ struct Mutex {
 	recursive_mutex m;
 };
 
-//#define NOSSI_DEBUG
+#define NOSSI_DEBUG
 //#define TIMEOUT_DEBUG
 
 #define MAXWORDS 256
@@ -44,7 +44,6 @@ CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion versio
 ProtoPortMatchParams cmp;
 ProtoModSRPMux       srpMuxMod;
 ProtoPort            srpPort;
-ProtoModRssi         rssiMod( CProtoModRssi::create() );
 NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
 int                  nbits;
 
@@ -64,11 +63,19 @@ int                  nbits;
 		dst.sin_port        = htons( dport );
 		dst.sin_addr.s_addr = owner->getIpAddress();
 
-		ProtoModUdp    udpMod = CShObj::create< ProtoModUdp >( &dst, 0/* no queue */, 1 /* nThreads */, 0 /* no poller */ );
+		// Note: UDP module MUST have a queue if RSSI is used
+		ProtoModUdp    udpMod( CShObj::create< ProtoModUdp >( &dst, 10/* queue */, 1 /* nThreads */, 0 /* no poller */ ) );
 
 		srpMuxMod = CShObj::create< ProtoModSRPMux >( version );
 
-		udpMod->addAtPort( srpMuxMod );
+		if ( true  ) {
+	rssi_debug = 5;
+			ProtoModRssi   rssiMod( CProtoModRssi::create() );
+			udpMod->addAtPort( rssiMod );
+			rssiMod->addAtPort( srpMuxMod );
+		} else {
+			udpMod->addAtPort( srpMuxMod );
+		}
 	}
 
 	protoStack_ = srpMuxMod->createPort( vc );

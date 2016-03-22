@@ -97,7 +97,9 @@ public:
 
 	virtual IEventSource *getReadEventSource()             = 0;
 
-	virtual void attach(ProtoPort upstream)                     = 0;
+	virtual ProtoPort     getUpstreamPort()                = 0;
+
+	virtual void attach(ProtoPort upstream)                = 0;
 
 	virtual bool push(BufChain, const CTimeout *)          = 0;
 	virtual bool tryPush(BufChain)                         = 0;
@@ -105,6 +107,7 @@ public:
 	virtual ~IProtoPort() {}
 
 	virtual void start()                                   = 0;
+	virtual void stop()                                    = 0;
 
 	static ProtoPort create(bool isServer_);
 };
@@ -117,11 +120,6 @@ public:
 	virtual BufChain pop(const CTimeout *)       = 0;
 	virtual BufChain tryPop()                    = 0;
 
-	virtual IEventSource *getReadEventSource()
-	{
-		return NULL;
-	}
-
 	virtual void attach(ProtoPort upstream)
 	{
 		throw InternalError("This must be a 'top' port");
@@ -131,9 +129,6 @@ public:
 	virtual bool tryPush(BufChain)                = 0;
 
 	virtual unsigned isConnected()                = 0;
-
-
-	virtual void start()                          = 0;
 
 	virtual ~IUdpPort() {}
 

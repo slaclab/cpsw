@@ -121,7 +121,7 @@ public:
 
 	CProtoModUdp(CProtoModUdp &orig, Key &k);
 
-	virtual const char *getName() const { return "UDP"; }
+	virtual const char *getName()  const { return "UDP"; }
 
 	virtual unsigned getDestPort() const { return ntohs( dest_.sin_port ); }
 

@@ -534,8 +534,6 @@ protected:
 
 	virtual void changeState(STATE *newState);
 
-	virtual void start() { threadStart(); }
-
 };
 
 #endif

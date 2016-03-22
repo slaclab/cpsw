@@ -11,7 +11,9 @@ struct UdpPrt_ {
 
 UdpPrt udpPrtCreate(const char *ina, unsigned port, int withRssi)
 {
-UdpPrt p = new UdpPrt_("udp_port");
+ProtoPort  prt;
+UdpPrt     p = new UdpPrt_("udp_port");
+
 	p->udp_ = IUdpPort::create(ina, port);
 	if ( withRssi ) {
 		p->top_ = CRssiPort::create( true );
@@ -19,11 +21,18 @@ UdpPrt p = new UdpPrt_("udp_port");
 	} else {
 		p->top_ = p->udp_;
 	}
+	for ( prt = p->top_; prt; prt = prt->getUpstreamPort() )
+		prt->start();
+
 	return p;
 }
 
 void udpPrtDestroy(UdpPrt p)
 {
+ProtoPort  prt;
+	for ( prt = p->top_; prt; prt = prt->getUpstreamPort() )
+		prt->stop();
+
 	p->top_.reset();
 	p->udp_.reset();
 	delete p;

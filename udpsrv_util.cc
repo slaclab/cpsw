@@ -541,7 +541,15 @@ public:
 		q_ = IBufQueue::create( depth_ );
 	}
 
-	virtual IEventSource *getReadEventSource()        { return q_->getReadEventSource(); }
+	virtual ProtoPort getUpstreamPort()
+	{
+		return ProtoPort();
+	}
+
+	virtual IEventSource *getReadEventSource()
+	{
+		return q_->getReadEventSource();
+	}
 
 	virtual BufChain pop(const CTimeout *to)
 	{
@@ -553,7 +561,13 @@ public:
 		return q_->tryPop();
 	}
 
-	virtual void start() {}
+	virtual void start()
+	{
+	}
+
+	virtual void stop()
+	{
+	}
 
 	virtual void handle(IIntEventSource *event_source)
 	{
@@ -706,13 +720,14 @@ private:
 public:
 	CSink(const char *name) : CRunnable(name), name_(name)        {}
 
+	virtual ProtoPort getUpstreamPort() { return upstream_; }
+
 	virtual BufChain pop(const CTimeout *to)          { throw InternalError("cannot pop from sink"); }
 	virtual BufChain tryPop()                         { throw InternalError("cannot pop from sink"); }
 
 	virtual bool checkForReadEvent() { return false; }
 
-	// FIXME -- this still sucks...
-	virtual void attach(ProtoPort upstream)                { upstream_ = upstream;                    }
+	virtual void attach(ProtoPort upstream)           { upstream_ = upstream;                    }
 	virtual bool push(BufChain b, const CTimeout *to) { return upstream_->push( b, to );         }
 	virtual bool tryPush(BufChain b)                  { return upstream_->tryPush( b );          }
 
@@ -748,6 +763,7 @@ public:
 	}
 
 	virtual void start() { threadStart(); }
+	virtual void stop()  { threadStop();  }
 
 	virtual ~CSink()
 	{
@@ -781,13 +797,17 @@ public:
 	}
 };
 
-class CUdpPort : public IUdpPort {
+class CUdpPort : public IUdpPort, public CRunnable {
 private:
 	SD                 sd_;
 	struct sockaddr_in peer_;
+	BufQueue           outQ_;
+	BufQueue           inpQ_;
 
 public:
 	CUdpPort(const char *ina, unsigned port)
+	: CRunnable("UDP RX"),
+	  outQ_( IBufQueue::create(4) )
 	{
 	struct sockaddr_in sin;
 
@@ -801,25 +821,14 @@ public:
 			throw InternalError("Unable to bind",errno);
 	}
 
+	virtual ProtoPort getUpstreamPort()
+	{
+		return ProtoPort();
+	}
+
 	virtual BufChain pop(const CTimeout *to)
 	{
-	int got;
-		if ( to )
-			throw InternalError("Not Implemented");
-
-		BufChain bc = IBufChain::create();
-		Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
-
-		b->setPayload( NULL );
-
-		socklen_t sz = sizeof(peer_);
-
-		if ( (got = ::recvfrom(sd_.get(), b->getPayload(), b->getCapacity(), 0, (struct sockaddr*)&peer_, &sz)) < 0 )
-			return BufChain();
-
-		b->setSize( got );
-
-		return bc;
+		return outQ_->pop( to );
 	}
 
 	unsigned isConnected()
@@ -829,12 +838,12 @@ public:
 
 	virtual BufChain tryPop()
 	{
-		throw InternalError("Not Implemented");
+		return outQ_->tryPop();
 	}
 
 	virtual IEventSource *getReadEventSource()
 	{
-		return NULL;
+		return outQ_->getReadEventSource();
 	}
 
 	virtual void attach(ProtoPort upstream)
@@ -842,9 +851,11 @@ public:
 		throw InternalError("This must be a 'top' port");
 	}
 
-	virtual bool push(BufChain bc, const CTimeout *to)
+	virtual bool doPush(BufChain bc, bool wait, const CTimeout *to)
 	{
 	int put;
+	int flgs = wait ? 0 : MSG_DONTWAIT;
+
 		if ( to ) 
 			throw InternalError("Not implemented");
 
@@ -853,19 +864,55 @@ public:
 
 		Buf b = bc->getHead();
 		
-		if ( (put = ::sendto(sd_.get(), b->getPayload(), b->getSize(), 0, (struct sockaddr*)&peer_, sizeof(peer_))) < 0 )
+		if ( (put = ::sendto(sd_.get(), b->getPayload(), b->getSize(), flgs, (struct sockaddr*)&peer_, sizeof(peer_))) < 0 )
 			return false;
 
 		return true;
 	}
 
-	virtual bool tryPush(BufChain)
+	virtual bool push(BufChain bc, const CTimeout *to)
 	{
-		throw InternalError("Not implemented");
+		return doPush(bc, true, to);
 	}
 
-	virtual void start() { /* synchronous for now */ }
+	virtual void *threadBody()
+	{
+	int got;
 
+		while ( 1 ) {
+
+			BufChain bc = IBufChain::create();
+			Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
+
+			b->setPayload( NULL );
+
+			socklen_t sz = sizeof(peer_);
+
+			if ( (got = ::recvfrom(sd_.get(), b->getPayload(), b->getCapacity(), 0, (struct sockaddr*)&peer_, &sz)) < 0 )
+				throw InternalError("recvfrom failed", errno);
+
+			b->setSize( got );
+
+			outQ_->tryPush( bc );
+		}
+
+		return NULL;
+	}
+
+	virtual bool tryPush(BufChain bc)
+	{
+		return doPush(bc, false, NULL);
+	}
+
+	virtual void start()
+	{
+		threadStart();
+	}
+
+	virtual void stop()
+	{
+		threadStop();
+	}
 };
 
 UdpPort IUdpPort::create(const char *ina, unsigned port)

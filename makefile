@@ -111,10 +111,13 @@ cpsw_srpmux_tst_SRCS     = cpsw_srpmux_tst.cc
 cpsw_srpmux_tst_LIBS     = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_srpmux_tst
 
-cpsw_enum_tst_SRCS     = cpsw_enum_tst.cc
-cpsw_enum_tst_LIBS     = $(CPSW_LIBS)
+cpsw_enum_tst_SRCS       = cpsw_enum_tst.cc
+cpsw_enum_tst_LIBS       = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_enum_tst
 
+rssi_tst_SRCS            = rssi_tst.cc udpsrv_port.cc udpsrv_util.cc
+rssi_tst_LIBS            = $(CPSW_LIBS)
+TESTPROGRAMS            += rssi_tst
 
 TEST_AXIV_YES=
 TEST_AXIV_NO=cpsw_axiv_udp_tst

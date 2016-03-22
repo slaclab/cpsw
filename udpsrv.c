@@ -430,7 +430,7 @@ printf("got %d, exp %d\n", got, expected);
 
 		bsize = (size + 3) * 4;
 
-		if ( udpPrtSend( port, &header, hsize, rbuf, bsize ) < 0 ) {
+		if ( (put = udpPrtSend( port, &header, hsize, rbuf, bsize )) < 0 ) {
 			perror("unable to send");
 			goto bail;
 		}
@@ -442,8 +442,6 @@ printf("got %d, exp %d\n", got, expected);
 
 	rval = 0;
 bail:
-	if ( port )
-		udpPrtDestroy( port );
 	return (void*)rval;
 }
 
@@ -475,7 +473,9 @@ int    have_srp     = 0;
 
 struct streamer_args *s_arg   = 0;
 struct srp_args      *srp_arg = 0;
+struct srp_args       arg;
 
+	arg.port = NULL;
 
 	signal( SIGINT, sh );
 
@@ -554,7 +554,7 @@ struct srp_args      *srp_arg = 0;
 			fprintf(stderr,"No Memory\n");
 			goto bail;
 		}
-		srp_arg->port     = udpPrtCreate( ina, v1port, WITHOUT_RSSI );
+		srp_arg->port     = udpPrtCreate( ina, v1port, WITH_RSSI );
 		srp_arg->v1       = 1;
 		srp_arg->sim_loss = sim_loss;
 
@@ -566,8 +566,7 @@ struct srp_args      *srp_arg = 0;
 	}
 
 	if ( v1port >= 0 || v2port >= 0 ) {
-		srp_args arg;
-		arg.port     = udpPrtCreate( ina, ((arg.v1 = v2port < 0) ? v1port : v2port), WITHOUT_RSSI ); 
+		arg.port     = udpPrtCreate( ina, ((arg.v1 = v2port < 0) ? v1port : v2port), WITH_RSSI ); 
 		arg.sim_loss = sim_loss;
 	
 		rval = (uintptr_t)srpHandler( &arg );
@@ -601,5 +600,7 @@ bail:
 		udpPrtDestroy( srp_arg->port );
 		free( srp_arg );
 	}
+	if ( arg.port )
+		udpPrtDestroy( arg.port );
 	return rval;
 }

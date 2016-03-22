@@ -73,6 +73,11 @@ public:
 
 	virtual CProtoModSRPMux *clone(Key k) { return new CProtoModSRPMux( *this, k ); }
 
+	virtual const char *getName() const
+	{
+		return "SRP VC Demux";
+	}
+
 	virtual ~CProtoModSRPMux()
 	{
 	}

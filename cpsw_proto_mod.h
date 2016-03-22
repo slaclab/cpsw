@@ -79,6 +79,8 @@ public:
 	virtual ProtoMod  getProtoMod()                       = 0;
 	virtual ProtoPort getUpstreamPort()                   = 0;
 
+	virtual void      addAtPort(ProtoMod downstreamMod)   = 0;
+
 	virtual IEventSource *getReadEventSource()            = 0;
 
 	virtual CTimeout  getAbsTimeoutPop (const CTimeout *) = 0;
@@ -102,6 +104,8 @@ public:
 
 	virtual void modStartup()                          = 0;
 	virtual void modShutdown()                         = 0;
+
+	virtual const char *getName() const                = 0;
 
 	virtual ~IProtoMod() {}
 };
@@ -341,7 +345,6 @@ public:
 
 
 public:
-	virtual const char *getName() const = 0;
 
 	virtual ProtoMod getProtoMod()
 	{
