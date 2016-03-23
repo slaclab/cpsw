@@ -33,6 +33,19 @@ void CRssi::STATE::processNulTimeout(CRssi *context)
 	throw InternalError("NULTimeout unexpected in this state");
 }
 
+void CRssi::STATE::shutdown(CRssi *context)
+{
+}
+
+void CRssi::LISTEN::shutdown(CRssi *context)
+{
+}
+
+void CRssi::NOTCLOSED::shutdown(CRssi *context)
+{
+	context->sendRST();
+}
+
 void CRssi::CLOSED::advance(CRssi *context)
 {
 	context->close();
@@ -354,6 +367,7 @@ bool CRssi::CLNT_WAIT_SYN_ACK::handleSYN(CRssi *context, RssiSynHeader &synHdr)
 		if (  ! (RssiHeader::FLG_ACK & synHdr.getFlags()) ) {
 			// another client is trying to contact us;
 			fprintf(stderr,"Another client is trying to open a connection to US\n");
+			context->sendRST();
 			context->changeState( &context->stateCLOSED );
 			return false;
 		}
@@ -401,6 +415,7 @@ bool CRssi::WAIT_SYN::handleOTH(CRssi *context, RssiHeader &hdr, bool hasPayload
 {
 	// dont' accept other headers except RST
 	if ( (hdr.getFlags() & RssiHeader::FLG_RST) && context->unOrderedSegs_.canAccept( hdr.getSeqNo() ) && ! hasPayload ) {
+		context->sendRST();
 		context->changeState( &context->stateCLOSED );
 		return true;
 	}
@@ -420,6 +435,7 @@ void CRssi::NOTCLOSED::processRetransmissionTimeout(CRssi *context)
 	if ( ++context->numRex_ > context->rexMX_ ) {
 		fprintf(stderr,"%s: Connection Failed (max retransmissions exceeded)\n", getName());
 		context->stats_.connFailed_++;
+		context->sendRST();
 		context->changeState( &context->stateCLOSED );
 		return;
 	}
@@ -446,6 +462,7 @@ void CRssi::OPEN::processNulTimeout(CRssi *context)
 {
 	if ( context->isServer_ ) {
 		context->stats_.connFailed_++;
+		context->sendRST();
 		context->changeState( &context->stateCLOSED );
 		fprintf(stderr,"%s: connection failed: server side closing! (state %s)\n", context->getName(), getName());
 	} else {

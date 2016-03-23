@@ -345,6 +345,8 @@ protected:
 		virtual void processAckTimeout(CRssi *context);
 		virtual void processNulTimeout(CRssi *context);
 
+		virtual void shutdown(CRssi *context);
+
 		virtual void advance(CRssi *context) = 0;
 	};
 
@@ -366,6 +368,7 @@ protected:
 		virtual BufChain  hasBufToSend(CRssi *context);
 		        void advance(CRssi *context, bool checkTimer);
 		virtual void advance(CRssi *context);
+		virtual void shutdown(CRssi *context);
 	};
 	friend class NOTCLOSED;
 
@@ -390,6 +393,7 @@ protected:
 		LISTEN():WAIT_SYN("LISTEN") {}
 		virtual bool handleSYN(CRssi *context, RssiSynHeader &hdr);
 		virtual void advance(CRssi *context);
+		virtual void shutdown(CRssi *context);
 	};
 	friend class LISTEN;
 
@@ -475,6 +479,7 @@ protected:
 	void sendSYN(bool do_ack);
 	void sendACK();
 	bool sendNUL();
+	void sendRST();
 	void sendDAT(BufChain);
 
 	struct {
@@ -533,6 +538,8 @@ protected:
 	virtual void * threadBody();
 
 	virtual void changeState(STATE *newState);
+
+	virtual bool threadStop();
 
 };
 

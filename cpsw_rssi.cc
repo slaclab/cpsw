@@ -273,6 +273,29 @@ fprintf(stderr,"%s: sent ACKONLY %d\n", getName(), lastSeqSent_);
 #endif
 }
 
+void CRssi::sendRST()
+{
+BufChain   bc = IBufChain::create();
+Buf        b  = bc->createAtHead( IBuf::CAPA_ETH_HDR );
+RssiHeader hdr( b->getPayload(), b->getCapacity(), false, RssiHeader::SET );
+
+	hdr.setFlags( RssiHeader::FLG_ACK | RssiHeader::FLG_RST );
+	hdr.setSeqNo( lastSeqSent_ );
+
+	b->setSize( hdr.getHSize() );
+
+	// RST is never retransmitted
+	sendBuf( bc, false );
+
+#ifdef RSSI_DEBUG
+if ( rssi_debug > 1 )
+{
+fprintf(stderr,"%s: sent RESET %d\n", getName(), lastSeqSent_);
+}
+#endif
+}
+
+
 bool CRssi::sendNUL()
 {
 	// can only send if we have slots in our outgoing window
@@ -407,7 +430,9 @@ if ( rssi_debug > 1 )
 
 CRssi::~CRssi()
 {
+/* derived class has to call this
 	threadStop();
+ */
 }
 
 void CRssi::dumpStats(FILE *f)
@@ -445,4 +470,16 @@ BufChain bc;
 #endif
 		++it;
 	}
+}
+
+bool CRssi::threadStop()
+{
+bool rval;
+
+	rval = CRunnable::threadStop();
+	state_->shutdown( this );
+	close();
+	state_ = &stateCLOSED;
+
+	return rval;
 }
