@@ -684,6 +684,7 @@ unsigned     off;
 	off = old_pld - b->getPayload();
 	b->setPayload(old_pld);
 
+	rb->setPayload( NULL );
 	rb->setPayload( rb->getPayload() + off );
 	rb->setSize( b->getSize() );
 	memcpy(rb->getPayload(), b->getPayload(), b->getSize());
