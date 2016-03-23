@@ -285,7 +285,7 @@ public:
 	virtual void     addAtHead(Buf)      { throw InternalError("Not Implemented"); }
 	virtual void     addAtTail(Buf)      { throw InternalError("Not Implemented"); }
 	virtual size_t   getAvail()          { throw InternalError("Not Implemented"); }
-	virtual size_t   getHeadroom()       { throw InternalError("Not Implemented"); }
+	virtual size_t   getHeadroom()       { return off_;                            }
 	virtual bool     adjPayload(ssize_t) { throw InternalError("Not Implemented"); }
 	virtual void     reinit()            { throw InternalError("Not Implemented"); }
 	virtual BufChain getChain()          { throw InternalError("Not Implemented"); }
