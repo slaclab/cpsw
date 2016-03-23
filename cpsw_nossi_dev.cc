@@ -22,12 +22,12 @@ struct Mutex {
 	recursive_mutex m;
 };
 
-#define NOSSI_DEBUG
+//#define NOSSI_DEBUG
 //#define TIMEOUT_DEBUG
 
 #define MAXWORDS 256
 
-CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
+CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi)
 :CCommAddressImpl(k),
  protoVersion_(version),
  dport_(dport),
@@ -68,11 +68,13 @@ int                  nbits;
 
 		srpMuxMod = CShObj::create< ProtoModSRPMux >( version );
 
-		if ( true  ) {
-	rssi_debug = 5;
-			ProtoModRssi   rssiMod( CProtoModRssi::create() );
-			udpMod->addAtPort( rssiMod );
-			rssiMod->addAtPort( srpMuxMod );
+		if ( useRssi ) {
+			rssi_ = CShObj::create<ProtoModRssi>();
+			udpMod->addAtPort( rssi_ );
+			rssi_->addAtPort( srpMuxMod );
+			// FIXME: should find out dynamically what RSSI's retransmission
+			//        timeout is and set the cap to a few times that value
+			dynTimeout_.setTimeoutCap( 50000 ); // 50 ms for now
 		} else {
 			udpMod->addAtPort( srpMuxMod );
 		}
@@ -736,7 +738,7 @@ ProtoPortMatchParams cmp;
 void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc)
 {
 	IAddress::AKey k = getAKey();
-	shared_ptr<CUdpSRPAddressImpl> addr = make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc);
+	shared_ptr<CUdpSRPAddressImpl> addr = make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc, true);
 	add(addr , child );
 	addr->startProtoStack();
 }
@@ -747,7 +749,7 @@ void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs,
 		throw InvalidArgError("Cannot address same destination port from multiple instances");
 	}
 	IAddress::AKey k = getAKey();
-	shared_ptr<CUdpStreamAddressImpl> addr = make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads);
+	shared_ptr<CUdpStreamAddressImpl> addr = make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads, true);
 	add( addr, child );
 	addr->startProtoStack();
 }
@@ -782,9 +784,10 @@ Children::element_type::iterator it;
 	return ProtoPort();
 }
 
-CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads)
+CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi)
 :CCommAddressImpl(key),
- dport_(dport)
+ dport_(dport),
+ useRssi_(useRssi)
 {
 struct sockaddr_in dst;
 NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
@@ -797,7 +800,13 @@ NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
 
 	ProtoModDepack depackMod  = CShObj::create< ProtoModDepack >( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
 
-	udpMod->addAtPort( depackMod );
+	if ( useRssi_ ) {
+		ProtoModRssi   rssiMod    = CShObj::create<ProtoModRssi>();
+		udpMod->addAtPort( rssiMod );
+		rssiMod->addAtPort( depackMod );
+	} else {
+		udpMod->addAtPort( depackMod );
+	}
 
 	protoStack_ = depackMod;
 }
@@ -849,6 +858,11 @@ static const unsigned HEADROOM=32;
 	protoStack_->push( bch, &args->timeout_, IProtoPort::REL_TIMEOUT );
 
 	return rval;
+}
+
+CUdpStreamAddressImpl::~CUdpStreamAddressImpl()
+{
+	shutdownProtoStack();
 }
 
 void CCommAddressImpl::startProtoStack()
