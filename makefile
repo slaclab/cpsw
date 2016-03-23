@@ -51,9 +51,11 @@ DEP_HEADERS += cpsw_proto_mod_rssi.h
 DEP_HEADERS += cpsw_shared_obj.h
 DEP_HEADERS += cpsw_sval.h
 DEP_HEADERS += cpsw_thread.h
+DEP_HEADERS += cpsw_mutex.h
 DEP_HEADERS += crc32-le-tbl-4.h
 DEP_HEADERS += udpsrv_regdefs.h
 DEP_HEADERS += udpsrv_port.h
+DEP_HEADERS += udpsrv_rssi_port.h
 DEP_HEADERS += udpsrv_util.h
 
 STATIC_LIBRARIES+=cpsw
