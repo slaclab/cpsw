@@ -1,6 +1,6 @@
 #include <cpsw_shared_obj.h>
 #include <cpsw_event.h>
-
+#include <cpsw_mutex.h>
 #include <vector>
 
 #include <pthread.h>
@@ -13,72 +13,9 @@ using std::vector;
 using boost::make_shared;
 using boost::weak_ptr;
 
-class CondInitFailed {};
-class CondWaitFailed {};
+class CondInitFailed   {};
+class CondWaitFailed   {};
 class CondSignalFailed {};
-
-class CMtx {
-	pthread_mutex_t m_;
-	const char *nam_;
-
-private:
-	CMtx(const CMtx &);
-	CMtx & operator=(const CMtx&);
-public:
-
-	class lg {
-		private:
-			CMtx *mr_;
-
-			lg operator=(const lg&);
-
-			lg(const lg&);
-
-		public:
-			lg(CMtx *mr)
-			: mr_(mr)
-			{
-				mr_->l();
-			}
-
-			~lg()
-			{
-				mr_->u();
-			}
-
-		friend class CMtx;
-	};
-
-
-	CMtx(const char *nam):nam_(nam)
-	{
-		if ( pthread_mutex_init( &m_, NULL ) ) {
-			throw InternalError("Unable to create mutex", errno);
-		}
-	}
-
-	~CMtx()
-	{
-		pthread_mutex_destroy( &m_ );
-	}
-
-	void l() 
-	{
-		if ( pthread_mutex_lock( &m_ ) ) {
-			throw InternalError("Unable to lock mutex");
-		}
-	}
-
-	void u()
-	{
-		if ( pthread_mutex_unlock( &m_ ) ) {
-			throw InternalError("Unable to unlock mutex");
-		}
-	}
-
-	pthread_mutex_t *getp() { return &m_; }
-};
-
 
 class CCond {
 private:

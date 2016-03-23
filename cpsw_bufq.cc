@@ -1,6 +1,7 @@
 #include <cpsw_error.h>
 #include <cpsw_buf.h>
 #include <cpsw_event.h>
+#include <cpsw_mutex.h>
 
 #include <errno.h>
 
@@ -145,6 +146,8 @@ private:
 	IBufSync     *rd_sync_;
 	IBufSync     *wr_sync_;
 
+	CMtx          mtx_;
+
 	CBufQueue & operator=(const CBufQueue &orig); // must not assign
 	CBufQueue(const CBufQueue &orig);             // must not copy
 
@@ -226,7 +229,8 @@ CBufQueue::CBufQueue(size_type n)
   rd_sync_impl_(0),
   wr_sync_impl_(n),
   rd_sync_( &rd_sync_impl_ ),
-  wr_sync_( &wr_sync_impl_ )
+  wr_sync_( &wr_sync_impl_ ),
+  mtx_( "CBufQueue" )
 {
 }
 
@@ -247,6 +251,8 @@ void CBufQueue::shutdown()
 {
 unsigned   wi;
 
+CMtx::lg guard( &mtx_ );
+
 	if ( ! isUp_ )
 		return;
 
@@ -266,6 +272,8 @@ unsigned   wi;
 void CBufQueue::startup()
 {
 unsigned i;
+
+CMtx::lg guard( &mtx_ );
 
 	if ( isUp_ )
 		return;
