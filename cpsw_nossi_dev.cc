@@ -399,6 +399,42 @@ unsigned sbytes = args->nbytes_;
 	return rval;
 }
 
+static BufChain assembleXBuf(struct iovec *iov, unsigned iovlen, int iov_pld, int toput)
+{
+BufChain xchn   = IBufChain::create();
+
+unsigned bufoff = 0, i;
+int      j;
+
+	for ( i=0; i<iovlen; i++ ) {
+		xchn->insert(iov[i].iov_base, bufoff, iov[i].iov_len);
+		bufoff += iov[i].iov_len;
+	}
+
+	if ( iov_pld >= 0 ) {
+		bufoff = 0;
+		for ( j=0; j<iov_pld; j++ )
+			bufoff += iov[j].iov_len;
+		Buf b = xchn->getHead();
+		while ( b && bufoff >= b->getSize() ) {
+			bufoff -= b->getSize();
+			b = b->getNext();
+		}
+		j = 0;
+		while ( b && j < toput ) {
+			if ( bufoff + sizeof(SRPWord) <= b->getSize() ) {
+				swpw( b->getPayload() + bufoff );
+				bufoff += sizeof(SRPWord);
+				j      += sizeof(SRPWord);
+			} else {
+				bufoff = 0;
+				b = b->getNext();
+			}
+		}
+	}
+
+	return xchn;
+}
 
 uint64_t CUdpSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
@@ -551,42 +587,14 @@ struct timespec retry_then;
 	iov[i].iov_len  = sizeof(SRPWord);
 	i++;
 
-	// keep buffer chain around for retransmissions...
-	BufChain xchn   = IBufChain::create();
-
-	unsigned bufoff = 0;
-	unsigned iovlen  = i;
 	unsigned attempt = 0;
 	uint32_t got_tid;
-
-	for ( i=0; i<iovlen; i++ ) {
-		xchn->insert(iov[i].iov_base, bufoff, iov[i].iov_len);
-		bufoff += iov[i].iov_len;
-	}
-
-	if ( iov_pld >= 0 ) {
-		bufoff = 0;
-		for ( j=0; j<iov_pld; j++ )
-			bufoff += iov[j].iov_len;
-		Buf b = xchn->getHead();
-		while ( b && bufoff >= b->getSize() ) {
-			bufoff -= b->getSize();
-			b = b->getNext();
-		}
-		j = 0;
-		while ( b && j < toput ) {
-			if ( bufoff + sizeof(SRPWord) <= b->getSize() ) {
-				swpw( b->getPayload() + bufoff );
-				bufoff += sizeof(SRPWord);
-				j      += sizeof(SRPWord);
-			} else {
-				bufoff = 0;
-				b = b->getNext();
-			}
-		}
-	}
+	unsigned iovlen  = i;
 
 	do {
+
+		BufChain xchn = assembleXBuf(iov, iovlen, iov_pld, toput);
+
 		int     bufsz = (nWords + 3)*sizeof(SRPWord);
 		if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
 			bufsz += sizeof(SRPWord);
