@@ -369,7 +369,6 @@ CFreeList<CBufImpl> *flp = &freeListBig;
 		if ( clip ) {
 			capa = maxcap;
 		} else {
-fprintf(stderr,"Requested: %ld, maxcap %d\n", capa, maxcap);
 			throw InternalError("ATM all buffers are std. MTU size");
 		}
 	}
