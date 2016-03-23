@@ -421,8 +421,6 @@ void CRssi::NOTCLOSED::processRetransmissionTimeout(CRssi *context)
 		fprintf(stderr,"%s: Connection Failed (max retransmissions exceeded)\n", getName());
 		context->stats_.connFailed_++;
 		context->changeState( &context->stateCLOSED );
-// FIXME
-exit(1);
 		return;
 	}
 
