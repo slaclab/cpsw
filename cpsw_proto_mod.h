@@ -98,8 +98,6 @@ public:
 	virtual ProtoPort getUpstreamPort()                = 0;
 	virtual ProtoMod  getUpstreamProtoMod()            = 0;
 
-	virtual bool pushDown(BufChain, const CTimeout *rel_timeout) = 0;
-
 	virtual void dumpInfo(FILE *)                      = 0;
 
 	virtual void modStartup()                          = 0;
@@ -196,7 +194,7 @@ public:
 				return outputQueue_->push( bc, &abst );
 			}
 		} else {
-			return ProtoMod( downstream_ )->pushDown( bc, rel_timeout );
+			throw InternalError("cannot push downstream without a queue");
 		}
 	}
 	// getAbsTimeout is not a member of the CTimeout class:
