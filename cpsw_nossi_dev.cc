@@ -1,5 +1,5 @@
-#include <cpsw_nossi_dev.h>
 #define __STDC_FORMAT_MACROS
+#include <cpsw_nossi_dev.h>
 #include <inttypes.h>
 
 #include <cpsw_proto_mod_depack.h>
