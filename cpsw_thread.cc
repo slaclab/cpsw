@@ -24,10 +24,12 @@ fprintf(stderr,"Starting up '%s'\n", me->getName().c_str());
 void CRunnable::threadStart()
 {
 int err;
-	if ( (err = pthread_create( &tid_, NULL, wrapper, this )) ) {
-		throw InternalError("ERROR -- pthread_create", err);
+	if ( ! started_ ) {
+		if ( (err = pthread_create( &tid_, NULL, wrapper, this )) ) {
+			throw InternalError("ERROR -- pthread_create", err);
+		}
+		started_ = true;
 	}
-	started_ = true;
 }
 
 void * CRunnable::threadJoin()
