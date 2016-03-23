@@ -263,7 +263,7 @@ CMtx::lg guard( &mtx_ );
 		// eat up writer slots
 		while ( wr_sync_->getSlot( false, NULL ) )
 			wi++;
-		// don't use tryPop() here because 
+		// don't use tryPop() here because
 		while ( tryPop() )
 			;
 	}
