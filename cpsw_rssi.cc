@@ -36,7 +36,7 @@ CRssi::CRssi(bool isServer)
   outQ_    ( IBufQueue::create( OQ_DEPTH ) ),
   inpQ_    ( IBufQueue::create( IQ_DEPTH ) ),
 
-  sss_( &stateCLOSED ),
+  state_( &stateCLOSED ),
   timerUnits_( UNIT_US ),
   unAckedSegs_( LD_MAX_UNACKED_SEGS ),
   unOrderedSegs_( LD_MAX_UNACKED_SEGS, MAX_UNACKED_SEGS )
@@ -86,10 +86,10 @@ void CRssi::handleRxEvent(IIntEventSource *src)
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 2 )
 {
-fprintf(stderr,"%s: RX Event (state %s)\n", getName(), sss_->getName());
+fprintf(stderr,"%s: RX Event (state %s)\n", getName(), state_->getName());
 }
 #endif
-	sss_->handleRxEvent(this, src);
+	state_->handleRxEvent(this, src);
 }
 
 void CRssi::handleUsrInputEvent(IIntEventSource *src)
@@ -97,10 +97,10 @@ void CRssi::handleUsrInputEvent(IIntEventSource *src)
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 2 )
 {
-fprintf(stderr,"%s: USR Input Event (state %s)\n", getName(), sss_->getName());
+fprintf(stderr,"%s: USR Input Event (state %s)\n", getName(), state_->getName());
 }
 #endif
-	sss_->handleUsrInputEvent(this, src);
+	state_->handleUsrInputEvent(this, src);
 }
 
 void CRssi::handleUsrOutputEvent(IIntEventSource *src)
@@ -108,10 +108,10 @@ void CRssi::handleUsrOutputEvent(IIntEventSource *src)
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 2 )
 {
-fprintf(stderr,"%s: USR Output Event (state %s)\n", getName(), sss_->getName());
+fprintf(stderr,"%s: USR Output Event (state %s)\n", getName(), state_->getName());
 }
 #endif
-	sss_->handleUsrOutputEvent(this, src);
+	state_->handleUsrOutputEvent(this, src);
 }
 
 void CRssi::close()
@@ -175,7 +175,7 @@ if ( rssi_debug > 0 )
 {
 fprintf(stderr,"tX: %s -- ", getName());
 hdr.dump( stderr, b->getSize() > hdr.getHSize() ? 1 : 0 );
-fprintf(stderr," (state %s) %s", sss_->getName(), retrans ? "REX" : "");
+fprintf(stderr," (state %s) %s", state_->getName(), retrans ? "REX" : "");
 }
 #endif
 
@@ -214,7 +214,7 @@ void CRssi::armRexAndNulTimer()
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 2 )
 {
-fprintf(stderr,"%s: REX timer armed (state %s)\n", getName(), sss_->getName());
+fprintf(stderr,"%s: REX timer armed (state %s)\n", getName(), state_->getName());
 }
 #endif
 		}
@@ -224,7 +224,7 @@ fprintf(stderr,"%s: REX timer armed (state %s)\n", getName(), sss_->getName());
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 2 )
 {
-fprintf(stderr,"%s: NUL timer armed (state %s)\n", getName(), sss_->getName());
+fprintf(stderr,"%s: NUL timer armed (state %s)\n", getName(), state_->getName());
 }
 #endif
 		}
@@ -357,7 +357,7 @@ if ( rssi_debug > 2 )
 fprintf(stderr,"%s: RexTimer expired\n", getName());
 }
 #endif
-	sss_->processRetransmissionTimeout( this );
+	state_->processRetransmissionTimeout( this );
 }
 
 void CRssi::processAckTimeout()
@@ -369,7 +369,7 @@ if ( rssi_debug > 2 )
 fprintf(stderr,"%s: AckTimer expired\n", getName());
 }
 #endif
-	sss_->processAckTimeout( this );
+	state_->processAckTimeout( this );
 }
 
 void CRssi::processNulTimeout()
@@ -381,14 +381,14 @@ if ( rssi_debug > 2 )
 fprintf(stderr,"%s: NulTimer expired\n", getName());
 }
 #endif
-	sss_->processNulTimeout( this );
+	state_->processNulTimeout( this );
 }
 
 void * CRssi::threadBody()
 {
 
 	while ( 1 ) {
-		sss_->advance( this );
+		state_->advance( this );
 	}
 
 	return NULL;
@@ -399,10 +399,10 @@ void CRssi::changeState(STATE *newState)
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 1 )
 {
-	fprintf(stderr,"%s: Scheduling state change %s ==> %s\n", getName(), sss_->getName(), newState->getName());
+	fprintf(stderr,"%s: Scheduling state change %s ==> %s\n", getName(), state_->getName(), newState->getName());
 }
 #endif
-	sss_ = newState;
+	state_ = newState;
 }
 
 CRssi::~CRssi()

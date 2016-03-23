@@ -438,7 +438,7 @@ protected:
 	OPEN              stateOPEN;
 	OPEN_OUTWIN_FULL  stateOPEN_OUTWIN_FULL;
 
-	STATE *sss_;
+	STATE *state_;
 
 	bool  verifyChecksum_;
 	bool  addChecksum_;
