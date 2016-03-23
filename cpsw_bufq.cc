@@ -245,20 +245,21 @@ CBufQueue::~CBufQueue()
 
 void CBufQueue::shutdown()
 {
-unsigned i;
+unsigned   wi;
 
 	if ( ! isUp_ )
 		return;
 
 	isUp_ = false;
 
-	i = 0;
-	while ( i < n_ ) {
+	wi = 0;
+	while ( wi < n_ ) {
 		// eat up writer slots
-		while ( i < n_ && wr_sync_->getSlot( false, NULL ) )
-			i++;
-		while ( i < n_ && tryPop() )
-			i++;
+		while ( wr_sync_->getSlot( false, NULL ) )
+			wi++;
+		// don't use tryPop() here because 
+		while ( tryPop() )
+			;
 	}
 }
 
