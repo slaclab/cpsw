@@ -31,6 +31,7 @@ private:
 	CTimeout lastUpdate_;
 	CTimeout dynTimeout_;
 	unsigned nSinceLast_;
+	uint64_t timeoutCap_;
 protected:
 	void  setLastUpdate();
 public:
@@ -44,8 +45,14 @@ public:
 
 	void update(const struct timespec *now, const struct timespec *then);
 
+	void setTimeoutCap(uint64_t cap)
+	{
+		timeoutCap_ = cap;
+	}
+
 	void relax();
 	void reset(const CTimeout &);
+
 };
 
 class CCommAddressImpl : public CAddressImpl {

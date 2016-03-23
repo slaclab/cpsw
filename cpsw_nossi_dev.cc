@@ -865,8 +865,8 @@ void CCommAddressImpl::shutdownProtoStack()
 	}
 }
 
-
 DynTimeout::DynTimeout(const CTimeout &iniv)
+: timeoutCap_( CAP_US )
 {
 	reset( iniv );
 }
@@ -876,7 +876,16 @@ void DynTimeout::setLastUpdate()
 	if ( clock_gettime( CLOCK_MONOTONIC, &lastUpdate_.tv_ ) ) {
 		throw IOError("clock_gettime failed! :", errno);
 	}
+
+	// when the timeout becomes too small then I experienced
+	// some kind of scheduling problem where packets
+	// arrive but not all threads processing them upstream
+	// seem to get CPU time quickly enough.
+	// We mitigate by capping the timeout if that happens.
+
 	uint64_t new_timeout = avgRndTrip_ >> (AVG_SHFT-MARG_SHFT);
+	if ( new_timeout < timeoutCap_ )
+		new_timeout = timeoutCap_;
 	dynTimeout_.set( new_timeout );
 	nSinceLast_ = 0;
 }
@@ -890,7 +899,7 @@ DynTimeout::getAvgRndTrip() const
 void DynTimeout::reset(const CTimeout &iniv)
 {
 	maxRndTrip_.set(0);
-	avgRndTrip_ = iniv.getUs() << AVG_SHFT;
+	avgRndTrip_ = iniv.getUs() << (AVG_SHFT - MARG_SHFT);
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
 	printf("dynTimeout reset to %"PRId64"\n", dynTimeout_.getUs());
@@ -899,19 +908,10 @@ void DynTimeout::reset(const CTimeout &iniv)
 
 void DynTimeout::relax()
 {
-uint64_t timeout_cap = CAP_US<<(AVG_SHFT-MARG_SHFT);
 
 	// increase
 	avgRndTrip_ += (dynTimeout_.getUs()<<1) - (avgRndTrip_ >> AVG_SHFT);
 
-	// when the timeout becomes too small then I experienced
-	// some kind of scheduling problem where packets
-	// arrive but not all threads processing them upstream
-	// seem to get CPU time quickly enough.
-	// We mitigate by capping the timeout if that happens.
-	if ( avgRndTrip_ < timeout_cap ) {
-		avgRndTrip_ = timeout_cap;
-	}
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
 	printf("RETRY (timeout %"PRId64")\n", dynTimeout_.getUs());
