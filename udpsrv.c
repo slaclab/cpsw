@@ -45,7 +45,7 @@
 #define SIMLOSS_DEF 0
 #define NFRAGS_DEF  NFRAGS
 
-// byte swap ? 
+// byte swap ?
 #define bsl(x) (x)
 
 #define BE 1
@@ -129,7 +129,7 @@ int      i;
 	h = mkhdr(fram, frag);
 	for ( i=0; i<HEADSIZE; i++ ) {
 		hbuf[i] = h;
-		h       = h>>8; 
+		h       = h>>8;
 	}
 	return i;
 }
@@ -200,7 +200,7 @@ int           lfram = -1;
 				sa->jam = 100;
 				continue;
 			}
-	
+
 			/* This is for testing the stream-write feature. We don't actually send anything
 			 * meaningful back.
 			 * The test just verifies that the data we receive from the stream writer is
@@ -311,7 +311,7 @@ printf("JAM cleared\n");
 	return 0;
 }
 
-/* in bss; should thus be initialized before 
+/* in bss; should thus be initialized before
  * any of the range constructors are executed
  */
 struct udpsrv_range *udpsrv_ranges = 0;
@@ -363,8 +363,12 @@ UdpPrt port = srp_arg->port;
 		if ( CMD_IS_RD(addr) ) {
 			size = bs32(v1,  rbuf[2] ) + 1;
 			if ( got != expected + 4 /* status word */ ) {
+				int j;
 printf("got %d, exp %d\n", got, expected);
 				fprintf(stderr,"READ command -- got != expected + 4; dropping...\n");
+				for ( j = 0; j<(got+3)/4; j++ )
+					fprintf(stderr,"  0x%08x\n", rbuf[j]);
+
 				continue;
 			}
 		} else {
@@ -416,7 +420,7 @@ printf("got %d, exp %d\n", got, expected);
 			}
 		}
 
-		
+
 #ifdef DEBUG
 		if ( debug && ! range ) {
 			printf("No range matched 0x%08"PRIx32"\n", off);
@@ -569,9 +573,9 @@ struct srp_args       arg;
 	}
 
 	if ( v1port >= 0 || v2port >= 0 ) {
-		arg.port     = udpPrtCreate( ina, ((arg.v1 = v2port < 0) ? v1port : v2port), rssi ); 
+		arg.port     = udpPrtCreate( ina, ((arg.v1 = v2port < 0) ? v1port : v2port), rssi );
 		arg.sim_loss = sim_loss;
-	
+
 		rval = (uintptr_t)srpHandler( &arg );
 	}
 
