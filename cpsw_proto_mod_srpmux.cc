@@ -1,5 +1,6 @@
 #include <cpsw_proto_mod_srpmux.h>
 #include <cpsw_error.h>
+#include <cpsw_thread.h>
 
 #define VC_OFF_V2 3 // v2 is little endian
 #define VC_OFF_V1 4 // v1 is big endian
@@ -70,6 +71,21 @@ unsigned off = VC_OFF_V2;
 		return false; // nothing attached to this port; drop
 
 	return SRPPort( downstream_[vc] )->pushDownstream(bc, rel_timeout);
+}
+
+void * CProtoModSRPMux::threadBody()
+{
+ProtoPort up = getUpstreamPort();
+	while ( 1 ) {
+		BufChain bc = up->pop( NULL, true );
+
+		// if a single VC's queue is full then this stalls
+		// all traffic. The alternative would be dropping
+		// the packet but that would defeat the purpose
+		// of rssi.
+		pushDown( bc, NULL );
+	}
+	return NULL;
 }
 
 int CSRPPort::iMatch(ProtoPortMatchParams *cmp)

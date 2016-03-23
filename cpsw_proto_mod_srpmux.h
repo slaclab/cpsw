@@ -4,13 +4,14 @@
 #include <cpsw_buf.h>
 #include <cpsw_proto_mod.h>
 #include <cpsw_api_builder.h>
+#include <cpsw_thread.h>
 
 class CProtoModSRPMux;
 typedef shared_ptr<CProtoModSRPMux> ProtoModSRPMux;
 class CSRPPort;
 typedef shared_ptr<CSRPPort>     SRPPort;
 
-class CProtoModSRPMux : public CShObj, public CProtoModImpl {
+class CProtoModSRPMux : public CShObj, public CProtoModImpl, CRunnable {
 
 public:
 	const static int VC_MIN = 0;   // the code relies on VC occupying 1 byte
@@ -29,6 +30,7 @@ protected:
 
 	CProtoModSRPMux(const CProtoModSRPMux &orig, Key &k)
 	: CShObj(k),
+	  CRunnable(orig),
 	  protoVersion_(orig.protoVersion_)
 	{
 		throw InternalError("Clone not implemented");
@@ -37,6 +39,7 @@ protected:
 public:
 	CProtoModSRPMux(Key &k, INoSsiDev::ProtocolVersion protoVersion)
 	: CShObj(k),
+	  CRunnable("SRP VC Demux"),
 	  protoVersion_(protoVersion)
 	{
 	}
@@ -57,6 +60,8 @@ public:
 		return protoVersion_;
 	}
 
+	virtual void *threadBody();
+
 	// in case there is no downstream module
 	virtual SRPPort createPort(int vc);
 
@@ -76,6 +81,16 @@ public:
 	virtual const char *getName() const
 	{
 		return "SRP VC Demux";
+	}
+
+	virtual void modStartup()
+	{
+		threadStart();
+	}
+
+	virtual void modShutdown()
+	{
+		threadStop();
 	}
 
 	virtual ~CProtoModSRPMux()
