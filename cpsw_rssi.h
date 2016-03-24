@@ -14,7 +14,9 @@
 #include <vector>
 
 #include <boost/weak_ptr.hpp>
+#include <boost/atomic.hpp>
 using boost::weak_ptr;
+using boost::atomic;
 
 #define RSSI_DEBUG 0 // level
 
@@ -66,13 +68,44 @@ public:
 	
 };
 
+// currently posts events when the state is changed to
+// the defined target state (currently: open/closed)
+class CConnectionStateEventSource : public IIntEventSource {
+protected:
+	atomic<int>  connState_;
+
+	static const int      CONN_STATE_OPEN   = 10; // could support other states
+	static const int      CONN_STATE_CLOSED = -1;
+public:
+	CConnectionStateEventSource();
+
+	virtual void connectionStateChanged(int);
+};
+
+class CConnectionOpenEventSource   : public CConnectionStateEventSource {
+public:
+	CConnectionOpenEventSource();
+protected:
+	virtual bool checkForEvent();
+};
+
+class CConnectionClosedEventSource : public CConnectionStateEventSource {
+public:
+	CConnectionClosedEventSource();
+protected:
+	virtual bool checkForEvent();
+};
+
+
 class CRssi : public CRunnable, 
               public IRxEventHandler,
               public IUsrInputEventHandler,
               public IUsrOutputEventHandler,
               public IRexTimer,
               public IAckTimer,
-              public INulTimer
+              public INulTimer,
+			  public CConnectionOpenEventSource,
+			  public CConnectionClosedEventSource
               {
 
 public:
@@ -86,6 +119,7 @@ public:
 	static const uint8_t  MAX_CUMLTD_ACK_N =  2;
 	static const unsigned UNIT_US          = 1000;
 	static const unsigned UNIT_US_EXP      =  3; // value used by server; must match UNIT_US (i.e., UNIT_US = 10^-UNIT_US_EXP)
+
 
 private:
 	bool        isServer_;
@@ -336,7 +370,10 @@ protected:
 		const char *name_;
 	public:
 		STATE(const char *name) : name_(name) {}
-		virtual const char *getName() { return name_; }
+		virtual const char *getName()
+		{
+			return name_;
+		}
 
 		virtual void handleRxEvent       (CRssi *context, IIntEventSource *src);
 		virtual void handleUsrInputEvent (CRssi *context, IIntEventSource *src);
@@ -344,6 +381,8 @@ protected:
 		virtual void processRetransmissionTimeout(CRssi *context);
 		virtual void processAckTimeout(CRssi *context);
 		virtual void processNulTimeout(CRssi *context);
+
+		virtual  int getConnectionState(CRssi *context);
 
 		virtual void shutdown(CRssi *context);
 
@@ -354,6 +393,7 @@ protected:
 	public:
 		CLOSED():STATE("CLOSED"){}
 		virtual void advance(CRssi *context);
+		virtual  int getConnectionState(CRssi *context);
 	};
 	friend class CLOSED;
 
@@ -423,6 +463,7 @@ protected:
 		virtual BufChain  hasBufToSend(CRssi *context);
 		virtual void processAckTimeout(CRssi *context);
 		virtual void processNulTimeout(CRssi *context);
+		virtual  int getConnectionState(CRssi *context);
 	};
 	friend class OPEN;
 

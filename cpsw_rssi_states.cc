@@ -46,6 +46,21 @@ void CRssi::NOTCLOSED::shutdown(CRssi *context)
 	context->sendRST();
 }
 
+int CRssi::STATE::getConnectionState(CRssi *context)
+{
+	return 0;
+}
+
+int CRssi::CLOSED::getConnectionState(CRssi *context)
+{
+	return CONN_STATE_CLOSED;
+}
+
+int CRssi::OPEN::getConnectionState(CRssi *context)
+{
+	return CONN_STATE_OPEN;
+}
+
 void CRssi::CLOSED::advance(CRssi *context)
 {
 	context->close();

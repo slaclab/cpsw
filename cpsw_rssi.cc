@@ -419,6 +419,9 @@ void * CRssi::threadBody()
 
 void CRssi::changeState(STATE *newState)
 {
+int newConnState = newState->getConnectionState( this );
+int oldConnState = state_->getConnectionState( this );
+
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 1 )
 {
@@ -426,6 +429,42 @@ if ( rssi_debug > 1 )
 }
 #endif
 	state_ = newState;
+	if ( newConnState && newConnState != oldConnState ) {
+		CConnectionOpenEventSource::connectionStateChanged( newConnState );
+		CConnectionClosedEventSource::connectionStateChanged( newConnState );
+	}
+}
+
+CConnectionStateEventSource::CConnectionStateEventSource()
+: connState_(CONN_STATE_CLOSED)
+{
+}
+
+void CConnectionStateEventSource::connectionStateChanged(int newConnState)
+{
+	connState_.store( newConnState, memory_order_release );
+	notify();
+}
+
+CConnectionOpenEventSource::CConnectionOpenEventSource()
+{
+	setEventVal(CONN_STATE_OPEN);
+}
+
+CConnectionClosedEventSource::CConnectionClosedEventSource()
+{
+	setEventVal(CONN_STATE_CLOSED);
+}
+
+
+bool CConnectionOpenEventSource::checkForEvent()
+{
+	return connState_.load( memory_order_acquire ) == CONN_STATE_OPEN;
+}
+
+bool CConnectionClosedEventSource::checkForEvent()
+{
+	return connState_.load( memory_order_acquire ) == CONN_STATE_CLOSED;
 }
 
 CRssi::~CRssi()
