@@ -51,6 +51,8 @@ private:
 	CEventSet(const CEventSet &orig);
 	CEventSet operator=(const CEventSet &orig);
 
+	bool tryRemoveSrc(unsigned index);
+
 public:
 
 	CEventSet(Key &k):CShObj(k), mtx_("EVS") {}
@@ -58,44 +60,76 @@ public:
 	virtual void add(IEventSource *src, IEventHandler *h)
 	{
 	unsigned i;
-		for ( i=0; i<srcs_.size(); i++ ) {
-			if ( srcs_[i].first == src ) {
-				// replace existing
-				srcs_[i] = Binding(src,h);
-				src->setEventSet( getSelfAs<EventSetImpl>() );
-				return;
+
+	// always lock source before the event set
+	CMtx::lg guard( &src->mtx_ );
+
+		// remove current association -- may call 'del'
+		// and recursively lock the source
+		src->clrEventSet();
+
+		{CMtx::lg guard( &mtx_ );
+
+			for ( i=0; i<srcs_.size(); i++ ) {
+				if ( srcs_[i].first == src ) {
+					// replace existing
+					srcs_[i] = Binding(src,h);
+					src->setEventSet( getSelfAs<EventSetImpl>() );
+					return;
+				}
 			}
+			srcs_.push_back( Binding(src,h) );
+			src->setEventSet( getSelfAs<EventSetImpl>() );
 		}
-		srcs_.push_back( Binding(src,h) );
-		src->setEventSet( getSelfAs<EventSetImpl>() );
 	}
 
 	virtual void del(IEventSource *src)
 	{
 	unsigned i,j;
-		for ( i=0; i<srcs_.size(); i++ ) {
-			if ( srcs_[i].first == src ) {
-				for ( j=i+1; j<srcs_.size(); j++ ) {
-					srcs_[j-1] = srcs_[j];
+
+	// always lock source before the event set
+	CMtx::lg guard( &src->mtx_ );
+
+		{CMtx::lg guard( &mtx_ );
+
+			for ( i=0; i<srcs_.size(); i++ ) {
+				if ( srcs_[i].first == src ) {
+					for ( j=i+1; j<srcs_.size(); j++ ) {
+						srcs_[j-1] = srcs_[j];
+					}
+					srcs_.pop_back();
+					src->clrEventSet( getSelfAs<EventSetImpl>() );
+					return;
 				}
-				srcs_.pop_back();
-				src->setEventSet( EventSet() );
-				return;
 			}
 		}
 	}
 
 	virtual void del(IEventHandler *h)
 	{
-	unsigned i,j;
-		for ( i=0; i<srcs_.size(); i++ ) {
-			if ( srcs_[i].second == h ) {
-				IEventSource *src = srcs_[i].first;
-				for ( j=i+1; j<srcs_.size(); j++ ) {
-					srcs_[j-1] = srcs_[j];
+	unsigned i;
+	unsigned attempt = 0;
+
+		// can't lock the source yet -- unknown
+	retry:
+
+		{CMtx::lg guard( &mtx_ );
+
+			for ( i=0; i<srcs_.size(); i++ ) {
+				if ( srcs_[i].second == h ) {
+
+					// since we must acquire the source lock after the
+					// event set lock we should only try and back off
+					// if we can't acquire the source
+
+					if ( ! tryRemoveSrc( i ) ) {
+						if ( ++attempt > 10 ) {
+							throw InternalError("Unable to remove event handler -- starved");
+						}
+						goto retry;
+					}
+
 				}
-				srcs_.pop_back();
-				src->setEventSet( EventSet() );
 			}
 		}
 	}
@@ -113,7 +147,7 @@ public:
 		}
 		return NULL;
 	}
-	
+
 	virtual Binding *getEvent(bool wait, const CTimeout *abs_timeout)
 	{
 	int         st;
@@ -122,7 +156,7 @@ public:
 	CMtx::lg guard( &mtx_ );
 
 		if ( wait && abs_timeout ) {
-			if ( abs_timeout->isNone() ) { 
+			if ( abs_timeout->isNone() ) {
 				wait = false;
 			} else if ( abs_timeout->isIndefinite() ) {
 				abs_timeout = NULL;
@@ -162,10 +196,10 @@ public:
 			b->first->handle( b->second );
 			return true;
 		}
-		return false;	
+		return false;
 	}
 
-	virtual void notify() 
+	virtual void notify()
 	{
 		// an event condition could have become true
 		// after the receiving thread last polled
@@ -192,6 +226,7 @@ public:
 			throw InternalError("clock_gettime failed");
 	}
 
+	virtual ~CEventSet();
 
 	static EventSetImpl create();
 };
@@ -208,22 +243,37 @@ CEventSet::EventSetImpl CEventSet::create()
 
 IEventSource::~IEventSource()
 {
+CMtx::lg guard( &mtx_ );
 	if ( eventSet_ )
 		eventSet_->del( this );
 }
 
 void IEventSource::setEventSet(EventSet eventSet)
 {
-	if ( eventSet_ && eventSet_ != eventSet ) {
-		// if this source is already bound (and just the
-		// handler is changed then we don't want to remove
-		eventSet_->del( this );
+	if ( eventSet_ ) {
+		throw InternalError("Source already bound to an event set");
 	}
 	eventSet_ = eventSet;
 }
 
+void IEventSource::clrEventSet(EventSet eventSet)
+{
+	if ( eventSet_ != eventSet )
+		throw InternalError("removing unexpected event set");
+	eventSet_.reset();
+}
+
+void IEventSource::clrEventSet()
+{
+	if ( eventSet_ )
+		eventSet_->del( this );
+	eventSet_.reset();
+}
+
 void IEventSource::notify()
 {
+CMtx::lg guard( &mtx_ );
+
 	if ( eventSet_ )
 		eventSet_->notify();
 }
@@ -238,6 +288,59 @@ int sent = sentVal_.exchange( 0, memory_order_acquire );
 	return false;
 }
 
+// we use tryRemoveSrc() if we are in a situation where
+// we cannot acquire the source lock prior to the
+// event-set lock.
+
+bool CEventSet::tryRemoveSrc(unsigned index)
+{
+IEventSource *src = srcs_[index].first;
+unsigned      j;
+
+	try { CMtx::lg guard( &src->mtx_, false /* dont' block */);
+
+		for ( j=index+1; j<srcs_.size(); j++ ) {
+			srcs_[j-1] = srcs_[j];
+		}
+		srcs_.pop_back();
+		src->clrEventSet( getSelfAs<EventSetImpl>() );
+		return true;
+	} catch ( CMtx::MutexBusy ) {
+		struct timespec t;
+		t.tv_sec  = 0;
+		t.tv_nsec = 10000000;
+		nanosleep( &t, NULL );
+	}
+	return false;
+}
+
+CEventSet::~CEventSet()
+{
+unsigned i;
+unsigned attempt = 0;
+
+	// cannot lock the source first since it is unknown
+retry:
+
+	{ CMtx::lg guard( &mtx_ );
+
+		while ( ( i = srcs_.size()) > 0 ) {
+
+			// try to acquire the source lock and back-off if that fails
+
+			if ( ! tryRemoveSrc( i-1 ) ) {
+				if ( ++attempt > 10 ) {
+					throw InternalError("Unable to remove event source -- starved");
+				}
+				goto retry;
+			}
+
+			attempt = 0;
+		}
+	}
+
+}
+
 CIntEventSource::CIntEventSource()
 : sentVal_(0)
 {
@@ -250,73 +353,3 @@ void CIntEventSource::sendEvent(int val)
 		notify();
 	}
 }
-
-
-#if 0
-class RXEvent : public IEvent, public IEventSource {
-	Queue q_;
-	Buf b_;
-
-	virtual IEvent *poll()
-	{
-		if ( b_ = q_->tryPop() )
-			return this;
-		return NULL;
-	}
-
-	virtual void handle()
-	{
-		
-	}
-};
-
-sync {
-	int avail_;
-	EventSet rx_event_set;
-	putSlot()
-	{ 	
-	if ( avail_.fetch_add(1) == 0 )
-		rx_event_set->notify();
-	}
-	getSlot()
-	{
-		if ( avail_.fetch_sub(1) == 0 )
-			avail_.fetch_add(1);
-		return false;
-		return true;
-	}
-}
-
-queue::push()
-{
-	rx_inqueue->wr_sync_->getSlot();
-    enqueue;
-	rx_inqueue->rd_sync_->putSlot();
-}
-
-queue::pop()
-{
-	if ( rx_inqueue->rd_sync_->getSlot() ) {
-		rval = dequeue()
-		rx_inqueue->wr_sync_->putSlot();
-	}
-  	return rval; 
-}
-
-class XX : public IEventSet {
-
-	virtual void handleRx(Buf b);
-
-	class RXEvent : public IEvent {
-		private:
-			XX *xx;
-		public:
-			RXEvent(XX *xx):xx(xx){}
-
-			virtual void handle()
-			{
-				xx->handleRx( 
-			}
-	};
-};
-#endif

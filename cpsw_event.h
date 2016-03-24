@@ -3,6 +3,7 @@
 
 #include <cpsw_api_timeout.h>
 #include <cpsw_error.h>
+#include <cpsw_mutex.h>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/atomic.hpp>
@@ -92,9 +93,11 @@ class IEventSource {
 private:
 	bool      pending_;
 	EventSet  eventSet_;
+	CMtx      mtx_;
 
-	// NOT THREAD SAFE  (see 'EventSource::add/del')
 	void setEventSet(EventSet newSet);
+	void clrEventSet(EventSet curSet);
+	void clrEventSet();
 
 	friend class CEventSet;
 
@@ -110,7 +113,9 @@ protected:
 	virtual bool checkForEvent()            = 0;
 
 public:
-	IEventSource() : pending_(false)
+	IEventSource()
+	: pending_(false),
+	  mtx_( CMtx::AttrRecursive(), "IEventSource" )
 	{
 	}
 
@@ -231,12 +236,6 @@ public:
 	// occured.
 	virtual bool processEvent(bool wait, const CTimeout *abs_timeout) = 0;
 
-	// The 'add'/'del' methods are NOT THREAD SAFE. The assumption is
-	// that they are used during setup while no events can be posted
-	// ('notify') nor handled ('processEvent').
-	//
-	// If this is not true then the user is responsible for synchronization!
-	//
 	virtual void add(IEventSource *, IEventHandler *h)                = 0;
 	virtual void del(IEventSource  *)                                 = 0;
 	virtual void del(IEventHandler *)                                 = 0;
