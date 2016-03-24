@@ -10,6 +10,8 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/locks.hpp>
 
+#include <vector>
+
 using boost::recursive_mutex;
 using boost::lock_guard;
 using boost::dynamic_pointer_cast;
@@ -867,12 +869,20 @@ CUdpStreamAddressImpl::~CUdpStreamAddressImpl()
 
 void CCommAddressImpl::startProtoStack()
 {
+	// start in reverse order
 	if ( protoStack_  && ! running_) {
+		std::vector<ProtoMod> mods;
+		int                      i;
+
+		running_ = true;
+
 		ProtoMod m;
 		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
-			m->modStartup();
+			mods.push_back( m );
 		}
-		running_ = true;
+		for ( i = mods.size() - 1; i >= 0; i-- ) {
+			mods[i]->modStartup();
+		}
 	}
 }
 
