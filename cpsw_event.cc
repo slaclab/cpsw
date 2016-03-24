@@ -347,3 +347,27 @@ void CIntEventSource::sendEvent(int val)
 		notify();
 	}
 }
+
+void CIntEventHandler::handle(IIntEventSource *src)
+{
+int gotVal = src->getEventVal();
+	if ( ! gotVal ) {
+		throw InternalError("Unexpected Int event value received");
+	}
+	receivedVal_.store( gotVal, memory_order_release );
+}
+
+int CIntEventHandler::receiveEvent(EventSet evSet, bool wait, const CTimeout *abs_timeout)
+{
+	if ( evSet->processEvent(wait, abs_timeout) ) {
+		return receivedVal_.load( memory_order_acquire );
+	}
+	return 0;
+}
+
+int CIntEventHandler::receiveEvent(IIntEventSource *src, bool wait, const CTimeout *abs_timeout)
+{
+EventSet evSet = IEventSet::create();
+	evSet->add( src, this );
+	return receiveEvent(evSet, wait, abs_timeout);
+}

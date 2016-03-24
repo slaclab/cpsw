@@ -96,6 +96,23 @@ public:
 	}
 };
 
+// general-purpose handler for 'int' events
+class CIntEventHandler : public IEventHandler {
+private:
+	atomic<int> receivedVal_;
+public:
+
+	// returns 0 on timeout and the value posted by the IntEventSource on success
+
+	// create a temporary event set, add source and process
+	virtual int receiveEvent(IIntEventSource *src, bool wait, const CTimeout *abs_timeout);
+
+	// process event set; assume the caller has already added this handler
+	virtual int receiveEvent(EventSet evSet, bool wait, const CTimeout *abs_timeout);
+
+	virtual void handle(IIntEventSource *src);
+};
+
 class IEventSource {
 private:
 	bool      pending_;
