@@ -245,8 +245,9 @@ public:
 
 	virtual ~IEventSet() {}
 
-	virtual void getAbsTimeout(CTimeout *abs_timeout, const CTimeout *rel_timeout) = 0;
-	virtual void getAbsTime(CTimeout *abs_time)                              = 0;
+	virtual void     getAbsTimeout(CTimeout *abs_timeout, const CTimeout *rel_timeout) = 0;
+	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)                    = 0;
+	virtual void     getAbsTime(CTimeout *abs_time)                                    = 0;
 
 	static EventSet create();
 };

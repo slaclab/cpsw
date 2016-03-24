@@ -220,6 +220,16 @@ public:
 			*abs_timeout += *rel_timeout;
 	}
 
+	virtual CTimeout getAbsTimeout(const CTimeout *rel_timeout)
+	{
+	CTimeout rval;
+		if ( clock_gettime( CLOCK_REALTIME, & rval.tv_ ) )
+			throw InternalError("clock_gettime failed");
+		if ( rel_timeout )
+			rval += *rel_timeout;
+		return rval;
+	}
+
 	virtual void getAbsTime(CTimeout *abs_time)
 	{
 		if ( clock_gettime( CLOCK_REALTIME, & abs_time->tv_ ) )
