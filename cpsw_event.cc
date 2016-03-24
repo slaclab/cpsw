@@ -326,29 +326,13 @@ unsigned      j;
 
 CEventSet::~CEventSet()
 {
-unsigned i;
-unsigned attempt = 0;
-
-	// cannot lock the source first since it is unknown
-retry:
-
-	{ CMtx::lg guard( &mtx_ );
-
-		while ( ( i = srcs_.size()) > 0 ) {
-
-			// try to acquire the source lock and back-off if that fails
-
-			if ( ! tryRemoveSrc( i-1 ) ) {
-				if ( ++attempt > 10 ) {
-					throw InternalError("Unable to remove event source -- starved");
-				}
-				goto retry;
-			}
-
-			attempt = 0;
-		}
+	// DONT remove event sources; the set must be empty since
+	// every active source holds a reference to this event set
+	// which is released when the source is destroyed. The
+	// source destructor already removes itself from the event set.
+	if ( srcs_.size() > 0 ) {
+		throw InternalError("Event set not empty during destruction!");
 	}
-
 }
 
 CIntEventSource::CIntEventSource()
