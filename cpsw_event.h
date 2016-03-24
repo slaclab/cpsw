@@ -65,7 +65,11 @@ private:
 public:
 	IEventHandler() : isEnabled_(true) {}
 
-	virtual bool isEnabled() { return isEnabled_; }
+	virtual bool isEnabled()
+	{
+		return isEnabled_;
+	}
+
 	virtual bool disable()
 	{
 	bool wasEn = isEnabled();
@@ -73,7 +77,10 @@ public:
 		return wasEn;
 	}
 
-	virtual void enable()    { isEnabled_ = true; }
+	virtual void enable()
+	{
+		isEnabled_ = true;
+	}
 
 	// '####' Every new class of event source needs a 'handle'
 	// method (visitor pattern)
