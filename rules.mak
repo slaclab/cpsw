@@ -160,7 +160,6 @@ $(addsuffix _run,$(FILTERED_TBINS)):%_run: %
 			echo "TEST ./$< $${opt} FAILED" ; \
 			exit 1; \
 		fi; \
-		sleep 2;\
 	done
 
 
