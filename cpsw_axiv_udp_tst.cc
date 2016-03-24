@@ -185,7 +185,7 @@ ThreadArg *stats = static_cast<ThreadArg*>(arg);
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-a <ip_addr>] [-mh] [-V <version>] [-S <length>] [-n <shots>] [-p <period>]\n", nm);
+	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRr] [-V <version>] [-S <length>] [-n <shots>] [-p <period>]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
 	fprintf(stderr,"       -V <version>:  SRP version (1 or 2)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
@@ -197,6 +197,8 @@ static void usage(const char *nm)
 	fprintf(stderr,"                      (defaults to 10).\n");
 	fprintf(stderr,"       -p <period> :  trigger a fragment every <period> ms\n");
 	fprintf(stderr,"                      (defaults to 1000).\n");
+	fprintf(stderr,"       -R          :  use RSSI (SRP)\n");
+	fprintf(stderr,"       -r          :  use RSSI (stream)\n");
 	fprintf(stderr,"       -h          :  print this message\n");
 }
 
@@ -211,8 +213,14 @@ int         vers    = 2;
 int         length  = 0;
 int         shots   = 10;
 int         period  = 1000; // ms
+unsigned    port    = 8192;
+unsigned    sport   = 8193;
+char        cbuf[100];
+const char *col1    = NULL;
+bool        srpRssi = false;
+bool        strRssi = false;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rR")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;  break;
@@ -221,7 +229,9 @@ int         period  = 1000; // ms
 			case 'S': i_p     = &length; break;
 			case 'n': i_p     = &shots;  break;
 			case 'p': i_p     = &period; break;
-			case 'h': usage(argv[0]); return 0;
+			case 'h': usage(argv[0]);    return 0;
+			case 'r': strRssi = true;    break;
+			case 'R': srpRssi = true;    break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -236,6 +246,28 @@ int         period  = 1000; // ms
 	if ( vers != 1 && vers != 2 ) {
 		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
 		throw TestFailed();
+	}
+
+	if ( (col1 = strchr(ip_addr,':')) ) {
+		unsigned len = col1 - ip_addr;
+		if ( len >= sizeof(cbuf) ) {
+			fprintf(stderr,"IP-address string too long\n");
+			throw TestFailed();
+		}
+		strncpy(cbuf, ip_addr, len);
+		cbuf[len]=0;
+		if ( strchr(col1+1,':') ) {
+			if ( 2 != sscanf(col1+1,"%d:%d", &port, &sport) ) {
+				fprintf(stderr,"Unable to scan ip-address (+ 2 ports)\n");
+				throw TestFailed();
+			}
+		} else {
+			if ( 1 != sscanf(col1+1,"%d", &port) ) {
+				fprintf(stderr,"Unable to scan ip-address (+ 1 port)\n");
+				throw TestFailed();
+			}
+		}
+		ip_addr = cbuf;
 	}
 
 try {
@@ -269,10 +301,10 @@ uint16_t u16;
 	mmio->addAtAddress( sysm, 0x10000 );
 	mmio->addAtAddress( prbs, 0x30000 );
 
-	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, 8192, 500 /*us*/ );
+	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, port, 50000, 5, 0, srpRssi );
 
 	if ( length > 0 )
-		root->addAtStream( IField::create("dataSource"), 8193, 10000000 /* us */ );
+		root->addAtStream( IField::create("dataSource"), sport, 10000000 /* us */, 32, 16, 4, 4, 2, strRssi );
 
 	IDev::getRootDev()->addAtAddress( root );
 
