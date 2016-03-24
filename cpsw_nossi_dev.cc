@@ -74,12 +74,15 @@ int                  nbits;
 			rssi_ = CShObj::create<ProtoModRssi>();
 			udpMod->addAtPort( rssi_ );
 			rssi_->addAtPort( srpMuxMod );
-			// FIXME: should find out dynamically what RSSI's retransmission
-			//        timeout is and set the cap to a few times that value
-			dynTimeout_.setTimeoutCap( 50000 ); // 50 ms for now
 		} else {
 			udpMod->addAtPort( srpMuxMod );
 		}
+	}
+
+	if ( useRssi ) {
+		// FIXME: should find out dynamically what RSSI's retransmission
+		//        timeout is and set the cap to a few times that value
+		dynTimeout_.setTimeoutCap( 50000 ); // 50 ms for now
 	}
 
 	protoStack_ = srpMuxMod->createPort( vc );
