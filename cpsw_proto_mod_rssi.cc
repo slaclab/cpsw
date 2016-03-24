@@ -129,7 +129,22 @@ CProtoModRssi::getName() const
 void
 CProtoModRssi::modStartup()
 {
+CIntEventHandler eh;
+EventSet         evSet = IEventSet::create();
+int              connState;
+
+	evSet->add( (CConnectionOpenEventSource*)this, &eh );
 	threadStart();
+
+	CTimeout relt( 2000000 /*us*/ );
+
+	do {
+		CTimeout abst(evSet->getAbsTimeout( &relt ));
+		connState = eh.receiveEvent( evSet, true, &abst );
+		if ( ! connState ) {
+			throw IOError("RSSI connection could not be opened", ETIMEDOUT);
+		}
+	} while ( CONN_STATE_OPEN != connState );
 }
 
 BufChain
