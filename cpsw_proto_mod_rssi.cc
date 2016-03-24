@@ -91,13 +91,6 @@ CProtoModRssi::getAbsTimeoutPush(const CTimeout *rel_timeout)
 	return inpQ_->getAbsTimeoutPush( rel_timeout );
 }
 
-int
-CProtoModRssi::match(ProtoPortMatchParams *cmp)
-{
-ProtoPort up( getUpstreamPort() );
-	return up ? up->match( cmp ) : 0;
-}
-
 void
 CProtoModRssi::attach(ProtoPort upstream)
 {
@@ -151,6 +144,16 @@ BufChain
 CProtoModRssi::tryPopUpstream()
 {
 	return getUpstreamPort()->tryPop();
+}
+
+int CProtoModRssi::iMatch(ProtoPortMatchParams *cmp)
+{
+int rval = 0;
+	if ( cmp->haveRssi_.doMatch_ && cmp->haveRssi_.val_ ) {
+		cmp->haveRssi_.matchedBy_ = getSelfAs<ProtoModRssi>();
+		rval++;
+	}
+	return rval;
 }
 
 CProtoModRssi::~CProtoModRssi()

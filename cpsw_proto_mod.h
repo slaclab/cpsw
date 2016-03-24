@@ -48,7 +48,7 @@ public:
 			return *this;
 		}
 	};
-	MatchParamUnsigned udpDestPort_, srpVersion_, srpVC_;
+	MatchParamUnsigned udpDestPort_, srpVersion_, srpVC_, haveRssi_;
 
 	int requestedMatches()
 	{
@@ -58,6 +58,8 @@ public:
 		if ( srpVersion_.doMatch_ )
 			rval++;
 		if ( srpVC_.doMatch_ )
+			rval++;
+		if ( haveRssi_.doMatch_ )
 			rval++;
 		return rval;
 	}
@@ -108,7 +110,25 @@ public:
 	virtual ~IProtoMod() {}
 };
 
-class CPortImpl : public IProtoPort {
+class IPortImpl : public IProtoPort {
+protected:
+	virtual int iMatch(ProtoPortMatchParams *cmp) = 0;
+
+public:
+	virtual int match(ProtoPortMatchParams *cmp)
+	{
+		int rval = iMatch(cmp);
+
+		ProtoPort up( getUpstreamPort() );
+
+		if ( up )
+			rval += up->match(cmp);
+		return rval;
+	}
+
+};
+
+class CPortImpl : public IPortImpl {
 private:
 	weak_ptr< ProtoMod::element_type > downstream_;
 	BufQueue                           outputQueue_;
@@ -248,17 +268,6 @@ public:
 	virtual int iMatch(ProtoPortMatchParams *cmp)
 	{
 		return 0;
-	}
-
-	virtual int match(ProtoPortMatchParams *cmp)
-	{
-		int rval = iMatch(cmp);
-
-		ProtoPort up( getUpstreamPort() );
-
-		if ( up )
-			rval += up->match(cmp);
-		return rval;
 	}
 
 };
