@@ -50,8 +50,9 @@ uint8_t  msk1, mskn;
 	// l is > 0
 
 	msk1 = (1 << shift) - 1;
-
     mskn = ~ ( (1 << ((shift + bit_size) % 8)) - 1 );
+	if ( mskn == 0xff )
+		mskn = 0x00;
 
 	if ( 1 == l ) {
 		msk1 |= mskn;
@@ -83,7 +84,7 @@ bool CAxisFrameHeader::parse(uint8_t *hdrBase, size_t hdrSize)
 	vers_ = getNum( hdrBase, VERSION_BIT_OFFSET, VERSION_BIT_SIZE );
 
 	if ( vers_ != VERSION_0 )
-		return false; // we don't know what size the header would be not its format
+		return false; // we don't know what size the header would be nor its format
 
 	if ( hdrSize < getSize() )
 		return false;
