@@ -441,7 +441,7 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 
 	b = bc->getTail();
 
-	// Append tail
+	// ALWAYS Append tail
 	new_sz = b->getSize() + hdr.getTailSize();
 	if ( b->getAvail() >= new_sz ) {
 		b->setSize( new_sz );
@@ -455,6 +455,7 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 	// ugly hack - limit to ethernet MTU
 	if ( bc->getSize() > 1500 - 20 - 8 - SAFETY )
 		throw InvalidArgError("Outgoing data cannot be fragmented (not implemented in firmware)");
+
 	return bc;
 }
 

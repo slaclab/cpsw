@@ -20,7 +20,7 @@ protected:
 	{
 	}
 
-	virtual SRPPort newPort(int dest);
+	SRPPort newPort(int dest);
 
 public:
 
@@ -28,6 +28,11 @@ public:
 	: CProtoModByteMux(k, "SRP VC Demux"),
 	  protoVersion_(protoVersion)
 	{
+	}
+
+	SRPPort createPort(int dest)
+	{
+		return addPort(dest, newPort(dest));
 	}
 
 	// range of bits in TID that the downstream user may occupy

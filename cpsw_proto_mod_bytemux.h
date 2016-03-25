@@ -27,17 +27,7 @@ protected:
 		throw InternalError("Clone not implemented");
 	}
 
-	virtual PORT newPort(int dest) = 0;
-
-public:
-	CProtoModByteMux(Key &k, const char *name)
-	: CShObj(k),
-	  CRunnable(name)
-	{
-	}
-
-	// in case there is no downstream module
-	virtual PORT createPort(int dest)
+	virtual PORT addPort(int dest, PORT port)
 	{
 		if ( dest < DEST_MIN || dest > DEST_MAX )
 			throw InvalidArgError("Virtual channel number out of range");
@@ -46,12 +36,28 @@ public:
 			throw ConfigurationError("Virtual channel already in use");
 		}
 
-		PORT port = newPort(dest);
-
 		downstream_[dest - DEST_MIN] = port;
 
 		return port;
 	}
+
+public:
+	CProtoModByteMux(Key &k, const char *name)
+	: CShObj(k),
+	  CRunnable(name)
+	{
+	}
+
+	template <typename ARG> PORT createPort(int dest, ARG a)
+	{
+		return addPort(dest, newPort( dest, a ));
+	}
+
+	template <typename ARG1, typename ARG2> PORT createPort(int dest, ARG1 a1, ARG2 a2)
+	{
+		return addPort(dest, newPort( dest, a1, a2 ));
+	}
+
 
 	// subclass must know how to extract the virtual-channel info
 	virtual int  extractDest(BufChain) = 0;

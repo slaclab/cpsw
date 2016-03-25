@@ -23,6 +23,7 @@ cpsw_SRCS+= cpsw_rssi_timer.cc
 cpsw_SRCS+= cpsw_proto_mod_depack.cc
 cpsw_SRCS+= cpsw_proto_mod_udp.cc
 cpsw_SRCS+= cpsw_proto_mod_srpmux.cc
+cpsw_SRCS+= cpsw_proto_mod_tdestmux.cc
 cpsw_SRCS+= cpsw_proto_mod_rssi.cc
 cpsw_SRCS+= cpsw_thread.cc
 
@@ -44,6 +45,7 @@ DEP_HEADERS += cpsw_proto_mod_depack.h
 DEP_HEADERS += cpsw_proto_mod.h
 DEP_HEADERS += cpsw_proto_mod_bytemux.h
 DEP_HEADERS += cpsw_proto_mod_srpmux.h
+DEP_HEADERS += cpsw_proto_mod_tdestmux.h
 DEP_HEADERS += cpsw_proto_mod_udp.h
 DEP_HEADERS += cpsw_rssi_proto.h
 DEP_HEADERS += cpsw_rssi.h

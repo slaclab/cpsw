@@ -90,6 +90,45 @@ public:
 
 	class InvalidHeaderException {};
 
+	static unsigned parseVersion(uint8_t *hdrBase, size_t hdrSize)
+	{
+		return (hdrBase[0] >> VERSION_BIT_OFFSET) & ( (1<<VERSION_BIT_SIZE) - 1 );
+	}
+
+	// some quick helpers
+	static unsigned parseHeaderSize(uint8_t *hdrBase, size_t hdrSize)
+	{
+		if ( parseVersion(hdrBase, hdrSize) != VERSION_0 )
+			throw InvalidHeaderException();
+		return V0_HEADER_SIZE;
+	}
+
+	static unsigned parseTailSize(uint8_t *hdrBase, size_t hdrSize)
+	{
+		if ( parseVersion(hdrBase, hdrSize) != VERSION_0 )
+			throw InvalidHeaderException();
+		return V0_TAIL_SIZE;
+	}
+
+
+	static unsigned parseTDest(uint8_t *hdrBase, size_t hdrSize)
+	{
+		if ( parseVersion(hdrBase, hdrSize) != VERSION_0 || hdrSize < V0_HEADER_SIZE )
+			throw InvalidHeaderException();
+		if ( ( TDEST_BIT_OFFSET % 8 != 0 ) || ( TDEST_BIT_SIZE != 8 ) )
+			throw InternalError("Implementation doesn't match header format");
+		return hdrBase[ TDEST_BIT_OFFSET/8 ];
+	}
+
+	static void insertTDest(uint8_t *hdrBase, size_t hdrSize, uint8_t tdest)
+	{
+		if ( parseVersion(hdrBase, hdrSize) != VERSION_0 || hdrSize < V0_HEADER_SIZE )
+			throw InvalidHeaderException();
+		if ( ( TDEST_BIT_OFFSET % 8 != 0 ) || ( TDEST_BIT_SIZE != 8 ) )
+			throw InternalError("Implementation doesn't match header format");
+		hdrBase[ TDEST_BIT_OFFSET/8 ] = tdest;
+	}
+
 	CAxisFrameHeader(uint8_t *hdrBase, size_t hdrSize)
 	{
 		if ( ! parse(hdrBase, hdrSize) )

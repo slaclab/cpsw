@@ -48,7 +48,7 @@ public:
 			return *this;
 		}
 	};
-	MatchParamUnsigned udpDestPort_, srpVersion_, srpVC_, haveRssi_;
+	MatchParamUnsigned udpDestPort_, srpVersion_, srpVC_, haveRssi_, tDest_;
 
 	int requestedMatches()
 	{
