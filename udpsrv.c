@@ -160,7 +160,7 @@ int           lfram = -1;
 			}
 
 			vers  = buf[0] & 0xf;
-			fram  = (buf[1]<<8) | (buf[0]>>4);
+			fram  = (buf[1]<<4) | (buf[0]>>4);
 			frag  = (((buf[4]<<8) | buf[3])<<8) | buf[2];
 			tdest = buf[5];
 			tid   = buf[6];
@@ -190,6 +190,7 @@ int           lfram = -1;
 				if ( lfram + 1 != fram ) {
 					fprintf(stderr,"UDPSRV: Non-consecutive stream header received\n");
 					sa->jam = 100;
+					lfram = fram;
 					continue;
 				}
 			}
