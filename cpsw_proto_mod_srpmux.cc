@@ -5,7 +5,6 @@
 #define VC_OFF_V2 3 // v2 is little endian
 #define VC_OFF_V1 4 // v1 is big endian
 
-
 BufChain CSRPPort::processOutput(BufChain bc)
 {
 unsigned off = VC_OFF_V2;
@@ -26,6 +25,16 @@ unsigned off = VC_OFF_V2;
 	*(b->getPayload() + off) = getDest();
 	
 	return bc;
+}
+
+INoSsiDev::ProtocolVersion CSRPPort::getProtoVersion()
+{
+	return boost::static_pointer_cast<ProtoModSRPMux::element_type>( getProtoMod() )->getProtoVersion();
+}
+
+SRPPort CProtoModSRPMux::newPort(int dest)
+{
+	return CShObj::create<SRPPort>( getSelfAs<ProtoModSRPMux>(), dest );
 }
 
 int CProtoModSRPMux::extractDest(BufChain bc)
