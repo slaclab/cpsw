@@ -11,7 +11,7 @@ typedef shared_ptr<CTDestPort>         TDestPort;
 class CProtoModTDestMux : public CProtoModByteMux<TDestPort> {
 protected:
 	CProtoModTDestMux(const CProtoModTDestMux &orig, Key &k)
-	: CProtoModByteMux(orig, k)
+	: CProtoModByteMux<TDestPort>(orig, k)
 	{
 	}
 
@@ -23,7 +23,7 @@ protected:
 public:
 
 	CProtoModTDestMux(Key &k)
-	: CProtoModByteMux(k, "TDest VC Demux")
+	: CProtoModByteMux<TDestPort>(k, "TDest VC Demux")
 	{
 	}
 

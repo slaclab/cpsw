@@ -15,7 +15,7 @@ private:
 
 protected:
 	CProtoModSRPMux(const CProtoModSRPMux &orig, Key &k)
-	: CProtoModByteMux(orig, k),
+	: CProtoModByteMux<SRPPort>(orig, k),
   	  protoVersion_(orig.protoVersion_)
 	{
 	}
@@ -25,7 +25,7 @@ protected:
 public:
 
 	CProtoModSRPMux(Key &k, INoSsiDev::ProtocolVersion protoVersion)
-	: CProtoModByteMux(k, "SRP VC Demux"),
+	: CProtoModByteMux<SRPPort>(k, "SRP VC Demux"),
 	  protoVersion_(protoVersion)
 	{
 	}

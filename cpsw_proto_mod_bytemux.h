@@ -22,6 +22,7 @@ protected:
 
 	CProtoModByteMux(const CProtoModByteMux &orig, Key &k)
 	: CShObj(k),
+	  CProtoModImpl(orig),
 	  CRunnable(orig)
 	{
 		throw InternalError("Clone not implemented");

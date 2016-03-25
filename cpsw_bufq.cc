@@ -79,7 +79,7 @@ public:
 	virtual bool checkForEvent()
 	{
 	unsigned avail = getAvailSlots();
-		if ( avail > WATERMARK ) {
+		if ( (int)avail > WATERMARK ) {
 			setEventVal( avail ); // note; argument must be nonzero!
 			return true;
 		}
