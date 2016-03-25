@@ -6,22 +6,6 @@
 #define VC_OFF_V1 4 // v1 is big endian
 
 
-SRPPort CProtoModSRPMux::createPort(int vc)
-{
-
-	if ( vc < VC_MIN || vc > VC_MAX )
-		throw InvalidArgError("Virtual channel number out of range");
-	if ( ! downstream_[vc].expired() ) {
-		throw ConfigurationError("Virtual channel already in use");
-	}
-
-	SRPPort port = CShObj::create<SRPPort>( getSelfAs<ProtoModSRPMux>(), vc );
-
-	downstream_[vc - VC_MIN] = port;
-
-	return port;
-}
-
 BufChain CSRPPort::processOutput(BufChain bc)
 {
 unsigned off = VC_OFF_V2;
@@ -39,18 +23,18 @@ unsigned off = VC_OFF_V2;
 	}
 
 	// insert virtual channel number;
-	*(b->getPayload() + off) = getVC();
+	*(b->getPayload() + off) = getDest();
 	
 	return bc;
 }
 
-bool CProtoModSRPMux::pushDown(BufChain bc, const CTimeout *rel_timeout)
+int CProtoModSRPMux::extractDest(BufChain bc)
 {
 int      vc;
 unsigned off = VC_OFF_V2;
 
 	if ( bc->getSize() > 1500/*mtu*/ - 14 /*eth*/ - 20 /*ip*/ - 8/*udp*/ - 40 /* safeguard */ ) {
-		return false;
+		return DEST_MIN-1;
 	}
 
 	if ( INoSsiDev::SRP_UDP_V1 == getProtoVersion() )
@@ -58,34 +42,16 @@ unsigned off = VC_OFF_V2;
 
 	Buf b = bc->getHead();
 	if ( b->getSize() <= off ) {
-		return false;
+		return DEST_MIN-1;
 	}
 
 	vc = *(b->getPayload() + off);
 
-	if ( vc > VC_MAX || vc < VC_MIN ) {
-		return false;
+	if ( vc > DEST_MAX ) {
+		return DEST_MIN - 1;
 	}
 
-	if ( downstream_[vc].expired() )
-		return false; // nothing attached to this port; drop
-
-	return SRPPort( downstream_[vc] )->pushDownstream(bc, rel_timeout);
-}
-
-void * CProtoModSRPMux::threadBody()
-{
-ProtoPort up = getUpstreamPort();
-	while ( 1 ) {
-		BufChain bc = up->pop( NULL, true );
-
-		// if a single VC's queue is full then this stalls
-		// all traffic. The alternative would be dropping
-		// the packet but that would defeat the purpose
-		// of rssi.
-		pushDown( bc, NULL );
-	}
-	return NULL;
+	return vc;
 }
 
 int CSRPPort::iMatch(ProtoPortMatchParams *cmp)
@@ -95,7 +61,7 @@ int rval = 0;
 		cmp->srpVersion_.matchedBy_ = getSelfAsProtoPort();
 		rval++;
 	}
-	if ( cmp->srpVC_.doMatch_ && static_cast<int>(cmp->srpVC_.val_) == getVC() ) {
+	if ( cmp->srpVC_.doMatch_ && static_cast<int>(cmp->srpVC_.val_) == getDest() ) {
 		cmp->srpVC_.matchedBy_ = getSelfAsProtoPort();
 		rval++;
 	}
