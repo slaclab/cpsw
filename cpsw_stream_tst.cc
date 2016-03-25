@@ -94,15 +94,16 @@ Field    data = IField::create("data");
 		}
 
 		if ( (attempts & 31) == 0 ) {
+			hdr.insert(buf, sizeof(buf));
 			// once in a while try to write something...
 			// udpsrv will jam the CRC if they receive
 			// corrupted data;	
-			crc = crc32_le_t4( -1, buf, 100 ) ^ -1;
+			crc = crc32_le_t4( -1, buf+hdr.getSize(), 100 ) ^ -1;
 			for ( i=0; i<sizeof(crc); i++ ) {
-				buf[100+i] = crc & 0xff;
+				buf[hdr.getSize()+100+i] = crc & 0xff;
 				crc >>= 8;
 			}
-			got = strm->write( buf, 100 + i );
+			got = strm->write( buf, hdr.getSize() + 100 + i );
 		}
 
 		got = strm->read( buf, sizeof(buf), CTimeout(8000000), 0 );

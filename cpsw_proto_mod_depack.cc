@@ -423,18 +423,19 @@ CFrame  *frame         = &frameWin_[frameIdx];
 
 BufChain CProtoModDepack::processOutput(BufChain bc)
 {
-#define SAFETY 40 // in case there are IP options or other stuff
-CAxisFrameHeader hdr( frameIdGen_.newFrameID(), 0 );
+#define SAFETY 40 // in case there are IP options or other stuff (such as our own headers and tails)
+
 Buf    b;
 size_t new_sz;
 
-	// Prepend header
+	// Insert new frame and frag numbers into the header supplied by upper layer
+
 	b = bc->getHead();
-	if ( ! b->adjPayload( - hdr.getSize() ) ) {
-		// no space - must prepend a new buffer
-		b = bc->createAtHead( IBuf::CAPA_ETH_HDR );
-		b->setSize( hdr.getSize() );
-	}
+
+CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
+
+	hdr.setFrameNo( frameIdGen_.newFrameID() );
+	hdr.setFragNo ( 0 );
 
 	hdr.insert( b->getPayload(), hdr.getSize() );
 

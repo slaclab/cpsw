@@ -76,23 +76,47 @@ public:
 		}
 	};
 
-	CAxisFrameHeader(unsigned frameNo = 0, unsigned fragNo = 0)
+	CAxisFrameHeader(unsigned frameNo = 0, unsigned fragNo = 0, unsigned tDest = 0)
 	:frameNo_(frameNo),
 	 fragNo_(fragNo),
 	 vers_(VERSION_0),
-	 tDest_(0),
+	 tDest_( tDest ),
 	 tId_(0),
 	 tUsr1_(0)
 	{
 	}
 
 	bool parse(uint8_t *hdrBase, size_t hdrSize);
+
+	class InvalidHeaderException {};
+
+	CAxisFrameHeader(uint8_t *hdrBase, size_t hdrSize)
+	{
+		if ( ! parse(hdrBase, hdrSize) )
+			throw InvalidHeaderException();
+	}
 	
 	void insert(uint8_t *hdrBase, size_t hdrSize);
 
 	FrameID      getFrameNo() { return frameNo_; }
 	FragID       getFragNo()  { return fragNo_;  }
 	ProtoVersion getVersion() { return vers_;    }
+	uint8_t      getTDest()   { return tDest_;   }
+
+	void         setFrameNo(FrameID frameNo)
+	{
+		frameNo_ = frameNo;
+	}
+
+	void         setFragNo(FragID   fragNo)
+	{
+		fragNo_  = fragNo;
+	}
+
+	void         setTDest(uint8_t   tDest)
+	{
+		tDest_   = tDest;
+	}
 
 	static FrameID moduloFrameSz(FrameID id)
 	{
