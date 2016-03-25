@@ -86,7 +86,7 @@ public:
 
 class ISink: public IProtoPort {
 public:
-	static ProtoPort create(const char *name);
+	static ProtoPort create(const char *name, uint64_t sleep_us=0);
 };
 
 #endif

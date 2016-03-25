@@ -717,9 +717,16 @@ LoopbackPorts ILoopbackPorts::create(unsigned depth, unsigned lossPercent, unsig
 class CSink : public IProtoPort, public CRunnable {
 private:
 	ProtoPort        upstream_;
-	const char *name_;
+	const char      *name_;
+	uint64_t         sleep_ns_;
+	struct timespec  wai_;
+
 public:
-	CSink(const char *name) : CRunnable(name), name_(name)        {}
+	CSink(const char *name, uint64_t sleep_us) : CRunnable(name), name_(name), sleep_ns_(sleep_us*1000)
+	{
+		wai_.tv_sec = sleep_ns_/(uint64_t)1000000000;
+		wai_.tv_nsec = sleep_ns_%(uint64_t)1000000000;
+	}
 
 	virtual ProtoPort getUpstreamPort() { return upstream_; }
 
@@ -751,14 +758,13 @@ public:
 				}
 				j = i;
 			}
-#if 0
-	struct timespec wai;
-			wai.tv_sec  = 0;
-			wai.tv_nsec = 1000000;
-			if ( nanosleep(&wai, NULL) ) {
-				throw InternalError("nanosleep failed");
+
+			if ( sleep_ns_ ) {
+				if ( nanosleep(&wai_, NULL) ) {
+					throw InternalError("nanosleep failed");
+				}
 			}
-#endif
+
 		}
 		return NULL;
 	}
@@ -773,9 +779,9 @@ public:
 
 };
 
-ProtoPort ISink::create(const char *name)
+ProtoPort ISink::create(const char *name, uint64_t sleep_us)
 {
-CSink *s = new CSink(name);
+CSink *s = new CSink(name, sleep_us);
 	ProtoPort rval = ProtoPort(s);
 	return rval;
 }
