@@ -1,4 +1,5 @@
 #include <cpsw_api_builder.h>
+#include <cpsw_mutex.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -9,11 +10,6 @@
 
 #include <udpsrv_regdefs.h>
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/locks.hpp>
-
-using boost::mutex;
-using boost::lock_guard;
 
 class TestFailed {};
 
@@ -23,7 +19,7 @@ private:
 	unsigned nelms_;
 public:
 
-static mutex mtx_;
+static CMtx mtx_;
 
 	typedef uint32_t   ELT;
 #define xFMT        "%"PRIx32
@@ -53,7 +49,7 @@ static mutex mtx_;
 	void fill()
 	{
 	unsigned i,j;
-		lock_guard<mutex> GUARD( mtx_ );
+		CMtx::lg GUARD( &mtx_ );
 		for ( i=0; i<sizeof(mem_)/sizeof(mem_[0]); i++ ) {
 			for (j=0; j<getNelms(); j++ )
 				mem_[i][j]=mrand48();
@@ -68,7 +64,7 @@ static mutex mtx_;
 	}
 };
 
-mutex M::mtx_;
+CMtx M::mtx_;
 
 static void* test_thread(void* arg)
 {
@@ -100,7 +96,7 @@ void *rval = (void*)-1;
 			}
 			if ( memcmp( myData.mem_[loops&1], myData.mem_[2], myData.getNelms() * sizeof(M::ELT) ) ) {
 
-				lock_guard<mutex> GUARD(M::mtx_);
+				CMtx::lg GUARD( &M::mtx_ );
 
 				fprintf(stderr,"Memory comparison mismatch (%s @loop %d)\n", nm, loops);
 				for ( unsigned i=0; i<myData.getNelms(); i++ ) {
