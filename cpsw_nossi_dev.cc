@@ -183,15 +183,18 @@ uint32_t tid = getTid();
 struct timespec retry_then;
 #endif
 
-
-	if ( sbytes == 0 )
-		return 0;
-
 	// V1 sends payload in network byte order. We want to transform to restore
 	// the standard AXI layout which is little-endian
 	bool doSwapV1 = (INoSsiDev::SRP_UDP_V1 == protoVersion_);
 	// header info needs to be swapped to host byte order since we interpret it
 	bool doSwap   =	( ( protoVersion_ == INoSsiDev::SRP_UDP_V2 ? BE : LE ) == hostByteOrder() );
+
+#ifdef NOSSI_DEBUG
+	fprintf(stderr, "SRP readBlk_unlocked off %"PRIx64"; sbytes %d, swapV1 %d, swap %d protoVersion %d\n", off, sbytes, doSwapV1, doSwap, protoVersion_);
+#endif
+
+	if ( sbytes == 0 )
+		return 0;
 
 	totbytes = headbytes + sbytes;
 
