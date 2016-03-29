@@ -145,6 +145,7 @@ class RssiSynHeader : public RssiHeader {
 public:
 
 	const static uint8_t XFL_CHK = (1<<2);
+	const static uint8_t XFL_ONE = (1<<3);
 
 
 

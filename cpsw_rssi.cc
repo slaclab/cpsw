@@ -344,7 +344,11 @@ uint8_t       flags = RssiHeader::FLG_SYN;
 	synHdr.setFlags( flags );
 	synHdr.setSeqNo( ( lastSeqSent_ = (SeqNo)(time(NULL) ^ (isServer_ ? -1 : 0) ) ) );
 
-	synHdr.setXflgs( 0 );
+	flags = RssiSynHeader::XFL_ONE;
+	if ( addChecksum_ )
+		flags |= RssiSynHeader::XFL_CHK;
+
+	synHdr.setXflgs( flags );
 	synHdr.setVersn( RssiSynHeader::RSSI_VERSION_1 );
 	synHdr.setOssMX( MAX_UNACKED_SEGS );
 	synHdr.setSgsMX( MAX_SEGMENT_SIZE );
