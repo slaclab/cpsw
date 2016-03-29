@@ -7,13 +7,10 @@
 #include <cpsw_proto_mod_srpmux.h>
 #include <cpsw_proto_mod_rssi.h>
 
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/locks.hpp>
+#include <cpsw_mutex.h>
 
 #include <vector>
 
-using boost::recursive_mutex;
-using boost::lock_guard;
 using boost::dynamic_pointer_cast;
 
 typedef shared_ptr<NoSsiDevImpl> NoSsiDevImplP;
@@ -21,7 +18,11 @@ typedef shared_ptr<NoSsiDevImpl> NoSsiDevImplP;
 typedef uint32_t SRPWord;
 
 struct Mutex {
-	recursive_mutex m;
+	CMtx m_;
+	Mutex()
+	: m_( CMtx::AttrRecursive(), "SRPADDR" )
+	{
+	}
 };
 
 //#define NOSSI_DEBUG
@@ -183,15 +184,18 @@ uint32_t tid = getTid();
 struct timespec retry_then;
 #endif
 
-
-	if ( sbytes == 0 )
-		return 0;
-
 	// V1 sends payload in network byte order. We want to transform to restore
 	// the standard AXI layout which is little-endian
 	bool doSwapV1 = (INoSsiDev::SRP_UDP_V1 == protoVersion_);
 	// header info needs to be swapped to host byte order since we interpret it
 	bool doSwap   =	( ( protoVersion_ == INoSsiDev::SRP_UDP_V2 ? BE : LE ) == hostByteOrder() );
+
+#ifdef NOSSI_DEBUG
+	fprintf(stderr, "SRP readBlk_unlocked off %"PRIx64"; sbytes %d, swapV1 %d, swap %d protoVersion %d\n", off, sbytes, doSwapV1, doSwap, protoVersion_);
+#endif
+
+	if ( sbytes == 0 )
+		return 0;
 
 	totbytes = headbytes + sbytes;
 
@@ -387,7 +391,7 @@ unsigned sbytes = args->nbytes_;
 	totbytes = headbytes + sbytes;
 	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
-	lock_guard<recursive_mutex> GUARD( mutex_->m );
+	CMtx::lg GUARD( &mutex_->m_ );
 
 	while ( nWords > MAXWORDS ) {
 		int nbytes = MAXWORDS*4 - headbytes;
@@ -694,7 +698,7 @@ uint8_t  msk1   = args->msk1_;
 	totbytes = headbytes + dbytes;
 	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
-	lock_guard<recursive_mutex> GUARD( mutex_->m );
+	CMtx::lg GUARD( &mutex_->m_ );
 
 	while ( nWords > MAXWORDS ) {
 		int nbytes = MAXWORDS*4 - headbytes;
