@@ -148,12 +148,12 @@ CProtoModRssi::tryPopUpstream()
 
 int CProtoModRssi::iMatch(ProtoPortMatchParams *cmp)
 {
-int rval = 0;
-	if ( cmp->haveRssi_.doMatch_ && cmp->haveRssi_.val_ ) {
+	cmp->haveRssi_.handledBy_ = getProtoMod();
+	if ( cmp->haveRssi_.doMatch_ ) {
 		cmp->haveRssi_.matchedBy_ = getSelfAs<ProtoModRssi>();
-		rval++;
+		return 1;
 	}
-	return rval;
+	return 0;
 }
 
 CProtoModRssi::~CProtoModRssi()

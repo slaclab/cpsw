@@ -28,6 +28,7 @@ public:
 	public:
 		ProtoPort matchedBy_;
 		bool      doMatch_;
+		ProtoMod  handledBy_;
 		MatchParam(bool doMatch = false)
 		: doMatch_(doMatch)
 		{
@@ -48,18 +49,23 @@ public:
 			return *this;
 		}
 	};
-	MatchParamUnsigned udpDestPort_, srpVersion_, srpVC_, haveRssi_, tDest_;
+	MatchParamUnsigned udpDestPort_, srpVersion_, srpVC_, tDest_;
+	MatchParam         haveRssi_, haveDepack_;
 
 	int requestedMatches()
 	{
 	int rval = 0;
 		if ( udpDestPort_.doMatch_ )
 			rval++;
+		if ( haveDepack_.doMatch_ )
+			rval++;
 		if ( srpVersion_.doMatch_ )
 			rval++;
 		if ( srpVC_.doMatch_ )
 			rval++;
 		if ( haveRssi_.doMatch_ )
+			rval++;
+		if ( tDest_.doMatch_ )
 			rval++;
 		return rval;
 	}
@@ -153,7 +159,7 @@ protected:
 		throw InternalError("processInput() not implemented!\n");
 	}
 
-	virtual ProtoPort getSelfAsProtoPort() = 0;
+	virtual ProtoPort getSelfAsProtoPort()              = 0;
 
 public:
 	CPortImpl(unsigned n)
@@ -262,12 +268,6 @@ public:
 
 	virtual ~CPortImpl()
 	{
-	}
-
-	// return number of parameters matched by this port
-	virtual int iMatch(ProtoPortMatchParams *cmp)
-	{
-		return 0;
 	}
 
 };

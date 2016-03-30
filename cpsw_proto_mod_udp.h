@@ -23,7 +23,10 @@ typedef shared_ptr<CProtoModUdp> ProtoModUdp;
 class CSockSd {
 private:
 	int sd_;
-	CSockSd & operator=(CSockSd &orig) { throw InternalError("Must not assign"); }
+	CSockSd & operator=(CSockSd &orig)
+	{
+		throw InternalError("Must not assign");
+	}
 
 public:
 
@@ -114,6 +117,7 @@ protected:
 		return doPush(bc, false, NULL, true);
 	}
 
+	virtual int iMatch(ProtoPortMatchParams *cmp);
 
 public:
 	// negative or zero 'pollSecs' avoids creating a poller thread
@@ -121,20 +125,28 @@ public:
 
 	CProtoModUdp(CProtoModUdp &orig, Key &k);
 
-	virtual const char *getName()  const { return "UDP"; }
+	virtual const char *getName()  const
+	{
+		return "UDP";
+	}
 
-	virtual unsigned getDestPort() const { return ntohs( dest_.sin_port ); }
+	virtual unsigned getDestPort() const
+	{
+		return ntohs( dest_.sin_port );
+	}
 
 	virtual void dumpInfo(FILE *f);
 
-	virtual CProtoModUdp *clone(Key &k) { return new CProtoModUdp( *this, k ); }
+	virtual CProtoModUdp *clone(Key &k)
+	{
+		return new CProtoModUdp( *this, k );
+	}
 
 	virtual void modStartup();
 	virtual void modShutdown();
 
 	virtual ~CProtoModUdp();
 
-	virtual int iMatch(ProtoPortMatchParams *cmp);
 };
 
 #endif

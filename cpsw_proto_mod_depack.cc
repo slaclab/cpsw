@@ -480,6 +480,17 @@ struct timespec now;
 	frame->running_ = true;
 }
 
+int CProtoModDepack::iMatch(ProtoPortMatchParams *cmp)
+{
+	cmp->haveDepack_.handledBy_ = getProtoMod();
+	if ( cmp->haveDepack_.doMatch_ ) {
+		cmp->haveDepack_.matchedBy_ = getSelfAs<ProtoModDepack>();
+		return 1;
+	}
+	return 0;
+}
+
+
 void CProtoModDepack::dumpInfo(FILE *f)
 {
 	if ( ! f )

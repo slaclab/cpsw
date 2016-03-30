@@ -10,6 +10,10 @@ typedef shared_ptr<CProtoModRssi> ProtoModRssi;
 class CProtoModRssi: public CShObj, public IPortImpl, public IProtoMod, public CRssi {
 private:
 	ProtoPort upstream_;
+
+protected:
+	virtual int           iMatch(ProtoPortMatchParams *cmp);
+
 public:
 	CProtoModRssi(Key &k)
 	: CShObj(k),
@@ -37,7 +41,6 @@ public:
 	virtual CTimeout      getAbsTimeoutPop(const CTimeout *rel_timeout);
 	virtual CTimeout      getAbsTimeoutPush(const CTimeout *rel_timeout);
 
-	virtual int           iMatch(ProtoPortMatchParams *cmp);
 
 	virtual void          addAtPort(ProtoMod downstreamMod);
 	virtual void          attach(ProtoPort upstream);

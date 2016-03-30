@@ -66,10 +66,12 @@ unsigned off = VC_OFF_V2;
 int CSRPPort::iMatch(ProtoPortMatchParams *cmp)
 {
 int rval = 0;
+	cmp->srpVersion_.handledBy_ = getProtoMod();
 	if ( cmp->srpVersion_.doMatch_ && static_cast<INoSsiDev::ProtocolVersion>(cmp->srpVersion_.val_) == getProtoVersion() ) {
 		cmp->srpVersion_.matchedBy_ = getSelfAsProtoPort();
 		rval++;
 	}
+	cmp->srpVC_.handledBy_ = getProtoMod();
 	if ( cmp->srpVC_.doMatch_ && static_cast<int>(cmp->srpVC_.val_) == getDest() ) {
 		cmp->srpVC_.matchedBy_ = getSelfAsProtoPort();
 		rval++;

@@ -335,6 +335,7 @@ abort();
 
 int CProtoModUdp::iMatch(ProtoPortMatchParams *cmp)
 {
+	cmp->udpDestPort_.handledBy_ = getProtoMod();
 	if ( cmp->udpDestPort_.doMatch_ && cmp->udpDestPort_.val_ == getDestPort() ) {
 		cmp->udpDestPort_.matchedBy_ = getSelfAs<ProtoModUdp>();
 		return 1;

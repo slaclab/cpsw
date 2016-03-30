@@ -289,6 +289,8 @@ protected:
 	virtual unsigned toFrameIdx(unsigned frameNo) { return frameNo & ( frameWinSize_ - 1 ); }
 	virtual unsigned toFragIdx(unsigned fragNo)   { return fragNo  & ( fragWinSize_  - 1 ); }
 
+	virtual int      iMatch(ProtoPortMatchParams *cmp);
+
 	CProtoModDepack( CProtoModDepack &orig, Key &k );
 
 public:
