@@ -62,7 +62,7 @@ YAML_ARCH_linux_x86_64=rhel6-x86_64
 YAML_ARCH_linuxRT_x86_64=buildroot-2015.02-x86_64
 YAML_ARCH=$(YAML_ARCH_$(TARNM))
 yaml_DIR = /afs/slac/g/lcls/package/yaml-cpp/$(YAML_VERSION)/$(YAML_ARCH)
-cpsw_axiv_udp_tst_DIRS += $(yaml_DIR)/lib
+yaml-cpp_DIR += $(yaml_DIR)/lib
 INCLUDE_DIRS     += $(yaml_DIR)/include
 TESTPROGRAMS            += cpsw_axiv_udp_tst
 
