@@ -49,16 +49,14 @@ public:
 	{
 	}
 
-	template <typename ARG> PORT createPort(int dest, ARG a)
-	{
-		return addPort(dest, newPort( dest, a ));
-	}
-
-	template <typename ARG1, typename ARG2> PORT createPort(int dest, ARG1 a1, ARG2 a2)
-	{
-		return addPort(dest, newPort( dest, a1, a2 ));
-	}
-
+	// derived class usually implements a 'newPort' method
+	// taking 'dest' and additional args 'args':
+	//     PORT newPort(dest, args...)
+	// it also should provide
+	//     PORT createPort(dest, args...)
+	//     {
+	//         return addPort(dest, newPort(dest, args...));
+	//     }
 
 	// subclass must know how to extract the virtual-channel info
 	virtual int  extractDest(BufChain) = 0;

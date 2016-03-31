@@ -27,6 +27,11 @@ public:
 	{
 	}
 
+	TDestPort createPort(int dest, bool stripHeader, unsigned qDepth)
+	{
+		return addPort( dest, newPort(dest, stripHeader, qDepth) );
+	}
+
 	virtual int extractDest(BufChain);
 
 	virtual CProtoModTDestMux *clone(Key k)
