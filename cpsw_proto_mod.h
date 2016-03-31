@@ -21,55 +21,7 @@ typedef shared_ptr<IProtoMod> ProtoMod;
 class CPortImpl;
 typedef shared_ptr<CPortImpl> ProtoPortImpl;
 
-// find a protocol stack based on parameters
-class ProtoPortMatchParams {
-public:
-	class MatchParam {
-	public:
-		ProtoPort matchedBy_;
-		bool      doMatch_;
-		ProtoMod  handledBy_;
-		MatchParam(bool doMatch = false)
-		: doMatch_(doMatch)
-		{
-		}
-	};
-	class MatchParamUnsigned : public MatchParam {
-	public:
-		unsigned val_;
-		MatchParamUnsigned(unsigned val = (unsigned)-1, bool doMatch = false)
-		: MatchParam( doMatch ? true : val != (unsigned)-1 ),
-		  val_(val)
-		{
-		}
-		MatchParamUnsigned & operator=(unsigned val)
-		{
-			val_     = val;
-			doMatch_ = true;
-			return *this;
-		}
-	};
-	MatchParamUnsigned udpDestPort_, srpVersion_, srpVC_, tDest_;
-	MatchParam         haveRssi_, haveDepack_;
-
-	int requestedMatches()
-	{
-	int rval = 0;
-		if ( udpDestPort_.doMatch_ )
-			rval++;
-		if ( haveDepack_.doMatch_ )
-			rval++;
-		if ( srpVersion_.doMatch_ )
-			rval++;
-		if ( srpVC_.doMatch_ )
-			rval++;
-		if ( haveRssi_.doMatch_ )
-			rval++;
-		if ( tDest_.doMatch_ )
-			rval++;
-		return rval;
-	}
-};
+class ProtoPortMatchParams;
 
 class IProtoPort {
 public:
@@ -97,6 +49,111 @@ public:
 	virtual int       match(ProtoPortMatchParams*)        = 0;
 };
 
+// find a protocol stack based on parameters
+class ProtoPortMatchParams {
+public:
+	class MatchParam {
+	public:
+		ProtoPort matchedBy_;
+		bool      doMatch_;
+		bool      exclude_;
+		ProtoMod  handledBy_;
+		MatchParam(bool doMatch = false)
+		: doMatch_(doMatch),
+		  exclude_(false)
+		{
+		}
+		void exclude()
+		{
+			doMatch_ = true;
+			exclude_ = true;
+		}
+		void include()
+		{
+			doMatch_ = true;
+			exclude_ = false;
+		}
+
+		int excluded()
+		{
+			return doMatch_ && exclude_ && ! handledBy_ ? 1 : 0;
+		}
+
+		void reset()
+		{
+			matchedBy_.reset();
+			handledBy_.reset();
+		}
+	};
+
+	class MatchParamUnsigned : public MatchParam {
+	public:
+		unsigned val_;
+		MatchParamUnsigned(unsigned val = (unsigned)-1, bool doMatch = false)
+		: MatchParam( doMatch ? true : val != (unsigned)-1 ),
+		  val_(val)
+		{
+		}
+		MatchParamUnsigned & operator=(unsigned val)
+		{
+			val_     = val;
+			include();
+			return *this;
+		}
+
+	};
+	MatchParamUnsigned udpDestPort_, srpVersion_, srpVC_, tDest_;
+	MatchParam         haveRssi_, haveDepack_;
+
+	void reset()
+	{
+		udpDestPort_.reset();
+		srpVersion_.reset();
+		srpVC_.reset();
+		tDest_.reset();
+		haveRssi_.reset();
+		haveDepack_.reset();
+	}
+
+	int requestedMatches()
+	{
+	int rval = 0;
+		if ( udpDestPort_.doMatch_ )
+			rval++;
+		if ( haveDepack_.doMatch_ )
+			rval++;
+		if ( srpVersion_.doMatch_ )
+			rval++;
+		if ( srpVC_.doMatch_ )
+			rval++;
+		if ( haveRssi_.doMatch_ )
+			rval++;
+		if ( tDest_.doMatch_ )
+			rval++;
+		return rval;
+	}
+
+	int excluded()
+	{
+		return
+			  udpDestPort_.excluded()
+			+ haveDepack_.excluded()
+			+ srpVersion_.excluded()
+			+ srpVC_.excluded()
+			+ haveRssi_.excluded()
+			+ tDest_.excluded();
+	}
+
+	int findMatches(ProtoPort p)
+	{
+		int rval  = p->match( this );
+			rval += excluded();
+
+		return rval;
+	}
+};
+
+
 class IProtoMod {
 public:
 	// to be called by the upstream module's addAtPort() method
@@ -117,7 +174,7 @@ public:
 };
 
 class IPortImpl : public IProtoPort {
-protected:
+public:
 	virtual int iMatch(ProtoPortMatchParams *cmp) = 0;
 
 public:
@@ -127,11 +184,12 @@ public:
 
 		ProtoPort up( getUpstreamPort() );
 
-		if ( up )
+		if ( up ) {
 			rval += up->match(cmp);
+		}
+
 		return rval;
 	}
-
 };
 
 class CPortImpl : public IPortImpl {
