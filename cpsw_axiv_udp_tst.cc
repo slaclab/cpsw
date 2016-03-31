@@ -228,40 +228,6 @@ ThreadArg *stats = static_cast<ThreadArg*>(arg);
 	return 0;
 }
 
-
-void operator >> (const YAML::Node& node, Field& f) {
-IIntField::Builder bldr = IIntField::IBuilder::create();
-
-std::string name = node["name"].as<std::string>();
-int lsBit = node["lsBit"] ? node["lsBit"].as<int>() : IIntField::DFLT_LS_BIT;
-int sizeBit = node["size"] ? node["size"].as<int>() : IIntField::DFLT_SIZE_BITS;
-
-  bldr->name( name.c_str() );
-  bldr->lsBit( lsBit );
-  bldr->sizeBits( sizeBit );
-  f = bldr->build();
-  printf("Field %s %d\n", name.c_str(), sizeBit);
-}
-
-void operator >> (const YAML::Node& node, MMIODev& mmio) {
-  std::string name = node["name"].as<std::string>();
-  int size = node["size"].as<int>();
-  printf("Name %s size %d \n", name.c_str(), size);
-  mmio = IMMIODev::create( name.c_str(), size );
-  Field f;
-
-  const YAML::Node& registers = node["registers"];
-  for( unsigned i = 0; i < registers.size(); i++ )
-  {
-    int address = registers[i]["address"].as<int>();
-    int nelms = registers[i]["nelms"] ? registers[i]["nelms"].as<int>() : 1;
-//    registers[i] >> f;
-    f = registers[i].as<IntField>();
-    mmio->addAtAddress( f, address, nelms );
-  }
-}
-
-
 static void usage(const char *nm)
 {
 	fprintf(stderr,"Usage: %s [-a <ip_addr>] [-mh] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-f <file>]\n", nm);
