@@ -26,7 +26,6 @@ def main(argv):
             usage( 'h' )
             sys.exit(2)
 
-    print 'Argument List:', str(sys.argv)
     if not ( found_d and found_f ): 
         usage( 'h' )
         sys.exit(2)
