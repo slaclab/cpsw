@@ -89,7 +89,14 @@ for ( j=0; j<1; j++ ) {
 	server->dumpStats(stderr);
 	client->dumpStats(stderr);
 
+	sSink->stop();
+	cSink->stop();
+	client->stop();
+	server->stop();
+
+
 }
+	printf("Left braces\n");
 #if 0
 	printf("Bufs Free %d, alloced %d in use %d\n",
 		IBuf::numBufsFree(),
