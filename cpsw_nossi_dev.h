@@ -110,7 +110,7 @@ protected:
 	virtual uint64_t readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const;
 	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 public:
-	CUdpSRPAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi);
+	CUdpSRPAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
 	CUdpSRPAddressImpl(CUdpSRPAddressImpl &orig)
 	: CCommAddressImpl(orig),
 	  dynTimeout_(orig.dynTimeout_.get()),
@@ -152,7 +152,7 @@ protected:
 	}
 
 public:
-	CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi);
+	CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
@@ -176,7 +176,8 @@ protected:
 	}
 
 	virtual ProtoPort findProtoPort(ProtoPortMatchParams *);
-	friend CUdpSRPAddressImpl::CUdpSRPAddressImpl(IAddress::AKey, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi);
+	friend CUdpSRPAddressImpl::CUdpSRPAddressImpl(IAddress::AKey, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
+	friend CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 
 public:
 	CNoSsiDevImpl(Key &key, const char *name, const char *ip);

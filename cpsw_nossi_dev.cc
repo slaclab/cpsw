@@ -6,6 +6,7 @@
 #include <cpsw_proto_mod_udp.h>
 #include <cpsw_proto_mod_srpmux.h>
 #include <cpsw_proto_mod_rssi.h>
+#include <cpsw_proto_mod_tdestmux.h>
 
 #include <cpsw_mutex.h>
 
@@ -30,7 +31,7 @@ struct Mutex {
 
 #define MAXWORDS 256
 
-CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi)
+CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 :CCommAddressImpl(k),
  protoVersion_(version),
  dport_(dport),
@@ -747,7 +748,7 @@ ProtoPortMatchParams cmp;
 void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi)
 {
 	IAddress::AKey k = getAKey();
-	shared_ptr<CUdpSRPAddressImpl> addr = make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc, useRssi);
+	shared_ptr<CUdpSRPAddressImpl> addr = make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc, useRssi, -1);
 	add(addr , child );
 	addr->startProtoStack();
 }
@@ -758,7 +759,8 @@ void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs,
 		throw InvalidArgError("Cannot address same destination port from multiple instances");
 	}
 	IAddress::AKey k = getAKey();
-	shared_ptr<CUdpStreamAddressImpl> addr = make_shared<CUdpStreamAddressImpl>(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads, useRssi);
+	CUdpStreamAddressImpl            *ptr  = new CUdpStreamAddressImpl(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads, useRssi, -1);
+	shared_ptr<CUdpStreamAddressImpl> addr(ptr);
 	add( addr, child );
 	addr->startProtoStack();
 }
@@ -777,6 +779,7 @@ void CNoSsiDevImpl::setLocked()
 	CDevImpl::setLocked();
 }
 
+
 ProtoPort CNoSsiDevImpl::findProtoPort(ProtoPortMatchParams *cmp_p)
 {
 Children myChildren = getChildren();
@@ -786,38 +789,89 @@ Children::element_type::iterator it;
 	for ( it = myChildren->begin(); it != myChildren->end(); ++it ) {
 		shared_ptr<const CCommAddressImpl> child = static_pointer_cast<const CCommAddressImpl>( *it );
 		// 'match' modifies the parameters (storing results); use a copy
-		ProtoPortMatchParams cmp = *cmp_p;
-		if ( cmp.requestedMatches() == child->getProtoStack()->match( &cmp ) )
+		ProtoPortMatchParams          cmp  = *cmp_p;
+		int                  foundMatches  = cmp.findMatches( child->getProtoStack() );
+		if ( cmp.requestedMatches() == foundMatches )
 			return child->getProtoStack();
 	}
 	return ProtoPort();
 }
 
-CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi)
+CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
 :CCommAddressImpl(key),
  dport_(dport),
  useRssi_(useRssi)
 {
-struct sockaddr_in dst;
-NoSsiDevImpl owner( getOwnerAs<NoSsiDevImpl>() );
+NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
+ProtoPort            prt;
+struct sockaddr_in   dst;
+ProtoPortMatchParams cmp;
+ProtoModTDestMux     tdm;
+bool                 stripHeader = false;
+unsigned             qDepth      = 5;
 
-	dst.sin_family      = AF_INET;
-	dst.sin_port        = htons( dport );
-	dst.sin_addr.s_addr = owner->getIpAddress();
+	cmp.udpDestPort_  = dport;
 
-	ProtoModUdp    udpMod     = CShObj::create< ProtoModUdp >( &dst, inQDepth, nUdpThreads );
+	if ( (prt = owner->findProtoPort( &cmp )) ) {
+		// if this UDP port is already in use then
+		// there must be a tdest demuxer and we must use it
+		if ( tDest < 0 )
+			throw ConfigurationError("If stream is to share a UDP port then it must use a TDEST demuxer");
 
-	ProtoModDepack depackMod  = CShObj::create< ProtoModDepack >( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
+		// existing RSSI configuration must match the requested one
+		if ( useRssi )
+			cmp.haveRssi_.include();
+		else
+			cmp.haveRssi_.exclude();
 
-	if ( useRssi_ ) {
-		ProtoModRssi   rssiMod    = CShObj::create<ProtoModRssi>();
-		udpMod->addAtPort( rssiMod );
-		rssiMod->addAtPort( depackMod );
+		// there must be a depacketizer
+		cmp.haveDepack_.include();
+
+		cmp.tDest_ = tDest;
+
+		int foundMatches = cmp.findMatches( prt );
+
+		tdm = dynamic_pointer_cast<ProtoModTDestMux::element_type>( cmp.tDest_.handledBy_ );
+
+		switch ( cmp.requestedMatches() - foundMatches ) {
+			case 0:
+				throw ConfigurationError("TDEST already in use");
+			case 1:
+				if ( tdm && ! cmp.tDest_.matchedBy_ )
+					break;
+				/* else fall thru */
+			default:
+				throw ConfigurationError("Cannot create stream on top of existing protocol modules");
+		}
+
+
 	} else {
-		udpMod->addAtPort( depackMod );
+		dst.sin_family      = AF_INET;
+		dst.sin_port        = htons( dport );
+		dst.sin_addr.s_addr = owner->getIpAddress();
+
+		ProtoModUdp    udpMod     = CShObj::create< ProtoModUdp >( &dst, inQDepth, nUdpThreads );
+
+		ProtoModDepack depackMod  = CShObj::create< ProtoModDepack >( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
+
+		if ( useRssi_ ) {
+			ProtoModRssi   rssiMod    = CShObj::create<ProtoModRssi>();
+			udpMod->addAtPort( rssiMod );
+			rssiMod->addAtPort( depackMod );
+		} else {
+			udpMod->addAtPort( depackMod );
+		}
+
+		protoStack_ = depackMod;
+
+		if ( tDest >= 0 ) {
+			tdm = CShObj::create< ProtoModTDestMux >();
+			depackMod->addAtPort( tdm );
+		}
 	}
 
-	protoStack_ = depackMod;
+	if ( tdm )
+		protoStack_ = tdm->createPort( tDest, stripHeader, qDepth );
 }
 
 void CUdpStreamAddressImpl::dump(FILE *f) const
