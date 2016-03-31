@@ -13,6 +13,10 @@
 
 #include <pthread.h>
 
+#include <yaml-cpp/yaml.h>
+
+#include "cpsw_yaml.h"
+
 #define VLEN 123
 #define ADCL 10
 
@@ -224,9 +228,43 @@ ThreadArg *stats = static_cast<ThreadArg*>(arg);
 	return 0;
 }
 
+
+void operator >> (const YAML::Node& node, Field& f) {
+IIntField::Builder bldr = IIntField::IBuilder::create();
+
+std::string name = node["name"].as<std::string>();
+int lsBit = node["lsBit"] ? node["lsBit"].as<int>() : IIntField::DFLT_LS_BIT;
+int sizeBit = node["size"] ? node["size"].as<int>() : IIntField::DFLT_SIZE_BITS;
+
+  bldr->name( name.c_str() );
+  bldr->lsBit( lsBit );
+  bldr->sizeBits( sizeBit );
+  f = bldr->build();
+  printf("Field %s %d\n", name.c_str(), sizeBit);
+}
+
+void operator >> (const YAML::Node& node, MMIODev& mmio) {
+  std::string name = node["name"].as<std::string>();
+  int size = node["size"].as<int>();
+  printf("Name %s size %d \n", name.c_str(), size);
+  mmio = IMMIODev::create( name.c_str(), size );
+  Field f;
+
+  const YAML::Node& registers = node["registers"];
+  for( unsigned i = 0; i < registers.size(); i++ )
+  {
+    int address = registers[i]["address"].as<int>();
+    int nelms = registers[i]["nelms"] ? registers[i]["nelms"].as<int>() : 1;
+//    registers[i] >> f;
+    f = registers[i].as<IntField>();
+    mmio->addAtAddress( f, address, nelms );
+  }
+}
+
+
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-a <ip_addr>] [-mh] [-V <version>] [-S <length>] [-n <shots>] [-p <period>]\n", nm);
+	fprintf(stderr,"Usage: %s [-a <ip_addr>] [-mh] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-f <file>]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
 	fprintf(stderr,"       -V <version>:  SRP version (1 or 2)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
@@ -238,6 +276,7 @@ static void usage(const char *nm)
 	fprintf(stderr,"                      (defaults to 10).\n");
 	fprintf(stderr,"       -p <period> :  trigger a fragment every <period> ms\n");
 	fprintf(stderr,"                      (defaults to 1000).\n");
+	fprintf(stderr,"       -f <file>   :  yaml file describing axiv object\n");
 	fprintf(stderr,"       -h          :  print this message\n");
 }
 
@@ -252,8 +291,10 @@ int         vers    = 2;
 int         length  = 0;
 int         shots   = 10;
 int         period  = 1000; // ms
+YAML::Node doc;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:")) > 0; ) {
+
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:f:")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;  break;
@@ -262,6 +303,7 @@ int         period  = 1000; // ms
 			case 'S': i_p     = &length; break;
 			case 'n': i_p     = &shots;  break;
 			case 'p': i_p     = &period; break;
+			case 'f': doc = YAML::LoadFile(optarg); break;
 			case 'h': usage(argv[0]); return 0;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
@@ -282,11 +324,25 @@ int         period  = 1000; // ms
 try {
 
 NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
-MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
-AXIVers   axiv = IAXIVers::create ("vers");
-MMIODev   sysm = IMMIODev::create ("sysm",0x1000, LE);
 MemDev    rmem = IMemDev::create  ("rmem", 0x100000);
-PRBS      prbs = IPRBS::create    ("prbs");
+MMIODev mmio; /* can be generated if file name is passed in */
+
+if( !doc.IsNull() ) {
+	mmio = doc.as<MMIODev>();
+}
+else {
+	mmio = IMMIODev::create ("mmio",0x100000);
+
+	AXIVers   axiv = IAXIVers::create ("vers");
+	MMIODev   sysm = IMMIODev::create ("sysm",0x1000, LE);
+	PRBS      prbs = IPRBS::create    ("prbs");
+
+	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
+
+	mmio->addAtAddress( axiv, 0x00000 );
+	mmio->addAtAddress( sysm, 0x10000 );
+	mmio->addAtAddress( prbs, 0x30000 );
+}
 
 uint8_t str[VLEN];
 int16_t adcv[ADCL];
@@ -303,13 +359,6 @@ uint16_t u16;
 	if ( use_mem )
 		length = 0;
 
-
-	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
-
-	mmio->addAtAddress( axiv, 0x00000 );
-	mmio->addAtAddress( sysm, 0x10000 );
-	mmio->addAtAddress( prbs, 0x30000 );
-
 	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, 8192, 500 /*us*/ );
 
 	if ( length > 0 )
@@ -319,12 +368,12 @@ uint16_t u16;
 
 	// can use raw memory for testing instead of UDP
 	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );
-
-        Command cmd = ICommand::create( pre->findByName("mmio/vers/Command") );
-        cmd->execute();
-        Command counterRst = ICommand::create( pre->findByName("mmio/vers/CounterReset") );
-        counterRst->execute();
-
+	/*
+        *Command cmd = ICommand::create( pre->findByName("mmio/vers/Command") );
+        *cmd->execute();
+        *Command counterRst = ICommand::create( pre->findByName("mmio/vers/CounterReset") );
+        *counterRst->execute();
+	*/
 	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
 	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
 	ScalVal_RO dnaValue = IScalVal_RO::create( pre->findByName("mmio/vers/dnaValue") );
