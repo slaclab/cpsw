@@ -1,0 +1,137 @@
+## Peripherals that will be referenced later
+
+SysMem: &SysMem
+  name: sysm
+  size: 0x1000
+  description: Adcs
+  registers:
+    - address: 0x400
+      name:  adcs
+      description: ""
+      size: 16
+      stride: 4
+      nelms: 10
+
+Prbs: &Prbs
+  name: prbs
+  description: Prbs
+  size: 0x1000
+  registers:
+    - address: 0x00 
+      name: axiEn
+      description: ""
+      size: 1
+      lsBit: 0
+    - address: 0x00 
+      name: trig
+      description: ""
+      size: 1
+      lsBit: 1
+    - address: 0x00 
+      name: busy
+      description: ""
+      size: 1
+      lsBit: 2
+      mode: RO
+    - address: 0x00 
+      name: overflow
+      description: ""
+      size: 1
+      lsBit: 3
+      mode: RO
+    - address: 0x00 
+      name: oneShot
+      description: ""
+      size: 1
+      lsBit: 4
+    - address: 0x04 
+      name: packetLength
+      description: ""
+    - address: 0x08 
+      name: tDest
+      description: ""
+      size: 8
+      lsBit: 0
+    - address: 0x09 
+      name: tId
+      description: ""
+      size: 8
+      lsBit: 0
+    - address: 0x0c 
+      name: dataCnt
+      description: ""
+      mode: RO
+    - address: 0x10 
+      name: eventCnt
+      description: ""
+      mode: RO
+    - address: 0x14 
+      name: randomData
+      description: ""
+      mode: RO
+
+AxiVersion: &AxiVersion
+  name: AxiVersion
+  description: AXI-Lite Version Module
+  size: 0x1000
+  registers:
+    - address: 0x08
+      name: dnaValue
+      description: ""
+      size: 64
+      wordSwap: 4
+      mode: RO
+    - address: 0x10
+      name: fdSerial
+      description: ""
+      size: 64
+      wordSwap: 4
+      mode: RO
+    - address: 0x24
+      name: counter
+      description: ""
+      size: 32
+      mode: RW
+    - address: 0x800
+      name: bldStamp
+      description: ""
+      size: 8
+      nelms: 123
+      mode: RO
+    - address: 0x04
+      name: scratchPad
+      description: ""
+      size: 32
+      lsBit: 0
+    - name: bits
+      address: 0x04
+      description: ""
+      size: 22
+      lsBit: 4
+
+#MMIO range, will be attached to fpga
+
+mmio: &mmio
+  name: mmio
+  size: 0x100000
+  peripherals:
+    - <<: *AxiVersion   # merge tag for AxiVersion
+      name: vers        # overwrite name
+      address: 0x00000
+    - <<: *SysMem
+      address: 0x10000
+    - <<: *Prbs
+      address: 0x30000
+
+
+# Final device that will be used to generate configuration
+fpga: 
+  name: fpga
+  ipAddress: 192.168.2.10
+  protocol: SRP_UDP_V2
+  timeoutUs: 500
+  retryCount: 10
+  virtualChannel: 0
+  peripherals:
+    - <<: *mmio
+      address: 8192
