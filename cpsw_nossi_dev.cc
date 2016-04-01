@@ -823,9 +823,6 @@ void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version
 
 void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
 {
-	if ( portInUse( dport ) ) {
-		throw InvalidArgError("Cannot address same destination port from multiple instances");
-	}
 	IAddress::AKey k = getAKey();
 	CUdpStreamAddressImpl            *ptr  = new CUdpStreamAddressImpl(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads, useRssi, tDest);
 	shared_ptr<CUdpStreamAddressImpl> addr(ptr);
