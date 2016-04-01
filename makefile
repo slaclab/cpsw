@@ -140,7 +140,7 @@ include $(CPSW_DIR)/rules.mak
 # run for V2 and V1
 cpsw_nossi_tst_run:     RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
 
-cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191'
+cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
 
 cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 30'
 
