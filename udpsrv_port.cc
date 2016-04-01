@@ -9,12 +9,12 @@ struct UdpPrt_ {
 	UdpPrt_(const char *mtxnm):mtx_(mtxnm){}
 };
 
-UdpPrt udpPrtCreate(const char *ina, unsigned port, int withRssi)
+UdpPrt udpPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int withRssi)
 {
 ProtoPort  prt;
 UdpPrt     p = new UdpPrt_("udp_port");
 
-	p->udp_ = IUdpPort::create(ina, port);
+	p->udp_ = IUdpPort::create(ina, port, simLossPercent, ldScrambler);
 	if ( withRssi ) {
 		p->top_ = CRssiPort::create( true );
 		p->top_->attach( p->udp_ );

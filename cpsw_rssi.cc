@@ -434,8 +434,9 @@ if ( rssi_debug > 1 )
 #endif
 	state_ = newState;
 	if ( newConnState && newConnState != oldConnState ) {
-		CConnectionOpenEventSource::connectionStateChanged( newConnState );
-		CConnectionClosedEventSource::connectionStateChanged( newConnState );
+		CConnectionOpenEventSource::connectionStateChanged   ( newConnState );
+		CConnectionNotOpenEventSource::connectionStateChanged( newConnState );
+		CConnectionClosedEventSource::connectionStateChanged ( newConnState );
 	}
 }
 
@@ -452,18 +453,28 @@ void CConnectionStateEventSource::connectionStateChanged(int newConnState)
 
 CConnectionOpenEventSource::CConnectionOpenEventSource()
 {
-	setEventVal(CONN_STATE_OPEN);
+	setEventVal(1);
+}
+
+CConnectionNotOpenEventSource::CConnectionNotOpenEventSource()
+{
+	setEventVal(1);
 }
 
 CConnectionClosedEventSource::CConnectionClosedEventSource()
 {
-	setEventVal(CONN_STATE_CLOSED);
+	setEventVal(1);
 }
 
 
 bool CConnectionOpenEventSource::checkForEvent()
 {
 	return connState_.load( memory_order_acquire ) == CONN_STATE_OPEN;
+}
+
+bool CConnectionNotOpenEventSource::checkForEvent()
+{
+	return connState_.load( memory_order_acquire ) != CONN_STATE_OPEN;
 }
 
 bool CConnectionClosedEventSource::checkForEvent()

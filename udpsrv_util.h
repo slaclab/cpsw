@@ -70,7 +70,7 @@ public:
 
 	virtual ~IUdpPort() {}
 
-	static UdpPort create(const char *ina, unsigned port);
+	static UdpPort create(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler);
 };
 
 class ILoopbackPorts;

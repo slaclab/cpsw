@@ -35,15 +35,16 @@
 #define TAILSIZE 1
 
 #define EOFRAG   0x80
-#define PIPEDEPTH (1<<4) /* MUST be power of two */
 
-#define V1PORT_DEF 8191
-#define V2PORT_DEF 8192
-#define SPORT_DEF  8193
-#define SCRMBL_DEF 2
-#define INA_DEF    "127.0.0.1"
-#define SIMLOSS_DEF 0
-#define NFRAGS_DEF  NFRAGS
+#define V1PORT_DEF     8191
+#define V2PORT_DEF     8192
+#define V2RSSIPORT_DEF 8202
+#define SPORT_DEF      8193
+#define SRSSIPORT_DEF  8203
+#define SCRMBL_DEF     1
+#define INA_DEF        "127.0.0.1"
+#define SIMLOSS_DEF     1
+#define NFRAGS_DEF      NFRAGS
 
 // byte swap ?
 #define bsl(x) (x)
@@ -53,7 +54,6 @@
 
 typedef uint8_t Buf[FRAGLEN + HEADSIZE + TAILSIZE];
 
-static Buf bufmem[PIPEDEPTH];
 static int debug = 0;
 
 static inline uint32_t swp32(int to, uint32_t x)
@@ -71,15 +71,17 @@ union { uint16_t s; uint8_t c[2]; } u = { .s = 1 };
 
 static void usage(const char *nm)
 {
-	fprintf(stderr, "usage: %s -a <inet_addr> -P <V2 port> [-s <stream_port>] [-f <n_frags>] [-L <loss_percent>] [-S <depth> ] [-V <protoVersion>] [-R]\n", nm);
+	fprintf(stderr, "usage: %s -a <inet_addr> -P <V2 port> [-s <stream_port>] [-f <n_frags>] [-L <loss_percent>] [-S <lddepth> ] [-V <protoVersion>] [-R]\n", nm);
 	fprintf(stderr, "        -P          : port where V2 SRP server is listening (-1 for none)\n");
 	fprintf(stderr, "        -p          : port where V1 SRP server is listening (-1 for none)\n");
+	fprintf(stderr, "        -s          : port where STREAM server is listening (-1 for none)\n");
+	fprintf(stderr, "        -R          : port where V2 SRP server is listening (-1 for none) with RSSI\n");
+	fprintf(stderr, "        -r          : port where STREAM server is listening (-1 for none) with RSSI\n");
 #ifdef DEBUG
 	fprintf(stderr, "        -d          : enable debugging messages (may slow down)\n");
 #endif
-	fprintf(stderr, "        -S <depth>  : scramble packet order (arg is ld2(scramble-length))\n");
+	fprintf(stderr, "        -S <lddepth>: scramble packet order (arg is ld2(scrambler-depth))\n");
 	fprintf(stderr, "        -L <percent>: lose/drop <percent> packets\n");
-	fprintf(stderr, "        -R          : enable RSSI\n");
 	fprintf(stderr, " Defaults: -a %s -P %d -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, V2PORT_DEF, V1PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
 }
 
@@ -94,17 +96,18 @@ int i;
 
 typedef struct streamer_args {
 	UdpPrt             port;
-	unsigned           sim_loss;
 	unsigned           n_frags;
 	unsigned           fram;
-	unsigned           scramble;
 	unsigned           jam;
+	pthread_t          poller_tid, fragger_tid;
+	int                haveThreads;
 } streamer_args;
 
 typedef struct srp_args {
 	UdpPrt             port;
 	int                v1;
-	unsigned           sim_loss;
+	pthread_t          tid;
+	int                haveThread;
 } srp_args;
 
 static uint64_t mkhdr(unsigned fram, unsigned frag)
@@ -221,45 +224,14 @@ printf("JAM\n");
 	return 0;
 }
 
-static int send_shuffled(int idx, struct streamer_args *sa)
-{
-static int depth = 0;
-	if ( depth < sa->scramble - 1 ) {
-		if (RAND_MAX < (PIPEDEPTH << 16) ) {
-			fprintf(stderr,"FAILURE: PIPEDEPTH problem\n");
-			exit(1);
-		}
-		return ++depth;
-	}
-	idx = (rand() >> 16) & (sa->scramble-1);
-
-	/* simulate packet loss */
-	if ( !sa->sim_loss || ( (double)rand() > ((double)RAND_MAX/100.)*(double)sa->sim_loss/(double)sa->n_frags ) ) {
-		if ( udpPrtSend( sa->port, NULL, 0, bufmem[idx], sizeof(bufmem[idx])) < 0 ) {
-			perror("fragmenter: write");
-			switch ( errno ) {
-				case EDESTADDRREQ:
-				case ECONNREFUSED:
-					/* not (yet/anymore) connected -- wait */
-					sleep(10);
-					return idx;
-				default:
-					return -1;
-			}
-			return -1;
-		}
-	}
-	return idx;
-}
-
 void *fragger(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
 unsigned frag = 0;
 int      i,j;
-int      idx  = 0;
 uint32_t crc  = -1;
 int      end_of_frame;
+Buf      bufmem;
 
 	while (1) {
 		if ( 0 == udpPrtIsConn( sa->port ) ) {
@@ -268,13 +240,13 @@ int      end_of_frame;
 		}
 
 		i  = 0;
-		i += insert_header(bufmem[idx], sa->fram, frag);
+		i += insert_header(bufmem, sa->fram, frag);
 
-		memset(bufmem[idx] + i, (sa->fram << 4) | (frag & 0xf), FRAGLEN);
+		memset(bufmem + i, (sa->fram << 4) | (frag & 0xf), FRAGLEN);
 
 		end_of_frame = (sa->n_frags - 1 == frag);
 
-		crc = crc32_le_t4(crc, bufmem[idx] + i, end_of_frame ? FRAGLEN - sizeof(crc) : FRAGLEN);
+		crc = crc32_le_t4(crc, bufmem + i, end_of_frame ? FRAGLEN - sizeof(crc) : FRAGLEN);
 
 		if ( end_of_frame ) {
 			crc ^= -1;
@@ -285,16 +257,28 @@ if ( ! sa->jam )
 printf("JAM cleared\n");
 			}
 			for ( j =0; j<sizeof(crc); j++ ) {
-				* (bufmem[idx] + i + FRAGLEN - sizeof(crc) + j) = crc & 0xff;
+				* (bufmem + i + FRAGLEN - sizeof(crc) + j) = crc & 0xff;
 				crc >>= 8;
 			}
 		}
 
 		i += FRAGLEN;
 
-		i += append_tail( &bufmem[idx][i], end_of_frame );
+		i += append_tail( &bufmem[i], end_of_frame );
 
-		idx = send_shuffled(idx, sa);
+		if ( udpPrtSend( sa->port, NULL, 0, bufmem, i ) < 0 ) {
+			perror("fragmenter: write");
+			switch ( errno ) {
+				case EDESTADDRREQ:
+				case ECONNREFUSED:
+					/* not (yet/anymore) connected -- wait */
+					sleep(10);
+					continue;
+				default:
+					break;
+			}
+			break;
+		}
 
 		if ( ++frag >= sa->n_frags ) {
 			frag = 0;
@@ -385,11 +369,6 @@ printf("got %d, exp %d\n", got, expected);
 			size = (got - expected)/4;
 		}
 
-		if ( rand() < (RAND_MAX/100)*srp_arg->sim_loss ) {
-			/* simulated packet loss */
-			continue;
-		}
-
 		st = -1;
 
 		for ( range = udpsrv_ranges; range; range=range->next ) {
@@ -458,47 +437,68 @@ static void sh(int sn)
 	exit(0);
 }
 
+struct srpvariant {
+	int port, v1, haveRssi;
+};
+
+struct strmvariant {
+	int port, haveRssi;
+};
+
 int
 main(int argc, char **argv)
 {
 int      rval = 1;
 int      opt;
 int     *i_a;
-int      v2port   = V2PORT_DEF;
-int      v1port   = V1PORT_DEF;
-int      sport    = SPORT_DEF;
-const char *ina   = INA_DEF;
-int      n_frags  = NFRAGS;
-int      sim_loss = SIMLOSS_DEF;
-int      scramble = SCRMBL_DEF;
+const char *ina     = INA_DEF;
+int      n_frags    = NFRAGS;
+int      sim_loss   = SIMLOSS_DEF;
+int      scramble   = SCRMBL_DEF;
+int      i;
+sigset_t sigset;
 
-pthread_t poller_tid, fragger_tid, srp_tid;
-int    have_poller  = 0;
-int    have_fragger = 0;
-int    have_srp     = 0;
-int    rssi         = WITHOUT_RSSI;
+#define V1_NORSSI 0
+#define V2_NORSSI 1
+#define V2_RSSI   2
+struct srpvariant srpvars[] = {
+	{ V1PORT_DEF,     1, WITHOUT_RSSI },
+	{ V2PORT_DEF,     0, WITHOUT_RSSI },
+	{ V2RSSIPORT_DEF, 0, WITH_RSSI    },
+};
 
-struct streamer_args *s_arg   = 0;
-struct srp_args      *srp_arg = 0;
-struct srp_args       arg;
+#define STRM_NORSSI 0
+#define STRM_RSSI   1
+struct strmvariant strmvars[] = {
+	{ SPORT_DEF,     WITHOUT_RSSI },
+	{ SRSSIPORT_DEF, WITH_RSSI    },
+};
 
-	arg.port = NULL;
+int    nprts;
+
+struct streamer_args  strm_args[sizeof(strmvars)/sizeof(strmvars[0])];
+struct srp_args       srp_args[sizeof(srpvars)/sizeof(srpvars[0])];
+
+	memset(&srp_args,  0, sizeof(srp_args));
+	memset(&strm_args, 0, sizeof(strm_args));
 
 	signal( SIGINT, sh );
 
-	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:R")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:r:R:")) > 0 ) {
 		i_a = 0;
 		switch ( opt ) {
-			case 'h': usage(argv[0]); return 0;
-			case 'P': i_a = &v2port;   break;
-			case 'p': i_a = &v1port;   break;
-			case 'a': ina = optarg;    break;
-			case 'd': debug = 1;       break;
-			case 's': i_a = &sport;    break;
-			case 'f': i_a = &n_frags;  break;
-			case 'L': i_a = &sim_loss; break;
-			case 'S': i_a = &scramble; break;
-			case 'R': rssi = WITH_RSSI;break;
+			case 'h': usage(argv[0]);      return 0;
+
+			case 'P': i_a = &srpvars[V2_NORSSI].port;       break;
+			case 'p': i_a = &srpvars[V1_NORSSI].port;       break;
+			case 'a': ina = optarg;                         break;
+			case 'd': debug = 1;                            break;
+			case 's': i_a = &strmvars[STRM_NORSSI].port;    break;
+			case 'f': i_a = &n_frags;                       break;
+			case 'L': i_a = &sim_loss;                      break;
+			case 'S': i_a = &scramble;                      break;
+			case 'R': i_a = &srpvars[V2_RSSI].port;         break;
+			case 'r': i_a = &strmvars[STRM_RSSI].port;      break;
 			default:
 				fprintf(stderr, "unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -517,98 +517,88 @@ struct srp_args       arg;
 		exit(1);
 	}
 
-	// arg is ld2
-	scramble = 1<<scramble;
-	if ( scramble > PIPEDEPTH ) {
-		fprintf(stderr,"-S arg must be <= log2(%d)\n", PIPEDEPTH);
-		exit(1);
+	nprts = 0;
+
+	for ( i=0; i<sizeof(strmvars)/sizeof(strmvars[0]); i++ ) {
+		if ( strmvars[i].port > 0 )
+			nprts++;
+	}
+	for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
+		if ( srpvars[i].port > 0 )
+			nprts++;
 	}
 
-	if ( sport <= 0 && v1port <= 0 && v2port <= 0 ) {
-		fprintf(stderr,"At least one of -s, -p, -P must be > 0\n");
+	if ( 0 == nprts ) {
+		fprintf(stderr,"At least one port must be opened\n");
 		goto bail;
 	}
 
-	if ( sport >= 0 ) {
-		s_arg = malloc( sizeof(*s_arg) );
-		if ( ! s_arg ) {
-			fprintf(stderr,"No Memory\n");
-			goto bail;
-		}
-		s_arg->port                 = udpPrtCreate( ina, sport, rssi );
-		s_arg->sim_loss             = sim_loss;
-		s_arg->n_frags              = n_frags;
-		s_arg->scramble             = scramble;
-		s_arg->fram                 = 0;
-		s_arg->jam                  = 0;
+	for ( i=0; i<sizeof(strmvars)/sizeof(strmvars[0]); i++ ) {
+		if ( strmvars[i].port <= 0 )
+			continue;
 
-		if ( ! s_arg->port )
+		strm_args[i].port                 = udpPrtCreate( ina, strmvars[i].port, sim_loss, scramble, strmvars[i].haveRssi );
+		strm_args[i].n_frags              = n_frags;
+		strm_args[i].fram                 = 0;
+		strm_args[i].jam                  = 0;
+
+		if ( ! strm_args[i].port )
 			goto bail;
-		if ( pthread_create( &poller_tid, 0, poller, (void*)s_arg ) ) {
+		if ( pthread_create( &strm_args[i].poller_tid, 0, poller, (void*)&strm_args[i] ) ) {
 			perror("pthread_create [poller]");
 			goto bail;
 		}
-		have_poller = 1;
-		if ( pthread_create( &fragger_tid, 0, fragger, (void*)s_arg ) ) {
+		if ( pthread_create( &strm_args[i].fragger_tid, 0, fragger, (void*)&strm_args[i] ) ) {
+			void *res;
 			perror("pthread_create [fragger]");
+			pthread_cancel( strm_args[i].poller_tid );
+			pthread_join( strm_args[i].poller_tid, &res );
 			goto bail;
 		}
-		have_fragger = 1;
+		strm_args[i].haveThreads = 1;
 	}
 
-	if ( v2port >= 0 && v1port >= 0 ) {
-		srp_arg = malloc(sizeof(*srp_arg));
-		if ( ! srp_arg ) {
-			fprintf(stderr,"No Memory\n");
-			goto bail;
-		}
-		srp_arg->port     = udpPrtCreate( ina, v1port, rssi );
-		srp_arg->v1       = 1;
-		srp_arg->sim_loss = sim_loss;
-
-		if ( pthread_create( &srp_tid, 0, srpHandler, (void*)srp_arg ) ) {
+	for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
+		if ( srpvars[i].port <= 0 )
+			continue;
+		srp_args[i].v1       = srpvars[i].v1;
+		// don't scramble SRP - since SRP is synchronous (single request-response) it becomes extremely slow when scrambled
+		srp_args[i].port     = udpPrtCreate( ina, srpvars[i].port, sim_loss, 0, srpvars[i].haveRssi );
+		if ( pthread_create( &srp_args[i].tid, 0, srpHandler, (void*)&srp_args[i] ) ) {
 			perror("pthread_create [srpHandler]");
 			goto bail;
 		}
-		have_srp = 1;
+		srp_args[i].haveThread = 1;
 	}
 
-	if ( v1port >= 0 || v2port >= 0 ) {
-		arg.port     = udpPrtCreate( ina, ((arg.v1 = v2port < 0) ? v1port : v2port), rssi );
-		arg.sim_loss = sim_loss;
-
-		rval = (uintptr_t)srpHandler( &arg );
-	}
+	sigemptyset( &sigset );
+	sigaddset( &sigset, SIGQUIT );
+	sigaddset( &sigset, SIGINT  );
+	sigwait( &sigset, &i );
 
 bail:
-	if ( have_poller ) {
+	for ( i=0; i<sizeof(strmvars)/sizeof(strmvars[0]); i++ ) {
 		void *res;
-		pthread_cancel( poller_tid );
-		pthread_join( poller_tid, &res );
-		rval += (uintptr_t)res;
+		if ( strm_args[i].haveThreads ) {
+			pthread_cancel( strm_args[i].poller_tid );
+			pthread_join( strm_args[i].poller_tid, &res );
+			rval += (uintptr_t)res;
+			pthread_cancel( strm_args[i].fragger_tid );
+			pthread_join( strm_args[i].fragger_tid, &res );
+			rval += (uintptr_t)res;
+		}
+		if ( strm_args[i].port )
+			udpPrtDestroy( strm_args[i].port );
 	}
-	if ( have_fragger ) {
+	for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
 		void *res;
-		pthread_cancel( fragger_tid );
-		pthread_join( fragger_tid, &res );
-		rval += (uintptr_t)res;
+		if ( srp_args[i].haveThread ) {
+			pthread_cancel( srp_args[i].tid );
+			pthread_join( srp_args[i].tid, &res );
+			rval += (uintptr_t)res;
+		}
+		if ( srp_args[i].port )
+			udpPrtDestroy( srp_args[i].port );
 	}
-	if ( have_srp ) {
-		void *res;
-		pthread_cancel( srp_tid );
-		pthread_join( srp_tid, &res );
-		rval += (uintptr_t)res;
-	}
-	if ( s_arg ) {
-		if ( s_arg->port )
-			udpPrtDestroy( s_arg->port );
-		free( s_arg );
-	}
-	if ( srp_arg ) {
-		udpPrtDestroy( srp_arg->port );
-		free( srp_arg );
-	}
-	if ( arg.port )
-		udpPrtDestroy( arg.port );
 	return rval;
 }

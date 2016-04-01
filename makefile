@@ -138,14 +138,15 @@ include $(CPSW_DIR)/rules.mak
 # (will run once w/o opts, a second time with -a -b)
 
 # run for V2 and V1
-cpsw_nossi_tst_run:     RUN_OPTS='' '-V1 -p8191'
+cpsw_nossi_tst_run:     RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
 
 cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191'
 
 cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 30'
 
-# error percentage should be ~double of the value used for udpsrv (-L)
-cpsw_stream_tst_run:    RUN_OPTS='-e 10'
+# error percentage should be >  value used for udpsrv (-L) times number
+# of fragments (-f)
+cpsw_stream_tst_run:    RUN_OPTS='-e 22' '-s8203 -R'
 
 rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
 

@@ -6,6 +6,7 @@
 #include <boost/weak_ptr.hpp>
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -810,11 +811,19 @@ private:
 	struct sockaddr_in peer_;
 	BufQueue           outQ_;
 	BufQueue           inpQ_;
+	unsigned           rands_;
+	int                sim_loss_;
+	int                ldScrmbl_;
+	vector<BufChain>   scrmbl_;
 
 public:
-	CUdpPort(const char *ina, unsigned port)
+	CUdpPort(const char *ina, unsigned port, unsigned simLoss, unsigned ldScrmbl)
 	: CRunnable("UDP RX"),
-	  outQ_( IBufQueue::create(4) )
+	  outQ_( IBufQueue::create(4) ),
+	  rands_(1),
+	  sim_loss_(simLoss),
+	  ldScrmbl_(ldScrmbl),
+	  scrmbl_(1<<ldScrmbl_)
 	{
 	struct sockaddr_in sin;
 
@@ -862,6 +871,8 @@ public:
 	{
 	int put;
 	int flgs = wait ? 0 : MSG_DONTWAIT;
+	int idx;
+	int rnd;
 
 		if ( to ) 
 			throw InternalError("Not implemented");
@@ -869,10 +880,21 @@ public:
 		if ( 0 == ntohs(peer_.sin_port) )
 			return false;
 
-		Buf b = bc->getHead();
-		
-		if ( (put = ::sendto(sd_.get(), b->getPayload(), b->getSize(), flgs, (struct sockaddr*)&peer_, sizeof(peer_))) < 0 )
-			return false;
+		rnd = rand_r(&rands_);
+
+		idx = (rnd>>16) & ((1<<ldScrmbl_) - 1);
+
+		if ( ldScrmbl_ > 0 )
+			bc.swap( scrmbl_[idx] );
+
+		if ( ( !sim_loss_ || ( (double)rnd > ((double)RAND_MAX/100.)*(double)sim_loss_ ) ) && bc ) {
+
+			Buf b = bc->getHead();
+
+			if ( (put = ::sendto(sd_.get(), b->getPayload(), b->getSize(), flgs, (struct sockaddr*)&peer_, sizeof(peer_))) < 0 )
+				return false;
+
+		}
 
 		return true;
 	}
@@ -922,8 +944,8 @@ public:
 	}
 };
 
-UdpPort IUdpPort::create(const char *ina, unsigned port)
+UdpPort IUdpPort::create(const char *ina, unsigned port, unsigned simLoss, unsigned ldScrmbl)
 {
-CUdpPort *p = new CUdpPort(ina, port);
+CUdpPort *p = new CUdpPort(ina, port, simLoss, ldScrmbl);
 	return UdpPort(p);
 }

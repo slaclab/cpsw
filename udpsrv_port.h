@@ -14,7 +14,7 @@ int udpPrtIsConn(UdpPrt);
 #define WITH_RSSI    1
 #define WITHOUT_RSSI 0
 
-UdpPrt  udpPrtCreate(const char *ina, unsigned port, int hasRssi);
+UdpPrt  udpPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int hasRssi);
 void    udpPrtDestroy(UdpPrt);
 
 #ifdef __cplusplus

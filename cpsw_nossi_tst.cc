@@ -72,6 +72,7 @@ public:
 
 };
 
+
 int
 main(int argc, char **argv)
 {
@@ -82,13 +83,17 @@ int         port    = 8192;
 unsigned sizes[]    = { 1, 4, 8, 12, 16, 22, 32, 45, 64 };
 unsigned lsbs[]     = { 0, 3 };
 unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
+unsigned vc         = 0;
+int      useRssi    = 0;
+int      tDest      = -1;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:V:p:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:V:p:r")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
-			case 'a': ip_addr = optarg; break;
-			case 'V': i_p     = &vers;  break;
-			case 'p': i_p     = &port;  break;
+			case 'a': ip_addr = optarg;   break;
+			case 'V': i_p     = &vers;    break;
+			case 'p': i_p     = &port;    break;
+			case 'r': useRssi = 1;        break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				throw TestFailed();
@@ -112,7 +117,7 @@ unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 
 		mmio->addAtAddress( srvm, REGBASE );
 
-		root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, (unsigned short)port );
+		root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, (unsigned short)port, 1000000, 4, vc, useRssi, tDest );
 
 		Path pre = root->findByName("mmio/srvm");
 

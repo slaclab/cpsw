@@ -124,7 +124,7 @@ CProtoModRssi::modStartup()
 {
 CIntEventHandler eh;
 EventSet         evSet = IEventSet::create();
-int              connState;
+int              connOpen;
 
 	evSet->add( (CConnectionOpenEventSource*)this, &eh );
 	threadStart();
@@ -133,11 +133,13 @@ int              connState;
 
 	do {
 		CTimeout abst(evSet->getAbsTimeout( &relt ));
-		connState = eh.receiveEvent( evSet, true, &abst );
-		if ( ! connState ) {
-			throw IOError("RSSI connection could not be opened", ETIMEDOUT);
+		connOpen = eh.receiveEvent( evSet, true, &abst );
+		if ( ! connOpen ) {
+			fprintf(stderr,"Warning RSSI connection could not be opened (timeout) -- I'll keep trying\n");
+//			throw IOError("RSSI connection could not be opened", ETIMEDOUT);
+			break;	
 		}
-	} while ( CONN_STATE_OPEN != connState );
+	} while ( ! connOpen );
 }
 
 BufChain

@@ -251,6 +251,10 @@ CAxisFrameHeader hdr;
 		return;
 	}
 
+#ifdef DEPACK_DEBUG
+printf("%s frame %d (frag %d; oldest %d)\n", hdr.getFrameNo() < oldestFrame_ ? "Dropping" : "Accepting", hdr.getFrameNo(), hdr.getFragNo(), oldestFrame_);
+#endif
+
 	// if there is a 'string' of frames that falls outside of the window
 	// (which could happen during a 'resync') then we should readjust
 	// the window...
@@ -258,9 +262,6 @@ CAxisFrameHeader hdr;
 	if ( hdr.getFrameNo() < oldestFrame_ ) {
 		oldFrameDrops_++;
 		frameSync( &hdr );
-#ifdef DEPACK_DEBUG
-printf("Dropping old frame %d (frag %d; oldest %d)\n", hdr.getFrameNo(), hdr.getFragNo(), oldestFrame_);
-#endif
 		return;
 	}
 

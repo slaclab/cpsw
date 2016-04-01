@@ -89,6 +89,14 @@ protected:
 	virtual bool checkForEvent();
 };
 
+class CConnectionNotOpenEventSource   : public CConnectionStateEventSource {
+public:
+	CConnectionNotOpenEventSource();
+protected:
+	virtual bool checkForEvent();
+};
+
+
 class CConnectionClosedEventSource : public CConnectionStateEventSource {
 public:
 	CConnectionClosedEventSource();
@@ -105,6 +113,7 @@ class CRssi : public CRunnable,
               public IAckTimer,
               public INulTimer,
 			  public CConnectionOpenEventSource,
+			  public CConnectionNotOpenEventSource,
 			  public CConnectionClosedEventSource
               {
 

@@ -12,8 +12,11 @@
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-h] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent] [-n n_frames]\n", nm);
+	fprintf(stderr,"Usage: %s [-h] [-s <port>] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent] [-n n_frames] [-R]\n", nm);
 }
+
+extern int rssi_debug;
+
 int
 main(int argc, char **argv)
 {
@@ -29,6 +32,10 @@ unsigned attempts;
 unsigned*i_p;
 uint32_t crc;
 unsigned ngood = NGOOD;
+unsigned nUdpThreads = 4;
+unsigned useRssi     = 0;
+int      tDest       = -1;
+unsigned sport       = 8193;
 
 	unsigned iQDepth = 40;
 	unsigned oQDepth =  5;
@@ -37,7 +44,9 @@ unsigned ngood = NGOOD;
 	unsigned timeoutUs = 10000000;
 	unsigned err_percent = 0;
 
-	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:")) > 0 ) {
+	rssi_debug=0;
+
+	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:Rs:")) > 0 ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'q': i_p = &iQDepth;        break;
@@ -46,7 +55,9 @@ unsigned ngood = NGOOD;
 			case 'l': i_p = &ldFragWinSize;  break;
 			case 'T': i_p = &timeoutUs;      break;
 			case 'e': i_p = &err_percent;    break;
+			case 's': i_p = &sport;          break;
 			case 'n': i_p = &ngood;          break;
+			case 'R': useRssi = 1;           break;
 			default:
 			case 'h': usage(argv[0]); return 1;
 		}
@@ -76,7 +87,7 @@ try {
 NoSsiDev root = INoSsiDev::create("udp", "127.0.0.1");
 Field    data = IField::create("data");
 
-	root->addAtStream( data, 8193, timeoutUs, iQDepth, oQDepth, ldFrameWinSize, ldFragWinSize );
+	root->addAtStream( data, sport, timeoutUs, iQDepth, oQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads , useRssi, tDest );
 
 	Path   strmPath = root->findByName("data");
 
