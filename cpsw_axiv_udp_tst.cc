@@ -185,7 +185,7 @@ ThreadArg *stats = static_cast<ThreadArg*>(arg);
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRr] [-V <version>] [-S <length>] [-n <shots>] [-p <period>]\n", nm);
+	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRr] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
 	fprintf(stderr,"       -V <version>:  SRP version (1 or 2)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
@@ -199,6 +199,8 @@ static void usage(const char *nm)
 	fprintf(stderr,"                      (defaults to 1000).\n");
 	fprintf(stderr,"       -R          :  use RSSI (SRP)\n");
 	fprintf(stderr,"       -r          :  use RSSI (stream)\n");
+	fprintf(stderr,"       -D <tdest>  :  use tdest demuxer (SRP)\n");
+	fprintf(stderr,"       -d <tdest>  :  use tdest demuxer (stream)\n");
 	fprintf(stderr,"       -h          :  print this message\n");
 }
 
@@ -219,19 +221,24 @@ char        cbuf[100];
 const char *col1    = NULL;
 bool        srpRssi = false;
 bool        strRssi = false;
+int         tDestSRP  = -1;
+int         tDestSTRM = -1;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rR")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
-			case 'a': ip_addr = optarg;  break;
-			case 'm': use_mem = true;    break;
-			case 'V': i_p     = &vers;   break;
-			case 'S': i_p     = &length; break;
-			case 'n': i_p     = &shots;  break;
-			case 'p': i_p     = &period; break;
-			case 'h': usage(argv[0]);    return 0;
-			case 'r': strRssi = true;    break;
-			case 'R': srpRssi = true;    break;
+			case 'a': ip_addr = optarg;     break;
+			case 'm': use_mem = true;       break;
+			case 'V': i_p     = &vers;      break;
+			case 'S': i_p     = &length;    break;
+			case 'n': i_p     = &shots;     break;
+			case 'p': i_p     = &period;    break;
+			case 'h': usage(argv[0]);      
+				return 0;
+			case 'r': strRssi = true;       break;
+			case 'R': srpRssi = true;       break;
+			case 'd': i_p     = &tDestSTRM; break;
+			case 'D': i_p     = &tDestSRP;  break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -247,6 +254,15 @@ bool        strRssi = false;
 		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
 		throw TestFailed();
 	}
+
+#if 0
+	if ( length > 0 && (port == sport) ) {
+		if ( tDestSRP < 0 || tDestSTRM < 0 ) {
+			fprintf(stderr,"When running STREAM and SRP on the same port both must use (different) TDEST (-d/-D)\n");
+			throw TestFailed();
+		}
+	}
+#endif
 
 	if ( (col1 = strchr(ip_addr,':')) ) {
 		unsigned len = col1 - ip_addr;
@@ -301,10 +317,10 @@ uint16_t u16;
 	mmio->addAtAddress( sysm, 0x10000 );
 	mmio->addAtAddress( prbs, 0x30000 );
 
-	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, port, 50000, 5, 0, srpRssi );
+	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, port, 50000, 5, 0, srpRssi, tDestSRP );
 
 	if ( length > 0 )
-		root->addAtStream( IField::create("dataSource"), sport, 10000000 /* us */, 32, 16, 4, 4, 2, strRssi );
+		root->addAtStream( IField::create("dataSource"), sport, 10000000 /* us */, 32, 16, 4, 4, 2, strRssi, tDestSTRM );
 
 	IDev::getRootDev()->addAtAddress( root );
 
