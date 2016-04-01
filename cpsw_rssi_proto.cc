@@ -31,6 +31,9 @@ RssiHeader::RssiHeader(uint8_t *buf, size_t bufsz, bool computeChksum, MODE init
 		throw BadHeader("header size > buffer size ?");
 	}
 
+	if ( SET == initMode )
+		buf[4] = buf[5] = 0; // clear SPAREs
+
 	if ( computeChksum ) {
 		if ( SET == initMode ) {
 			chkOk_ = false;
