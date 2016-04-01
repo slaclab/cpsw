@@ -47,18 +47,73 @@ CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion versio
 {
 ProtoPortMatchParams cmp;
 ProtoModSRPMux       srpMuxMod;
-ProtoPort            srpPort;
+ProtoModTDestMux     tDestMuxMod;
+ProtoModDepack       depackMod;
+ProtoPort            prt;
 NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
 int                  nbits;
+int                  foundMatches, foundRefinedMatches;
+unsigned             depackQDepth = 32;
 
 
 	cmp.udpDestPort_  = dport;
-	cmp.srpVersion_   = version;
 
-	if ( (srpPort = owner->findProtoPort( &cmp )) ) {
-		if ( ! (srpMuxMod = dynamic_pointer_cast<ProtoModSRPMux::element_type>( srpPort->getProtoMod() )) ) {
-			throw InternalError("SRP port not attached to SRPMuxMod ?!");
+	if ( (prt = owner->findProtoPort( &cmp )) ) {
+
+		// existing RSSI configuration must match the requested one
+		if ( useRssi )
+			cmp.haveRssi_.include();
+		else
+			cmp.haveRssi_.exclude();
+
+		if ( tDest >= 0 ) {
+			cmp.haveDepack_.include();
+			cmp.tDest_ = tDest;
+		} else {
+			cmp.haveDepack_.exclude();
+			cmp.tDest_.exclude();
 		}
+
+		foundMatches = cmp.findMatches( prt );
+
+		tDestMuxMod  = dynamic_pointer_cast<ProtoModTDestMux::element_type>( cmp.tDest_.handledBy_ );
+
+		switch ( cmp.requestedMatches() - foundMatches ) {
+			case 0:
+				// either no tdest demuxer or using an existing tdest port
+				cmp.srpVersion_     = version;
+				cmp.srpVC_          = vc;
+
+				foundRefinedMatches = cmp.findMatches( prt );
+
+				srpMuxMod = dynamic_pointer_cast<ProtoModSRPMux::element_type>( cmp.srpVC_.handledBy_ );
+
+				switch ( cmp.requestedMatches() - foundRefinedMatches ) {
+					case 0:
+						throw ConfigurationError("SRP VC already in use");
+					case 1:
+						if ( srpMuxMod && !cmp.srpVC_.matchedBy_ )
+							break;
+						/* else fall thru */
+					default:
+						throw ConfigurationError("Cannot create SRP port on top of existing protocol modules");
+				}
+				break;
+				
+			case 1:
+				if ( tDestMuxMod && ! cmp.tDest_.matchedBy_ ) {
+					protoStack_ = tDestMuxMod->createPort( tDest, true, 1 ); // queue depth 1 enough for synchronous operation
+					srpMuxMod   = CShObj::create< ProtoModSRPMux >( version );
+					protoStack_->addAtPort( srpMuxMod );
+					break;
+				}
+				/* else fall thru */
+			default:
+				throw ConfigurationError("Cannot create SRP on top of existing protocol modules");
+		}
+
+
+	
 	} else {
 		// create new
 		struct sockaddr_in dst;
@@ -68,18 +123,34 @@ int                  nbits;
 		dst.sin_addr.s_addr = owner->getIpAddress();
 
 		// Note: UDP module MUST have a queue if RSSI is used
-		ProtoModUdp    udpMod( CShObj::create< ProtoModUdp >( &dst, 10/* queue */, 1 /* nThreads */, 0 /* no poller */ ) );
-
-		srpMuxMod = CShObj::create< ProtoModSRPMux >( version );
+		protoStack_ = CShObj::create< ProtoModUdp >( &dst, 10/* queue */, 1 /* nThreads */, 0 /* no poller */ );
 
 		if ( useRssi ) {
 			rssi_ = CShObj::create<ProtoModRssi>();
-			udpMod->addAtPort( rssi_ );
-			rssi_->addAtPort( srpMuxMod );
-		} else {
-			udpMod->addAtPort( srpMuxMod );
+			protoStack_->addAtPort( rssi_ );
+			protoStack_ = rssi_;
 		}
+
+		if ( tDest >= 0 ) {
+			unsigned ldFrameWinSize = useRssi ? 1 : 4;
+			unsigned ldFragWinSize  = useRssi ? 1 : 4;
+
+			// since we have RSSI
+			depackMod   = CShObj::create< ProtoModDepack >( depackQDepth, ldFrameWinSize, ldFragWinSize, 1000000 );
+			protoStack_->addAtPort( depackMod );
+			protoStack_ = depackMod;
+
+			tDestMuxMod = CShObj::create< ProtoModTDestMux >();
+			protoStack_->addAtPort( tDestMuxMod );
+			protoStack_ = tDestMuxMod->createPort( tDest, true, 1 );
+		}
+
+		srpMuxMod = CShObj::create< ProtoModSRPMux >( version );
+
+		protoStack_->addAtPort( srpMuxMod );
 	}
+
+	protoStack_ = srpMuxMod->createPort( vc );
 
 	if ( useRssi ) {
 		// FIXME: should find out dynamically what RSSI's retransmission
@@ -87,14 +158,11 @@ int                  nbits;
 		dynTimeout_.setTimeoutCap( 50000 ); // 50 ms for now
 	}
 
-	protoStack_ = srpMuxMod->createPort( vc );
-
 	tidLsb_ = 1 << srpMuxMod->getTidLsb();
 	nbits   = srpMuxMod->getTidNumBits();
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
 
 	mutex_ = new Mutex();
-
 }
 
 CUdpSRPAddressImpl::~CUdpSRPAddressImpl()
@@ -745,21 +813,21 @@ ProtoPortMatchParams cmp;
 	return findProtoPort( &cmp ) != 0;
 }
 
-void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi)
+void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 {
 	IAddress::AKey k = getAKey();
-	shared_ptr<CUdpSRPAddressImpl> addr = make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc, useRssi, -1);
+	shared_ptr<CUdpSRPAddressImpl> addr = make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc, useRssi, tDest);
 	add(addr , child );
 	addr->startProtoStack();
 }
 
-void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi)
+void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
 {
 	if ( portInUse( dport ) ) {
 		throw InvalidArgError("Cannot address same destination port from multiple instances");
 	}
 	IAddress::AKey k = getAKey();
-	CUdpStreamAddressImpl            *ptr  = new CUdpStreamAddressImpl(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads, useRssi, -1);
+	CUdpStreamAddressImpl            *ptr  = new CUdpStreamAddressImpl(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads, useRssi, tDest);
 	shared_ptr<CUdpStreamAddressImpl> addr(ptr);
 	add( addr, child );
 	addr->startProtoStack();

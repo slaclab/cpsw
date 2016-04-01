@@ -103,7 +103,9 @@ public:
 	                          unsigned        timeoutUs      =       1000,
 	                          unsigned        retryCnt       =         10,
 	                          uint8_t         vc             =          0,
-	                          bool            useRssi        =      false) = 0;
+	                          bool            useRssi        =      false,
+	                          int             tDest          =         -1
+	) = 0;
 
 	virtual void addAtStream(Field            child,
 	                         unsigned         dport,
@@ -113,7 +115,9 @@ public:
 	                         unsigned         ldFrameWinSize =          4,
 	                         unsigned         ldFragWinSize  =          4,
 	                         unsigned         nUdpThreads    =          2,
-	                         bool             useRssi        =      false) = 0;
+	                         bool             useRssi        =      false,
+	                         int              tDest          =         -1
+	) = 0;
 
 	virtual const char *getIpAddressString() const = 0;
 
