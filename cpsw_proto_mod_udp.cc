@@ -270,8 +270,8 @@ void CProtoModUdp::dumpInfo(FILE *f)
 		f = stdout;
 
 	fprintf(f,"CProtoModUdp:\n");
-	fprintf(f,"  Peer port : %5u\n", getDestPort());
-	fprintf(f,"  RX Threads: %5u\n", rxHandlers_.size());
+	fprintf(f,"  Peer port : %5u\n",    getDestPort());
+	fprintf(f,"  RX Threads: %5lu\n",   rxHandlers_.size());
 	fprintf(f,"  Has Poller:     %c\n", poller_ ? 'Y' : 'N');
 }
 
@@ -339,7 +339,7 @@ abort();
 int CProtoModUdp::iMatch(ProtoPortMatchParams *cmp)
 {
 	cmp->udpDestPort_.handledBy_ = getProtoMod();
-	if ( cmp->udpDestPort_.doMatch_ && cmp->udpDestPort_.val_ == getDestPort() ) {
+	if ( cmp->udpDestPort_ == getDestPort() ) {
 		cmp->udpDestPort_.matchedBy_ = getSelfAs<ProtoModUdp>();
 		return 1;
 	}

@@ -87,18 +87,34 @@ public:
 	};
 
 	class MatchParamUnsigned : public MatchParam {
-	public:
+	protected:
 		unsigned val_;
+		bool     any_;
+	public:
 		MatchParamUnsigned(unsigned val = (unsigned)-1, bool doMatch = false)
 		: MatchParam( doMatch ? true : val != (unsigned)-1 ),
-		  val_(val)
+		  val_(val),
+		  any_(false)
 		{
 		}
+
+		void wildcard()
+		{
+			any_     = true;
+			include();
+		}
+
 		MatchParamUnsigned & operator=(unsigned val)
 		{
 			val_     = val;
 			include();
+			any_     = false;
 			return *this;
+		}
+
+		bool operator==(unsigned val)
+		{
+			return doMatch_ && (any_ || (val_ == val));
 		}
 
 	};
