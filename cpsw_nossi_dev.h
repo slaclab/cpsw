@@ -177,7 +177,7 @@ protected:
 
 	virtual ProtoPort findProtoPort(ProtoPortMatchParams *);
 	friend CUdpSRPAddressImpl::CUdpSRPAddressImpl(IAddress::AKey, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
-	friend CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
+	friend CUdpStreamAddressImpl::CUdpStreamAddressImpl(IAddress::AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 
 public:
 	CNoSsiDevImpl(Key &key, const char *name, const char *ip);
