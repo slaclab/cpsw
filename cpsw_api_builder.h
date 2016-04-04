@@ -153,7 +153,7 @@ public:
 		virtual void            add(Field child)                    = 0;
 	};
 
-	virtual PortBuilder createPortBuilder();
+	virtual PortBuilder createPortBuilder()                         = 0;
 
 	// UDP:
 	//     struct sockaddr dest;
