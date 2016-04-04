@@ -837,8 +837,8 @@ void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version
 void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
 {
 	IAddress::AKey k = getAKey();
-	CUdpStreamAddressImpl            *ptr  = new CUdpStreamAddressImpl(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads, useRssi, tDest);
-	shared_ptr<CUdpStreamAddressImpl> addr(ptr);
+	CRawCommAddressImpl            *ptr  = new CRawCommAddressImpl(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads, useRssi, tDest);
+	shared_ptr<CRawCommAddressImpl> addr(ptr);
 	add( addr, child );
 	addr->startProtoStack();
 }
@@ -875,7 +875,7 @@ Children::element_type::iterator it;
 	return ProtoPort();
 }
 
-CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
+CRawCommAddressImpl::CRawCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
 :CCommAddressImpl(key),
  dport_(dport)
 {
@@ -951,14 +951,14 @@ unsigned             qDepth      = 5;
 		protoStack_ = tdm->createPort( tDest, stripHeader, qDepth );
 }
 
-void CUdpStreamAddressImpl::dump(FILE *f) const
+void CRawCommAddressImpl::dump(FILE *f) const
 {
-	fprintf(f,"CUdpStreamAddressImpl:\n");
+	fprintf(f,"CRawCommAddressImpl:\n");
 	fprintf(f,"\nPeer: %s\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString());
 	CCommAddressImpl::dump(f);
 }
 
-uint64_t CUdpStreamAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+uint64_t CRawCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 BufChain bch;
 
@@ -970,7 +970,7 @@ BufChain bch;
 	return bch->extract( args->dst_, args->off_, args->nbytes_ );
 }
 
-uint64_t CUdpStreamAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+uint64_t CRawCommAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 BufChain bch = IBufChain::create();
 uint64_t rval;
@@ -984,7 +984,7 @@ uint64_t rval;
 	return rval;
 }
 
-CUdpStreamAddressImpl::~CUdpStreamAddressImpl()
+CRawCommAddressImpl::~CRawCommAddressImpl()
 {
 	shutdownProtoStack();
 }

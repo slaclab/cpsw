@@ -143,11 +143,11 @@ public:
 	virtual bool     usesRssi()                          const { return !!rssi_; }
 };
 
-class CUdpStreamAddressImpl : public CCommAddressImpl {
+class CRawCommAddressImpl : public CCommAddressImpl {
 private:
 	unsigned dport_;
 protected:
-	CUdpStreamAddressImpl(CUdpStreamAddressImpl &orig)
+	CRawCommAddressImpl(CRawCommAddressImpl &orig)
 	: CCommAddressImpl( orig ),
 	  dport_(orig.dport_)
 	{
@@ -155,15 +155,15 @@ protected:
 	}
 
 public:
-	CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
+	CRawCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
 	virtual void dump(FILE *f) const;
 
-	virtual CUdpStreamAddressImpl *clone(AKey k) { return new CUdpStreamAddressImpl( *this ); } /* need to clone stack */
+	virtual CRawCommAddressImpl *clone(AKey k) { return new CRawCommAddressImpl( *this ); } /* need to clone stack */
 
-	virtual ~CUdpStreamAddressImpl();
+	virtual ~CRawCommAddressImpl();
 };
 
 class CNoSsiDevImpl : public CDevImpl, public virtual INoSsiDev {
@@ -179,7 +179,7 @@ protected:
 
 	virtual ProtoPort findProtoPort(ProtoPortMatchParams *);
 	friend CUdpSRPAddressImpl::CUdpSRPAddressImpl(IAddress::AKey, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
-	friend CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
+	friend CRawCommAddressImpl::CRawCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 
 public:
 	CNoSsiDevImpl(Key &key, const char *name, const char *ip);
