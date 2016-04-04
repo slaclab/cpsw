@@ -53,7 +53,7 @@ RUN_OPTS=''
 # colon separated dirlist
 cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(or $(boostinc_DIR_$(TARNM)), $(boostinc_DIR_default), $(boostinc_DIR)))
 # colon separated dirlist
-cpswlib_DIRS=$(CPSW_DIR)/O.$(TARCH)$(addprefix :,$(or $(boostlib_DIR_$(TARNM)), $(boostlib_DIR_default), $(boostlib_DIR)) $(yamllib_DIR))
+cpswlib_DIRS=$(CPSW_DIR)/O.$(TARCH)$(addprefix :,$(or $(boostlib_DIR_$(TARNM)), $(boostlib_DIR_default), $(boostlib_DIR)))
 
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
 CPSW_LIBS   = cpsw boost_system.a pthread rt

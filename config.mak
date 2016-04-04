@@ -73,11 +73,3 @@ boostlib_DIR=/afs/slac/g/lcls/package/boost/$(BOOST_VERSION)/$(BOOST_ARCH)/lib
 # Note 'boostlib_DIR' (& friends) must be absolute paths
 # or relative to $(CPSW_DIR).
 #
-YAML_VERSION=yaml-cpp-0.5.3
-YAML_ARCH_linux_x86_64=rhel6-x86_64
-YAML_ARCH_linuxRT_x86_64=buildroot-2015.02-x86_64
-
-YAML_ARCH=$(YAML_ARCH_$(TARNM))
-yamlinc_DIR=/afs/slac/g/lcls/package/yaml-cpp/$(YAML_VERSION)/$(YAML_ARCH)/include
-yamllib_DIR=/afs/slac/g/lcls/package/yaml-cpp/$(YAML_VERSION)/$(YAML_ARCH)/lib
-
