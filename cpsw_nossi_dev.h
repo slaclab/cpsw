@@ -68,6 +68,8 @@ public:
 	{
 	}
 
+	CCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
+
 	CCommAddressImpl(CCommAddressImpl &orig)
 	: CAddressImpl(orig)
 	{
@@ -80,17 +82,18 @@ public:
 		return protoStack_;
 	}
 
+	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
+	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
+
 	virtual void dump(FILE *f) const;
 
-	virtual ~CCommAddressImpl()
-	{
-	}
+	virtual ~CCommAddressImpl();
 
 	virtual void startProtoStack();
 	virtual void shutdownProtoStack();
 };
 
-class CUdpSRPAddressImpl : public CCommAddressImpl {
+class CSRPAddressImpl : public CCommAddressImpl {
 private:            
 	INoSsiDev::ProtocolVersion protoVersion_;
 	CTimeout         usrTimeout_;
@@ -112,23 +115,23 @@ protected:
 	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 
 public:
-	CUdpSRPAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
+	CSRPAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
 
-	CUdpSRPAddressImpl(CUdpSRPAddressImpl &orig)
+	CSRPAddressImpl(CSRPAddressImpl &orig)
 	: CCommAddressImpl(orig),
 	  dynTimeout_(orig.dynTimeout_.get()),
 	  nRetries_(0)
 	{
 		throw InternalError("Clone not implemented"); /* need to clone mutex, ... */
 	}
-	virtual ~CUdpSRPAddressImpl();
+	virtual ~CSRPAddressImpl();
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
 	virtual void dump(FILE *f) const;
 
 	// ANY subclass must implement clone(AKey) !
-	virtual CUdpSRPAddressImpl *clone(AKey k) { return new CUdpSRPAddressImpl( *this ); }
+	virtual CSRPAddressImpl *clone(AKey k) { return new CSRPAddressImpl( *this ); }
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
 	virtual unsigned getTimeoutUs()                      const { return usrTimeout_.getUs(); }
@@ -139,26 +142,6 @@ public:
 	virtual uint32_t getTid()                            const { return tid_ = (tid_ + tidLsb_) & tidMsk_; }
 
 	virtual bool     usesRssi()                          const { return !!rssi_; }
-};
-
-class CRawCommAddressImpl : public CCommAddressImpl {
-protected:
-	CRawCommAddressImpl(CRawCommAddressImpl &orig)
-	: CCommAddressImpl( orig )
-	{
-		throw InternalError("Clone not implemented");
-	}
-
-public:
-	CRawCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
-	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
-	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
-
-	virtual void dump(FILE *f) const;
-
-	virtual CRawCommAddressImpl *clone(AKey k) { return new CRawCommAddressImpl( *this ); } /* need to clone stack */
-
-	virtual ~CRawCommAddressImpl();
 };
 
 class CNoSsiDevImpl : public CDevImpl, public virtual INoSsiDev {
@@ -173,8 +156,8 @@ protected:
 	}
 
 	virtual ProtoPort findProtoPort(ProtoPortMatchParams *);
-	friend CUdpSRPAddressImpl::CUdpSRPAddressImpl(IAddress::AKey, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
-	friend CRawCommAddressImpl::CRawCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
+	friend CSRPAddressImpl::CSRPAddressImpl(IAddress::AKey, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
+	friend CCommAddressImpl::CCommAddressImpl(IAddress::AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 
 public:
 	CNoSsiDevImpl(Key &key, const char *name, const char *ip);

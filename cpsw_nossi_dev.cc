@@ -31,7 +31,7 @@ struct Mutex {
 
 #define MAXWORDS 256
 
-CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
+CSRPAddressImpl::CSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 :CCommAddressImpl(k),
  protoVersion_(version),
  usrTimeout_(timeoutUs),
@@ -164,7 +164,7 @@ unsigned             depackQDepth = 32;
 	mutex_ = new Mutex();
 }
 
-CUdpSRPAddressImpl::~CUdpSRPAddressImpl()
+CSRPAddressImpl::~CSRPAddressImpl()
 {
 	shutdownProtoStack();
 	if ( mutex_ )
@@ -179,12 +179,12 @@ CNoSsiDevImpl::CNoSsiDevImpl(Key &k, const char *name, const char *ip)
 	}
 }
 
-void CUdpSRPAddressImpl::setTimeoutUs(unsigned timeoutUs)
+void CSRPAddressImpl::setTimeoutUs(unsigned timeoutUs)
 {
 	this->usrTimeout_.set(timeoutUs);
 }
 
-void CUdpSRPAddressImpl::setRetryCount(unsigned retryCnt)
+void CSRPAddressImpl::setRetryCount(unsigned retryCnt)
 {
 	this->retryCnt_ = retryCnt;
 }
@@ -231,7 +231,7 @@ struct timespec now;
 #define CMD_READ  0x00000000
 #define CMD_WRITE 0x40000000
 
-uint64_t CUdpSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
+uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
 {
 SRPWord  bufh[4];
 uint8_t  buft[sizeof(SRPWord)];
@@ -442,7 +442,7 @@ retry:
 	throw IOError("No response -- timeout");
 }
 	
-uint64_t CUdpSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+uint64_t CSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 uint64_t rval = 0;
 unsigned headbytes = (args->off_ & (sizeof(SRPWord)-1));
@@ -515,7 +515,7 @@ int      j;
 	return xchn;
 }
 
-uint64_t CUdpSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+uint64_t CSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
 SRPWord  xbuf[4];
 SRPWord  status;
@@ -749,7 +749,7 @@ retry:
 	throw IOError("Too many retries");
 }
 
-uint64_t CUdpSRPAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+uint64_t CSRPAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 uint64_t rval = 0;
 int headbytes = (args->off_ & (sizeof(SRPWord)-1));
@@ -789,6 +789,7 @@ uint8_t  msk1   = args->msk1_;
 void CCommAddressImpl::dump(FILE *f) const
 {
 	CAddressImpl::dump(f);
+	fprintf(f,"\nPeer: %s\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString());
 	fprintf(f,"\nProtocol Modules:\n");
 	if ( protoStack_ ) {
 		ProtoMod m;
@@ -798,9 +799,9 @@ void CCommAddressImpl::dump(FILE *f) const
 	}
 }
 
-void CUdpSRPAddressImpl::dump(FILE *f) const
+void CSRPAddressImpl::dump(FILE *f) const
 {
-	fprintf(f,"CUdpSRPAddressImpl:\n");
+	fprintf(f,"CSRPAddressImpl:\n");
 	fprintf(f,"\nPeer: %s\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString());
 	CCommAddressImpl::dump(f);
 	fprintf(f,"SRP Info:\n");
@@ -828,7 +829,7 @@ ProtoPortMatchParams cmp;
 void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 {
 	IAddress::AKey k = getAKey();
-	shared_ptr<CUdpSRPAddressImpl> addr = make_shared<CUdpSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc, useRssi, tDest);
+	shared_ptr<CSRPAddressImpl> addr = make_shared<CSRPAddressImpl>(k, version, dport, timeoutUs, retryCnt, vc, useRssi, tDest);
 	add(addr , child );
 	addr->startProtoStack();
 }
@@ -836,8 +837,8 @@ void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version
 void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
 {
 	IAddress::AKey k = getAKey();
-	CRawCommAddressImpl            *ptr  = new CRawCommAddressImpl(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads, useRssi, tDest);
-	shared_ptr<CRawCommAddressImpl> addr(ptr);
+	CCommAddressImpl            *ptr  = new CCommAddressImpl(k, dport, timeoutUs, inQDepth, outQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads, useRssi, tDest);
+	shared_ptr<CCommAddressImpl> addr(ptr);
 	add( addr, child );
 	addr->startProtoStack();
 }
@@ -874,8 +875,9 @@ Children::element_type::iterator it;
 	return ProtoPort();
 }
 
-CRawCommAddressImpl::CRawCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
-:CCommAddressImpl(key)
+CCommAddressImpl::CCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
+:CAddressImpl(key),
+ running_(false)
 {
 NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
 ProtoPort            prt;
@@ -949,14 +951,7 @@ unsigned             qDepth      = 5;
 		protoStack_ = tdm->createPort( tDest, stripHeader, qDepth );
 }
 
-void CRawCommAddressImpl::dump(FILE *f) const
-{
-	fprintf(f,"CRawCommAddressImpl:\n");
-	fprintf(f,"\nPeer: %s\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString());
-	CCommAddressImpl::dump(f);
-}
-
-uint64_t CRawCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+uint64_t CCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 BufChain bch;
 
@@ -968,7 +963,7 @@ BufChain bch;
 	return bch->extract( args->dst_, args->off_, args->nbytes_ );
 }
 
-uint64_t CRawCommAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+uint64_t CCommAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 BufChain bch = IBufChain::create();
 uint64_t rval;
@@ -980,11 +975,6 @@ uint64_t rval;
 	protoStack_->push( bch, &args->timeout_, IProtoPort::REL_TIMEOUT );
 
 	return rval;
-}
-
-CRawCommAddressImpl::~CRawCommAddressImpl()
-{
-	shutdownProtoStack();
 }
 
 void CCommAddressImpl::startProtoStack()
@@ -1015,6 +1005,11 @@ void CCommAddressImpl::shutdownProtoStack()
 		}
 		running_ = false;
 	}
+}
+
+CCommAddressImpl::~CCommAddressImpl()
+{
+	shutdownProtoStack();
 }
 
 DynTimeout::DynTimeout(const CTimeout &iniv)
