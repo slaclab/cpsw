@@ -64,6 +64,8 @@ public:
 		return "SRP VC Demux";
 	}
 
+	virtual ~CProtoModSRPMux() {}
+
 };
 
 class CSRPPort : public CByteMuxPort {

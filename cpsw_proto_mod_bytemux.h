@@ -16,6 +16,7 @@ public:
 private:
 
 	weak_ptr<typename PORT::element_type> downstream_[DEST_MAX-DEST_MIN+1];
+	unsigned nPorts_;
 
 protected:
 	ProtoPort upstream_;
@@ -23,7 +24,8 @@ protected:
 	CProtoModByteMux(const CProtoModByteMux &orig, Key &k)
 	: CShObj(k),
 	  CProtoModImpl(orig),
-	  CRunnable(orig)
+	  CRunnable(orig),
+	  nPorts_(orig.nPorts_)
 	{
 		throw InternalError("Clone not implemented");
 	}
@@ -38,6 +40,7 @@ protected:
 		}
 
 		downstream_[dest - DEST_MIN] = port;
+		nPorts_++;
 
 		return port;
 	}
@@ -45,8 +48,22 @@ protected:
 public:
 	CProtoModByteMux(Key &k, const char *name)
 	: CShObj(k),
-	  CRunnable(name)
+	  CRunnable(name),
+	  nPorts_(0)
 	{
+	}
+
+	virtual const char *getName()      const = 0;
+
+	virtual unsigned getNumPortsUsed() const
+	{
+		return nPorts_;
+	}
+
+	virtual void dumpInfo(FILE *f) const
+	{
+		fprintf(f,"%s:\n", getName());
+		fprintf(f,"  # virtual channels in use: %u\n", getNumPortsUsed());
 	}
 
 	// derived class usually implements a 'newPort' method

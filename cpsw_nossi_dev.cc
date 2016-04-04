@@ -787,21 +787,34 @@ uint8_t  msk1   = args->msk1_;
 
 }
 
+void CCommAddressImpl::dump(FILE *f) const
+{
+	CAddressImpl::dump(f);
+	fprintf(f,"\nProtocol Modules:\n");
+	if ( protoStack_ ) {
+		ProtoMod m;
+		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
+			m->dumpInfo( f );
+		}
+	}
+}
+
 void CUdpSRPAddressImpl::dump(FILE *f) const
 {
 	fprintf(f,"CUdpSRPAddressImpl:\n");
-	CAddressImpl::dump(f);
-	fprintf(f,"\nPeer: %s:%d\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString(), dport_);
-	fprintf(f,"  SRP Protocol Version: %8u\n",   protoVersion_);
-	fprintf(f,"  Timeout (user)      : %8"PRIu64"us\n", usrTimeout_.getUs());
-	fprintf(f,"  Timeout (dynamic)   : %8"PRIu64"us\n", dynTimeout_.get().getUs());
-	fprintf(f,"  max Roundtrip time  : %8"PRIu64"us\n", dynTimeout_.getMaxRndTrip().getUs());
-	fprintf(f,"  avg Roundtrip time  : %8"PRIu64"us\n", dynTimeout_.getAvgRndTrip().getUs());
-	fprintf(f,"  Retry Limit         : %8u\n",   retryCnt_);
-	fprintf(f,"  # of retried ops    : %8u\n",   nRetries_);
-	fprintf(f,"  # of writes (OK)    : %8u\n",   nWrites_);
-	fprintf(f,"  # of reads  (OK)    : %8u\n",   nReads_);
-	fprintf(f,"  Virtual Channel     : %8u\n",   vc_);
+	fprintf(f,"\nPeer: %s\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString());
+	CCommAddressImpl::dump(f);
+	fprintf(f,"SRP Info:\n");
+	fprintf(f,"  Protocol Version  : %8u\n",   protoVersion_);
+	fprintf(f,"  Timeout (user)    : %8"PRIu64"us\n", usrTimeout_.getUs());
+	fprintf(f,"  Timeout (dynamic) : %8"PRIu64"us\n", dynTimeout_.get().getUs());
+	fprintf(f,"  max Roundtrip time: %8"PRIu64"us\n", dynTimeout_.getMaxRndTrip().getUs());
+	fprintf(f,"  avg Roundtrip time: %8"PRIu64"us\n", dynTimeout_.getAvgRndTrip().getUs());
+	fprintf(f,"  Retry Limit       : %8u\n",   retryCnt_);
+	fprintf(f,"  # of retried ops  : %8u\n",   nRetries_);
+	fprintf(f,"  # of writes (OK)  : %8u\n",   nWrites_);
+	fprintf(f,"  # of reads  (OK)  : %8u\n",   nReads_);
+	fprintf(f,"  Virtual Channel   : %8u\n",   vc_);
 }
 
 bool CNoSsiDevImpl::portInUse(unsigned port)
@@ -864,8 +877,7 @@ Children::element_type::iterator it;
 
 CUdpStreamAddressImpl::CUdpStreamAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
 :CCommAddressImpl(key),
- dport_(dport),
- useRssi_(useRssi)
+ dport_(dport)
 {
 NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
 ProtoPort            prt;
@@ -919,7 +931,7 @@ unsigned             qDepth      = 5;
 
 		ProtoModDepack depackMod  = CShObj::create< ProtoModDepack >( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
 
-		if ( useRssi_ ) {
+		if ( useRssi ) {
 			ProtoModRssi   rssiMod    = CShObj::create<ProtoModRssi>();
 			udpMod->addAtPort( rssiMod );
 			rssiMod->addAtPort( depackMod );
@@ -942,14 +954,8 @@ unsigned             qDepth      = 5;
 void CUdpStreamAddressImpl::dump(FILE *f) const
 {
 	fprintf(f,"CUdpStreamAddressImpl:\n");
-	CAddressImpl::dump(f);
-	fprintf(f,"\nPeer: %s:%d\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString(), dport_);
-	if ( protoStack_ ) {
-		ProtoMod m;
-		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
-			m->dumpInfo( f );
-		}
-	}
+	fprintf(f,"\nPeer: %s\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString());
+	CCommAddressImpl::dump(f);
 }
 
 uint64_t CUdpStreamAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const

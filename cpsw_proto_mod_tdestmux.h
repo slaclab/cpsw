@@ -41,8 +41,10 @@ public:
 
 	virtual const char *getName() const
 	{
-		return "TDest VC Demux";
+		return "TDest Demultiplexer";
 	}
+
+	virtual ~CProtoModTDestMux() {}
 };
 
 class CTDestPort : public CByteMuxPort {

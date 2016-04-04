@@ -80,6 +80,8 @@ public:
 		return protoStack_;
 	}
 
+	virtual void dump(FILE *f) const;
+
 	virtual ~CCommAddressImpl()
 	{
 	}
@@ -109,8 +111,10 @@ protected:
 	Mutex            *mutex_;
 	virtual uint64_t readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const;
 	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
+
 public:
 	CUdpSRPAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
+
 	CUdpSRPAddressImpl(CUdpSRPAddressImpl &orig)
 	: CCommAddressImpl(orig),
 	  dynTimeout_(orig.dynTimeout_.get()),
@@ -142,7 +146,6 @@ public:
 class CUdpStreamAddressImpl : public CCommAddressImpl {
 private:
 	unsigned dport_;
-	bool     useRssi_;
 protected:
 	CUdpStreamAddressImpl(CUdpStreamAddressImpl &orig)
 	: CCommAddressImpl( orig ),
@@ -158,7 +161,6 @@ public:
 
 	virtual void dump(FILE *f) const;
 
-	virtual bool     usesRssi()                                           const { return useRssi_; }
 	virtual CUdpStreamAddressImpl *clone(AKey k) { return new CUdpStreamAddressImpl( *this ); } /* need to clone stack */
 
 	virtual ~CUdpStreamAddressImpl();
@@ -191,6 +193,11 @@ public:
 
 	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 1000, unsigned retryCnt = 5, uint8_t vc = 0, bool useRssi = false, int tDest = -1);
 	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi = false, int tDest = -1);
+
+	virtual PortBuilder createPortBuilder()
+	{
+		return PortBuilder();
+	}
 
 	virtual void setLocked();
 };

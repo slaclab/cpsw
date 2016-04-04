@@ -492,20 +492,20 @@ CRssi::~CRssi()
 void CRssi::dumpStats(FILE *f)
 {
 	fprintf(f ,"RSSI (%s) statistics (%s mode):\n", getName(), isServer_ ? "Server" : "Client");
-	fprintf(f ," # outgoing segments dropped: %12u\n", stats_.outgoingDropped_   );
-	fprintf(f ," # retransmitted segments   : %12u\n", stats_.rexSegments_       );
-	fprintf(f ," # retransmission timeouts  : %12u\n", stats_.rexTimeouts_       );
-	fprintf(f ," # retrans. due to BSY deass: %12u\n", stats_.busyDeassertRex_   );
-	fprintf(f ," # cumulative ACK timeouts  : %12u\n", stats_.ackTimeouts_       );
-	fprintf(f ," # NUL periods expired      : %12u\n", stats_.nulTimeouts_       );
-	fprintf(f ," # Headers with bad checksum: %12u\n", stats_.badChecksum_       );
-	fprintf(f ," # Invalid SYN headers      : %12u\n", stats_.badSynDropped_     );
-	fprintf(f ," # Invalid headers          : %12u\n", stats_.badHdrDropped_     );
-	fprintf(f ," # RXsegs out of WIN        : %12u\n", stats_.rejectedSegs_      );
-	fprintf(f ," # NUL replaced by ACK      : %12u\n", stats_.skippedNULs_       );
-	fprintf(f ," # segments ACKed by peer   : %12u\n", stats_.numSegsAckedByPeer_);
-	fprintf(f ," # segments delivered to usr: %12u\n", stats_.numSegsGivenToUser_);
-	fprintf(f ," # segs with BSY asserted   : %12u\n", stats_.busyFlagsCounted_  );
+	fprintf(f ,"  # outgoing segments dropped: %12u\n", stats_.outgoingDropped_   );
+	fprintf(f ,"  # retransmitted segments   : %12u\n", stats_.rexSegments_       );
+	fprintf(f ,"  # retransmission timeouts  : %12u\n", stats_.rexTimeouts_       );
+	fprintf(f ,"  # retrans. due to BSY deass: %12u\n", stats_.busyDeassertRex_   );
+	fprintf(f ,"  # cumulative ACK timeouts  : %12u\n", stats_.ackTimeouts_       );
+	fprintf(f ,"  # NUL periods expired      : %12u\n", stats_.nulTimeouts_       );
+	fprintf(f ,"  # Headers with bad checksum: %12u\n", stats_.badChecksum_       );
+	fprintf(f ,"  # Invalid SYN headers      : %12u\n", stats_.badSynDropped_     );
+	fprintf(f ,"  # Invalid headers          : %12u\n", stats_.badHdrDropped_     );
+	fprintf(f ,"  # RXsegs out of WIN        : %12u\n", stats_.rejectedSegs_      );
+	fprintf(f ,"  # NUL replaced by ACK      : %12u\n", stats_.skippedNULs_       );
+	fprintf(f ,"  # segments ACKed by peer   : %12u\n", stats_.numSegsAckedByPeer_);
+	fprintf(f ,"  # segments delivered to usr: %12u\n", stats_.numSegsGivenToUser_);
+	fprintf(f ,"  # segs with BSY asserted   : %12u\n", stats_.busyFlagsCounted_  );
 }
 
 void CRssi::RingBuf::dump()

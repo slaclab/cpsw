@@ -270,6 +270,9 @@ void CProtoModUdp::dumpInfo(FILE *f)
 		f = stdout;
 
 	fprintf(f,"CProtoModUdp:\n");
+	fprintf(f,"  Peer port : %5u\n", getDestPort());
+	fprintf(f,"  RX Threads: %5u\n", rxHandlers_.size());
+	fprintf(f,"  Has Poller:     %c\n", poller_ ? 'Y' : 'N');
 }
 
 bool CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)
