@@ -144,18 +144,21 @@ int  ivers = 2;
 int *i_p;
 int  opt;
 int  rval  = 1;
+int  useRssi = 0;
+int  tDest   = -1;
 
-	while ( (opt = getopt(argc, argv, "hV:p:")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "hV:p:r")) > 0 ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'V': i_p = &ivers; break;
 			case 'p': i_p = &port;  break;
+			case 'r': useRssi = 1;  break;
 			case 'h':
 				rval = 0;
 				/* fall thru */
 			default:
 				fprintf(stderr,"Unknown option '-%c'\n", opt);
-				fprintf(stderr,"usage: %s [-V <proto_vers>] [-p <dest_port>] [-h]\n", argv[0]);
+				fprintf(stderr,"usage: %s [-V <proto_vers>] [-p <dest_port>] [-r] [-h]\n", argv[0]);
 				return rval;
 		}
 		if ( i_p && 1 != sscanf(optarg,"%i",i_p) ) {
@@ -181,8 +184,8 @@ int  rval  = 1;
 		MMIODev  mmio_vc_1 = IMMIODev::create("mmio_vc_1",0x10000,BE);
 		MMIODev  mmio_vc_2 = IMMIODev::create("mmio_vc_2",0x10000,BE);
 
-		comm->addAtAddress( mmio_vc_1, vers, port, 100000, 5, vc1 );
-		comm->addAtAddress( mmio_vc_2, vers, port, 100000, 5, vc2 );
+		comm->addAtAddress( mmio_vc_1, vers, port, 100000, 5, vc1, useRssi, tDest );
+		comm->addAtAddress( mmio_vc_2, vers, port, 100000, 5, vc2, useRssi, tDest );
 
 		IDev::getRootDev()->addAtAddress( comm );
 

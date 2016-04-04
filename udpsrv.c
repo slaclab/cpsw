@@ -75,8 +75,8 @@ static void usage(const char *nm)
 	fprintf(stderr, "        -P          : port where V2 SRP server is listening (-1 for none)\n");
 	fprintf(stderr, "        -p          : port where V1 SRP server is listening (-1 for none)\n");
 	fprintf(stderr, "        -s          : port where STREAM server is listening (-1 for none)\n");
-	fprintf(stderr, "        -R          : port where V2 SRP server is listening (-1 for none) with RSSI\n");
-	fprintf(stderr, "        -r          : port where STREAM server is listening (-1 for none) with RSSI\n");
+	fprintf(stderr, "        -r          : port where V2 SRP server is listening (-1 for none) with RSSI\n");
+	fprintf(stderr, "        -R          : port where STREAM server is listening (-1 for none) with RSSI\n");
 #ifdef DEBUG
 	fprintf(stderr, "        -d          : enable debugging messages (may slow down)\n");
 #endif
@@ -497,8 +497,8 @@ struct srp_args       srp_args[sizeof(srpvars)/sizeof(srpvars[0])];
 			case 'f': i_a = &n_frags;                       break;
 			case 'L': i_a = &sim_loss;                      break;
 			case 'S': i_a = &scramble;                      break;
-			case 'R': i_a = &srpvars[V2_RSSI].port;         break;
-			case 'r': i_a = &strmvars[STRM_RSSI].port;      break;
+			case 'r': i_a = &srpvars[V2_RSSI].port;         break;
+			case 'R': i_a = &strmvars[STRM_RSSI].port;      break;
 			default:
 				fprintf(stderr, "unknown option '%c'\n", opt);
 				usage(argv[0]);
