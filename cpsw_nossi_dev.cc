@@ -135,7 +135,7 @@ unsigned             depackQDepth = 32;
 			unsigned ldFragWinSize  = useRssi ? 1 : 4;
 
 			// since we have RSSI
-			depackMod   = CShObj::create< ProtoModDepack >( depackQDepth, ldFrameWinSize, ldFragWinSize, 1000000 );
+			depackMod   = CShObj::create< ProtoModDepack >( depackQDepth, ldFrameWinSize, ldFragWinSize, CTimeout(1000000) );
 			protoStack_->addAtPort( depackMod );
 			protoStack_ = depackMod;
 
@@ -378,6 +378,7 @@ struct timespec retry_then;
 			printf("got %i, nw %i, exp %i\n", got, nWords, expected);
 			throw IOError("Received message truncated");
 		}
+
 		if ( doSwapV1 ) {
 			// switch payload back to LE
 			uint8_t  tmp[sizeof(SRPWord)];
@@ -929,7 +930,7 @@ unsigned             qDepth      = 5;
 
 		ProtoModUdp    udpMod     = CShObj::create< ProtoModUdp >( &dst, inQDepth, nUdpThreads );
 
-		ProtoModDepack depackMod  = CShObj::create< ProtoModDepack >( outQDepth, ldFrameWinSize, ldFragWinSize, timeoutUs );
+		ProtoModDepack depackMod  = CShObj::create< ProtoModDepack >( outQDepth, ldFrameWinSize, ldFragWinSize, CTimeout(timeoutUs) );
 
 		if ( useRssi ) {
 			ProtoModRssi   rssiMod    = CShObj::create<ProtoModRssi>();
