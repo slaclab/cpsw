@@ -185,11 +185,12 @@ ThreadArg *stats = static_cast<ThreadArg*>(arg);
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRr] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest]\n", nm);
+	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRrs] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
 	fprintf(stderr,"       -V <version>:  SRP version (1 or 2)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
 	fprintf(stderr,"                      of real device and UDP\n");
+	fprintf(stderr,"       -s          :  test system monitor ADCs\n");
 	fprintf(stderr,"       -S <length> :  test streaming interface\n");
 	fprintf(stderr,"                      with frames of 'length'.\n");
 	fprintf(stderr,"                      'length' must be > 0 to enable streaming\n");
@@ -223,12 +224,14 @@ bool        srpRssi = false;
 bool        strRssi = false;
 int         tDestSRP  = -1;
 int         tDestSTRM = -1;
+bool        sysmon    = false;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:s")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;     break;
 			case 'm': use_mem = true;       break;
+			case 's': sysmon  = true;       break;
 			case 'V': i_p     = &vers;      break;
 			case 'S': i_p     = &length;    break;
 			case 'n': i_p     = &shots;     break;
@@ -363,12 +366,6 @@ uint16_t u16;
 	counter->getVal( &u32, 1 );
 	printf("Counter : 0x%"PRIx32"\n", u32);
 
-	adcs->getVal( (uint16_t*)adcv, sizeof(adcv)/sizeof(adcv[0]) );
-	printf("\n\nADC Values:\n");
-	for ( int i=0; i<ADCL; i++ ) {
-		printf("  %6hd\n", adcv[i]);
-	}
-
 	u16=0x6765;
 	u32=0xffffffff;
 	scratchPad->setVal( &u32, 1 );
@@ -381,6 +378,14 @@ uint16_t u16;
 	} else {
 		printf("Readback of merged bits (expected 0xfc06765f) FAILED\n");
 		throw TestFailed();	
+	}
+
+	if ( sysmon ) {
+		adcs->getVal( (uint16_t*)adcv, sizeof(adcv)/sizeof(adcv[0]) );
+		printf("\n\nADC Values:\n");
+		for ( int i=0; i<ADCL; i++ ) {
+			printf("  %6hd\n", adcv[i]);
+		}
 	}
 
 	if ( length > 0 ) {
