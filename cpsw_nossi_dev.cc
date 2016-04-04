@@ -34,7 +34,6 @@ struct Mutex {
 CUdpSRPAddressImpl::CUdpSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 :CCommAddressImpl(k),
  protoVersion_(version),
- dport_(dport),
  usrTimeout_(timeoutUs),
  dynTimeout_(usrTimeout_),
  retryCnt_(retryCnt),
@@ -876,8 +875,7 @@ Children::element_type::iterator it;
 }
 
 CRawCommAddressImpl::CRawCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
-:CCommAddressImpl(key),
- dport_(dport)
+:CCommAddressImpl(key)
 {
 NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
 ProtoPort            prt;

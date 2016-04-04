@@ -93,7 +93,6 @@ public:
 class CUdpSRPAddressImpl : public CCommAddressImpl {
 private:            
 	INoSsiDev::ProtocolVersion protoVersion_;
-	unsigned short   dport_;
 	CTimeout         usrTimeout_;
 	mutable DynTimeout dynTimeout_;
 	unsigned         retryCnt_;
@@ -137,19 +136,15 @@ public:
 	virtual unsigned getRetryCount()                     const { return retryCnt_;  }
 	virtual INoSsiDev::ProtocolVersion getProtoVersion() const { return protoVersion_; }
 	virtual uint8_t  getVC()                             const { return vc_; }
-	virtual unsigned short getDport()                    const { return dport_; }
 	virtual uint32_t getTid()                            const { return tid_ = (tid_ + tidLsb_) & tidMsk_; }
 
 	virtual bool     usesRssi()                          const { return !!rssi_; }
 };
 
 class CRawCommAddressImpl : public CCommAddressImpl {
-private:
-	unsigned dport_;
 protected:
 	CRawCommAddressImpl(CRawCommAddressImpl &orig)
-	: CCommAddressImpl( orig ),
-	  dport_(orig.dport_)
+	: CCommAddressImpl( orig )
 	{
 		throw InternalError("Clone not implemented");
 	}
