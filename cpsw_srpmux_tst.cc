@@ -184,8 +184,20 @@ int  tDest   = -1;
 		MMIODev  mmio_vc_1 = IMMIODev::create("mmio_vc_1",0x10000,BE);
 		MMIODev  mmio_vc_2 = IMMIODev::create("mmio_vc_2",0x10000,BE);
 
-		comm->addAtAddress( mmio_vc_1, vers, port, 100000, 5, vc1, useRssi, tDest );
-		comm->addAtAddress( mmio_vc_2, vers, port, 100000, 5, vc2, useRssi, tDest );
+		INoSsiDev::PortBuilder bldr( INoSsiDev::createPortBuilder() );
+
+		bldr->setSRPVersion       (    vers );
+		bldr->setUdpPort          (    port );
+		bldr->useRssi             ( useRssi );
+		if ( tDest >= 0 )
+			bldr->setTDestMuxTDEST(   tDest );
+
+		bldr->setSRPMuxVirtualChannel( vc1 );
+
+		comm->addAtAddress( mmio_vc_1, bldr );
+
+		bldr->setSRPMuxVirtualChannel( vc2 );
+		comm->addAtAddress( mmio_vc_2, bldr );
 
 		IDev::getRootDev()->addAtAddress( comm );
 

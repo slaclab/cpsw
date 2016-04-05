@@ -317,11 +317,38 @@ uint16_t u16;
 	mmio->addAtAddress( sysm, 0x10000 );
 	mmio->addAtAddress( prbs, 0x30000 );
 
-	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, port, 50000, 5, 0, srpRssi, tDestSRP );
+	{
+	INoSsiDev::PortBuilder bldr = INoSsiDev::createPortBuilder();
+		if ( 1 == vers )
+			bldr->setSRPVersion          ( INoSsiDev::SRP_UDP_V1 );
+		else
+			bldr->setSRPVersion          ( INoSsiDev::SRP_UDP_V2 );
+		bldr->setUdpPort                 (                  port );
+		bldr->setSRPTimeoutUS            (                 50000 );
+		bldr->setSRPRetryCount           (                     5 );
+		bldr->setSRPMuxVirtualChannel    (                     0 );
+		bldr->useRssi                    (               srpRssi );
+		if ( tDestSRP >= 0 ) {
+			bldr->setTDestMuxTDEST       (              tDestSRP );
+		}
 
-	if ( length > 0 )
-		root->addAtStream( IField::create("dataSource"), sport, 10000000 /* us */, 32, 16, 4, 4, 2, strRssi, tDestSTRM );
+		root->addAtAddress( mmio, bldr );
+	}
 
+	if ( length > 0 ) {
+		INoSsiDev::PortBuilder bldr = INoSsiDev::createPortBuilder();
+		bldr->setSRPVersion          ( INoSsiDev::SRP_UDP_NONE );
+		bldr->setUdpPort             ( sport                   );
+		bldr->setUdpOutQueueDepth    (                      32 );
+		bldr->setUdpNumRxThreads     (                       2 );
+		bldr->setDepackOutQueueDepth (                      16 );
+		bldr->setDepackLdFrameWinSize(                       4 );
+		bldr->setDepackLdFragWinSize (                       4 );
+		bldr->useRssi                (                 strRssi );
+		if ( tDestSTRM >= 0 )
+			bldr->setTDestMuxTDEST   (               tDestSTRM );
+		root->addAtAddress( IField::create("dataSource"), bldr );
+	}
 	IDev::getRootDev()->addAtAddress( root );
 
 	// can use raw memory for testing instead of UDP

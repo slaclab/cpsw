@@ -41,7 +41,7 @@ unsigned sport       = 8193;
 	unsigned oQDepth =  5;
 	unsigned ldFrameWinSize = 5;
 	unsigned ldFragWinSize  = 5;
-	unsigned timeoutUs = 10000000;
+	unsigned timeoutUs = 8000000;
 	unsigned err_percent = 0;
 
 	rssi_debug=0;
@@ -87,7 +87,20 @@ try {
 NoSsiDev root = INoSsiDev::create("udp", "127.0.0.1");
 Field    data = IField::create("data");
 
-	root->addAtStream( data, sport, timeoutUs, iQDepth, oQDepth, ldFrameWinSize, ldFragWinSize, nUdpThreads , useRssi, tDest );
+INoSsiDev::PortBuilder bldr( INoSsiDev::createPortBuilder() );
+
+	bldr->setSRPVersion          ( INoSsiDev::SRP_UDP_NONE );
+	bldr->setUdpPort             (                   sport );
+	bldr->setUdpOutQueueDepth    (                 iQDepth );
+	bldr->setUdpNumRxThreads     (             nUdpThreads );
+	bldr->setDepackOutQueueDepth (                 oQDepth );
+	bldr->setDepackLdFrameWinSize(          ldFrameWinSize );
+	bldr->setDepackLdFragWinSize (           ldFragWinSize );
+	bldr->useRssi                (                 useRssi );
+	if ( tDest >= 0 )
+		bldr->setTDestMuxTDEST   (                   tDest );
+
+	root->addAtAddress( data, bldr );
 
 	Path   strmPath = root->findByName("data");
 
@@ -117,7 +130,7 @@ Field    data = IField::create("data");
 			got = strm->write( buf, hdr.getSize() + 100 + i );
 		}
 
-		got = strm->read( buf, sizeof(buf), CTimeout(8000000), 0 );
+		got = strm->read( buf, sizeof(buf), CTimeout(timeoutUs), 0 );
 
 #ifdef DEBUG
 		printf("Read %"PRIu64" octets\n", got);

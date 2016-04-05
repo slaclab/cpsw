@@ -115,9 +115,25 @@ int      tDest      = -1;
 		MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
 		MMIODev   srvm = IMMIODev::create ("srvm",0x10000, LE);
 
+		INoSsiDev::PortBuilder pbldr( INoSsiDev::createPortBuilder() );
+
 		mmio->addAtAddress( srvm, REGBASE );
 
-		root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, (unsigned short)port, 1000000, 4, vc, useRssi, tDest );
+		if ( 1 == vers )
+			pbldr->setSRPVersion          ( INoSsiDev::SRP_UDP_V1 );
+		else
+			pbldr->setSRPVersion          ( INoSsiDev::SRP_UDP_V2 );
+		pbldr->setUdpPort                 (                  port );
+		pbldr->setSRPTimeoutUS            (               1000000 );
+		pbldr->setSRPRetryCount           (                     4 );
+		pbldr->setSRPMuxVirtualChannel    (                    vc );
+		pbldr->useRssi                    (               useRssi );
+		if ( tDest >= 0 ) {
+			pbldr->setTDestMuxTDEST       (                 tDest );
+		}
+
+
+		root->addAtAddress( mmio, pbldr );
 
 		Path pre = root->findByName("mmio/srvm");
 

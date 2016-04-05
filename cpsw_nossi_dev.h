@@ -62,8 +62,9 @@ protected:
 	bool           running_;
 
 public:
-	CCommAddressImpl(AKey k)
+	CCommAddressImpl(AKey k, ProtoPort protoStack)
 	: CAddressImpl(k),
+	  protoStack_(protoStack),
       running_(false)
 	{
 	}
@@ -107,15 +108,16 @@ private:
 	mutable uint32_t tid_;
 	uint32_t         tidMsk_;
 	uint32_t         tidLsb_;
-	ProtoModRssi     rssi_;
 
 protected:
-	Mutex            *mutex_;
+	mutable CMtx     mutex_;
 	virtual uint64_t readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const;
 	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 
 public:
 	CSRPAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
+
+	CSRPAddressImpl(AKey key, INoSsiDev::PortBuilder, ProtoPort);
 
 	CSRPAddressImpl(CSRPAddressImpl &orig)
 	: CCommAddressImpl(orig),
@@ -140,8 +142,6 @@ public:
 	virtual INoSsiDev::ProtocolVersion getProtoVersion() const { return protoVersion_; }
 	virtual uint8_t  getVC()                             const { return vc_; }
 	virtual uint32_t getTid()                            const { return tid_ = (tid_ + tidLsb_) & tidMsk_; }
-
-	virtual bool     usesRssi()                          const { return !!rssi_; }
 };
 
 class CNoSsiDevImpl : public CDevImpl, public virtual INoSsiDev {
@@ -159,6 +159,8 @@ protected:
 	friend CSRPAddressImpl::CSRPAddressImpl(IAddress::AKey, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
 	friend CCommAddressImpl::CCommAddressImpl(IAddress::AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 
+	ProtoPort makeProtoStack(PortBuilder bldr);
+
 public:
 	CNoSsiDevImpl(Key &key, const char *name, const char *ip);
 
@@ -169,15 +171,14 @@ public:
 
 	virtual bool portInUse(unsigned port);
 
+	virtual void addAtAddress(Field child, PortBuilder bldr);
+
 	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 1000, unsigned retryCnt = 5, uint8_t vc = 0, bool useRssi = false, int tDest = -1);
 	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi = false, int tDest = -1);
 
-	virtual PortBuilder createPortBuilder()
-	{
-		return PortBuilder();
-	}
-
 	virtual void setLocked();
+
+	class CPortBuilder;
 };
 
 #endif

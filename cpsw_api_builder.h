@@ -101,76 +101,64 @@ public:
 	typedef shared_ptr<IPortBuilder> PortBuilder;
 
 	class IPortBuilder {
+	public:
 		// Note: most of the parameters configured into a PortBuilder object are
 		//       only used if the associated protocol module is not already present
 		//       and they are ignored otherwise.
 		//       E.g., if a UDP port is shared (via TDEST and or SRP VC multiplexers)
 		//       and already present when adding a new TDEST/VC then the UDP parameters
 		//       (queue depth, number of threads) are ignored.
-		virtual PortBuilder     setSRPVersion(ProtocolVersion)      = 0; // default: SRP_UDP_V2
+		virtual void            setSRPVersion(ProtocolVersion)      = 0; // default: SRP_UDP_V2
 		virtual ProtocolVersion getSRPVersion()                     = 0;
-		virtual PortBuilder     setSRPTimeoutUS(uint64_t)           = 0; // default: 10000 if no rssi, 500000 if rssi
+		virtual void            setSRPTimeoutUS(uint64_t)           = 0; // default: 10000 if no rssi, 500000 if rssi
 		virtual uint64_t        getSRPTimeoutUS()                   = 0;
-		virtual PortBuilder     setSRPRetryCount(unsigned)          = 0; // default: 10
+		virtual void            setSRPRetryCount(unsigned)          = 0; // default: 10
 		virtual unsigned        getSRPRetryCount()                  = 0;
 
 		virtual bool            hasUdp()                            = 0; // default: YES
-		virtual PortBuilder     setUdpPort(unsigned)                = 0; // default: 8192
+		virtual void            setUdpPort(unsigned)                = 0; // default: 8192
 		virtual unsigned        getUdpPort()                        = 0;
-		virtual PortBuilder     setUdpOutQueueDepth(unsigned)       = 0; // default: 10
+		virtual void            setUdpOutQueueDepth(unsigned)       = 0; // default: 10
 		virtual unsigned        getUdpOutQueueDepth()               = 0;
-		virtual PortBuilder     setUdpNumRxThreads(unsigned)        = 0; // default: 1
+		virtual void            setUdpNumRxThreads(unsigned)        = 0; // default: 1
 		virtual unsigned        getUdpNumRxThreads()                = 0;
-		virtual PortBuilder     setUdpPollSecs(int)                 = 0; // default: NO if SRP in use, 60s if no SRP
+		virtual void            setUdpPollSecs(int)                 = 0; // default: NO if SRP w/o TDEST or RSSI, 60s if no SRP
 		virtual int             getUdpPollSecs()                    = 0;
 
-		virtual PortBuilder     useRssi(bool)                       = 0; // default: NO
+		virtual void            useRssi(bool)                       = 0; // default: NO
 		virtual bool            hasRssi()                           = 0;
 
-		virtual PortBuilder     useDepack(bool)                     = 0; // default: NO
+		virtual void            useDepack(bool)                     = 0; // default: NO
 		virtual bool            hasDepack()                         = 0;
-		virtual PortBuilder     setDepackOutQueueDepth(unsigned)    = 0; // default: 20
+		virtual void            setDepackOutQueueDepth(unsigned)    = 0; // default: 50
 		virtual unsigned        getDepackOutQueueDepth()            = 0;
-		virtual PortBuilder     setDepackLdFrameWinSize(unsigned)   = 0; // default: 5 if no rssi, 1 if rssi
+		virtual void            setDepackLdFrameWinSize(unsigned)   = 0; // default: 5 if no rssi, 1 if rssi
 		virtual unsigned        getDepackLdFrameWinSize()           = 0;
-		virtual PortBuilder     setDepackLdFragWinSize(unsigned)    = 0; // default: 5 if no rssi, 1 if rssi
+		virtual void            setDepackLdFragWinSize(unsigned)    = 0; // default: 5 if no rssi, 1 if rssi
 		virtual unsigned        getDepackLdFragWinSize()            = 0;
 
-		virtual PortBuilder     useSRPMux()                         = 0; // default: YES if SRP, NO if no RSP
+		virtual void            useSRPMux(bool)                     = 0; // default: YES if SRP, NO if no SRP
 		virtual bool            hasSRPMux()                         = 0;
-		virtual PortBuilder     setSRPMuxVirtualChannel(bool)       = 0; // default: 0
-		virtual bool            getSRPMuxVirtualChannel()           = 0;
+		virtual void            setSRPMuxVirtualChannel(unsigned)   = 0; // default: 0
+		virtual unsigned        getSRPMuxVirtualChannel()           = 0;
 
-		virtual PortBuilder     useTDestMux()                       = 0; // default: NO
+		virtual void            useTDestMux(bool)                   = 0; // default: NO
 		virtual bool            hasTDestMux()                       = 0;
-		virtual PortBuilder     setTDestMuxTDEST(unsigned)          = 0; // default: 0
+		virtual void            setTDestMuxTDEST(unsigned)          = 0; // default: 0
 		virtual unsigned        getTDestMuxTDEST()                  = 0;
-		virtual PortBuilder     setTDestMuxStripHeader(bool)        = 0; // default: YES if SRP, NO if no RSP
+		virtual void            setTDestMuxStripHeader(bool)        = 0; // default: YES if SRP, NO if no RSP
 		virtual bool            getTDestMuxStripHeader()            = 0;
-		virtual PortBuilder     setTDestMuxOutQueueDepth(unsigned)  = 0; // default: 1 if SRP, 50 if no SRP
+		virtual void            setTDestMuxOutQueueDepth(unsigned)  = 0; // default: 1 if SRP, 50 if no SRP
 		virtual unsigned        getTDestMuxOutQueueDepth()          = 0;
 
-		virtual void            add(Field child)                    = 0;
+		virtual PortBuilder     clone()                             = 0;
 	};
 
-	virtual PortBuilder createPortBuilder()                         = 0;
+	static PortBuilder createPortBuilder();
 
-	// UDP:
-	//     struct sockaddr dest;
-	//     unsigned        outputQueueDepth, nRxThreads;
-	//     int             pollSecs
-	// rssi:
-	//     <none>
-	// depack:
-	//     unsigned outputQueueDepth, ldFrameWinSize, ldFragWinSize
-	//     uint64_t timeoutUs; (input timeout -- scrap)
-	// SRPmux:
-	//     <protocolVersion>
-	//     createPort(uint8_t vc)
-	// TDestMux:
-	//     <none>
-	//     createPort(uint8_t tdest, bool stripHeader, unsigned queueDepth)
+	virtual void addAtAddress(Field child, PortBuilder bldr)        = 0;
 
+	// DEPRECATED -- use addAtAddress(Field, PortBuilder)
 	virtual void addAtAddress(Field           child,
 	                          ProtocolVersion version        = SRP_UDP_V2,
 	                          unsigned        dport          =       8192,
@@ -181,6 +169,7 @@ public:
 	                          int             tDest          =         -1
 	) = 0;
 
+	// DEPRECATED -- use addAtAddress(Field, PortBuilder)
 	virtual void addAtStream(Field            child,
 	                         unsigned         dport,
 	                         unsigned         timeoutUs,
