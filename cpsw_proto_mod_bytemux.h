@@ -60,7 +60,7 @@ public:
 		return nPorts_;
 	}
 
-	virtual void dumpInfo(FILE *f) const
+	virtual void dumpInfo(FILE *f)
 	{
 		fprintf(f,"%s:\n", getName());
 		fprintf(f,"  # virtual channels in use: %u\n", getNumPortsUsed());
