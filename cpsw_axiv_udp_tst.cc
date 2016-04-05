@@ -94,7 +94,7 @@ Field f;
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
 	f = IIntField::create("oneShot",      1, false, 4);
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
-	f = IIntField::create("packetLength",32, false, 4);
+	f = IIntField::create("packetLength",32, false, 0);
 	v->CMMIODevImpl::addAtAddress( f , 0x04 );
 	f = IIntField::create("tDest",        8, false, 0);
 	v->CMMIODevImpl::addAtAddress( f , 0x08 );
@@ -202,7 +202,10 @@ static void usage(const char *nm)
 	fprintf(stderr,"       -r          :  use RSSI (stream)\n");
 	fprintf(stderr,"       -D <tdest>  :  use tdest demuxer (SRP)\n");
 	fprintf(stderr,"       -d <tdest>  :  use tdest demuxer (stream)\n");
-	fprintf(stderr,"       -h          :  print this message\n");
+	fprintf(stderr,"       -h          :  print this message\n\n\n");
+	fprintf(stderr,"Base addresses of AxiVersion, Sysmon and PRBS\n");
+	fprintf(stderr,"may be changed by defining VERS_BASE, SYSM_BASE\n");
+	fprintf(stderr,"and PRBS_BASE env-vars, respectively\n");
 }
 
 int
@@ -225,6 +228,10 @@ bool        strRssi = false;
 int         tDestSRP  = -1;
 int         tDestSTRM = -1;
 bool        sysmon    = false;
+uint32_t    vers_base = 0x00000000;
+uint32_t    sysm_base = 0x00010000;
+uint32_t    prbs_base = 0x00030000;
+const char *str;
 
 	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:s")) > 0; ) {
 		i_p = 0;
@@ -252,6 +259,20 @@ bool        sysmon    = false;
 			throw TestFailed();
 		}
 	}
+
+	if ( (str = getenv("VERS_BASE")) && 1 != sscanf(str,"%"SCNi32, &vers_base) ) {
+		fprintf(stderr,"Unable to scan VERS_BASE envvar\n");
+		throw TestFailed();
+	}
+	if ( (str = getenv("SYSM_BASE")) && 1 != sscanf(str,"%"SCNi32, &sysm_base) ) {
+		fprintf(stderr,"Unable to scan SYSM_BASE envvar\n");
+		throw TestFailed();
+	}
+	if ( (str = getenv("PRBS_BASE")) && 1 != sscanf(str,"%"SCNi32, &prbs_base) ) {
+		fprintf(stderr,"Unable to scan PRBS_BASE envvar\n");
+		throw TestFailed();
+	}
+	
 
 	if ( vers != 1 && vers != 2 ) {
 		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
@@ -292,10 +313,10 @@ bool        sysmon    = false;
 try {
 
 NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
-MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
+MMIODev   mmio = IMMIODev::create ("mmio",0x10000000);
 AXIVers   axiv = IAXIVers::create ("vers");
-MMIODev   sysm = IMMIODev::create ("sysm",0x1000, LE);
-MemDev    rmem = IMemDev::create  ("rmem", 0x100000);
+MMIODev   sysm = IMMIODev::create ("sysm",    0x1000, LE);
+MemDev    rmem = IMemDev::create  ("rmem",  0x100000);
 PRBS      prbs = IPRBS::create    ("prbs");
 
 uint8_t str[VLEN];
@@ -316,9 +337,9 @@ uint16_t u16;
 
 	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
 
-	mmio->addAtAddress( axiv, 0x00000 );
-	mmio->addAtAddress( sysm, 0x10000 );
-	mmio->addAtAddress( prbs, 0x30000 );
+	mmio->addAtAddress( axiv, vers_base );
+	mmio->addAtAddress( sysm, sysm_base );
+	mmio->addAtAddress( prbs, prbs_base );
 
 	{
 	INoSsiDev::PortBuilder bldr = INoSsiDev::createPortBuilder();
