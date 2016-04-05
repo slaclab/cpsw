@@ -880,6 +880,11 @@ struct timespec retry_then;
 
 	nWords = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
+#ifdef NOSSI_DEBUG
+	fprintf(stderr, "SRP writeBlk_unlocked off %"PRIx64"; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords);
+#endif
+
+
 	bool merge_first = headbytes      || msk1;
 	bool merge_last  = (totbytes & (sizeof(SRPWord)-1)) || mskn;
 
