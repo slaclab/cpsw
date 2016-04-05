@@ -1140,7 +1140,6 @@ void CCommAddressImpl::dump(FILE *f) const
 void CSRPAddressImpl::dump(FILE *f) const
 {
 	fprintf(f,"CSRPAddressImpl:\n");
-	fprintf(f,"\nPeer: %s\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString());
 	CCommAddressImpl::dump(f);
 	fprintf(f,"SRP Info:\n");
 	fprintf(f,"  Protocol Version  : %8u\n",   protoVersion_);
