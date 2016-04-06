@@ -106,9 +106,9 @@ void CAxisFrameHeader::insert(uint8_t *hdrBase, size_t hdrSize)
 	setNum( hdrBase, VERSION_BIT_OFFSET,  VERSION_BIT_SIZE,  vers_    );
 	setNum( hdrBase, FRAME_NO_BIT_OFFSET, FRAME_NO_BIT_SIZE, frameNo_ );
 	setNum( hdrBase, FRAG_NO_BIT_OFFSET,  FRAG_NO_BIT_SIZE,  fragNo_  );
-	setNum( hdrBase, TDEST_BIT_OFFSET,    TDEST_BIT_SIZE,    0        );
-	setNum( hdrBase, TID_BIT_OFFSET,      TID_BIT_SIZE,      0        );
-	setNum( hdrBase, TUSR1_BIT_OFFSET,    TUSR1_BIT_SIZE,    0        );
+	setNum( hdrBase, TDEST_BIT_OFFSET,    TDEST_BIT_SIZE,    tDest_   );
+	setNum( hdrBase, TID_BIT_OFFSET,      TID_BIT_SIZE,      tId_     );
+	setNum( hdrBase, TUSR1_BIT_OFFSET,    TUSR1_BIT_SIZE,    tUsr1_   );
 }
 
 
