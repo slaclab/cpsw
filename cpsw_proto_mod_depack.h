@@ -45,7 +45,7 @@ public:
 
 	static const unsigned TDEST_BIT_OFFSET    = 40;
 	static const unsigned TDEST_BIT_SIZE      =  8;
-	static const unsigned TID_BIT_OFFSET      = 40;
+	static const unsigned TID_BIT_OFFSET      = 48;
 	static const unsigned TID_BIT_SIZE        =  8;
 	static const unsigned TUSR1_BIT_OFFSET    = 56;
 	static const unsigned TUSR1_BIT_SIZE      =  8;
