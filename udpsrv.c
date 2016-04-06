@@ -26,10 +26,11 @@
 #define NFRAGS  20
 #define FRAGLEN 8
 
-#define FRAMBITS 12
-#define FRAGBITS 24
-#define VERS     0
-#define VERSBITS 4
+#define TDESTBITS  8
+#define FRAGBITS  24
+#define FRAMBITS  12
+#define VERS       0
+#define VERSBITS   4
 
 #define HEADSIZE 8
 #define TAILSIZE 1
@@ -98,6 +99,7 @@ typedef struct streamer_args {
 	UdpPrt             port;
 	unsigned           n_frags;
 	unsigned           fram;
+	unsigned           tdest;
 	unsigned           jam;
 	pthread_t          poller_tid, fragger_tid;
 	int                haveThreads;
@@ -110,26 +112,34 @@ typedef struct srp_args {
 	int                haveThread;
 } srp_args;
 
-static uint64_t mkhdr(unsigned fram, unsigned frag)
+static uint64_t mkhdr(unsigned fram, unsigned frag, unsigned tdest)
 {
 uint64_t rval;
 	if ( HEADSIZE > sizeof(rval) ) {
 		fprintf(stderr,"FATAL ERROR -- HEADSIZE too big\n");
 		exit(1);
 	}
-	rval = (frag & ((1<<FRAGBITS)-1));
-	rval = rval << FRAMBITS;
-	rval |= (fram & ((1<<FRAMBITS)-1));
-	rval = rval << VERSBITS;
-	rval |= VERS & ((1<<VERSBITS)-1);
+	rval   = 0;
+
+	rval <<= TDESTBITS;
+	rval  |= (tdest & ((1<<TDESTBITS)-1));
+
+	rval <<= FRAGBITS;
+	rval  |= (frag & ((1<<FRAGBITS)-1));
+
+	rval <<= FRAMBITS;
+	rval  |= (fram & ((1<<FRAMBITS)-1));
+
+	rval <<= VERSBITS;
+	rval  |= VERS & ((1<<VERSBITS)-1);
 	return rval;
 }
 
-static int insert_header(uint8_t *hbuf, unsigned fram, unsigned frag)
+static int insert_header(uint8_t *hbuf, unsigned fram, unsigned frag, unsigned tdest)
 {
 uint64_t h;
 int      i;
-	h = mkhdr(fram, frag);
+	h = mkhdr(fram, frag, tdest);
 	for ( i=0; i<HEADSIZE; i++ ) {
 		hbuf[i] = h;
 		h       = h>>8;
@@ -240,7 +250,7 @@ Buf      bufmem;
 		}
 
 		i  = 0;
-		i += insert_header(bufmem, sa->fram, frag);
+		i += insert_header(bufmem, sa->fram, frag, sa->tdest);
 
 		memset(bufmem + i, (sa->fram << 4) | (frag & 0xf), FRAGLEN);
 
@@ -455,6 +465,7 @@ const char *ina     = INA_DEF;
 int      n_frags    = NFRAGS;
 int      sim_loss   = SIMLOSS_DEF;
 int      scramble   = SCRMBL_DEF;
+unsigned tdest      = 0;
 int      i;
 sigset_t sigset;
 
@@ -539,6 +550,7 @@ struct srp_args       srp_args[sizeof(srpvars)/sizeof(srpvars[0])];
 
 		strm_args[i].port                 = udpPrtCreate( ina, strmvars[i].port, sim_loss, scramble, strmvars[i].haveRssi );
 		strm_args[i].n_frags              = n_frags;
+		strm_args[i].tdest                = tdest;
 		strm_args[i].fram                 = 0;
 		strm_args[i].jam                  = 0;
 
