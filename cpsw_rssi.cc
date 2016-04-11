@@ -258,7 +258,7 @@ Buf        b  = bc->createAtHead( IBuf::CAPA_ETH_HDR );
 RssiHeader hdr( b->getPayload(), b->getCapacity(), false, RssiHeader::SET );
 
 	hdr.setFlags( RssiHeader::FLG_ACK );
-	hdr.setSeqNo( lastSeqSent_ );
+	hdr.setSeqNo( lastSeqSent_ + 1 );
 
 	b->setSize( hdr.getHSize() );
 
@@ -268,7 +268,7 @@ RssiHeader hdr( b->getPayload(), b->getCapacity(), false, RssiHeader::SET );
 #ifdef RSSI_DEBUG
 if ( rssi_debug > 1 )
 {
-fprintf(stderr,"%s: sent ACKONLY %d\n", getName(), lastSeqSent_);
+fprintf(stderr,"%s: sent ACKONLY %d\n", getName(), lastSeqSent_ + 1);
 }
 #endif
 }
