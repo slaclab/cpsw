@@ -136,7 +136,7 @@ struct convert<MMIODev> {
   static bool decode(const Node& node, MMIODev& rhs) {
 
     std::string name = node["name"].as<std::string>();
-    int size = node["size"].as<int>();
+    uint64_t size = node["size"].as<uint64_t>();
     rhs = IMMIODev::create( name.c_str(), size );
     Field f;
 
