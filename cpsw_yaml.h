@@ -146,7 +146,7 @@ struct convert<MMIODev> {
       const YAML::Node& registers = node["registers"];
       for( unsigned i = 0; i < registers.size(); i++ )
       {
-        int address = registers[i]["address"].as<int>();
+        uint64_t address = registers[i]["address"].as<uint64_t>();
         int nelms   = registers[i]["nelms"] ? \
                         registers[i]["nelms"].as<int>() : \
                         1;
