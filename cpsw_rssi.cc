@@ -280,7 +280,7 @@ Buf        b  = bc->createAtHead( IBuf::CAPA_ETH_HDR );
 RssiHeader hdr( b->getPayload(), b->getCapacity(), false, RssiHeader::SET );
 
 	hdr.setFlags( RssiHeader::FLG_ACK | RssiHeader::FLG_RST );
-	hdr.setSeqNo( lastSeqSent_ );
+	hdr.setSeqNo( ++lastSeqSent_ );
 
 	b->setSize( hdr.getHSize() );
 
