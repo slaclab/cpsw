@@ -50,7 +50,8 @@ public:
 	static const unsigned TUSR1_BIT_OFFSET    = 56;
 	static const unsigned TUSR1_BIT_SIZE      =  8;
 
-	static const unsigned FRAG_LAST_BIT       =  7;
+	static const unsigned FRAG_FRST_BIT       =  1; // SOF in tUSR1
+	static const unsigned FRAG_LAST_BIT       =  7; // EOF in tail byte
 
 	static const unsigned VERSION_0           =  0;
 
@@ -141,6 +142,8 @@ public:
 	FragID       getFragNo()  { return fragNo_;  }
 	ProtoVersion getVersion() { return vers_;    }
 	uint8_t      getTDest()   { return tDest_;   }
+	uint8_t      getTUsr1()   { return tUsr1_;   }
+	bool         getSOF()     { return !! (tUsr1_ & (1<<FRAG_FRST_BIT)); }
 
 	void         setFrameNo(FrameID frameNo)
 	{
@@ -155,6 +158,19 @@ public:
 	void         setTDest(uint8_t   tDest)
 	{
 		tDest_   = tDest;
+	}
+
+	void         setTUsr1(uint8_t   tUsr1)
+	{
+		tUsr1_   = tUsr1;
+	}
+
+	void         setSOF(bool v)
+	{
+		if ( v )
+			tUsr1_ |=  (1<<FRAG_FRST_BIT);
+		else
+			tUsr1_ &= ~(1<<FRAG_FRST_BIT);
 	}
 
 	static FrameID moduloFrameSz(FrameID id)

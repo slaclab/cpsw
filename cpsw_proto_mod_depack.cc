@@ -437,6 +437,7 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 
 	hdr.setFrameNo( frameIdGen_.newFrameID() );
 	hdr.setFragNo ( 0 );
+	hdr.setSOF(true);
 
 	hdr.insert( b->getPayload(), hdr.getSize() );
 

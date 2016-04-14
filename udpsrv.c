@@ -26,6 +26,8 @@
 #define NFRAGS  20
 #define FRAGLEN 8
 
+#define TUSR1BITS  8
+#define TIDBITS    8
 #define TDESTBITS  8
 #define FRAGBITS  24
 #define FRAMBITS  12
@@ -115,11 +117,22 @@ typedef struct srp_args {
 static uint64_t mkhdr(unsigned fram, unsigned frag, unsigned tdest)
 {
 uint64_t rval;
+uint8_t  tid   = 0;
+uint8_t  tusr1 = 0;
 	if ( HEADSIZE > sizeof(rval) ) {
 		fprintf(stderr,"FATAL ERROR -- HEADSIZE too big\n");
 		exit(1);
 	}
 	rval   = 0;
+
+	if ( frag == 0 )
+		tusr1 |= (1<<1); // SOF
+
+	rval <<= TUSR1BITS;
+	rval  |= (tusr1 & ((1<<TUSR1BITS)-1));
+
+	rval <<= TIDBITS;
+	rval  |= (tid   & ((1<<TIDBITS)-1));
 
 	rval <<= TDESTBITS;
 	rval  |= (tdest & ((1<<TDESTBITS)-1));
@@ -192,7 +205,7 @@ int           lfram = -1;
 			       tusr1);
 #endif
 
-			if ( vers != 0 || frag != 0 || tdest != 0 || tid != 0 || tusr1 != 0 ) {
+			if ( vers != 0 || frag != 0 || tdest != 0 || tid != 0 || tusr1 != (frag == 0 ? (1<<1) : 0) ) {
 				fprintf(stderr,"UDPSRV: Invalid stream header received\n");
 				sa->jam = 100;
 				continue;
