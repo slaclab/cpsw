@@ -1,3 +1,6 @@
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
 
@@ -103,6 +106,8 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 			sleep(10);
 			continue;
 		}
+		nDgrams_.fetch_add(1,   boost::memory_order_relaxed);
+		nOctets_.fetch_add(got, boost::memory_order_relaxed);
 		buf->setSize( got );
 		if ( got > 0 ) {
 
@@ -157,12 +162,16 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 
 CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
 : CUdpHandlerThread(name, dest, me),
+  nOctets_(0),
+  nDgrams_(0),
   owner_(owner)
 {
 }
 
 CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
 : CUdpHandlerThread( orig, dest, me ),
+  nOctets_(0),
+  nDgrams_(0),
   owner_(owner)
 {
 }
@@ -240,6 +249,8 @@ unsigned i;
 CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, unsigned nRxThreads, int pollSecs)
 :CProtoMod(k, depth),
  dest_(*dest),
+ nTxOctets_(0),
+ nTxDgrams_(0),
  poller_( NULL )
 {
 	sockIni( tx_.getSd(), dest, 0, true );
@@ -249,10 +260,32 @@ CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, uns
 CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)
 :CProtoMod(orig, k),
  dest_(orig.dest_),
+ nTxOctets_(0),
+ nTxDgrams_(0),
  poller_(orig.poller_)
 {
 	sockIni( tx_.getSd(), &dest_, 0, true );
 	createThreads( orig.rxHandlers_.size(), -1 );
+}
+
+uint64_t CProtoModUdp::getNumRxOctets()
+{
+unsigned i;
+uint64_t rval = 0;
+
+	for ( i=0; i<rxHandlers_.size(); i++ )
+		rval += rxHandlers_[i]->getNumOctets();
+	return rval;
+}
+
+uint64_t CProtoModUdp::getNumRxDgrams()
+{
+unsigned i;
+uint64_t rval = 0;
+
+	for ( i=0; i<rxHandlers_.size(); i++ )
+		rval += rxHandlers_[i]->getNumDgrams();
+	return rval;
 }
 
 CProtoModUdp::~CProtoModUdp()
@@ -270,9 +303,13 @@ void CProtoModUdp::dumpInfo(FILE *f)
 		f = stdout;
 
 	fprintf(f,"CProtoModUdp:\n");
-	fprintf(f,"  Peer port : %5u\n",    getDestPort());
-	fprintf(f,"  RX Threads: %5lu\n",   rxHandlers_.size());
-	fprintf(f,"  Has Poller:     %c\n", poller_ ? 'Y' : 'N');
+	fprintf(f,"  Peer port : %15u\n",    getDestPort());
+	fprintf(f,"  RX Threads: %15lu\n",   rxHandlers_.size());
+	fprintf(f,"  Has Poller:               %c\n", poller_ ? 'Y' : 'N');
+	fprintf(f,"  #TX Octets: %15"PRIu64"\n", getNumTxOctets());
+	fprintf(f,"  #TX DGRAMs: %15"PRIu64"\n", getNumTxDgrams());
+	fprintf(f,"  #RX Octets: %15"PRIu64"\n", getNumRxOctets());
+	fprintf(f,"  #RX DGRAMs: %15"PRIu64"\n", getNumRxDgrams());
 }
 
 bool CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)
@@ -289,6 +326,9 @@ unsigned       nios;
 	// We follow a) here...
 	// If they were to fragment a large frame they have to push each
 	// fragment individually.
+
+	nTxDgrams_.fetch_add( 1, boost::memory_order_relaxed );
+	nTxOctets_.fetch_add( bc->getSize(), boost::memory_order_relaxed );
 
 	for (nios=0, b=bc->getHead(); nios<bc->getLen(); nios++, b=b->getNext()) {
 		iov[nios].iov_base = b->getPayload();

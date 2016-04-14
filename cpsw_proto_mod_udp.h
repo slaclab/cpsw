@@ -11,8 +11,10 @@
 
 #include <vector>
 
+#include <boost/atomic.hpp>
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
+using boost::atomic;
 
 class CSockSd;
 typedef shared_ptr<CSockSd> SockSd;
@@ -77,6 +79,9 @@ class CProtoModUdp : public CProtoMod {
 protected:
 
 	class CUdpRxHandlerThread : public CUdpHandlerThread {
+		private:
+			atomic<uint64_t> nOctets_;
+			atomic<uint64_t> nDgrams_;
 		public:
 			// cannot use smart pointer here because CProtoModUdp's
 			// constructor creates the threads (and a smart ptr is
@@ -93,12 +98,17 @@ protected:
 			CUdpRxHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
 			CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
 
+			virtual uint64_t getNumOctets() { return nOctets_.load( boost::memory_order_relaxed ); }
+			virtual uint64_t getNumDgrams() { return nDgrams_.load( boost::memory_order_relaxed ); }
+
 			virtual ~CUdpRxHandlerThread() { threadStop(); }
 	};
 
 private:
 	struct sockaddr_in dest_;
 	CSockSd            tx_;
+	atomic<uint64_t>   nTxOctets_;
+	atomic<uint64_t>   nTxDgrams_;
 protected:
 	std::vector< CUdpRxHandlerThread * > rxHandlers_;
 	CUdpPeerPollerThread                 *poller_;
@@ -142,6 +152,10 @@ public:
 		return new CProtoModUdp( *this, k );
 	}
 
+	virtual uint64_t getNumTxOctets() { return nTxOctets_.load( boost::memory_order_relaxed ); }
+	virtual uint64_t getNumTxDgrams() { return nTxDgrams_.load( boost::memory_order_relaxed ); }
+	virtual uint64_t getNumRxOctets();
+	virtual uint64_t getNumRxDgrams();
 	virtual void modStartup();
 	virtual void modShutdown();
 
