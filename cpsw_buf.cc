@@ -28,6 +28,65 @@ using boost::memory_order_acquire;
 #define NULLBUF   BufImpl( reinterpret_cast<CBufImpl*>(0) )
 #define NULLCHAIN BufChainImpl( reinterpret_cast<CBufChainImpl*>(0) )
 
+class CBufChainImpl : public IBufChain, public CFreeListNode<CBufChainImpl> {
+private:
+	BufChainImpl strong_self_;
+	BufImpl      head_;
+	BufImpl      tail_;
+	unsigned     len_;
+	size_t       size_;
+
+	virtual void setHead(BufImpl h);
+	virtual void setTail(BufImpl t);
+
+	BufChain     yield_ownership();
+
+	friend class CBufImpl;
+	friend void  IBufChain::take_ownership(BufChain);
+
+	class Key {};
+
+public:
+
+	CBufChainImpl( CFreeListNodeKey<CBufChainImpl> k );
+
+	virtual Buf      getHead();
+	virtual Buf      getTail();
+	virtual BufImpl  getHeadImpl();
+	virtual BufImpl  getTailImpl();
+
+	virtual unsigned getLen();  // # of buffers in chain
+	virtual size_t   getSize(); // in bytes
+
+	virtual void     addSize(ssize_t s);
+	virtual void     addLen(int l);
+
+	virtual void     setSize(size_t s);
+	virtual void     setLen(unsigned l);
+
+	virtual Buf      createAtHead(size_t capa, bool clip = false);
+	virtual Buf      createAtTail(size_t capa, bool clip = false);
+
+	virtual void     addAtHead(Buf b);
+	virtual void     addAtTail(Buf b);
+
+	virtual uint64_t extract(void *buf, uint64_t off, uint64_t size);
+	virtual void     insert(void *buf, uint64_t off, uint64_t size);
+
+	// when a shared pointer to a chain expires then the
+	// entire chain is automatically released - even without
+	// an explicit destructor. However, this process is recursive
+	// which may lead to stack overflow if a chain is very long.
+	virtual ~CBufChainImpl();
+
+	static BufChainImpl createImpl();
+
+	static CFreeList<CBufChainImpl> freeList;
+};
+
+CFreeList<CBufChainImpl> CBufChainImpl::freeList;
+
+
 class CBufImpl : public IBuf, public CFreeListNode<CBufImpl> {
 private:
 	weak_ptr<CBufChainImpl> chain_;
@@ -74,6 +133,11 @@ public:
 	virtual void     unlink();
 	virtual void     split();
 
+	virtual void     unlinkCheap(CBufChainImpl::Key k)
+	{
+		next_.reset();
+	}
+
 	// We don't need to unlink a buffer when it is destroyed:
 	// Only the first one in a chain can ever be destroyed (because
 	// strong refs to all others in a chain exist). If this happens
@@ -93,56 +157,6 @@ static CFreeList<CBufImpl> freeListBig  (0, 2048 - sizeof(CBufImpl));
 static CFreeList<CBufImpl> *freeListPool[] = {
 	&freeListBig
 };
-
-class CBufChainImpl : public IBufChain, public CFreeListNode<CBufChainImpl> {
-private:
-	BufChainImpl strong_self_;
-	BufImpl      head_;
-	BufImpl      tail_;
-	unsigned     len_;
-	size_t       size_;
-
-	virtual void setHead(BufImpl h)     { head_ = h; }
-	virtual void setTail(BufImpl t)     { tail_ = t; }
-
-	BufChain     yield_ownership();
-
-	friend class CBufImpl;
-	friend void  IBufChain::take_ownership(BufChain);
-
-public:
-
-	CBufChainImpl( CFreeListNodeKey<CBufChainImpl> k );
-
-	virtual Buf      getHead()          { return head_; }
-	virtual Buf      getTail()          { return tail_; }
-	virtual BufImpl  getHeadImpl()      { return head_; }
-	virtual BufImpl  getTailImpl()      { return tail_; }
-
-	virtual unsigned getLen()           { return len_;  } // # of buffers in chain
-	virtual size_t   getSize()          { return size_; } // in bytes
-
-	virtual void     addSize(ssize_t s) { size_ += s; }
-	virtual void     addLen(int l)      { len_  += l; }
-
-	virtual void     setSize(size_t s)  { size_  = s; }
-	virtual void     setLen(unsigned l) { len_   = l; }
-
-	virtual Buf      createAtHead(size_t capa, bool clip = false);
-	virtual Buf      createAtTail(size_t capa, bool clip = false);
-
-	virtual void     addAtHead(Buf b);
-	virtual void     addAtTail(Buf b);
-
-	virtual uint64_t extract(void *buf, uint64_t off, uint64_t size);
-	virtual void     insert(void *buf, uint64_t off, uint64_t size);
-
-	static BufChainImpl createImpl();
-
-	static CFreeList<CBufChainImpl> freeList;
-};
-
-CFreeList<CBufChainImpl> CBufChainImpl::freeList;
 
 CBufImpl::CBufImpl(CFreeListNodeKey<CBufImpl> k, unsigned short capa)
 : CFreeListNode<CBufImpl>( k ),
@@ -588,4 +602,88 @@ Buf      b, nxtb;
 		nxtb = b->getNext();	
 		b->unlink();
 	}
+}
+
+void
+CBufChainImpl::setHead(BufImpl h)
+{
+	head_ = h;
+}
+
+void
+CBufChainImpl::setTail(BufImpl t)
+{
+	tail_ = t;
+}
+
+Buf
+CBufChainImpl::getHead()
+{
+	return head_;
+}
+
+Buf
+CBufChainImpl::getTail()
+{
+	return tail_;
+}
+
+BufImpl
+CBufChainImpl::getHeadImpl()
+{
+	return head_;
+}
+
+BufImpl
+CBufChainImpl::getTailImpl()
+{
+	return tail_;
+}
+
+unsigned
+CBufChainImpl::getLen()
+{
+	return len_;
+ } // # of buffers in chain
+
+size_t
+CBufChainImpl::getSize()
+{
+	return size_;
+} // in bytes
+
+void
+CBufChainImpl::addSize(ssize_t s)
+{
+	size_ += s;
+}
+
+void
+CBufChainImpl::addLen(int l)
+{
+	len_  += l;
+}
+
+void
+CBufChainImpl::setSize(size_t s)
+{
+	size_  = s;
+}
+
+void
+CBufChainImpl::setLen(unsigned l)
+{
+	len_   = l;
+}
+
+CBufChainImpl::~CBufChainImpl()
+{
+	BufImpl b = getTailImpl();
+	if ( b ) {
+		while ( b = b->getPrevImpl() ) {
+			b->unlinkCheap( Key() );
+		}
+	}
+	head_.reset();
+	tail_.reset();
 }
