@@ -111,18 +111,18 @@ int      tDest      = -1;
 
 	try {
 
-		NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
+		NetIODev  root = INetIODev::create("fpga", ip_addr);
 		MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
 		MMIODev   srvm = IMMIODev::create ("srvm",0x10000, LE);
 
-		INoSsiDev::PortBuilder pbldr( INoSsiDev::createPortBuilder() );
+		INetIODev::PortBuilder pbldr( INetIODev::createPortBuilder() );
 
 		mmio->addAtAddress( srvm, REGBASE );
 
 		if ( 1 == vers )
-			pbldr->setSRPVersion          ( INoSsiDev::SRP_UDP_V1 );
+			pbldr->setSRPVersion          ( INetIODev::SRP_UDP_V1 );
 		else
-			pbldr->setSRPVersion          ( INoSsiDev::SRP_UDP_V2 );
+			pbldr->setSRPVersion          ( INetIODev::SRP_UDP_V2 );
 		pbldr->setUdpPort                 (                  port );
 		pbldr->setSRPTimeoutUS            (               1000000 );
 		pbldr->setSRPRetryCount           (                     4 );

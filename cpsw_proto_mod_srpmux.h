@@ -11,7 +11,7 @@ typedef shared_ptr<CSRPPort>         SRPPort;
 
 class CProtoModSRPMux : public CProtoModByteMux<SRPPort> {
 private:
-	INoSsiDev::ProtocolVersion protoVersion_;	
+	INetIODev::ProtocolVersion protoVersion_;	
 
 protected:
 	CProtoModSRPMux(const CProtoModSRPMux &orig, Key &k)
@@ -24,7 +24,7 @@ protected:
 
 public:
 
-	CProtoModSRPMux(Key &k, INoSsiDev::ProtocolVersion protoVersion)
+	CProtoModSRPMux(Key &k, INetIODev::ProtocolVersion protoVersion)
 	: CProtoModByteMux<SRPPort>(k, "SRP VC Demux"),
 	  protoVersion_(protoVersion)
 	{
@@ -49,7 +49,7 @@ public:
 	virtual int extractDest(BufChain);
 
 
-	virtual INoSsiDev::ProtocolVersion getProtoVersion()
+	virtual INetIODev::ProtocolVersion getProtoVersion()
 	{
 		return protoVersion_;
 	}
@@ -85,7 +85,7 @@ public:
 	{
 	}
 
-	virtual INoSsiDev::ProtocolVersion getProtoVersion();
+	virtual INetIODev::ProtocolVersion getProtoVersion();
 };
 
 #endif

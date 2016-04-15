@@ -1,5 +1,5 @@
-#ifndef CPSW_NOSSI_DEV_H
-#define CPSW_NOSSI_DEV_H
+#ifndef CPSW_NETIO_DEV_H
+#define CPSW_NETIO_DEV_H
 
 #include <cpsw_hub.h>
 
@@ -16,9 +16,9 @@
 
 using std::vector;
 
-class CNoSsiDevImpl;
+class CNetIODevImpl;
 
-typedef shared_ptr<CNoSsiDevImpl> NoSsiDevImpl;
+typedef shared_ptr<CNetIODevImpl> NetIODevImpl;
 
 struct Mutex;
 
@@ -96,7 +96,7 @@ public:
 
 class CSRPAddressImpl : public CCommAddressImpl {
 private:            
-	INoSsiDev::ProtocolVersion protoVersion_;
+	INetIODev::ProtocolVersion protoVersion_;
 	CTimeout         usrTimeout_;
 	mutable DynTimeout dynTimeout_;
 	unsigned         retryCnt_;
@@ -115,9 +115,9 @@ protected:
 	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 
 public:
-	CSRPAddressImpl(AKey key, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
+	CSRPAddressImpl(AKey key, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
 
-	CSRPAddressImpl(AKey key, INoSsiDev::PortBuilder, ProtoPort);
+	CSRPAddressImpl(AKey key, INetIODev::PortBuilder, ProtoPort);
 
 	CSRPAddressImpl(CSRPAddressImpl &orig)
 	: CCommAddressImpl(orig),
@@ -139,35 +139,35 @@ public:
 	virtual unsigned getTimeoutUs()                      const { return usrTimeout_.getUs(); }
 	virtual unsigned getDynTimeoutUs()                   const { return dynTimeout_.get().getUs(); }
 	virtual unsigned getRetryCount()                     const { return retryCnt_;  }
-	virtual INoSsiDev::ProtocolVersion getProtoVersion() const { return protoVersion_; }
+	virtual INetIODev::ProtocolVersion getProtoVersion() const { return protoVersion_; }
 	virtual uint8_t  getVC()                             const { return vc_; }
 	virtual uint32_t getTid()                            const { return tid_ = (tid_ + tidLsb_) & tidMsk_; }
 };
 
-class CNoSsiDevImpl : public CDevImpl, public virtual INoSsiDev {
+class CNetIODevImpl : public CDevImpl, public virtual INetIODev {
 private:
 	in_addr_t        d_ip_;
 	std::string      ip_str_;
 protected:
-	CNoSsiDevImpl(CNoSsiDevImpl &orig, Key &k)
+	CNetIODevImpl(CNetIODevImpl &orig, Key &k)
 	: CDevImpl(orig, k)
 	{
-		throw InternalError("Cloning of CNoSsiDevImpl not yet implemented");
+		throw InternalError("Cloning of CNetIODevImpl not yet implemented");
 	}
 
 	virtual ProtoPort findProtoPort(ProtoPortMatchParams *);
-	friend CSRPAddressImpl::CSRPAddressImpl(IAddress::AKey, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
+	friend CSRPAddressImpl::CSRPAddressImpl(IAddress::AKey, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
 	friend CCommAddressImpl::CCommAddressImpl(IAddress::AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 
 	ProtoPort makeProtoStack(PortBuilder bldr);
 
 public:
-	CNoSsiDevImpl(Key &key, const char *name, const char *ip);
+	CNetIODevImpl(Key &key, const char *name, const char *ip);
 
 	virtual const char *getIpAddressString() const { return ip_str_.c_str(); }
 	virtual in_addr_t   getIpAddress()       const { return d_ip_; }
 
-	virtual CNoSsiDevImpl *clone(Key &k) { return new CNoSsiDevImpl( *this, k ); }
+	virtual CNetIODevImpl *clone(Key &k) { return new CNetIODevImpl( *this, k ); }
 
 	virtual bool portInUse(unsigned port);
 

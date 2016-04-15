@@ -1,5 +1,5 @@
 #define __STDC_FORMAT_MACROS
-#include <cpsw_nossi_dev.h>
+#include <cpsw_netio_dev.h>
 #include <inttypes.h>
 
 #include <cpsw_proto_mod_depack.h>
@@ -14,7 +14,7 @@
 
 using boost::dynamic_pointer_cast;
 
-typedef shared_ptr<NoSsiDevImpl> NoSsiDevImplP;
+typedef shared_ptr<NetIODevImpl> NetIODevImplP;
 
 typedef uint32_t SRPWord;
 
@@ -26,14 +26,14 @@ struct Mutex {
 	}
 };
 
-//#define NOSSI_DEBUG
+//#define NETIO_DEBUG
 //#define TIMEOUT_DEBUG
 
 #define MAXWORDS 256
 
-class CNoSsiDevImpl::CPortBuilder : public INoSsiDev::IPortBuilder {
+class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 	private:
-		INoSsiDev::ProtocolVersion protocolVersion_;
+		INetIODev::ProtocolVersion protocolVersion_;
 		uint64_t                   SRPTimeoutUS_;
 		unsigned                   SRPRetryCount_;
 		unsigned                   UdpPort_;
@@ -333,7 +333,7 @@ class CNoSsiDevImpl::CPortBuilder : public INoSsiDev::IPortBuilder {
 };
 
 
-CSRPAddressImpl::CSRPAddressImpl(AKey key, INoSsiDev::PortBuilder bldr, ProtoPort stack)
+CSRPAddressImpl::CSRPAddressImpl(AKey key, INetIODev::PortBuilder bldr, ProtoPort stack)
 :CCommAddressImpl(key, stack),
  protoVersion_(bldr->getSRPVersion()),
  usrTimeout_(bldr->getSRPTimeoutUS()),
@@ -367,7 +367,7 @@ int                  nbits;
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
 }
 
-CSRPAddressImpl::CSRPAddressImpl(AKey k, INoSsiDev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
+CSRPAddressImpl::CSRPAddressImpl(AKey k, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 :CCommAddressImpl(k,ProtoPort()),
  protoVersion_(version),
  usrTimeout_(timeoutUs),
@@ -385,7 +385,7 @@ ProtoModSRPMux       srpMuxMod;
 ProtoModTDestMux     tDestMuxMod;
 ProtoModDepack       depackMod;
 ProtoPort            prt;
-NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
+NetIODevImpl         owner( getOwnerAs<NetIODevImpl>() );
 int                  nbits;
 int                  foundMatches, foundRefinedMatches;
 unsigned             depackQDepth = 32;
@@ -503,7 +503,7 @@ CSRPAddressImpl::~CSRPAddressImpl()
 	shutdownProtoStack();
 }
 
-CNoSsiDevImpl::CNoSsiDevImpl(Key &k, const char *name, const char *ip)
+CNetIODevImpl::CNetIODevImpl(Key &k, const char *name, const char *ip)
 : CDevImpl(k, name), ip_str_(ip ? ip : "ANY")
 {
 	if ( INADDR_NONE == ( d_ip_ = ip ? inet_addr( ip ) : INADDR_ANY ) ) {
@@ -543,7 +543,7 @@ uint32_t v;
 	memcpy( buf, &v, sizeof(SRPWord) );
 }
 
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 static void time_retry(struct timespec *then, int attempt, const char *pre, ProtoPort me)
 {
 struct timespec now;
@@ -580,17 +580,17 @@ int      got;
 int      nWords;
 int      expected = 0;
 uint32_t tid = getTid();
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 struct timespec retry_then;
 #endif
 
 	// V1 sends payload in network byte order. We want to transform to restore
 	// the standard AXI layout which is little-endian
-	bool doSwapV1 = (INoSsiDev::SRP_UDP_V1 == protoVersion_);
+	bool doSwapV1 = (INetIODev::SRP_UDP_V1 == protoVersion_);
 	// header info needs to be swapped to host byte order since we interpret it
-	bool doSwap   =	( ( protoVersion_ == INoSsiDev::SRP_UDP_V2 ? BE : LE ) == hostByteOrder() );
+	bool doSwap   =	( ( protoVersion_ == INetIODev::SRP_UDP_V2 ? BE : LE ) == hostByteOrder() );
 
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 	fprintf(stderr, "SRP readBlk_unlocked off %"PRIx64"; sbytes %d, swapV1 %d, swap %d protoVersion %d\n", off, sbytes, doSwapV1, doSwap, protoVersion_);
 #endif
 
@@ -602,7 +602,7 @@ struct timespec retry_then;
 	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
 	put = expected = 0;
-	if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
+	if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
 		xbuf[put++] = vc_ << 24;
 		expected++;
 	}
@@ -620,7 +620,7 @@ struct timespec retry_then;
 	}
 
 	i = 0;
-	if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
+	if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
 		iov[i].iov_base = &header;
 		iov[i].iov_len  = sizeof( header );
 		i++;
@@ -663,7 +663,7 @@ struct timespec retry_then;
 		do {
 			BufChain rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 				time_retry( &retry_then, attempt, "READ", protoStack_ );
 #endif
 				goto retry;
@@ -682,7 +682,7 @@ struct timespec retry_then;
 				bufoff += iov[i].iov_len;
 			}
 
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 			printf("got %i bytes, off 0x%"PRIx64", sbytes %i, nWords %i\n", got, off, sbytes, nWords  );
 			printf("got %i bytes\n", got);
 			for (i=0; i<2; i++ )
@@ -731,7 +731,7 @@ struct timespec retry_then;
 				} else {
 					memcpy(tmp+headbytes, dst, hoff);
 				}
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 				for (i=0; i< sizeof(SRPWord); i++) printf("headbytes tmp[%i]: %x\n", i, tmp[i]);
 #endif
 				swpw( tmp );
@@ -744,13 +744,13 @@ struct timespec retry_then;
 			if ( tailbytes && (hoff <= sbytes) ) { // cover the special case mentioned above
 				memcpy(tmp, dst + hoff + j, sizeof(SRPWord) - tailbytes);
 				memcpy(tmp + sizeof(SRPWord) - tailbytes, buft, tailbytes);
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 				for (i=0; i< sizeof(SRPWord); i++) printf("tailbytes tmp[%i]: %"PRIx8"\n", i, tmp[i]);
 #endif
 				swpw( tmp );
 				memcpy(dst + hoff + j, tmp, sizeof(SRPWord) - tailbytes);
 			}
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 			for ( i=0; i< sbytes; i++ ) printf("swapped dst[%i]: %x\n", i, dst[i]);
 #endif
 		}
@@ -865,7 +865,7 @@ int      got;
 int      nWords;
 uint32_t tid;
 int      iov_pld = -1;
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 struct timespec retry_then;
 #endif
 
@@ -873,14 +873,14 @@ struct timespec retry_then;
 		return 0;
 
 	// these look similar but are different...
-	bool doSwapV1 =  (protoVersion_ == INoSsiDev::SRP_UDP_V1);
-	bool doSwap   = ((protoVersion_ == INoSsiDev::SRP_UDP_V2 ? BE : LE) == hostByteOrder() );
+	bool doSwapV1 =  (protoVersion_ == INetIODev::SRP_UDP_V1);
+	bool doSwap   = ((protoVersion_ == INetIODev::SRP_UDP_V2 ? BE : LE) == hostByteOrder() );
 
 	totbytes = headbytes + dbytes;
 
 	nWords = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 	fprintf(stderr, "SRP writeBlk_unlocked off %"PRIx64"; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords);
 #endif
 
@@ -948,7 +948,7 @@ struct timespec retry_then;
 	}
 
 	put = 0;
-	if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
+	if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
 		xbuf[put++] = vc_ << 24;
 	}
 	tid         = getTid();
@@ -1013,7 +1013,7 @@ struct timespec retry_then;
 		BufChain xchn = assembleXBuf(iov, iovlen, iov_pld, toput);
 
 		int     bufsz = (nWords + 3)*sizeof(SRPWord);
-		if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
+		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
 			bufsz += sizeof(SRPWord);
 		}
 		BufChain rchn;
@@ -1028,7 +1028,7 @@ struct timespec retry_then;
 		do {
 			rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
-#ifdef NOSSI_DEBUG
+#ifdef NETIO_DEBUG
 				time_retry( &retry_then, attempt, "WRITE", protoStack_ );
 #endif
 				goto retry;
@@ -1051,7 +1051,7 @@ struct timespec retry_then;
 			for ( i=0; i<dbytes; i++ )
 				printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
 #endif
-			memcpy( &got_tid, rbuf + ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ? sizeof(SRPWord) : 0 ), sizeof(SRPWord) );
+			memcpy( &got_tid, rbuf + ( protoVersion_ == INetIODev::SRP_UDP_V1 ? sizeof(SRPWord) : 0 ), sizeof(SRPWord) );
 			if ( doSwap ) {
 				swp32( &got_tid );
 			}
@@ -1062,7 +1062,7 @@ struct timespec retry_then;
 		if ( got != bufsz ) {
 			throw IOError("read return value didn't match buffer size");
 		}
-		if ( protoVersion_ == INoSsiDev::SRP_UDP_V1 ) {
+		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
 			if ( LE == hostByteOrder() ) {
 				swpw( rbuf );
 			}
@@ -1127,7 +1127,7 @@ uint8_t  msk1   = args->msk1_;
 void CCommAddressImpl::dump(FILE *f) const
 {
 	CAddressImpl::dump(f);
-	fprintf(f,"\nPeer: %s\n", getOwnerAs<NoSsiDevImpl>()->getIpAddressString());
+	fprintf(f,"\nPeer: %s\n", getOwnerAs<NetIODevImpl>()->getIpAddressString());
 	fprintf(f,"\nProtocol Modules:\n");
 	if ( protoStack_ ) {
 		ProtoMod m;
@@ -1154,7 +1154,7 @@ void CSRPAddressImpl::dump(FILE *f) const
 	fprintf(f,"  Virtual Channel   : %8u\n",   vc_);
 }
 
-bool CNoSsiDevImpl::portInUse(unsigned port)
+bool CNetIODevImpl::portInUse(unsigned port)
 {
 ProtoPortMatchParams cmp;
 
@@ -1163,7 +1163,7 @@ ProtoPortMatchParams cmp;
 	return findProtoPort( &cmp ) != 0;
 }
 
-void CNoSsiDevImpl::addAtAddress(Field child, PortBuilder bldr)
+void CNetIODevImpl::addAtAddress(Field child, PortBuilder bldr)
 {
 IAddress::AKey key  = getAKey();
 ProtoPort      port = makeProtoStack( bldr );
@@ -1188,9 +1188,9 @@ shared_ptr<CCommAddressImpl> addr;
 	addr->startProtoStack();
 }
 
-void CNoSsiDevImpl::addAtAddress(Field child, INoSsiDev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
+void CNetIODevImpl::addAtAddress(Field child, INetIODev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 {
-PortBuilder bldr( INoSsiDev::createPortBuilder() );
+PortBuilder bldr( INetIODev::createPortBuilder() );
 
 	bldr->setSRPVersion( version );
 	bldr->setSRPTimeoutUS( timeoutUs );
@@ -1205,9 +1205,9 @@ PortBuilder bldr( INoSsiDev::createPortBuilder() );
 	addAtAddress(child, bldr);
 }
 
-void CNoSsiDevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
+void CNetIODevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
 {
-PortBuilder bldr( INoSsiDev::createPortBuilder() );
+PortBuilder bldr( INetIODev::createPortBuilder() );
 
 	bldr->setSRPVersion( SRP_UDP_NONE );
 	bldr->setUdpPort( dport );
@@ -1226,17 +1226,17 @@ PortBuilder bldr( INoSsiDev::createPortBuilder() );
 }
 
 
-NoSsiDev INoSsiDev::create(const char *name, const char *ipaddr)
+NetIODev INetIODev::create(const char *name, const char *ipaddr)
 {
-	return CShObj::create<NoSsiDevImpl>(name, ipaddr);
+	return CShObj::create<NetIODevImpl>(name, ipaddr);
 }
 
-INoSsiDev::PortBuilder INoSsiDev::createPortBuilder()
+INetIODev::PortBuilder INetIODev::createPortBuilder()
 {
-	return make_shared<CNoSsiDevImpl::CPortBuilder>();
+	return make_shared<CNetIODevImpl::CPortBuilder>();
 }
 
-void CNoSsiDevImpl::setLocked()
+void CNetIODevImpl::setLocked()
 {
 	if ( getLocked() ) {
 		throw InternalError("Cannot attach this type of device multiple times -- need to create a new instance");
@@ -1245,7 +1245,7 @@ void CNoSsiDevImpl::setLocked()
 }
 
 
-ProtoPort CNoSsiDevImpl::findProtoPort(ProtoPortMatchParams *cmp_p)
+ProtoPort CNetIODevImpl::findProtoPort(ProtoPortMatchParams *cmp_p)
 {
 Children myChildren = getChildren();
 
@@ -1263,7 +1263,7 @@ int                              requestedMatches = cmp_p->requestedMatches();
 	return ProtoPort();
 }
 
-ProtoPort CNoSsiDevImpl::makeProtoStack(PortBuilder bldr_in)
+ProtoPort CNetIODevImpl::makeProtoStack(PortBuilder bldr_in)
 {
 ProtoPort            rval;
 ProtoPort            foundTDestPort;
@@ -1405,7 +1405,7 @@ CCommAddressImpl::CCommAddressImpl(AKey key, unsigned short dport, unsigned time
 :CAddressImpl(key),
  running_(false)
 {
-NoSsiDevImpl         owner( getOwnerAs<NoSsiDevImpl>() );
+NetIODevImpl         owner( getOwnerAs<NetIODevImpl>() );
 ProtoPort            prt;
 struct sockaddr_in   dst;
 ProtoPortMatchParams cmp;

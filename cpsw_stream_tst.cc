@@ -83,13 +83,13 @@ unsigned sport       = 8193;
 	}
 
 try {
-//NoSsiDev root = INoSsiDev::create("udp", "192.168.2.10");
-NoSsiDev root = INoSsiDev::create("udp", "127.0.0.1");
+//NetIODev root = INetIODev::create("udp", "192.168.2.10");
+NetIODev root = INetIODev::create("udp", "127.0.0.1");
 Field    data = IField::create("data");
 
-INoSsiDev::PortBuilder bldr( INoSsiDev::createPortBuilder() );
+INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
 
-	bldr->setSRPVersion          ( INoSsiDev::SRP_UDP_NONE );
+	bldr->setSRPVersion          ( INetIODev::SRP_UDP_NONE );
 	bldr->setUdpPort             (                   sport );
 	bldr->setUdpOutQueueDepth    (                 iQDepth );
 	bldr->setUdpNumRxThreads     (             nUdpThreads );

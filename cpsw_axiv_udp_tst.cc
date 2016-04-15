@@ -312,7 +312,7 @@ const char *str;
 
 try {
 
-NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
+NetIODev  root = INetIODev::create("fpga", ip_addr);
 MMIODev   mmio = IMMIODev::create ("mmio",0x10000000);
 AXIVers   axiv = IAXIVers::create ("vers");
 MMIODev   sysm = IMMIODev::create ("sysm",    0x1000, LE);
@@ -342,11 +342,11 @@ uint16_t u16;
 	mmio->addAtAddress( prbs, prbs_base );
 
 	{
-	INoSsiDev::PortBuilder bldr = INoSsiDev::createPortBuilder();
+	INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
 		if ( 1 == vers )
-			bldr->setSRPVersion          ( INoSsiDev::SRP_UDP_V1 );
+			bldr->setSRPVersion          ( INetIODev::SRP_UDP_V1 );
 		else
-			bldr->setSRPVersion          ( INoSsiDev::SRP_UDP_V2 );
+			bldr->setSRPVersion          ( INetIODev::SRP_UDP_V2 );
 		bldr->setUdpPort                 (                  port );
 		bldr->setSRPTimeoutUS            (                 50000 );
 		bldr->setSRPRetryCount           (                     5 );
@@ -360,8 +360,8 @@ uint16_t u16;
 	}
 
 	if ( length > 0 ) {
-		INoSsiDev::PortBuilder bldr = INoSsiDev::createPortBuilder();
-		bldr->setSRPVersion          ( INoSsiDev::SRP_UDP_NONE );
+		INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
+		bldr->setSRPVersion          ( INetIODev::SRP_UDP_NONE );
 		bldr->setUdpPort             ( sport                   );
 		bldr->setUdpOutQueueDepth    (                      32 );
 		bldr->setUdpNumRxThreads     (                       2 );

@@ -90,10 +90,10 @@ public:
 };
 
 
-class INoSsiDev;
-typedef shared_ptr<INoSsiDev> NoSsiDev;
+class INetIODev;
+typedef shared_ptr<INetIODev> NetIODev;
 
-class INoSsiDev : public virtual IDev {
+class INetIODev : public virtual IDev {
 public:
 	typedef enum ProtocolVersion { SRP_UDP_NONE = -1, SRP_UDP_V1 = 1, SRP_UDP_V2 = 2 } ProtocolVersion;
 
@@ -184,7 +184,7 @@ public:
 
 	virtual const char *getIpAddressString() const = 0;
 
-	static NoSsiDev create(const char *name, const char *ipaddr);
+	static NetIODev create(const char *name, const char *ipaddr);
 };
 
 class IMutableEnum;
