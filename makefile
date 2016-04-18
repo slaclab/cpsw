@@ -10,7 +10,7 @@ cpsw_SRCS+= cpsw_entry_adapt.cc
 cpsw_SRCS+= cpsw_sval.cc
 cpsw_SRCS+= cpsw_mmio_dev.cc
 cpsw_SRCS+= cpsw_mem_dev.cc
-cpsw_SRCS+= cpsw_nossi_dev.cc
+cpsw_SRCS+= cpsw_netio_dev.cc
 cpsw_SRCS+= cpsw_buf.cc
 cpsw_SRCS+= cpsw_bufq.cc
 cpsw_SRCS+= cpsw_event.cc
@@ -38,7 +38,7 @@ DEP_HEADERS += cpsw_freelist.h
 DEP_HEADERS += cpsw_hub.h
 DEP_HEADERS += cpsw_mem_dev.h
 DEP_HEADERS += cpsw_mmio_dev.h
-DEP_HEADERS += cpsw_nossi_dev.h
+DEP_HEADERS += cpsw_netio_dev.h
 DEP_HEADERS += cpsw_obj_cnt.h
 DEP_HEADERS += cpsw_path.h
 DEP_HEADERS += cpsw_proto_mod_depack.h
@@ -95,9 +95,9 @@ cpsw_large_tst_SRCS      = cpsw_large_tst.cc
 cpsw_large_tst_LIBS      = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_large_tst
 
-cpsw_nossi_tst_SRCS      = cpsw_nossi_tst.cc
-cpsw_nossi_tst_LIBS      = $(CPSW_LIBS)
-TESTPROGRAMS            += cpsw_nossi_tst
+cpsw_netio_tst_SRCS      = cpsw_netio_tst.cc
+cpsw_netio_tst_LIBS      = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_netio_tst
 
 cpsw_axiv_udp_tst_SRCS   = cpsw_axiv_udp_tst.cc
 cpsw_axiv_udp_tst_LIBS   = $(CPSW_LIBS)
@@ -138,7 +138,7 @@ include $(CPSW_DIR)/rules.mak
 # (will run once w/o opts, a second time with -a -b)
 
 # run for V2 and V1
-cpsw_nossi_tst_run:     RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
+cpsw_netio_tst_run:     RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
 
 cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
 
@@ -150,4 +150,4 @@ cpsw_stream_tst_run:    RUN_OPTS='-e 22' '-s8203 -R'
 
 rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
 
-cpsw_nossi_tst: udpsrv
+cpsw_netio_tst: udpsrv

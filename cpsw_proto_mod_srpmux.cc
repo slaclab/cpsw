@@ -13,7 +13,7 @@ unsigned off = VC_OFF_V2;
 		throw InternalError("CSRPPort::processOutput -- expect only 1 buffer");
 	}
 
-	if ( INoSsiDev::SRP_UDP_V1 == getProtoVersion() )
+	if ( INetIODev::SRP_UDP_V1 == getProtoVersion() )
 		off = VC_OFF_V1;
 
 	Buf b = bc->getHead();
@@ -27,7 +27,7 @@ unsigned off = VC_OFF_V2;
 	return bc;
 }
 
-INoSsiDev::ProtocolVersion CSRPPort::getProtoVersion()
+INetIODev::ProtocolVersion CSRPPort::getProtoVersion()
 {
 	return boost::static_pointer_cast<ProtoModSRPMux::element_type>( getProtoMod() )->getProtoVersion();
 }
@@ -46,7 +46,7 @@ unsigned off = VC_OFF_V2;
 		return DEST_MIN-1;
 	}
 
-	if ( INoSsiDev::SRP_UDP_V1 == getProtoVersion() )
+	if ( INetIODev::SRP_UDP_V1 == getProtoVersion() )
 		off = VC_OFF_V1;
 
 	Buf b = bc->getHead();
