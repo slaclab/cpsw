@@ -6,7 +6,7 @@ uint8_t mem[MEM_SIZE] = {0};
 
 
 #ifdef DEBUG
-static void memdbg(int rd, uint32_t off, uint32_t nwrds)
+static void memdbg(int rd, uint32_t off, uint32_t nbytes)
 {
 unsigned n;
 	if ( rd )
@@ -14,9 +14,9 @@ unsigned n;
 	else
 		printf("Writing to");
 
-	printf(" %x (%d); %d words\n", off, off, nwrds);
+	printf(" %x (%d); %d bytes\n", off, off, nbytes);
 
-	for ( n=0; n<nwrds*4; n++ ) {
+	for ( n=0; n<nbytes; n++ ) {
 		printf("%02x ",mem[off+n]);	
 		if ( (n & 15) == 15 ) printf("\n");
 	}
@@ -25,19 +25,18 @@ unsigned n;
 }
 #endif
 
-static int memread(uint32_t *data, uint32_t nwrds, uint64_t off, int debug)
+static int memread(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
-	memcpy((void*) data, mem+off, nwrds*4);
+	memcpy(data, mem+off, nbytes);
 #ifdef DEBUG
 	if ( debug )
-		memdbg(1, off, nwrds);
+		memdbg(1, off, nbytes);
 #endif
 	return 0;
 }
 
-static int memwrite(uint32_t *data, uint32_t nwrds, uint64_t off, int debug)
+static int memwrite(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
-uint32_t nbytes = nwrds*4;
 int      i;
 
 	if ( off <= REGBASE + REG_RO_OFF && off + nbytes >= REGBASE + REG_RO_OFF + REG_RO_SZ ) {
@@ -48,7 +47,7 @@ int      i;
 #endif
 		return -1;
 	} else {
-		memcpy( mem + off, (void*)data, nbytes );
+		memcpy( mem + off, data, nbytes );
 		if ( off <= REGBASE + REG_CLR_OFF && off + nbytes >= REGBASE + REG_CLR_OFF + 4 ) {
 			if (    mem[REGBASE + REG_CLR_OFF]
 					|| mem[REGBASE + REG_CLR_OFF + 1]
@@ -99,7 +98,7 @@ int      i;
 
 #ifdef DEBUG
 	if ( debug )
-		memdbg(0, off, nwrds);
+		memdbg(0, off, nbytes);
 #endif
 
 	return 0;
