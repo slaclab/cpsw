@@ -345,10 +345,11 @@ int      v1 = (srp_arg->vers == 1);
 int      v3 = (srp_arg->vers == 3);
 struct udpsrv_range *range;
 int      cmd_rd;
-int      posted = 0;
+/*int      posted = 0;*/
 unsigned v3vers;
 int      noexec = 0;
 int      ooff   = 2;
+int      szoff  = 2;
 
 UdpPrt port = srp_arg->port;
 
@@ -378,13 +379,13 @@ UdpPrt port = srp_arg->port;
 			xid    = bs32(v1,  rbuf[1] );
 			off    = (((uint64_t)bs32(v1, rbuf[3])) << 32) | bs32(v1,  rbuf[2]);
 			cmd_rd = (cmdwrd & (3<<8)) == 0 << 8;
-			posted = (cmdwrd & (3<<8)) == 2 << 8;
+			/*posted = (cmdwrd & (3<<8)) == 2 << 8;*/
 			v3vers = (cmdwrd & 0xff);
 
 			ooff   = 20;
+			szoff  = 16;
 
 			if ( v3vers != V3VERS ) {
-				posted = 0;
 				noexec = 1;
 				cmdwrd = (cmdwrd & ~0xff) | V3VERS;
 				rbuf[0] = bs32(v1, cmdwrd);
@@ -400,15 +401,19 @@ UdpPrt port = srp_arg->port;
 
 		}
 
+		if ( v3 || cmd_rd ) {
+			size = bs32(v1,  rbuf[szoff] ) + 1;
+			if ( !v3 )
+				size *= 4;
+		}
+
 		if ( cmd_rd ) {
-			size = bs32(v1,  rbuf[ooff] ) + 1;
-			if ( got != expected + 4 /* status word */ ) {
+			if ( got != expected + ( !v3 ? 4 : 0 ) /* status word */ ) {
 				int j;
 printf("got %d, exp %d\n", got, expected);
 				fprintf(stderr,"READ command -- got != expected + 4; dropping...\n");
 				for ( j = 0; j<(got+3)/4; j++ )
 					fprintf(stderr,"  0x%08x\n", rbuf[j]);
-
 				continue;
 			}
 		} else {
@@ -421,7 +426,14 @@ printf("got %d, exp %d\n", got, expected);
 				fprintf(stderr,"WRITE command -- got not a multiple of 4; dropping...\n");
 				continue;
 			}
-			size = (got - expected)/4;
+			if ( v3 ) {
+				if ( ((size + 3) & ~3) != (got - expected) ) {
+					fprintf(stderr,"V3 WRITE command -- size doesn't match - size %d, got %d\n", size, got);
+					continue;
+				}
+			} else {
+				size = (got - expected);
+			}
 		}
 
 		st = -1;
@@ -429,16 +441,16 @@ printf("got %d, exp %d\n", got, expected);
 		if ( ! noexec ) {
 			for ( range = udpsrv_ranges; range; range=range->next ) {
 				if ( off >= range->base && off < range->base + range->size ) {
-					if ( off + 4*size > range->base + range->size ) {
-						fprintf(stderr,"%s request out of range (off 0x%"PRIx64", size %d)\n", cmd_rd ? "read" : "write", off, 4*size);
+					if ( off + size > range->base + range->size ) {
+						fprintf(stderr,"%s request out of range (off 0x%"PRIx64", size %d)\n", cmd_rd ? "read" : "write", off, size);
 						fprintf(stderr,"range base 0x%"PRIx64", size %"PRId64"\n", range->base, range->size);
 					} else {
 						if ( cmd_rd ) {
-							st = range->read( (uint8_t*)&rbuf[ooff], 4*size, off - range->base, debug );
-							payload_swap( v1, &rbuf[ooff], size );
+							st = range->read( (uint8_t*)&rbuf[ooff], size, off - range->base, debug );
+							payload_swap( v1, &rbuf[ooff], (size + 3)/4 );
 						} else {
 							payload_swap( v1, &rbuf[ooff], (got-expected)/4 );
-							st = range->write( (uint8_t*)&rbuf[ooff], 4*size, off - range->base, debug );
+							st = range->write( (uint8_t*)&rbuf[ooff], size, off - range->base, debug );
 						}
 #ifdef DEBUG
 						if (debug) {
@@ -470,9 +482,9 @@ printf("got %d, exp %d\n", got, expected);
 
 		bs32(v1, rbuf[ooff+size] );
 
-		bsize = (size + 3) * 4;
+		bsize = size + (ooff + 1 /* footer */) * 4;
 
-		if ( ! posted && ( (put = udpPrtSend( port, &header, hsize, rbuf, bsize )) < 0 ) ) {
+		if ( (put = udpPrtSend( port, &header, hsize, rbuf, bsize )) < 0 ) {
 			perror("unable to send");
 			goto bail;
 		}
