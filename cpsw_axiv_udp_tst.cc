@@ -15,6 +15,8 @@
 #define VLEN 123
 #define ADCL 10
 
+#define FRAG_SIZE 1024 // for RSSI
+
 #define SYNC_LIMIT 10
 
 using boost::atomic;
@@ -130,10 +132,14 @@ class ThreadArg {
 private:
 	atomic<int> firstFrame_;
 	atomic<int> nFrames_;
+	uint64_t    size_;
 public:
-	ThreadArg()
+	CTimeout trigTime;
+
+	ThreadArg(uint64_t size)
 	:firstFrame_(-1),
-	 nFrames_(0)
+	 nFrames_(0),
+	 size_(size)
 	{
 	}
 
@@ -153,6 +159,11 @@ public:
 	{
 		return nFrames_.load( memory_order_acquire );
 	}
+
+	uint64_t getSize()
+	{
+		return size_;
+	}
 };
 
 
@@ -163,6 +174,8 @@ Stream strm = IStream::create( IPath::create("/fpga/dataSource") );
 uint8_t  buf[16];
 int64_t  got;
 ThreadArg *stats = static_cast<ThreadArg*>(arg);
+CTimeout now;
+
 
 	while ( 1 ) {
 		got = strm->read( buf, sizeof(buf), CTimeout(20000000) );
@@ -170,11 +183,13 @@ ThreadArg *stats = static_cast<ThreadArg*>(arg);
 			fprintf(stderr,"RX thread timed out\n");
 			exit (1);
 		}
+		clock_gettime( CLOCK_MONOTONIC, &now.tv_ );
 		unsigned frameNo;
 		if ( got > 2 ) {
 			frameNo = (buf[1]<<4) | (buf[0] >> 4);
 			stats->gotFrame( frameNo );
-			printf("Received frame # %d\n", frameNo);
+			now -= stats->trigTime;
+			printf("Received frame # %d Data rate: %g MB/s\n", frameNo, (double)stats->getSize() / (double)now.getUs()  );
 		} else {
 			fprintf(stderr,"Received frame too small!\n");
 		}
@@ -437,23 +452,22 @@ uint16_t u16;
 	}
 
 	if ( length > 0 ) {
-		printf("PRBS Regs:\n");
 		uint32_t v;
-		for (unsigned i=0; i<vals.size(); i++ ) {
-			vals[i]->getVal( &v, 1 );
-			printf("%14s: %d\n", vals[i]->getName(), v );
-		}
 		v = 1;
 		axiEn->setVal( &v, 1 );
 		v = length;
 		packetLength->setVal( &v, 1 );
-		v = 1;
-		oneShot->setVal( &v, 1 );
+
+		printf("PRBS Regs:\n");
+		for (unsigned i=0; i<vals.size(); i++ ) {
+			vals[i]->getVal( &v, 1 );
+			printf("%14s: %d\n", vals[i]->getName(), v );
+		}
 
 		pthread_t tid;
 		void     *ign;
 		struct timespec p;
-		ThreadArg arg;
+		ThreadArg arg( 4*length*FRAG_SIZE );
 		p.tv_sec  = period/1000;
 		p.tv_nsec = (period % 1000) * 1000000;
 		if ( pthread_create( &tid, 0, rxThread, &arg ) ) {
@@ -461,8 +475,9 @@ uint16_t u16;
 		}
 		for (int i = 0; i<shots; i++) {
 			struct timespec dly = p;
-			nanosleep( &dly, 0 );
+			clock_gettime( CLOCK_MONOTONIC, &arg.trigTime.tv_ );
 			oneShot->setVal( 1 );
+			nanosleep( &dly, 0 );
 			// not truly thread safe but
 			// a correct algorithm would
 			// be much more complex.
