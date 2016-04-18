@@ -109,7 +109,7 @@ typedef struct streamer_args {
 
 typedef struct srp_args {
 	UdpPrt             port;
-	int                v1;
+	int                vers;
 	pthread_t          tid;
 	int                haveThread;
 } srp_args;
@@ -338,7 +338,7 @@ uint32_t xid  = 0;
 uint32_t size = 16;
 uint32_t rbuf[300];
 uint32_t header = 0;
-int      v1 = srp_arg->v1;
+int      v1 = (srp_arg->vers == 1);
 struct udpsrv_range *range;
 
 UdpPrt port = srp_arg->port;
@@ -461,7 +461,7 @@ static void sh(int sn)
 }
 
 struct srpvariant {
-	int port, v1, haveRssi;
+	int port, vers, haveRssi;
 };
 
 struct strmvariant {
@@ -487,8 +487,8 @@ sigset_t sigset;
 #define V2_RSSI   2
 struct srpvariant srpvars[] = {
 	{ V1PORT_DEF,     1, WITHOUT_RSSI },
-	{ V2PORT_DEF,     0, WITHOUT_RSSI },
-	{ V2RSSIPORT_DEF, 0, WITH_RSSI    },
+	{ V2PORT_DEF,     2, WITHOUT_RSSI },
+	{ V2RSSIPORT_DEF, 2, WITH_RSSI    },
 };
 
 #define STRM_NORSSI 0
@@ -586,7 +586,7 @@ struct srp_args       srp_args[sizeof(srpvars)/sizeof(srpvars[0])];
 	for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
 		if ( srpvars[i].port <= 0 )
 			continue;
-		srp_args[i].v1       = srpvars[i].v1;
+		srp_args[i].vers     = srpvars[i].vers;
 		// don't scramble SRP - since SRP is synchronous (single request-response) it becomes extremely slow when scrambled
 		srp_args[i].port     = udpPrtCreate( ina, srpvars[i].port, sim_loss, 0, srpvars[i].haveRssi );
 		if ( pthread_create( &srp_args[i].tid, 0, srpHandler, (void*)&srp_args[i] ) ) {
