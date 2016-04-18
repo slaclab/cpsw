@@ -133,13 +133,15 @@ private:
 	atomic<int> firstFrame_;
 	atomic<int> nFrames_;
 	uint64_t    size_;
+	int         shots_;
 public:
 	CTimeout trigTime;
 
-	ThreadArg(uint64_t size)
+	ThreadArg(uint64_t size, int shots)
 	:firstFrame_(-1),
 	 nFrames_(0),
-	 size_(size)
+	 size_(size),
+	 shots_(shots)
 	{
 	}
 
@@ -164,6 +166,11 @@ public:
 	{
 		return size_;
 	}
+
+	int getShots()
+	{
+		return shots_;
+	}
 };
 
 
@@ -177,7 +184,7 @@ ThreadArg *stats = static_cast<ThreadArg*>(arg);
 CTimeout now;
 
 
-	while ( 1 ) {
+	while ( stats->nFrames() < stats->getShots() ) {
 		got = strm->read( buf, sizeof(buf), CTimeout(20000000) );
 		if ( ! got ) {
 			fprintf(stderr,"RX thread timed out\n");
@@ -458,6 +465,9 @@ uint16_t u16;
 		v = length;
 		packetLength->setVal( &v, 1 );
 
+		trig->setVal( (uint64_t)0 );
+		oneShot->setVal( (uint64_t)0 );
+
 		printf("PRBS Regs:\n");
 		for (unsigned i=0; i<vals.size(); i++ ) {
 			vals[i]->getVal( &v, 1 );
@@ -466,30 +476,66 @@ uint16_t u16;
 
 		pthread_t tid;
 		void     *ign;
-		struct timespec p;
-		ThreadArg arg( 4*length*FRAG_SIZE );
-		p.tv_sec  = period/1000;
-		p.tv_nsec = (period % 1000) * 1000000;
+		struct timespec p, dly;
+		ThreadArg arg( 4*length*FRAG_SIZE, shots );
 		if ( pthread_create( &tid, 0, rxThread, &arg ) ) {
 			perror("pthread_create");
 		}
-		for (int i = 0; i<shots; i++) {
-			struct timespec dly = p;
-			clock_gettime( CLOCK_MONOTONIC, &arg.trigTime.tv_ );
-			oneShot->setVal( 1 );
+		if ( period > 0 ) {
+			p.tv_sec  = period/1000;
+			p.tv_nsec = (period % 1000) * 1000000;
+			// wait for the thread to come up (hack!)
+			dly = p;
 			nanosleep( &dly, 0 );
-			// not truly thread safe but
-			// a correct algorithm would
-			// be much more complex.
-			if ( arg.firstFrame() < 0 ) {
-				//not yet synchronized
-				if ( i > SYNC_LIMIT ) {
-					fprintf(stderr,"Stream unable to synchronize: FAILED\n");
-					rval = 1;
-					break;
+			for (int i = 0; i<shots; i++) {
+				dly = p;
+				clock_gettime( CLOCK_MONOTONIC, &arg.trigTime.tv_ );
+				oneShot->setVal( 1 );
+				nanosleep( &dly, 0 );
+				// not truly thread safe but
+				// a correct algorithm would
+				// be much more complex.
+				if ( arg.firstFrame() < 0 ) {
+					//not yet synchronized
+					if ( i > SYNC_LIMIT ) {
+						fprintf(stderr,"Stream unable to synchronize: FAILED\n");
+						rval = 1;
+						break;
+					}
+					shots++;
 				}
-				shots++;
 			}
+		} else {
+			p.tv_sec  = 0;
+			p.tv_nsec = 200000000;
+			int lfrm  = -1;
+			int     i = 0;
+			int  frm;
+			uint8_t dummy[4];
+
+			trig->setVal( 1 );
+
+			while ( arg.nFrames() < shots ) {
+				dly = p;
+				nanosleep( &dly, 0 );
+				frm  = arg.firstFrame();
+				if ( 0 == (frm - lfrm) ) {
+					if ( ++i > SYNC_LIMIT ) {
+						fprintf(stderr,"Stream unable to synchronize: FAILED\n");
+						rval = 1;
+						break;
+					}
+				} else {
+					lfrm = frm;
+					i    = 0;
+				}
+			}
+			trig->setVal( (uint64_t)0 );
+
+			Stream strm = IStream::create( IPath::create("/fpga/dataSource") );
+
+			while ( strm->read( dummy, sizeof(dummy), TIMEOUT_NONE ) > 0 )
+				;
 		}
 		pthread_cancel( tid );
 		pthread_join( tid, &ign );
