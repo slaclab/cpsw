@@ -66,7 +66,7 @@ static void reset()
 	resetEn = false;
 }
 
-static int readreg(uint32_t *data, uint32_t nwrds, uint32_t off, int debug)
+static int readreg(uint32_t *data, uint32_t nwrds, uint64_t off, int debug)
 {
 	memset(data, 0, nwrds*4);
 
@@ -137,7 +137,7 @@ static int mcheck(bool is32, void (*proc)())
 	return -1;
 }
 
-static int writereg(uint32_t *data, uint32_t nwrds, uint32_t off, int debug)
+static int writereg(uint32_t *data, uint32_t nwrds, uint64_t off, int debug)
 {
 uint32_t msk = (modereg & MODE_32) ? 0xffffffff : 0x00ffffff;
 uint32_t ncmd;
@@ -223,7 +223,7 @@ uint32_t ncmd;
 			memcpy(datareg, data, nwrds*4);
 			break;
 		default:
-			fprintf(stderr,"AXIPROM: Unrecognized offset 0x%08"PRIx32"\n", off);
+			fprintf(stderr,"AXIPROM: Unrecognized offset 0x%08"PRIx64"\n", off);
 			return -1;
 	}
 	return 0;

@@ -25,7 +25,7 @@ unsigned n;
 }
 #endif
 
-static int memread(uint32_t *data, uint32_t nwrds, uint32_t off, int debug)
+static int memread(uint32_t *data, uint32_t nwrds, uint64_t off, int debug)
 {
 	memcpy((void*) data, mem+off, nwrds*4);
 #ifdef DEBUG
@@ -35,7 +35,7 @@ static int memread(uint32_t *data, uint32_t nwrds, uint32_t off, int debug)
 	return 0;
 }
 
-static int memwrite(uint32_t *data, uint32_t nwrds, uint32_t off, int debug)
+static int memwrite(uint32_t *data, uint32_t nwrds, uint64_t off, int debug)
 {
 uint32_t nbytes = nwrds*4;
 int      i;

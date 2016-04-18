@@ -331,7 +331,7 @@ uintptr_t rval = 1;
 int      hsize, bsize;
 int      st;
 int      expected;
-unsigned off;
+uint64_t off;
 int      got, put;
 uint32_t addr = 0;
 uint32_t xid  = 0;
@@ -339,11 +339,13 @@ uint32_t size = 16;
 uint32_t rbuf[300];
 uint32_t header = 0;
 int      v1 = (srp_arg->vers == 1);
+int      v3 = (srp_arg->vers == 3);
 struct udpsrv_range *range;
+int      cmd_rd;
 
 UdpPrt port = srp_arg->port;
 
-	expected = 12;
+	expected = v3 ? 20 : 12;
 
 	if ( v1 ) {
 		header = bs32( v1, 0 );
@@ -363,12 +365,13 @@ UdpPrt port = srp_arg->port;
 			goto bail;
 		}
 
-		xid  = bs32(v1,  rbuf[0] );
-		addr = bs32(v1,  rbuf[1] );
+		xid    = bs32(v1,  rbuf[0] );
+		addr   = bs32(v1,  rbuf[1] );
 
-		off = CMD_ADDR(addr);
+		off    = CMD_ADDR(addr);
+		cmd_rd = CMD_IS_RD(addr);
 
-		if ( CMD_IS_RD(addr) ) {
+		if ( cmd_rd ) {
 			size = bs32(v1,  rbuf[2] ) + 1;
 			if ( got != expected + 4 /* status word */ ) {
 				int j;
@@ -397,10 +400,10 @@ printf("got %d, exp %d\n", got, expected);
 		for ( range = udpsrv_ranges; range; range=range->next ) {
 			if ( off >= range->base && off < range->base + range->size ) {
 				if ( off + 4*size > range->base + range->size ) {
-					fprintf(stderr,"%s request out of range (off 0x%x, size %d)\n", CMD_IS_RD(addr) ? "read" : "write", off, 4*size);
-					fprintf(stderr,"range base 0x%x, size %d\n", range->base, range->size);
+					fprintf(stderr,"%s request out of range (off 0x%"PRIx64", size %d)\n", cmd_rd ? "read" : "write", off, 4*size);
+					fprintf(stderr,"range base 0x%"PRIx64", size %"PRId64"\n", range->base, range->size);
 				} else {
-					if ( CMD_IS_RD(addr) ) {
+					if ( cmd_rd ) {
 						st = range->read( &rbuf[2], size, off - range->base, debug );
 						payload_swap( v1, &rbuf[2], size );
 					} else {
@@ -409,7 +412,7 @@ printf("got %d, exp %d\n", got, expected);
 					}
 #ifdef DEBUG
 					if (debug) {
-						if ( CMD_IS_RD(addr) )
+						if ( cmd_rd )
 							printf("Read ");
 						else
 							printf("Wrote ");
@@ -426,7 +429,7 @@ printf("got %d, exp %d\n", got, expected);
 
 #ifdef DEBUG
 		if ( debug && ! range ) {
-			printf("No range matched 0x%08"PRIx32"\n", off);
+			printf("No range matched 0x%08"PRIx64"\n", off);
 		}
 #endif
 		if ( st ) {

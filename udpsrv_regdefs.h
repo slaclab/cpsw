@@ -36,16 +36,16 @@ struct udpsrv_range *udpsrv_ranges;
 
 struct udpsrv_range {
 	struct udpsrv_range *next;
-	uint32_t base;
-	uint32_t size;
-	int    (*read) (uint32_t *data, uint32_t nwrds, uint32_t off, int debug);
-	int    (*write)(uint32_t *data, uint32_t nwrds, uint32_t off, int debug);
+	uint64_t base;
+	uint64_t size;
+	int    (*read) (uint32_t *data, uint32_t nwrds, uint64_t off, int debug);
+	int    (*write)(uint32_t *data, uint32_t nwrds, uint64_t off, int debug);
 #ifdef __cplusplus
 	udpsrv_range(
 		uint32_t base,
 		uint32_t size,
-		int    (*read)(uint32_t *data, uint32_t nwrds, uint32_t off, int debug),
-		int    (*write)(uint32_t *data, uint32_t nwrds, uint32_t off, int debug),
+		int    (*read)(uint32_t *data, uint32_t nwrds, uint64_t off, int debug),
+		int    (*write)(uint32_t *data, uint32_t nwrds, uint64_t off, int debug),
 		void   (*init)()
 	)
 	:next(udpsrv_ranges), base(base), size(size), read(read), write(write)
