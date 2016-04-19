@@ -196,7 +196,7 @@ public:
 
 class CFrame {
 public:
-	static const FrameID NO_FRAME = (FrameID)-1;
+	static const FrameID NO_FRAME = (FrameID)(1<<24); // so that abs(frame-NO_FRAME) never is inside any window
 	static const FragID  NO_FRAG  = (FragID)-2; // so that NO_FRAG + 1 is not a valid ID
 protected:
 	BufChain         prod_;
