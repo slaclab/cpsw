@@ -30,6 +30,10 @@ UdpPrt     p = new UdpPrt_("udp_port");
 void udpPrtDestroy(UdpPrt p)
 {
 ProtoPort  prt;
+
+	if ( ! p )
+		return;
+
 	for ( prt = p->top_; prt; prt = prt->getUpstreamPort() )
 		prt->stop();
 
@@ -38,14 +42,8 @@ ProtoPort  prt;
 	delete p;
 }
 
-int udpPrtRecv(UdpPrt p, void *hdr, unsigned hsize, void *buf, unsigned size)
+int xtrct(BufChain bc, void *hdr, unsigned hsize, void *buf, unsigned size)
 {
-CMtx::lg( &p->mtx_ );
-
-BufChain bc = p->top_->pop( NULL );
-	if ( ! bc )
-		return -1;
-
 unsigned bufsz = bc->getSize();
 
 	if ( hsize > 0 ) {
@@ -62,16 +60,25 @@ unsigned bufsz = bc->getSize();
 	return hsize + size;
 }
 
+int udpPrtRecv(UdpPrt p, void *hdr, unsigned hsize, void *buf, unsigned size)
+{
+CMtx::lg( &p->mtx_ );
+
+BufChain bc = p->top_->pop( NULL );
+	if ( ! bc )
+		return -1;
+
+	return xtrct(bc, hdr, hsize, buf, size);
+}
+
 int udpPrtIsConn(UdpPrt p)
 {
 CMtx::lg( &p->mtx_ );
 	return p->udp_->isConnected();
 }
 
-int udpPrtSend(UdpPrt p, void *hdr, unsigned hsize, void *buf, unsigned size)
+static BufChain fill(void *hdr, unsigned hsize, void *buf, unsigned size)
 {
-CMtx::lg( &p->mtx_ );
-
 BufChain bc = IBufChain::create();
 Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
 
@@ -79,5 +86,49 @@ Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
 		bc->insert( hdr, 0, hsize );
 
 	bc->insert(buf, hsize, size);
+
+	return bc;
+}
+
+int udpPrtSend(UdpPrt p, void *hdr, unsigned hsize, void *buf, unsigned size)
+{
+CMtx::lg( &p->mtx_ );
+
+BufChain bc = fill(hdr, hsize, buf, size);
+
 	return p->top_->push(bc, NULL) ? hsize + size : -1;
+}
+
+struct UdpQue_ {
+	BufQueue q_;
+};
+
+UdpQue udpQueCreate(unsigned depth)
+{
+UdpQue rval = new UdpQue_();
+	rval->q_ = IBufQueue::create(depth);
+	return rval;
+}
+
+void   udpQueDestroy(UdpQue q)
+{
+	if ( q ) {
+		q->q_.reset();
+		delete(q);
+	}
+}
+
+int udpQueTryRecv(UdpQue q, void *hdr, unsigned hsize, void *buf, unsigned size)
+{
+BufChain bc = q->q_->tryPop();
+	if ( ! bc )
+		return -1;
+
+	return xtrct(bc, hdr, hsize, buf, size);
+}
+
+int udpQueTrySend(UdpQue q, void *hdr, unsigned hsize, void *buf, unsigned size)
+{
+BufChain bc = fill(hdr, hsize, buf, size);
+	return q->q_->tryPush( bc ) ? hsize + size : -1;
 }

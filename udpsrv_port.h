@@ -6,10 +6,18 @@ extern "C" {
 #endif
 
 typedef struct UdpPrt_ *UdpPrt;
+typedef struct UdpQue_ *UdpQue;
 
 int udpPrtRecv(UdpPrt , void *hdr, unsigned hsize, void *buf, unsigned size);
 int udpPrtSend(UdpPrt , void *hdr, unsigned hsize, void *buf, unsigned size);
 int udpPrtIsConn(UdpPrt);
+
+UdpQue udpQueCreate(unsigned depth);
+void   udpQueDestroy(UdpQue);
+int udpQueTryRecv(UdpQue , void *hdr, unsigned hsize, void *buf, unsigned size);
+int udpQueTrySend(UdpQue , void *hdr, unsigned hsize, void *buf, unsigned size);
+
+
 
 #define WITH_RSSI    1
 #define WITHOUT_RSSI 0
