@@ -87,13 +87,14 @@ unsigned vc         = 0;
 int      useRssi    = 0;
 int      tDest      = -1;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:V:p:r")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;   break;
 			case 'V': i_p     = &vers;    break;
 			case 'p': i_p     = &port;    break;
 			case 'r': useRssi = 1;        break;
+			case 't': i_p     = &tDest;   break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				throw TestFailed();
