@@ -77,6 +77,14 @@ public:
 		}
 	};
 
+	void         setSOF(bool v)
+	{
+		if ( v )
+			tUsr1_ |=  (1<<FRAG_FRST_BIT);
+		else
+			tUsr1_ &= ~(1<<FRAG_FRST_BIT);
+	}
+
 	CAxisFrameHeader(unsigned frameNo = 0, unsigned fragNo = 0, unsigned tDest = 0)
 	:frameNo_(frameNo),
 	 fragNo_(fragNo),
@@ -85,6 +93,7 @@ public:
 	 tId_(0),
 	 tUsr1_(0)
 	{
+		setSOF( fragNo == 0 );
 	}
 
 	bool parse(uint8_t *hdrBase, size_t hdrSize);
@@ -153,6 +162,7 @@ public:
 	void         setFragNo(FragID   fragNo)
 	{
 		fragNo_  = fragNo;
+		setSOF( fragNo_ == 0 );
 	}
 
 	void         setTDest(uint8_t   tDest)
@@ -163,14 +173,6 @@ public:
 	void         setTUsr1(uint8_t   tUsr1)
 	{
 		tUsr1_   = tUsr1;
-	}
-
-	void         setSOF(bool v)
-	{
-		if ( v )
-			tUsr1_ |=  (1<<FRAG_FRST_BIT);
-		else
-			tUsr1_ &= ~(1<<FRAG_FRST_BIT);
 	}
 
 	static FrameID moduloFrameSz(FrameID id)
