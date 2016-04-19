@@ -29,7 +29,10 @@ struct Mutex {
 //#define NETIO_DEBUG
 //#define TIMEOUT_DEBUG
 
-#define MAXWORDS 256
+// if RSSI is used then AFAIK the max. segment size
+// (including RSSI header) is 1024 octets.
+// Must subtract RSSI (8), packetizer (9), SRP (V3: 20 + 4)
+#define MAXWORDS (256 - 9)
 
 class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 	private:
