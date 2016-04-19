@@ -43,7 +43,7 @@ static int memwrite(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 int      i;
 
-	if ( off <= REGBASE + REG_RO_OFF && off + nbytes >= REGBASE + REG_RO_OFF + REG_RO_SZ ) {
+	if ( off + nbytes > REGBASE + REG_RO_OFF && off < REGBASE + REG_RO_OFF + REG_RO_SZ ) {
 		/* disallow write; set status */
 #ifdef DEBUG
 		if ( debug )
