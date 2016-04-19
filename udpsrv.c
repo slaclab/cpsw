@@ -180,7 +180,7 @@ uint8_t       buf[1500];
 int           got;
 int           lfram = -1;
 
-	while ( (got = udpPrtRecv( sa->port, NULL, 0, buf, sizeof(buf))) >= 0 ) {
+	while ( (got = udpPrtRecv( sa->port, buf, sizeof(buf))) >= 0 ) {
 		if ( got < 4 ) {
 			fprintf(stderr,"Poller: Contacted by %d\n", udpPrtIsConn( sa->port ) );
 		} else {
@@ -238,7 +238,7 @@ int           lfram = -1;
 				if ( got < 9 + 12 ) {
 					fprintf(stderr,"UDPSRV: SRP request too small\n");
 				} else {
-					int put = udpQueTrySend( sa->srpQ, NULL, 0, buf + 8, got - 9 );
+					int put = udpQueTrySend( sa->srpQ, buf + 8, got - 9 );
 
 					if ( put < 0 )
 						fprintf(stderr,"queueing SRP message failed\n");
@@ -284,7 +284,7 @@ Buf      bufmem;
 			int      got;
 			uint32_t rbuf[300];
 
-			if ( (got = udpQueTryRecv( sa->srpQ, NULL, 0, rbuf+2, sizeof(rbuf) - 2*sizeof(rbuf[0]) )) > 0 ) {
+			if ( (got = udpQueTryRecv( sa->srpQ, rbuf+2, sizeof(rbuf) - 2*sizeof(rbuf[0]) )) > 0 ) {
 				int put;
 #ifdef DEBUG
 				printf("Got %d SRP octets\n", got);
@@ -294,7 +294,7 @@ Buf      bufmem;
 					insert_header( hp, sa->fram, 0, sa->srp_tdest);
 					append_tail( ((uint8_t*)(rbuf+2)) + put , 1 );
 					sa->fram++;
-					if ( udpPrtSend( sa->port, NULL, 0, hp, put + 9 ) < 0 )
+					if ( udpPrtSend( sa->port, hp, put + 9 ) < 0 )
 						fprintf(stderr,"fragmenter: write error (sending SRP reply)\n");
 #ifdef DEBUG
 					else
@@ -344,7 +344,7 @@ printf("JAM cleared\n");
 
 		i += append_tail( &bufmem[i], end_of_frame );
 
-		if ( udpPrtSend( sa->port, NULL, 0, bufmem, i ) < 0 ) {
+		if ( udpPrtSend( sa->port, bufmem, i ) < 0 ) {
 			fprintf(stderr, "fragmenter: write error\n");
 			break;
 		}
@@ -530,7 +530,7 @@ int      bsize;
 
 	while ( 1 ) {
 
-		got = udpPrtRecv( port, NULL, 0, rbuf, sizeof(rbuf) );
+		got = udpPrtRecv( port, rbuf, sizeof(rbuf) );
 		if ( got < 0 ) {
 			perror("read");
 			goto bail;
@@ -542,7 +542,7 @@ int      bsize;
 			goto bail;
 
 		if ( bsize > 0 ) {
-			if ( (put = udpPrtSend( port, NULL, 0, rbuf, bsize )) < 0 ) {
+			if ( (put = udpPrtSend( port, rbuf, bsize )) < 0 ) {
 				perror("unable to send");
 				break;
 			}
