@@ -252,7 +252,12 @@ CAxisFrameHeader hdr;
 	}
 
 #ifdef DEPACK_DEBUG
-printf("%s frame %d (frag %d; oldest %d)\n", hdr.getFrameNo() < oldestFrame_ ? "Dropping" : "Accepting", hdr.getFrameNo(), hdr.getFragNo(), oldestFrame_);
+printf("%s frame %d (frag %d; oldest %d)\n",
+		hdr.getFrameNo() < oldestFrame_ && (CFrame::NO_FRAME != oldestFrame_ || 0 != hdr.getFragNo()) ? "Dropping" : "Accepting",
+		hdr.getFrameNo(),
+		hdr.getFragNo(),
+		oldestFrame_
+);
 #endif
 
 	// if there is a 'string' of frames that falls outside of the window
@@ -260,10 +265,16 @@ printf("%s frame %d (frag %d; oldest %d)\n", hdr.getFrameNo() < oldestFrame_ ? "
 	// the window...
 
 	if ( hdr.getFrameNo() < oldestFrame_ ) {
-		oldFrameDrops_++;
-		frameSync( &hdr );
-		return;
+		if ( CFrame::NO_FRAME == oldestFrame_ && 0 == hdr.getFragNo() ) {
+			// special case - if this the first fragment then we accept 
+			oldestFrame_ = hdr.getFrameNo();
+		} else {
+			oldFrameDrops_++;
+			frameSync( &hdr );
+			return;
+		}
 	}
+	// at this point oldestFrame_ cannot be NO_FRAME
 
 	FrameID relOff = CAxisFrameHeader::moduloFrameSz( hdr.getFrameNo() - oldestFrame_ );
 
