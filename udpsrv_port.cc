@@ -118,6 +118,18 @@ BufChain bc = q->q_->tryPop();
 	return xtrct(bc, buf, size);
 }
 
+int udpQueRecv(UdpQue q, void *buf, unsigned size, struct timespec *abs_timeout)
+{
+CTimeout to( *abs_timeout );
+
+BufChain bc = q->q_->pop( to.isIndefinite() ? NULL : &to );
+
+	if ( ! bc )
+		return -1;
+
+	return xtrct(bc, buf, size);
+}
+
 int udpQueTrySend(UdpQue q, void *buf, unsigned size)
 {
 BufChain bc = fill(buf, size);
