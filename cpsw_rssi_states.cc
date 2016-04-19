@@ -356,7 +356,11 @@ bool CRssi::NOTCLOSED::handleSYN(CRssi *context, RssiSynHeader &synHdr)
 
 bool CRssi::LISTEN::handleSYN(CRssi *context, RssiSynHeader &synHdr)
 {
-		printf("%s SYN received, good checksum (state %s)\n", context->getName(), getName());
+#ifdef RSSI_DEBUG
+if ( rssi_debug > 0 ) {
+		fprintf(stderr, "%s SYN received, good checksum (state %s)\n", context->getName(), getName());
+}
+#endif
 
 		extractConnectionParams( context, synHdr );
 

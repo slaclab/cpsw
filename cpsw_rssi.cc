@@ -49,8 +49,6 @@ CRssi::CRssi(bool isServer)
 	eventSet_ = IEventSet::create();
 	eventSet_->add( inpQ_->getReadEventSource() , usrIEH() );
 	eventSet_->add( outQ_->getWriteEventSource(), usrOEH() );
-
-    printf("%s: inpQ %p, outpQ %p\n", getName(), inpQ_.get(), outQ_.get());
 }
 
 void CRssi::processAckNumber(uint8_t flags, SeqNo ackNo)
