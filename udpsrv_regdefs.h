@@ -12,8 +12,10 @@
 #define REG_SCR_SZ  32
 #define REG_ARR_OFF (REG_SCR_OFF + REG_SCR_SZ)
 #define REG_ARR_SZ  8192
+#define REG_STRM_OFF (REG_ARR_OFF + REG_ARR_SZ)
+#define REG_STRM_SZ  4
 
-#define AXI_SPI_EEPROM_ADDR (MEM_ADDR + MEM_SIZE)
+#define AXI_SPI_EEPROM_ADDR (MEM_ADDR + MEM_SIZE) /* 0x00100000 */
 #define AXI_SPI_EEPROM_32BIT_MODE_OFF 0x04
 #define AXI_SPI_EEPROM_ADDR_OFF       0x08
 #define AXI_SPI_EEPROM_CMD_OFF        0x0c
@@ -56,6 +58,14 @@ struct udpsrv_range {
 	}
 #endif
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+	int streamIsRunning();
+#ifdef __cplusplus
+};
+#endif
 
 #endif
 

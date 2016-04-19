@@ -4,6 +4,10 @@
 
 uint8_t mem[MEM_SIZE] = {0};
 
+int streamIsRunning()
+{
+	return !! (mem[REGBASE + REG_STRM_OFF] & 1);
+}
 
 #ifdef DEBUG
 static void memdbg(int rd, uint32_t off, uint32_t nbytes)
@@ -113,6 +117,7 @@ char    *dst = (char*)&mem[0x800];
 		mem[REGBASE+i/2]    = (i<<4)|(i+1);
 		mem[REGBASE+15-i/2] = (i<<4)|(i+1);
 	}
+	mem[REGBASE + REG_STRM_OFF] = 0;
 }
 
 
