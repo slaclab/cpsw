@@ -379,7 +379,7 @@ protected:
 			}
 			wrSync_->putSlot();
 		}
-if ( wait && !rval )
+if ( wait && (!abs_timeout || abs_timeout->isIndefinite()) && !rval )
 	throw InternalError("???");
 			
 		return rval;
