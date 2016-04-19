@@ -110,6 +110,7 @@ typedef struct streamer_args {
 	unsigned           srp_tdest;
 	pthread_t          poller_tid, fragger_tid;
 	int                haveThreads;
+	volatile uint8_t   isRunning;
 } streamer_args;
 
 typedef struct srp_args {
@@ -261,6 +262,8 @@ int           lfram = -1;
 					sa->jam = 100;
 	printf("JAM\n");
 				}
+
+				sa->isRunning = buf[9];
 			}
 		}
 	}
@@ -281,34 +284,44 @@ Buf      bufmem;
 	while (1) {
 
 		if ( 0 == frag ) {
-			int      got;
-			uint32_t rbuf[300];
 
-			if ( (got = udpQueTryRecv( sa->srpQ, rbuf+2, sizeof(rbuf) - 2*sizeof(rbuf[0]) )) > 0 ) {
-				int put;
-#ifdef DEBUG
-				printf("Got %d SRP octets\n", got);
-#endif
-				if ( (put = handleSRP(sa->srp_vers, rbuf+2, got)) > 0 ) {
-					uint8_t *hp = (uint8_t*)rbuf;
-					insert_header( hp, sa->fram, 0, sa->srp_tdest);
-					append_tail( ((uint8_t*)(rbuf+2)) + put , 1 );
-					sa->fram++;
-					if ( udpPrtSend( sa->port, hp, put + 9 ) < 0 )
-						fprintf(stderr,"fragmenter: write error (sending SRP reply)\n");
-#ifdef DEBUG
-					else
-						printf("Sent to port %d\n", udpPrtIsConn( sa->port ));
-#endif
-				} else {
-					fprintf(stderr,"handleSRP ERROR (from fragger)\n");
+			do {
+				int      got;
+				uint32_t rbuf[300];
+				uint32_t *bufp  = rbuf + 2;
+				unsigned  bufsz = sizeof(rbuf) - 2*sizeof(rbuf[0]);
+
+				struct timespec to;
+
+				clock_gettime( CLOCK_REALTIME, &to );
+
+				to.tv_nsec += sa->isRunning ? 10000000 : 100000000;
+				if ( to.tv_nsec >= 1000000000 ) {
+					to.tv_nsec -= 1000000000;
+					to.tv_sec  += 1;
 				}
-			}
 
-			struct timespec ts;
-			ts.tv_sec = 0;
-			ts.tv_nsec = 1000000;
-			nanosleep(&ts, 0);
+				while ( (got = udpQueRecv( sa->srpQ, bufp, bufsz, &to )) > 0 ) {
+					int put;
+#ifdef DEBUG
+					printf("Got %d SRP octets\n", got);
+#endif
+					if ( (put = handleSRP(sa->srp_vers, bufp, got)) > 0 ) {
+						uint8_t *hp = (uint8_t*)rbuf;
+						insert_header( hp, sa->fram, 0, sa->srp_tdest);
+						append_tail( ((uint8_t*)(bufp)) + put , 1 );
+						sa->fram++;
+						if ( udpPrtSend( sa->port, hp, put + 9 ) < 0 )
+							fprintf(stderr,"fragmenter: write error (sending SRP reply)\n");
+#ifdef DEBUG
+						else
+							printf("Sent to port %d\n", udpPrtIsConn( sa->port ));
+#endif
+					} else {
+						fprintf(stderr,"handleSRP ERROR (from fragger)\n");
+					}
+				}
+			} while ( ! sa->isRunning );
 
 		}
 
@@ -353,11 +366,6 @@ printf("JAM cleared\n");
 			frag = 0;
 			crc  = -1;
 			sa->fram++;
-			struct timespec ts;
-			ts.tv_sec  = 0;
-			ts.tv_nsec = 10000000;
-			nanosleep( &ts, 0 );
-
 		}
 	}
 	fprintf(stderr,"Fragmenter thread failed\n");
@@ -377,7 +385,9 @@ int      v1       = (vers == 1);
 int      v3       = (vers == 3);
 int      expected = v3 ?              20 : ( v1 ? 16 : 12 );
 int      bsize;
+#ifdef DEBUG
 uint32_t xid;
+#endif
 uint32_t size;
 uint64_t off;
 uint32_t cmdwrd;
@@ -393,7 +403,9 @@ int      st;
 	if ( v3 ) {
 
 		cmdwrd = bs32(v1,  rbuf[0] );
+#ifdef DEBUG
 		xid    = bs32(v1,  rbuf[1] );
+#endif
 		off    = (((uint64_t)bs32(v1, rbuf[3])) << 32) | bs32(v1,  rbuf[2]);
 		cmd_rd = (cmdwrd & (3<<8)) == 0 << 8;
 		/*posted = (cmdwrd & (3<<8)) == 2 << 8;*/
@@ -422,7 +434,9 @@ int      st;
 			hoff  = 0;
 		}
 
+#ifdef DEBUG
 		xid    = bs32(v1,  rbuf[hoff + 0] );
+#endif
 		addr   = bs32(v1,  rbuf[hoff + 1] );
 
 		off    = CMD_ADDR(addr);
