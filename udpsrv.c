@@ -43,6 +43,7 @@
 
 #define V1PORT_DEF     8191
 #define V2PORT_DEF     8192
+#define V3PORT_DEF     8190
 #define V2RSSIPORT_DEF 8202
 #define SPORT_DEF      8193
 #define SRSSIPORT_DEF  8203
@@ -607,6 +608,7 @@ struct srpvariant srpvars[] = {
 	{ V1PORT_DEF,     1, WITHOUT_RSSI },
 	{ V2PORT_DEF,     2, WITHOUT_RSSI },
 	{ V2RSSIPORT_DEF, 2, WITH_RSSI    },
+	{ V3PORT_DEF,     3, WITHOUT_RSSI },
 };
 
 #define STRM_NORSSI 0
