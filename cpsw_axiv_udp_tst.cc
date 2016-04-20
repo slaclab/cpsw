@@ -399,7 +399,6 @@ uint16_t u16;
 			bldr->setTDestMuxTDEST   (               tDestSTRM );
 		root->addAtAddress( IField::create("dataSource"), bldr );
 	}
-	IDev::getRootDev()->addAtAddress( root );
 
 	// can use raw memory for testing instead of UDP
 	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );
