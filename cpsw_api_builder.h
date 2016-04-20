@@ -95,7 +95,7 @@ typedef shared_ptr<INetIODev> NetIODev;
 
 class INetIODev : public virtual IDev {
 public:
-	typedef enum ProtocolVersion { SRP_UDP_NONE = -1, SRP_UDP_V1 = 1, SRP_UDP_V2 = 2 } ProtocolVersion;
+	typedef enum ProtocolVersion { SRP_UDP_NONE = -1, SRP_UDP_V1 = 1, SRP_UDP_V2 = 2, SRP_UDP_V3 = 3 } ProtocolVersion;
 
 	class IPortBuilder;
 	typedef shared_ptr<IPortBuilder> PortBuilder;
