@@ -735,7 +735,7 @@ struct timespec retry_then;
 		if ( got != (int)sizeof(bufh[0])*(nWords + expected) ) {
 			if ( got < (int)sizeof(bufh[0])*expected ) {
 				printf("got %i, nw %i, exp %i\n", got, nWords, expected);
-				throw IOError("Received message truncated");
+				throw IOError("Received message (read response) truncated");
 			} else {
 				rchn->extract( &status, got - sizeof(status), sizeof(status) );
 				if ( doSwap )
@@ -916,8 +916,6 @@ int      tidoff;
 
 	nWords = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
-	expected = nWords;
-
 #ifdef NETIO_DEBUG
 	fprintf(stderr, "SRP writeBlk_unlocked off %"PRIx64"; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords);
 #endif
@@ -1000,7 +998,7 @@ int      tidoff;
 	tid = getTid();
 
 	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
-		expected   += 3;
+		expected    = 3;
 		tidoff      = 0;
 		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
 			xbuf[put++] = vc_ << 24;
@@ -1015,7 +1013,7 @@ int      tidoff;
 		xbuf[put++] = off & ~3ULL;
 		xbuf[put++] = off >> 32;
 		xbuf[put++] = totbytes - 1;
-		expected   += 6;
+		expected    = 6;
 		tidoff      = 4;
 	}
 
@@ -1074,8 +1072,6 @@ int      tidoff;
 	uint32_t got_tid;
 	unsigned iovlen  = i;
 
-	expected *= sizeof(SRPWord);
-
 	do {
 
 		BufChain xchn = assembleXBuf(iov, iovlen, iov_pld, toput);
@@ -1123,9 +1119,18 @@ int      tidoff;
 
 		dynTimeout_.update( &now, &then );
 
-		if ( got != expected ) {
-			throw IOError("read return value didn't match buffer size");
+		if ( got != (int)sizeof(SRPWord)*(nWords + expected) ) {
+			if ( got < (int)sizeof(SRPWord)*expected ) {
+				printf("got %i, nw %i, exp %i\n", got, nWords, expected);
+				throw IOError("Received message (write response) truncated");
+			} else {
+				rchn->extract( &status, got - sizeof(status), sizeof(status) );
+				if ( doSwap )
+					swp32( &status );
+				throw BadStatusError("SRP Write terminated with bad status", status);
+			}
 		}
+
 		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
 			if ( LE == hostByteOrder() ) {
 				swpw( rbuf );
