@@ -58,14 +58,32 @@ public:
 		return rval;
 	}
 
+	uint64_t getPatt(uint32_t val, ByteOrder bo)
+	{
+		if ( val < 2 )
+			return (val ? 0xffffffffffffffffUL : 0x000000000000UL );
+		if ( (val == 2) != (bo == BE) )
+			return 0xefcdab8967452301;
+		else
+			return 0x0123456789abcdef;
+	}
+
 	void clr(uint32_t val)
 	{
-	uint64_t v64;
-		v->setVal( &val, 1 );
+	uint64_t v64, vexp;
+		if ( 3 == val ) {
+			vsle->setVal( 0x0123456789abcdef );
+		} else if ( 2 == val ) {
+			vsbe->setVal( 0x0123456789abcdef );
+		} else {
+			v->setVal( &val, 1 );
+		}
+
+		vexp = getPatt( val, BE );
 
 		vsbe->getVal( &v64, 1 );
-		if ( v64 != (val ? 0xffffffffffffffffUL : 0x000000000000UL ) ) {
-			fprintf(stderr,"Unable to %s pseudo registers\n", val ? "set" : "clear");
+		if ( v64 != vexp ) {
+			fprintf(stderr,"Unable to %s pseudo registers (got 0x%016"PRIx64" -- expected 0x%016"PRIx64"\n", val ? "set" : "clear", v64, vexp);
 			throw TestFailed();
 		}
 	}
@@ -79,8 +97,9 @@ main(int argc, char **argv)
 const char *ip_addr = "127.0.0.1";
 int        *i_p;
 int         vers    = 2;
+INetIODev::ProtocolVersion protoVers;
 int         port    = 8192;
-unsigned sizes[]    = { 1, 4, 8, 12, 16, 22, 32, 45, 64 };
+unsigned sizes[]    = { 1, 4, 8, 12, 16, 22, 30, 32, 45, 64 };
 unsigned lsbs[]     = { 0, 3 };
 unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
 unsigned vc         = 0;
@@ -105,8 +124,8 @@ int      tDest      = -1;
 		}
 	}
 
-	if ( vers != 1 && vers != 2 ) {
-		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
+	if ( vers != 1 && vers != 2 && vers != 3 ) {
+		fprintf(stderr,"Invalid protocol version '%i' -- must be 1..3\n", vers);
 		throw TestFailed();
 	}
 
@@ -120,10 +139,15 @@ int      tDest      = -1;
 
 		mmio->addAtAddress( srvm, REGBASE );
 
-		if ( 1 == vers )
-			pbldr->setSRPVersion          ( INetIODev::SRP_UDP_V1 );
-		else
-			pbldr->setSRPVersion          ( INetIODev::SRP_UDP_V2 );
+		switch ( vers ) {
+			case 1: protoVers = INetIODev::SRP_UDP_V1; break;
+			case 2: protoVers = INetIODev::SRP_UDP_V2; break;
+			case 3: protoVers = INetIODev::SRP_UDP_V3; break;
+			default:
+				throw TestFailed();
+		}
+
+		pbldr->setSRPVersion              (             protoVers );
 		pbldr->setUdpPort                 (                  port );
 		pbldr->setSRPTimeoutUS            (               1000000 );
 		pbldr->setSRPRetryCount           (                     4 );
@@ -176,6 +200,8 @@ int      tDest      = -1;
 
 		clr.clr( 0 );
 		clr.clr( 1 );
+		clr.clr( 2 );
+		clr.clr( 3 );
 
 		for ( size_idx = 0; size_idx < sizeof(sizes)/sizeof(sizes[0]); size_idx++ ) {
 			for ( lsb_idx = 0; lsb_idx < sizeof(lsbs)/sizeof(lsbs[0]); lsb_idx++ ) {
@@ -195,12 +221,12 @@ int      tDest      = -1;
 					uint64_t msk_le  = msk << shft_le;
 					uint64_t msk_be  = msk << shft_be;
 
-					for (int patt=0; patt < 2; patt++ ) {
+					for (int patt=0; patt < 4; patt++ ) {
 						clr.clr( patt );
 						v_le->setVal( &v_expect, 1 );
 						v_got = clr.getScratch( LE );
 
-						v = ((patt ? -1UL : 0UL) & ~msk_le) | ((v_expect << shft_le) & msk_le);
+						v = (clr.getPatt(patt, LE) & ~msk_le) | ((v_expect << shft_le) & msk_le);
 
 						if ( v_got != v ) {
 							fprintf(stderr,"Mismatch (%s patt %i - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_le->getName(), patt, v_le->getSizeBits(), sizes[size_idx], v_got, v);
@@ -211,7 +237,7 @@ int      tDest      = -1;
 						v_be->setVal( &v_expect, 1 );
 						v_got = clr.getScratch( BE );
 
-						v = ((patt ? -1UL : 0UL) & ~msk_be) | ((v_expect << shft_be) & msk_be);
+						v = (clr.getPatt(patt, BE) & ~msk_be) | ((v_expect << shft_be) & msk_be);
 
 						if ( v_got != v ) {
 							fprintf(stderr,"Mismatch (%s patt %i - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_be->getName(), patt, v_be->getSizeBits(), sizes[size_idx], v_got, v);
@@ -221,6 +247,35 @@ int      tDest      = -1;
 				}
 			}
 		}
+{
+	sprintf(nam,"raw-le");
+	srvm->addAtAddress( IIntField::create(nam, 32, false, 0), REG_SCR_OFF );
+	sprintf(nam,"b3");
+	srvm->addAtAddress( IIntField::create(nam, 30, false, 0), REG_SCR_OFF+0 );
+	sprintf(nam,"b11");
+	srvm->addAtAddress( IIntField::create(nam,  2, false, 4), REG_SCR_OFF+1 );
+
+	ScalVal rawle = IScalVal::create( pre->findByName("raw-le") );
+	ScalVal b3    = IScalVal::create( pre->findByName("b3")     );
+
+	rawle->setVal( 0xaaaaaaaa );
+
+	for ( int i=0; i<4; i++ ) {
+		b3->setVal( i<<28 );
+		uint32_t v32;
+		rawle->getVal( &v32, 1 );
+		printf("%"PRIx32"\n", v32);
+	}
+
+	clr.clr(0);
+	ScalVal b11 = IScalVal::create( pre->findByName("vrw-30-0-0-le") );
+	b11->setVal( 0xffffffff );
+	printf("SCR1 %016"PRIx64"\n", clr.getScratch(LE));
+	clr.clr(1);
+	b11->setVal( 0xffffffff );
+	printf("SCR2 %016"PRIx64"\n", clr.getScratch(LE));
+	
+}
 
 		sprintf(nam,"arr-16-0-2-le");
 		srvm->addAtAddress( IIntField::create(nam, 16, false, 0), REG_ARR_OFF + 2, (REG_ARR_SZ-4)/2, IMMIODev::STRIDE_AUTO, LE ); 
