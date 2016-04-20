@@ -209,7 +209,7 @@ static void usage(const char *nm)
 {
 	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRrs] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
-	fprintf(stderr,"       -V <version>:  SRP version (1 or 2)\n");
+	fprintf(stderr,"       -V <version>:  SRP version (1..3)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
 	fprintf(stderr,"                      of real device and UDP\n");
 	fprintf(stderr,"       -s          :  test system monitor ADCs\n");
