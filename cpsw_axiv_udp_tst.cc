@@ -15,8 +15,6 @@
 #define VLEN 123
 #define ADCL 10
 
-#define FRAG_SIZE 1024 // for RSSI
-
 #define SYNC_LIMIT 10
 
 using boost::atomic;
@@ -134,14 +132,17 @@ private:
 	atomic<int> nFrames_;
 	uint64_t    size_;
 	int         shots_;
+	bool        cont_;
+	ScalVal     trig_;
 public:
 	CTimeout trigTime;
 
-	ThreadArg(uint64_t size, int shots)
+	ThreadArg(uint64_t size, int shots, ScalVal trig)
 	:firstFrame_(-1),
 	 nFrames_(0),
 	 size_(size),
-	 shots_(shots)
+	 shots_(shots),
+	 trig_(trig)
 	{
 	}
 
@@ -171,6 +172,16 @@ public:
 	{
 		return shots_;
 	}
+
+	bool isCont()
+	{
+		return !!trig_;
+	}
+
+	void trigOff()
+	{
+		trig_->setVal( (uint64_t)0 );
+	}
 };
 
 
@@ -195,10 +206,23 @@ CTimeout now;
 		if ( got > 2 ) {
 			frameNo = (buf[1]<<4) | (buf[0] >> 4);
 			stats->gotFrame( frameNo );
-			now -= stats->trigTime;
-			printf("Received frame # %d Data rate: %g MB/s\n", frameNo, (double)stats->getSize() / (double)now.getUs()  );
+			if ( ! stats->isCont() ) {
+				now -= stats->trigTime;
+				printf("Received frame # %d Data rate: %g MB/s\n", frameNo, (double)stats->getSize() / (double)now.getUs()  );
+			}
 		} else {
 			fprintf(stderr,"Received frame too small!\n");
+		}
+	}
+	if ( stats->isCont() ) {
+		now -= stats->trigTime;
+		double sz = stats->getSize();
+		printf("Received %d frames (size %gMB) Data rate: %g MB/s\n", stats->getShots(), sz/1000000.,  sz * stats->getShots() / (double)now.getUs()  );
+		uint64_t to = (uint64_t)stats->getSize() / 10 /*MB/s*/ ;
+		if ( to < 10000 )
+			to = 10000;
+		while ( strm->read(buf, sizeof(buf), CTimeout(to) ) > 0 ) {
+			printf("Dumped frame # %d\n", (buf[1]<<4) | (buf[0] << 4));
 		}
 	}
 
@@ -370,7 +394,11 @@ uint16_t u16;
 		else
 			bldr->setSRPVersion          ( INetIODev::SRP_UDP_V2 );
 		bldr->setUdpPort                 (                  port );
-		bldr->setSRPTimeoutUS            (                 50000 );
+		u64 = length;
+		u64/= 10; /* MB/s */
+		if ( u64 < 90000 )
+			u64 = 90000;
+		bldr->setSRPTimeoutUS            (                   u64 );
 		bldr->setSRPRetryCount           (                     5 );
 		bldr->setSRPMuxVirtualChannel    (                     0 );
 		bldr->useRssi                    (               srpRssi );
@@ -424,9 +452,10 @@ uint16_t u16;
 
 	ScalVal_RO adcs = IScalVal_RO::create( pre->findByName("mmio/sysm/adcs") );
 
+	printf("AxiVersion:\n");
 	bldStamp->getVal( str, sizeof(str)/sizeof(str[0]) );
-
 	printf("Build String:\n%s\n", (char*)str);
+
 	fdSerial->getVal( &u64, 1 );
 	printf("Serial #: 0x%"PRIx64"\n", u64);
 	dnaValue->getVal( &u64, 1 );
@@ -477,7 +506,7 @@ uint16_t u16;
 		pthread_t tid;
 		void     *ign;
 		struct timespec p, dly;
-		ThreadArg arg( 4*length*FRAG_SIZE, shots );
+		ThreadArg arg( (uint64_t)4*(uint64_t)length, shots, period == 0 ? trig : ScalVal() );
 		if ( pthread_create( &tid, 0, rxThread, &arg ) ) {
 			perror("pthread_create");
 		}
@@ -500,19 +529,24 @@ uint16_t u16;
 					if ( i > SYNC_LIMIT ) {
 						fprintf(stderr,"Stream unable to synchronize: FAILED\n");
 						rval = 1;
+						pthread_cancel( tid );
 						break;
 					}
 					shots++;
 				}
 			}
 		} else {
-			p.tv_sec  = 0;
-			p.tv_nsec = 200000000;
+			// if we assume a (conservative) data rate of 40MB/s
+			// and give 10 attempts to synchronize then this translates
+			// to 10*length/(40B/us) = 10 * length/B * 1000/40 ns
+			uint64_t p_ns = (uint64_t)length * (uint64_t) 25;
+			p.tv_sec  = p_ns/1000000000;
+			p.tv_nsec = p_ns%1000000000;
 			int lfrm  = -1;
 			int     i = 0;
 			int  frm;
-			uint8_t dummy[4];
 
+			clock_gettime( CLOCK_MONOTONIC, &arg.trigTime.tv_ );
 			trig->setVal( 1 );
 
 			while ( arg.nFrames() < shots ) {
@@ -523,6 +557,7 @@ uint16_t u16;
 					if ( ++i > SYNC_LIMIT ) {
 						fprintf(stderr,"Stream unable to synchronize: FAILED\n");
 						rval = 1;
+						pthread_cancel( tid );
 						break;
 					}
 				} else {
@@ -531,13 +566,7 @@ uint16_t u16;
 				}
 			}
 			trig->setVal( (uint64_t)0 );
-
-			Stream strm = IStream::create( IPath::create("/fpga/dataSource") );
-
-			while ( strm->read( dummy, sizeof(dummy), TIMEOUT_NONE ) > 0 )
-				;
 		}
-		pthread_cancel( tid );
 		pthread_join( tid, &ign );
 		printf("%d shots were fired; %d frames received\n", shots, arg.nFrames());
 		printf("(Difference to requested shots are due to synchronization)\n");
