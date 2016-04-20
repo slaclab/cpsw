@@ -675,6 +675,7 @@ struct timespec retry_then;
 
 	do {
 		BufChain xchn = IBufChain::create();
+		BufChain rchn;
 
 		xchn->insert( xbuf, 0, sizeof(xbuf[0])*put );
 
@@ -686,7 +687,7 @@ struct timespec retry_then;
 		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
 		do {
-			BufChain rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
+			rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
 #ifdef NETIO_DEBUG
 				time_retry( &retry_then, attempt, "READ", protoStack_ );
@@ -732,8 +733,15 @@ struct timespec retry_then;
 		dynTimeout_.update( &now, &then );
 
 		if ( got != (int)sizeof(bufh[0])*(nWords + expected) ) {
-			printf("got %i, nw %i, exp %i\n", got, nWords, expected);
-			throw IOError("Received message truncated");
+			if ( got < (int)sizeof(bufh[0])*expected ) {
+				printf("got %i, nw %i, exp %i\n", got, nWords, expected);
+				throw IOError("Received message truncated");
+			} else {
+				rchn->extract( &status, got - sizeof(status), sizeof(status) );
+				if ( doSwap )
+					swp32( &status );
+				throw BadStatusError("SRP Read terminated with bad status", status);
+			}
 		}
 
 		if ( doSwapV1 ) {
@@ -918,6 +926,10 @@ int      tidoff;
 	bool merge_first = headbytes      || msk1;
 	bool merge_last  = ( ! byte_resolution && (totbytes & (sizeof(SRPWord)-1)) ) || mskn;
 
+	if ( (merge_first || merge_last) && cacheable < IField::WT_CACHEABLE ) {
+		throw IOError("Cannot merge bits/bytes to non-cacheable area");
+	}
+
 	int toput = dbytes;
 
 	if ( merge_first ) {
@@ -928,17 +940,20 @@ int      tidoff;
 		}
 
 		int first_byte = headbytes;
+		int remaining;
 
 		CReadArgs rargs;
 		rargs.cacheable_  = cacheable;
 		rargs.dst_        = first_word;
-		rargs.nbytes_     = sizeof(first_word);
+
 		if ( byte_resolution ) {
-			if ( rargs.nbytes_ < totbytes )
-				rargs.nbytes_ = totbytes;
+			rargs.nbytes_ = 1;
 			rargs.off_    = off;
+			remaining     = 0;
 		} else {
+			rargs.nbytes_ = sizeof(first_word);
 			rargs.off_    = off & ~3ULL;
+			remaining     = (totbytes <= (int)sizeof(SRPWord) ? totbytes : sizeof(SRPWord)) - first_byte - 1;
 		}
 
 		read(node, &rargs);
@@ -946,8 +961,6 @@ int      tidoff;
 		first_word[ first_byte  ] = (first_word[ first_byte ] & msk1) | (src[0] & ~msk1);
 
 		toput--;
-
-		int remaining = (totbytes <= (int)sizeof(SRPWord) ? totbytes : sizeof(SRPWord)) - first_byte - 1;
 
 		if ( merge_last && totbytes <= (int)sizeof(SRPWord) ) {
 			// last byte is also in first word
