@@ -12,6 +12,8 @@
 
 #include <vector>
 
+#define FIXME 0
+
 using boost::dynamic_pointer_cast;
 
 typedef shared_ptr<NetIODevImpl> NetIODevImplP;
@@ -84,7 +86,7 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 
 		virtual void            setSRPVersion(ProtocolVersion v)
 		{
-			if ( SRP_UDP_NONE != v && SRP_UDP_V1 != v && SRP_UDP_V2 != v ) {
+			if ( SRP_UDP_NONE != v && SRP_UDP_V1 != v && SRP_UDP_V2 != v && SRP_UDP_V3 != v ) {
 				throw InvalidArgError("Invalid protocol version");	
 			}
 			protocolVersion_ = v;
@@ -566,22 +568,29 @@ struct timespec now;
 #define CMD_READ  0x00000000
 #define CMD_WRITE 0x40000000
 
+#define CMD_READ_V3  0x000
+#define CMD_WRITE_V3 0x100
+
+#define PROTO_VERS_3     3
+
 uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
 {
-SRPWord  bufh[4];
+SRPWord  bufh[5];
+int      hwrds;
 uint8_t  buft[sizeof(SRPWord)];
 SRPWord  xbuf[5];
 SRPWord  header;
 SRPWord  status;
 unsigned i;
 int      j, put;
-unsigned headbytes = (off & (sizeof(SRPWord)-1));
+unsigned headbytes = (INetIODev::SRP_UDP_V3 <= protoVersion_ ? 0 : (off & (sizeof(SRPWord)-1)) );
 unsigned tailbytes = 0;
 int      totbytes;
 struct iovec  iov[5];
 int      got;
 int      nWords;
 int      expected = 0;
+int      tidoffwrd;
 uint32_t tid = getTid();
 #ifdef NETIO_DEBUG
 struct timespec retry_then;
@@ -591,7 +600,7 @@ struct timespec retry_then;
 	// the standard AXI layout which is little-endian
 	bool doSwapV1 = (INetIODev::SRP_UDP_V1 == protoVersion_);
 	// header info needs to be swapped to host byte order since we interpret it
-	bool doSwap   =	( ( protoVersion_ == INetIODev::SRP_UDP_V2 ? BE : LE ) == hostByteOrder() );
+	bool doSwap   =	( ( protoVersion_ == INetIODev::SRP_UDP_V1 ? LE : BE ) == hostByteOrder() );
 
 #ifdef NETIO_DEBUG
 	fprintf(stderr, "SRP readBlk_unlocked off %"PRIx64"; sbytes %d, swapV1 %d, swap %d protoVersion %d\n", off, sbytes, doSwapV1, doSwap, protoVersion_);
@@ -607,15 +616,28 @@ struct timespec retry_then;
 	put = expected = 0;
 	if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
 		xbuf[put++] = vc_ << 24;
-		expected++;
+		expected += 1;
 	}
-	xbuf[put++] = tid;
-	xbuf[put++] = (off >> 2) & 0x3fffffff;
-	xbuf[put++] = nWords   - 1;
-	xbuf[put++] = 0;
-	expected += 3;
+	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
+		xbuf[put++] = tid;
+		xbuf[put++] = (off >> 2) & 0x3fffffff;
+		xbuf[put++] = nWords   - 1;
+		xbuf[put++] = 0;
+		expected += 3;
+		hwrds       = 2;
+		tidoffwrd   = 0;
+	} else {
+		xbuf[put++] = CMD_READ_V3 | PROTO_VERS_3;
+		xbuf[put++] = tid;
+		xbuf[put++] = off;
+		xbuf[put++] = off >> 32;
+		xbuf[put++] = totbytes - 1;
+		expected += 6;
+		hwrds       = 5;
+		tidoffwrd   = 1;
+	}
 
-	// V2 uses LE, V1 network (aka BE) layout
+	// V2,V3 uses LE, V1 network (aka BE) layout
 	if ( doSwap ) {
 		for ( j=0; j<put; j++ ) {
 			swp32( &xbuf[j] );
@@ -629,7 +651,7 @@ struct timespec retry_then;
 		i++;
 	}
 	iov[i].iov_base = bufh;
-	iov[i].iov_len  = 8 + headbytes;
+	iov[i].iov_len  = hwrds*sizeof(SRPWord) + headbytes;
 	i++;
 
 	iov[i].iov_base = dst;
@@ -688,10 +710,10 @@ struct timespec retry_then;
 #ifdef NETIO_DEBUG
 			printf("got %i bytes, off 0x%"PRIx64", sbytes %i, nWords %i\n", got, off, sbytes, nWords  );
 			printf("got %i bytes\n", got);
-			for (i=0; i<2; i++ )
+			for (i=0; i<hwrds; i++ )
 				printf("header[%i]: %x\n", i, bufh[i]);
 			for ( i=0; i<headbytes; i++ ) {
-				printf("headbyte[%i]: %x\n", i, ((uint8_t*)&bufh[2])[i]);
+				printf("headbyte[%i]: %x\n", i, ((uint8_t*)&bufh[hwrds])[i]);
 			}
 
 			for ( i=0; (unsigned)i<sbytes; i++ ) {
@@ -703,9 +725,9 @@ struct timespec retry_then;
 			}
 #endif
 			if ( doSwap ) {
-				swp32( &bufh[0] );
+				swp32( &bufh[tidoffwrd] );
 			}
-		} while ( (bufh[0] & tidMsk_) != tid );
+		} while ( (bufh[tidoffwrd] & tidMsk_) != tid );
 
 		dynTimeout_.update( &now, &then );
 
@@ -781,7 +803,7 @@ retry:
 uint64_t CSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 uint64_t rval = 0;
-unsigned headbytes = (args->off_ & (sizeof(SRPWord)-1));
+unsigned headbytes = (INetIODev::SRP_UDP_V3 <= protoVersion_ ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
 int totbytes;
 int nWords;
 uint64_t off = args->off_;
@@ -853,7 +875,7 @@ int      j;
 
 uint64_t CSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
-SRPWord  xbuf[4];
+SRPWord  xbuf[5];
 SRPWord  status;
 SRPWord  header;
 SRPWord  zero = 0;
@@ -861,8 +883,9 @@ uint8_t  first_word[sizeof(SRPWord)];
 uint8_t  last_word[sizeof(SRPWord)];
 int      j, put;
 unsigned i;
-int      headbytes = (off & (sizeof(SRPWord)-1));
-int      totbytes;
+bool     byte_resolution = FIXME && INetIODev::SRP_UDP_V3 <= protoVersion_;
+unsigned headbytes = ( byte_resolution ? 0 : (off & (sizeof(SRPWord)-1)) );
+unsigned totbytes;
 struct iovec  iov[5];
 int      got;
 int      nWords;
@@ -871,17 +894,21 @@ int      iov_pld = -1;
 #ifdef NETIO_DEBUG
 struct timespec retry_then;
 #endif
+int      expected;
+int      tidoff;
 
 	if ( dbytes == 0 )
 		return 0;
 
 	// these look similar but are different...
 	bool doSwapV1 =  (protoVersion_ == INetIODev::SRP_UDP_V1);
-	bool doSwap   = ((protoVersion_ == INetIODev::SRP_UDP_V2 ? BE : LE) == hostByteOrder() );
+	bool doSwap   = ((protoVersion_ == INetIODev::SRP_UDP_V1 ? LE : BE) == hostByteOrder() );
 
 	totbytes = headbytes + dbytes;
 
 	nWords = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
+
+	expected = nWords;
 
 #ifdef NETIO_DEBUG
 	fprintf(stderr, "SRP writeBlk_unlocked off %"PRIx64"; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords);
@@ -889,7 +916,7 @@ struct timespec retry_then;
 
 
 	bool merge_first = headbytes      || msk1;
-	bool merge_last  = (totbytes & (sizeof(SRPWord)-1)) || mskn;
+	bool merge_last  = ( ! byte_resolution && (totbytes & (sizeof(SRPWord)-1)) ) || mskn;
 
 	int toput = dbytes;
 
@@ -903,10 +930,16 @@ struct timespec retry_then;
 		int first_byte = headbytes;
 
 		CReadArgs rargs;
-		rargs.cacheable_ = cacheable;
-		rargs.dst_       = first_word;
-		rargs.nbytes_    = sizeof(first_word);
-		rargs.off_       = off & ~3ULL;
+		rargs.cacheable_  = cacheable;
+		rargs.dst_        = first_word;
+		rargs.nbytes_     = sizeof(first_word);
+		if ( byte_resolution ) {
+			if ( rargs.nbytes_ < totbytes )
+				rargs.nbytes_ = totbytes;
+			rargs.off_    = off;
+		} else {
+			rargs.off_    = off & ~3ULL;
+		}
 
 		read(node, &rargs);
 
@@ -951,12 +984,27 @@ struct timespec retry_then;
 	}
 
 	put = 0;
-	if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
-		xbuf[put++] = vc_ << 24;
+	tid = getTid();
+
+	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
+		expected   += 3;
+		tidoff      = 0;
+		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
+			xbuf[put++] = vc_ << 24;
+			expected++;
+			tidoff  = 4;
+		}
+		xbuf[put++] = tid;
+		xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
+	} else {
+		xbuf[put++] = CMD_WRITE_V3 | PROTO_VERS_3;
+		xbuf[put++] = tid;
+		xbuf[put++] = off & ~3ULL;
+		xbuf[put++] = off >> 32;
+		xbuf[put++] = totbytes - 1;
+		expected   += 6;
+		tidoff      = 4;
 	}
-	tid         = getTid();
-	xbuf[put++] = tid;
-	xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
 
 	if ( doSwap ) {
 		for ( j=0; j<put; j++ ) {
@@ -1003,22 +1051,22 @@ struct timespec retry_then;
 		i++;
 	}
 
-	iov[i].iov_base = &zero;
-	iov[i].iov_len  = sizeof(SRPWord);
-	i++;
+	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
+		iov[i].iov_base = &zero;
+		iov[i].iov_len  = sizeof(SRPWord);
+		i++;
+	}
 
 	unsigned attempt = 0;
 	uint32_t got_tid;
 	unsigned iovlen  = i;
 
+	expected *= sizeof(SRPWord);
+
 	do {
 
 		BufChain xchn = assembleXBuf(iov, iovlen, iov_pld, toput);
 
-		int     bufsz = (nWords + 3)*sizeof(SRPWord);
-		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
-			bufsz += sizeof(SRPWord);
-		}
 		BufChain rchn;
 		uint8_t *rbuf;
 		struct timespec then, now;
@@ -1054,7 +1102,7 @@ struct timespec retry_then;
 			for ( i=0; i<dbytes; i++ )
 				printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
 #endif
-			memcpy( &got_tid, rbuf + ( protoVersion_ == INetIODev::SRP_UDP_V1 ? sizeof(SRPWord) : 0 ), sizeof(SRPWord) );
+			memcpy( &got_tid, rbuf + tidoff, sizeof(SRPWord) );
 			if ( doSwap ) {
 				swp32( &got_tid );
 			}
@@ -1062,7 +1110,7 @@ struct timespec retry_then;
 
 		dynTimeout_.update( &now, &then );
 
-		if ( got != bufsz ) {
+		if ( got != expected ) {
 			throw IOError("read return value didn't match buffer size");
 		}
 		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
@@ -1093,7 +1141,7 @@ retry:
 uint64_t CSRPAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 uint64_t rval = 0;
-int headbytes = (args->off_ & (sizeof(SRPWord)-1));
+unsigned headbytes = (INetIODev::SRP_UDP_V3 <= protoVersion_ && FIXME ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
 int totbytes;
 int nWords;
 unsigned dbytes = args->nbytes_;
@@ -1180,6 +1228,7 @@ shared_ptr<CCommAddressImpl> addr;
 
 		case SRP_UDP_V1:
 		case SRP_UDP_V2:
+		case SRP_UDP_V3:
 			addr = make_shared<CSRPAddressImpl>(key, bldr, port);
 		break;
 
