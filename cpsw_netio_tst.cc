@@ -247,35 +247,6 @@ int      tDest      = -1;
 				}
 			}
 		}
-{
-	sprintf(nam,"raw-le");
-	srvm->addAtAddress( IIntField::create(nam, 32, false, 0), REG_SCR_OFF );
-	sprintf(nam,"b3");
-	srvm->addAtAddress( IIntField::create(nam, 30, false, 0), REG_SCR_OFF+0 );
-	sprintf(nam,"b11");
-	srvm->addAtAddress( IIntField::create(nam,  2, false, 4), REG_SCR_OFF+1 );
-
-	ScalVal rawle = IScalVal::create( pre->findByName("raw-le") );
-	ScalVal b3    = IScalVal::create( pre->findByName("b3")     );
-
-	rawle->setVal( 0xaaaaaaaa );
-
-	for ( int i=0; i<4; i++ ) {
-		b3->setVal( i<<28 );
-		uint32_t v32;
-		rawle->getVal( &v32, 1 );
-		printf("%"PRIx32"\n", v32);
-	}
-
-	clr.clr(0);
-	ScalVal b11 = IScalVal::create( pre->findByName("vrw-30-0-0-le") );
-	b11->setVal( 0xffffffff );
-	printf("SCR1 %016"PRIx64"\n", clr.getScratch(LE));
-	clr.clr(1);
-	b11->setVal( 0xffffffff );
-	printf("SCR2 %016"PRIx64"\n", clr.getScratch(LE));
-	
-}
 
 		sprintf(nam,"arr-16-0-2-le");
 		srvm->addAtAddress( IIntField::create(nam, 16, false, 0), REG_ARR_OFF + 2, (REG_ARR_SZ-4)/2, IMMIODev::STRIDE_AUTO, LE ); 
