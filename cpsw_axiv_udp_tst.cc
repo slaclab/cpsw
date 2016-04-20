@@ -296,8 +296,8 @@ const char *str;
 	}
 	
 
-	if ( vers != 1 && vers != 2 ) {
-		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
+	if ( vers != 1 && vers != 2 && vers != 3 ) {
+		fprintf(stderr,"Invalid protocol version '%i' -- must be 1..3\n", vers);
 		throw TestFailed();
 	}
 
@@ -365,10 +365,14 @@ uint16_t u16;
 
 	{
 	INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
-		if ( 1 == vers )
-			bldr->setSRPVersion          ( INetIODev::SRP_UDP_V1 );
-		else
-			bldr->setSRPVersion          ( INetIODev::SRP_UDP_V2 );
+	INetIODev::ProtocolVersion protoVers;
+		switch ( vers ) {
+			default: throw TestFailed();
+			case 1: protoVers = INetIODev::SRP_UDP_V1; break;
+			case 2: protoVers = INetIODev::SRP_UDP_V2; break;
+			case 3: protoVers = INetIODev::SRP_UDP_V3; break;
+		}
+		bldr->setSRPVersion              (             protoVers );
 		bldr->setUdpPort                 (                  port );
 		bldr->setSRPTimeoutUS            (                 50000 );
 		bldr->setSRPRetryCount           (                     5 );
