@@ -936,7 +936,7 @@ struct timespec retry_then;
 		rargs.cacheable_ = cacheable;
 		rargs.dst_       = last_word;
 		rargs.nbytes_    = sizeof(last_word);
-		rargs.off_       = (off + dbytes) & ~3ULL;
+		rargs.off_       = (off + dbytes - 1) & ~3ULL;
 
 		read(node, &rargs);
 
