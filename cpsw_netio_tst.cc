@@ -94,26 +94,28 @@ public:
 int
 main(int argc, char **argv)
 {
-const char *ip_addr = "127.0.0.1";
+const char *ip_addr  = "127.0.0.1";
 int        *i_p;
-int         vers    = 2;
+int         vers     = 2;
 INetIODev::ProtocolVersion protoVers;
-int         port    = 8192;
-unsigned sizes[]    = { 1, 4, 8, 12, 16, 22, 30, 32, 45, 64 };
-unsigned lsbs[]     = { 0, 3 };
-unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
-unsigned vc         = 0;
-int      useRssi    = 0;
-int      tDest      = -1;
+int         port     = 8192;
+unsigned sizes[]     = { 1, 4, 8, 12, 16, 22, 30, 32, 45, 64 };
+unsigned lsbs[]      = { 0, 3 };
+unsigned offs[]      = { 0, 1, 2, 3, 4, 5 };
+unsigned vc          = 0;
+int      useRssi     = 0;
+int      tDest       = -1;
+unsigned byteResHack =  0;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:b")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
-			case 'a': ip_addr = optarg;   break;
-			case 'V': i_p     = &vers;    break;
-			case 'p': i_p     = &port;    break;
-			case 'r': useRssi = 1;        break;
-			case 't': i_p     = &tDest;   break;
+			case 'a': ip_addr     = optarg;   break;
+			case 'V': i_p         = &vers;    break;
+			case 'p': i_p         = &port;    break;
+			case 'r': useRssi     = 1;        break;
+			case 't': i_p         = &tDest;   break;
+			case 'b': byteResHack = 0x10000;  break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				throw TestFailed();
@@ -129,9 +131,15 @@ int      tDest      = -1;
 		throw TestFailed();
 	}
 
+	if ( vers < 3 )
+		byteResHack = 0;
+
+	{
+	NetIODev root;
+
 	try {
 
-		NetIODev  root = INetIODev::create("fpga", ip_addr);
+		          root = INetIODev::create("fpga", ip_addr);
 		MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
 		MMIODev   srvm = IMMIODev::create ("srvm",0x10000, LE);
 
@@ -150,7 +158,7 @@ int      tDest      = -1;
 		pbldr->setSRPVersion              (             protoVers );
 		pbldr->setUdpPort                 (                  port );
 		pbldr->setSRPTimeoutUS            (               1000000 );
-		pbldr->setSRPRetryCount           (                     4 );
+		pbldr->setSRPRetryCount           (       byteResHack | 4 ); // enable byte-resolution access
 		pbldr->setSRPMuxVirtualChannel    (                    vc );
 		pbldr->useRssi                    (               useRssi );
 		if ( tDest >= 0 ) {
@@ -300,12 +308,16 @@ int      tDest      = -1;
 		root->findByName("mmio")->tail()->dump( stdout );
 
 	} catch (IOError &e) {
+		if ( root )
+			root->findByName("mmio")->tail()->dump( stdout );
 		printf("I/O Error -- is 'udpsrv' running (with matching protocol version) ?\n");
 		printf("             note: udpsrv debugging messages might slow it down...\n");
 		throw;
 	} catch (CPSWError &e) {
 		printf("CPSW Error: %s\n", e.getInfo().c_str());
 		throw;
+	}
+
 	}
 
 	if ( CpswObjCounter::report() ) {

@@ -140,7 +140,7 @@ include $(CPSW_DIR)/rules.mak
 # run for V2 and V1 and over TDEST demuxer (v2)
 # NOTE: the t1 test will be slow as the packetized channel is scrambled
 #       by udpsrv (and this increases average roundtrip time)
-cpsw_netio_tst_run:     RUN_OPTS='' '-V1 -p8191' '-p8202 -r' '-p8203 -r -t1'
+cpsw_netio_tst_run:     RUN_OPTS='' '-V1 -p8191' '-p8202 -r' '-p8203 -r -t1' '-p8190 -V3' '-p8189 -V3 -b'
 
 cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
 
