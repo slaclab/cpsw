@@ -89,6 +89,7 @@ static void usage(const char *nm)
 	fprintf(stderr, "        -S <lddepth>: scramble packet order (arg is ld2(scrambler-depth))\n");
 	fprintf(stderr, "        -L <percent>: lose/drop <percent> packets\n");
 	fprintf(stderr, " Defaults: -a %s -P %d -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, V2PORT_DEF, V1PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
+	fprintf(stderr, "           V3 (norssi) is listening at %d\n", V3PORT_DEF);
 }
 
 static void payload_swap(int v1, uint32_t *buf, int nelms)
@@ -100,6 +101,8 @@ int i;
 		buf[i] = __builtin_bswap32( buf[i] );
 }
 
+#define SRP_OPT_BYTERES (1<<0)
+
 typedef struct streamer_args {
 	UdpPrt             port;
 	UdpQue             srpQ;
@@ -108,6 +111,7 @@ typedef struct streamer_args {
 	unsigned           tdest;
 	unsigned           jam;
 	int                srp_vers;
+	unsigned           srp_opts;
 	unsigned           srp_tdest;
 	pthread_t          poller_tid, fragger_tid;
 	int                haveThreads;
@@ -117,6 +121,7 @@ typedef struct streamer_args {
 typedef struct srp_args {
 	UdpPrt             port;
 	int                vers;
+	unsigned           opts;
 	pthread_t          tid;
 	int                haveThread;
 } srp_args;
@@ -173,7 +178,7 @@ static int append_tail(uint8_t *tbuf, int eof)
 	return 1;
 }
 
-static int handleSRP(int vers, uint32_t *rbuf, int got);
+static int handleSRP(int vers, unsigned opts, uint32_t *rbuf, int got);
 
 void *poller(void *arg)
 {
@@ -245,7 +250,7 @@ int           lfram = -1;
 					if ( put < 0 )
 						fprintf(stderr,"queueing SRP message failed\n");
 #ifdef DEBUG
-					else
+					else if ( debug )
 						printf("Queued %d octets to SRP\n", put);
 #endif
 				}
@@ -305,9 +310,10 @@ Buf      bufmem;
 				while ( (got = udpQueRecv( sa->srpQ, bufp, bufsz, &to )) > 0 ) {
 					int put;
 #ifdef DEBUG
-					printf("Got %d SRP octets\n", got);
+					if ( debug )
+						printf("Got %d SRP octets\n", got);
 #endif
-					if ( (put = handleSRP(sa->srp_vers, bufp, got)) > 0 ) {
+					if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, got)) > 0 ) {
 						uint8_t *hp = (uint8_t*)rbuf;
 						insert_header( hp, sa->fram, 0, sa->srp_tdest);
 						append_tail( ((uint8_t*)(bufp)) + put , 1 );
@@ -315,7 +321,7 @@ Buf      bufmem;
 						if ( udpPrtSend( sa->port, hp, put + 9 ) < 0 )
 							fprintf(stderr,"fragmenter: write error (sending SRP reply)\n");
 #ifdef DEBUG
-						else
+						else if ( debug )
 							printf("Sent to port %d\n", udpPrtIsConn( sa->port ));
 #endif
 					} else {
@@ -324,11 +330,6 @@ Buf      bufmem;
 				}
 			} while ( ! sa->isRunning );
 
-		}
-
-		if ( 0 == udpPrtIsConn( sa->port ) ) {
-			sleep(4);
-			continue;
 		}
 
 		i  = 0;
@@ -380,7 +381,9 @@ printf("JAM cleared\n");
  */
 struct udpsrv_range *udpsrv_ranges = 0;
 
-static int handleSRP(int vers, uint32_t *rbuf, int got)
+typedef enum { CMD_NOP, CMD_RD, CMD_WR, CMD_PWR } Cmd;
+
+static int handleSRP(int vers, unsigned opts, uint32_t *rbuf, int got)
 {
 int      v1       = (vers == 1);
 int      v3       = (vers == 3);
@@ -393,13 +396,14 @@ uint32_t size;
 uint64_t off;
 uint32_t cmdwrd;
 struct   udpsrv_range *range;
-int      cmd_rd;
+Cmd      cmd;
 /*int      posted   = 0;*/
 unsigned v3vers;
-int      noexec   = 0;
-int      ooff     = 2;
-int      szoff    = 2;
-int      st;
+int      noexec   =  0;
+int      ooff     =  2;
+int      szoff    =  2;
+int      st       =  0;
+uint32_t status   =  0;
 
 	if ( v3 ) {
 
@@ -408,7 +412,12 @@ int      st;
 		xid    = bs32(v1,  rbuf[1] );
 #endif
 		off    = (((uint64_t)bs32(v1, rbuf[3])) << 32) | bs32(v1,  rbuf[2]);
-		cmd_rd = (cmdwrd & (3<<8)) == 0 << 8;
+		switch ( ((cmdwrd >> 8) & 3) ) {
+			case 0: cmd = CMD_RD;  break;
+			case 1: cmd = CMD_WR;  break;
+			case 2: cmd = CMD_PWR; break;
+			case 3: cmd = CMD_NOP; break;
+		}
 		/*posted = (cmdwrd & (3<<8)) == 2 << 8;*/
 		v3vers = (cmdwrd & 0xff);
 
@@ -416,10 +425,17 @@ int      st;
 		szoff  = 4;
 
 		if ( v3vers != V3VERS ) {
-			noexec = 1;
-			cmdwrd = (cmdwrd & ~0xff) | V3VERS;
-			rbuf[0] = bs32(v1, cmdwrd);
+			noexec  = 1;
+			status |= (1<<11); // version mismatch
+			cmdwrd  = (cmdwrd & ~0xff) | V3VERS;
 		}
+
+		if ( (opts & SRP_OPT_BYTERES) )
+			cmdwrd |=   (1<<10);
+		else
+			cmdwrd &= ~ (1<<10);
+
+		rbuf[0] = bs32(v1, cmdwrd);
 
 	} else {
 		uint32_t addr;
@@ -441,55 +457,82 @@ int      st;
 		addr   = bs32(v1,  rbuf[hoff + 1] );
 
 		off    = CMD_ADDR(addr);
-		cmd_rd = CMD_IS_RD(addr);
-
+		cmd    = CMD_IS_RD(addr) ? CMD_RD : CMD_WR;
 	}
 
-	if ( v3 || cmd_rd ) {
-		size = bs32(v1,  rbuf[szoff] ) + 1;
+	if ( v3 || (CMD_RD == cmd) ) {
+		size = CMD_NOP == cmd ? 0 : (bs32(v1,  rbuf[szoff] ) + 1);
 		if ( !v3 )
 			size *= 4;
 	} else {
 		size = (got - expected);
 	}
 
-	if ( cmd_rd ) {
-		if ( got != expected + ( !v3 ? 4 : 0 ) /* status word */ ) {
-			int j;
-			printf("got %d, exp %d\n", got, expected);
-			fprintf(stderr,"READ command -- got != expected + 4; dropping...\n");
-			for ( j = 0; j<(got+3)/4; j++ )
-				fprintf(stderr,"  0x%08x\n", rbuf[j]);
-			return 0;
-		}
-	} else {
-		if ( got < expected ) {
-			printf("got %d, exp %d\n", got, expected);
-			fprintf(stderr,"WRITE command -- got < expected; dropping...\n");
-			return 0;
-		} else if ( (got % 4) != 0 ) {
-			printf("got %d, exp %d\n", got, expected);
-			fprintf(stderr,"WRITE command -- got not a multiple of 4; dropping...\n");
-			return 0;
-		}
-		if ( v3 ) {
-			if ( ((size + 3) & ~3) != (got - expected) ) {
-				fprintf(stderr,"V3 WRITE command -- size doesn't match - size %d, got %d\n", size, got);
+	switch ( cmd ) {
+		case CMD_RD:
+			if ( got != expected + ( !v3 ? 4 : 0 ) /* status word */ ) {
+				int j;
+				printf("got %d, exp %d\n", got, expected);
+				fprintf(stderr,"READ command -- got != expected + %d; dropping...\n", v3 ? 0 : 4);
+				for ( j = 0; j<(got+3)/4; j++ )
+					fprintf(stderr,"  0x%08x\n", rbuf[j]);
 				return 0;
+			}
+			break;
+
+		case CMD_WR:
+		case CMD_PWR:
+			if ( got < expected ) {
+				printf("got %d, exp %d\n", got, expected);
+				fprintf(stderr,"WRITE command -- got < expected; dropping...\n");
+				return 0;
+			} else if ( (got % 4) != 0 ) {
+				printf("got %d, exp %d\n", got, expected);
+				fprintf(stderr,"WRITE command -- got not a multiple of 4; dropping...\n");
+				return 0;
+			}
+			if ( v3 ) {
+				if ( ((size + 3) & ~3) != (got - expected) ) {
+					fprintf(stderr,"V3 WRITE command -- size doesn't match - size %d, got %d\n", size, got);
+					return 0;
+				}
+			}
+			break;
+
+		case CMD_NOP:
+			if ( got != expected ) {
+				printf("got %d, exp %d\n", got, expected);
+				fprintf(stderr,"NOP command -- got != expected; dropping...\n");
+				return 0;
+			}
+			noexec = 1;
+			st     = 0;
+			break;
+	}
+
+	if ( ! noexec ) {
+		if ( ! (opts & SRP_OPT_BYTERES) ) {
+			if ( (off & 3) ) {
+				fprintf(stderr,"%s @0x%016"PRIx64" [0x%04x]: address not word-aligned\n", CMD_RD == cmd ? "Read" : "Write" , off, size);
+				st     = -1;
+				noexec = 1;
+			}
+			if ( (size & 3) ) {
+				fprintf(stderr,"%s @0x%016"PRIx64" [0x%04x]: size not word-aligned\n", CMD_RD == cmd ? "Read" : "Write" , off, size);
+				st     = -1;
+				noexec = 1;
 			}
 		}
 	}
-
-	st = -1;
 
 	if ( ! noexec ) {
 		for ( range = udpsrv_ranges; range; range=range->next ) {
 			if ( off >= range->base && off < range->base + range->size ) {
 				if ( off + size > range->base + range->size ) {
-					fprintf(stderr,"%s request out of range (off 0x%"PRIx64", size %d)\n", cmd_rd ? "read" : "write", off, size);
+					fprintf(stderr,"%s request out of range (off 0x%"PRIx64", size %d)\n", CMD_RD == cmd ? "read" : "write", off, size);
 					fprintf(stderr,"range base 0x%"PRIx64", size %"PRId64"\n", range->base, range->size);
 				} else {
-					if ( cmd_rd ) {
+					if ( CMD_RD == cmd ) {
 						st = range->read( (uint8_t*)&rbuf[ooff], size, off - range->base, debug );
 						payload_swap( v1, &rbuf[ooff], (size + 3)/4 );
 					} else {
@@ -498,7 +541,7 @@ int      st;
 					}
 #ifdef DEBUG
 					if (debug) {
-						if ( cmd_rd )
+						if ( CMD_RD == cmd )
 							printf("Read ");
 						else
 							printf("Wrote ");
@@ -511,8 +554,6 @@ int      st;
 				break;
 			}
 		}
-
-
 #ifdef DEBUG
 		if ( debug && ! range ) {
 			printf("No range matched 0x%08"PRIx64"\n", off);
@@ -520,14 +561,15 @@ int      st;
 #endif
 	}
 	if ( st ) {
-		size=0;
+		size    = 0;
+		status |= 0xff;
 	}
 
 	unsigned nw = (size + 3)/4;
 
-	memset( &rbuf[ooff+nw], st ? 0xff : 0x00, 4);
+	rbuf[ooff+nw] = status;
 
-	bs32(v1, rbuf[ooff+nw] );
+	bs32(v1, rbuf[ooff+nw]);
 
 	bsize = (ooff + nw + 1 /* footer */) * 4;
 
@@ -551,7 +593,7 @@ int      bsize;
 			goto bail;
 		}
 		
-		bsize = handleSRP(srp_arg->vers, rbuf, got);
+		bsize = handleSRP(srp_arg->vers, srp_arg->opts, rbuf, got);
 
 		if ( bsize < 0 )
 			goto bail;
@@ -604,6 +646,7 @@ sigset_t sigset;
 #define V1_NORSSI 0
 #define V2_NORSSI 1
 #define V2_RSSI   2
+#define V3_NORSSI 3
 struct srpvariant srpvars[] = {
 	{ V1PORT_DEF,     1, WITHOUT_RSSI },
 	{ V2PORT_DEF,     2, WITHOUT_RSSI },
@@ -615,7 +658,7 @@ struct srpvariant srpvars[] = {
 #define STRM_RSSI   1
 struct strmvariant strmvars[] = {
 	{ SPORT_DEF,     WITHOUT_RSSI, 0 }, /* run no SRP on scrambled channel */
-	{ SRSSIPORT_DEF, WITH_RSSI,    2 },
+	{ SRSSIPORT_DEF, WITH_RSSI,    2 }, /* SRP will be slow due to scrambled RSSI */
 };
 
 int    nprts;
