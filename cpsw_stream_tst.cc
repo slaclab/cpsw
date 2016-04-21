@@ -17,6 +17,25 @@ static void usage(const char *nm)
 
 extern int rssi_debug;
 
+static void sendMsg(Stream strm, uint8_t m)
+{
+CAxisFrameHeader hdr;
+uint8_t          buf[1500];
+uint32_t         crc;
+unsigned         i;
+
+	hdr.insert(buf, sizeof(buf));
+	buf[ hdr.getSize() ] = m;
+	crc = crc32_le_t4( -1, buf+hdr.getSize(), 100 ) ^ -1;
+	for ( i=0; i<sizeof(crc); i++ ) {
+		buf[hdr.getSize()+100+i] = crc & 0xff;
+		crc >>= 8;
+	}
+	strm->write( buf, hdr.getSize() + 100 + i );
+}
+
+class StrmRxFailed {};
+
 int
 main(int argc, char **argv)
 {
@@ -30,11 +49,10 @@ int      fram, lfram;
 unsigned errs, goodf;
 unsigned attempts;
 unsigned*i_p;
-uint32_t crc;
 unsigned ngood = NGOOD;
 unsigned nUdpThreads = 4;
 unsigned useRssi     = 0;
-int      tDest       = -1;
+unsigned tDest       = -1;
 unsigned sport       = 8193;
 
 	unsigned iQDepth = 40;
@@ -46,7 +64,7 @@ unsigned sport       = 8193;
 
 	rssi_debug=0;
 
-	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:Rs:")) > 0 ) {
+	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:Rs:t:")) > 0 ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'q': i_p = &iQDepth;        break;
@@ -58,6 +76,7 @@ unsigned sport       = 8193;
 			case 's': i_p = &sport;          break;
 			case 'n': i_p = &ngood;          break;
 			case 'R': useRssi = 1;           break;
+			case 't': i_p = &tDest;          break;
 			default:
 			case 'h': usage(argv[0]); return 1;
 		}
@@ -97,7 +116,7 @@ INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
 	bldr->setDepackLdFrameWinSize(          ldFrameWinSize );
 	bldr->setDepackLdFragWinSize (           ldFragWinSize );
 	bldr->useRssi                (                 useRssi );
-	if ( tDest >= 0 )
+	if ( tDest < 256 )
 		bldr->setTDestMuxTDEST   (                   tDest );
 
 	root->addAtAddress( data, bldr );
@@ -110,24 +129,24 @@ INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
 	errs     = 0;
 	goodf    = 0;
 	attempts = 0;
+
+	sendMsg( strm, 1 );
+	sendMsg( strm, 1 );
+
+	try {
+
 	while ( goodf < ngood ) {
 
 		if ( ++attempts > goodf + (goodf*err_percent)/100 + 10 ) {
 			fprintf(stderr,"Too many attempts\n");
-			goto bail;
+			throw StrmRxFailed();
 		}
 
 		if ( (attempts & 31) == 0 ) {
-			hdr.insert(buf, sizeof(buf));
 			// once in a while try to write something...
 			// udpsrv will jam the CRC if they receive
 			// corrupted data;	
-			crc = crc32_le_t4( -1, buf+hdr.getSize(), 100 ) ^ -1;
-			for ( i=0; i<sizeof(crc); i++ ) {
-				buf[hdr.getSize()+100+i] = crc & 0xff;
-				crc >>= 8;
-			}
-			got = strm->write( buf, hdr.getSize() + 100 + i );
+			sendMsg( strm, 1 );
 		}
 
 		got = strm->read( buf, sizeof(buf), CTimeout(timeoutUs), 0 );
@@ -137,13 +156,19 @@ INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
 #endif
 		if ( 0 == got ) {
 			fprintf(stderr,"Read -- timeout. Is udpsrv running?\n");
-			goto bail;
+			throw StrmRxFailed();
 		}
 
 		// udpsrv computes CRC over payload only (excluding stream header + tail byte)
 		if ( CRC32_LE_POSTINVERT_GOOD ^ -1 ^ crc32_le_t4(-1, buf + 8, got - 9) ) {
 			fprintf(stderr,"Read -- frame with bad CRC (jammed write message?)\n");
-			goto bail;
+			throw StrmRxFailed();
+		}
+
+		// udpsrv computes CRC over payload only (excluding stream header + tail byte)
+		if ( CRC32_LE_POSTINVERT_GOOD ^ -1 ^ crc32_le_t4(-1, buf + 8, got - 9) ) {
+			fprintf(stderr,"Read -- frame with bad CRC (jammed write message?)\n");
+			throw StrmRxFailed();
 		}
 
 		if ( ! hdr.parse(buf, sizeof(buf)) ) {
@@ -175,6 +200,14 @@ INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
 		goodf++;
 		lfram = fram;
 	}
+
+	} catch ( StrmRxFailed ) {
+		sendMsg( strm, 0 );
+		sendMsg( strm, 0 );
+		goto bail;
+	}
+	sendMsg( strm, 0 );
+	sendMsg( strm, 0 );
 
 	strmPath->tail()->dump();
 

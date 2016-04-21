@@ -29,12 +29,16 @@ struct Mutex {
 //#define NETIO_DEBUG
 //#define TIMEOUT_DEBUG
 
-#define MAXWORDS 256
+// if RSSI is used then AFAIK the max. segment size
+// (including RSSI header) is 1024 octets.
+// Must subtract RSSI (8), packetizer (9), SRP (V3: 20 + 4)
+#define MAXWORDS (256 - 11)
 
 class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 	private:
 		INetIODev::ProtocolVersion protocolVersion_;
 		uint64_t                   SRPTimeoutUS_;
+		int                        SRPDynTimeout_;
 		unsigned                   SRPRetryCount_;
 		unsigned                   UdpPort_;
 		unsigned                   UdpOutQueueDepth_;
@@ -55,6 +59,7 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 		CPortBuilder()
 		: protocolVersion_(SRP_UDP_V2),
 		  SRPTimeoutUS_(0),
+		  SRPDynTimeout_(-1),
 		  SRPRetryCount_(-1),
 		  UdpPort_(8192),
 		  UdpOutQueueDepth_(0),
@@ -81,7 +86,7 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 
 		virtual void            setSRPVersion(ProtocolVersion v)
 		{
-			if ( SRP_UDP_NONE != v && SRP_UDP_V1 != v && SRP_UDP_V2 != v ) {
+			if ( SRP_UDP_NONE != v && SRP_UDP_V1 != v && SRP_UDP_V2 != v && SRP_UDP_V3 != v ) {
 				throw InvalidArgError("Invalid protocol version");	
 			}
 			protocolVersion_ = v;
@@ -123,6 +128,18 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 		virtual bool            hasUdp()
 		{
 			return true;
+		}
+
+		virtual void            useSRPDynTimeout(bool v)
+		{
+			SRPDynTimeout_ = (v ? 1 : 0);
+		}
+
+		virtual bool            hasSRPDynTimeout()
+		{
+			if ( SRPDynTimeout_ < 0 )
+				return ! hasTDestMux();
+			return SRPDynTimeout_ ? true : false;
 		}
 
 		virtual void            setUdpPort(unsigned v)
@@ -338,12 +355,14 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, INetIODev::PortBuilder bldr, ProtoPor
  protoVersion_(bldr->getSRPVersion()),
  usrTimeout_(bldr->getSRPTimeoutUS()),
  dynTimeout_(usrTimeout_),
- retryCnt_(bldr->getSRPRetryCount()),
+ useDynTimeout_(bldr->hasSRPDynTimeout()),
+ retryCnt_(bldr->getSRPRetryCount() & 0xffff), // undocumented hack to test byte-resolution access
  nRetries_(0),
  nWrites_(0),
  nReads_(0),
  vc_(bldr->getSRPMuxVirtualChannel()),
  tid_(0),
+ byteResolution_( bldr->getSRPVersion() >= INetIODev::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
  mutex_( CMtx::AttrRecursive(), "SRPADDR" )
 {
 ProtoPortMatchParams cmp;
@@ -563,22 +582,29 @@ struct timespec now;
 #define CMD_READ  0x00000000
 #define CMD_WRITE 0x40000000
 
+#define CMD_READ_V3  0x000
+#define CMD_WRITE_V3 0x100
+
+#define PROTO_VERS_3     3
+
 uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
 {
-SRPWord  bufh[4];
+SRPWord  bufh[5];
+unsigned hwrds;
 uint8_t  buft[sizeof(SRPWord)];
 SRPWord  xbuf[5];
 SRPWord  header;
 SRPWord  status;
 unsigned i;
 int      j, put;
-unsigned headbytes = (off & (sizeof(SRPWord)-1));
+unsigned headbytes = (byteResolution_ ? 0 : (off & (sizeof(SRPWord)-1)) );
 unsigned tailbytes = 0;
 int      totbytes;
 struct iovec  iov[5];
 int      got;
 int      nWords;
 int      expected = 0;
+int      tidoffwrd;
 uint32_t tid = getTid();
 #ifdef NETIO_DEBUG
 struct timespec retry_then;
@@ -588,7 +614,7 @@ struct timespec retry_then;
 	// the standard AXI layout which is little-endian
 	bool doSwapV1 = (INetIODev::SRP_UDP_V1 == protoVersion_);
 	// header info needs to be swapped to host byte order since we interpret it
-	bool doSwap   =	( ( protoVersion_ == INetIODev::SRP_UDP_V2 ? BE : LE ) == hostByteOrder() );
+	bool doSwap   =	( ( protoVersion_ == INetIODev::SRP_UDP_V1 ? LE : BE ) == hostByteOrder() );
 
 #ifdef NETIO_DEBUG
 	fprintf(stderr, "SRP readBlk_unlocked off %"PRIx64"; sbytes %d, swapV1 %d, swap %d protoVersion %d\n", off, sbytes, doSwapV1, doSwap, protoVersion_);
@@ -604,15 +630,28 @@ struct timespec retry_then;
 	put = expected = 0;
 	if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
 		xbuf[put++] = vc_ << 24;
-		expected++;
+		expected += 1;
 	}
-	xbuf[put++] = tid;
-	xbuf[put++] = (off >> 2) & 0x3fffffff;
-	xbuf[put++] = nWords   - 1;
-	xbuf[put++] = 0;
-	expected += 3;
+	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
+		xbuf[put++] = tid;
+		xbuf[put++] = (off >> 2) & 0x3fffffff;
+		xbuf[put++] = nWords   - 1;
+		xbuf[put++] = 0;
+		expected += 3;
+		hwrds       = 2;
+		tidoffwrd   = 0;
+	} else {
+		xbuf[put++] = CMD_READ_V3 | PROTO_VERS_3;
+		xbuf[put++] = tid;
+		xbuf[put++] =   byteResolution_ ? off       : off & ~3ULL;
+		xbuf[put++] = off >> 32;
+		xbuf[put++] = ( byteResolution_ ? totbytes : (nWords << 2) ) - 1;
+		expected += 6;
+		hwrds       = 5;
+		tidoffwrd   = 1;
+	}
 
-	// V2 uses LE, V1 network (aka BE) layout
+	// V2,V3 uses LE, V1 network (aka BE) layout
 	if ( doSwap ) {
 		for ( j=0; j<put; j++ ) {
 			swp32( &xbuf[j] );
@@ -626,7 +665,7 @@ struct timespec retry_then;
 		i++;
 	}
 	iov[i].iov_base = bufh;
-	iov[i].iov_len  = 8 + headbytes;
+	iov[i].iov_len  = hwrds*sizeof(SRPWord) + headbytes;
 	i++;
 
 	iov[i].iov_base = dst;
@@ -634,7 +673,7 @@ struct timespec retry_then;
 	i++;
 
 	if ( totbytes & (sizeof(SRPWord)-1) ) {
-		tailbytes = sizeof(SRPWord) - (totbytes & (sizeof(SRPWord)-1));
+		tailbytes       = sizeof(SRPWord) - (totbytes & (sizeof(SRPWord)-1));
 		// padding if not word-aligned
 		iov[i].iov_base = buft;
 		iov[i].iov_len  = tailbytes;
@@ -650,6 +689,7 @@ struct timespec retry_then;
 
 	do {
 		BufChain xchn = IBufChain::create();
+		BufChain rchn;
 
 		xchn->insert( xbuf, 0, sizeof(xbuf[0])*put );
 
@@ -661,7 +701,7 @@ struct timespec retry_then;
 		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
 		do {
-			BufChain rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
+			rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
 #ifdef NETIO_DEBUG
 				time_retry( &retry_then, attempt, "READ", protoStack_ );
@@ -685,10 +725,10 @@ struct timespec retry_then;
 #ifdef NETIO_DEBUG
 			printf("got %i bytes, off 0x%"PRIx64", sbytes %i, nWords %i\n", got, off, sbytes, nWords  );
 			printf("got %i bytes\n", got);
-			for (i=0; i<2; i++ )
+			for (i=0; i<hwrds; i++ )
 				printf("header[%i]: %x\n", i, bufh[i]);
 			for ( i=0; i<headbytes; i++ ) {
-				printf("headbyte[%i]: %x\n", i, ((uint8_t*)&bufh[2])[i]);
+				printf("headbyte[%i]: %x\n", i, ((uint8_t*)&bufh[hwrds])[i]);
 			}
 
 			for ( i=0; (unsigned)i<sbytes; i++ ) {
@@ -700,15 +740,23 @@ struct timespec retry_then;
 			}
 #endif
 			if ( doSwap ) {
-				swp32( &bufh[0] );
+				swp32( &bufh[tidoffwrd] );
 			}
-		} while ( (bufh[0] & tidMsk_) != tid );
+		} while ( (bufh[tidoffwrd] & tidMsk_) != tid );
 
-		dynTimeout_.update( &now, &then );
+		if ( useDynTimeout_ )
+			dynTimeout_.update( &now, &then );
 
 		if ( got != (int)sizeof(bufh[0])*(nWords + expected) ) {
-			printf("got %i, nw %i, exp %i\n", got, nWords, expected);
-			throw IOError("Received message truncated");
+			if ( got < (int)sizeof(bufh[0])*expected ) {
+				printf("got %i, nw %i, exp %i\n", got, nWords, expected);
+				throw IOError("Received message (read response) truncated");
+			} else {
+				rchn->extract( &status, got - sizeof(status), sizeof(status) );
+				if ( doSwap )
+					swp32( &status );
+				throw BadStatusError("SRP Read terminated with bad status", status);
+			}
 		}
 
 		if ( doSwapV1 ) {
@@ -765,26 +813,28 @@ struct timespec retry_then;
 		return sbytes;
 
 retry:
-		dynTimeout_.relax();
+		if ( useDynTimeout_ )
+			dynTimeout_.relax();
 		nRetries_++;
 
 	} while ( ++attempt <= retryCnt_ );
 
-	dynTimeout_.reset( usrTimeout_ );
+	if ( useDynTimeout_ )
+		dynTimeout_.reset( usrTimeout_ );
 
 	throw IOError("No response -- timeout");
 }
 	
 uint64_t CSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
-uint64_t rval = 0;
-unsigned headbytes = (args->off_ & (sizeof(SRPWord)-1));
-int totbytes;
-int nWords;
-uint64_t off = args->off_;
-uint8_t *dst = args->dst_;
+uint64_t rval            = 0;
+unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
+uint64_t off             = args->off_;
+uint8_t *dst             = args->dst_;
+unsigned sbytes          = args->nbytes_;
 
-unsigned sbytes = args->nbytes_;
+int      totbytes;
+int      nWords;
 
 	if ( sbytes == 0 )
 		return 0;
@@ -850,16 +900,17 @@ int      j;
 
 uint64_t CSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
-SRPWord  xbuf[4];
+SRPWord  xbuf[5];
 SRPWord  status;
 SRPWord  header;
 SRPWord  zero = 0;
+SRPWord  pad  = 0;
 uint8_t  first_word[sizeof(SRPWord)];
 uint8_t  last_word[sizeof(SRPWord)];
 int      j, put;
 unsigned i;
-int      headbytes = (off & (sizeof(SRPWord)-1));
-int      totbytes;
+unsigned headbytes       = ( byteResolution_ ? 0 : (off & (sizeof(SRPWord)-1)) );
+unsigned totbytes;
 struct iovec  iov[5];
 int      got;
 int      nWords;
@@ -868,25 +919,32 @@ int      iov_pld = -1;
 #ifdef NETIO_DEBUG
 struct timespec retry_then;
 #endif
+int      expected;
+int      tidoff;
+int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initialized use
 
 	if ( dbytes == 0 )
 		return 0;
 
 	// these look similar but are different...
 	bool doSwapV1 =  (protoVersion_ == INetIODev::SRP_UDP_V1);
-	bool doSwap   = ((protoVersion_ == INetIODev::SRP_UDP_V2 ? BE : LE) == hostByteOrder() );
+	bool doSwap   = ((protoVersion_ == INetIODev::SRP_UDP_V1 ? LE : BE) == hostByteOrder() );
 
 	totbytes = headbytes + dbytes;
 
 	nWords = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
 #ifdef NETIO_DEBUG
-	fprintf(stderr, "SRP writeBlk_unlocked off %"PRIx64"; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords);
+	fprintf(stderr, "SRP writeBlk_unlocked off %"PRIx64"; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i, msk1 0x%02x, mskn 0x%02x\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords, msk1, mskn);
 #endif
 
 
 	bool merge_first = headbytes      || msk1;
-	bool merge_last  = (totbytes & (sizeof(SRPWord)-1)) || mskn;
+	bool merge_last  = ( ! byteResolution_ && (totbytes & (sizeof(SRPWord)-1)) ) || mskn;
+
+	if ( (merge_first || merge_last) && cacheable < IField::WT_CACHEABLE ) {
+		throw IOError("Cannot merge bits/bytes to non-cacheable area");
+	}
 
 	int toput = dbytes;
 
@@ -898,12 +956,28 @@ struct timespec retry_then;
 		}
 
 		int first_byte = headbytes;
+		int remaining;
 
 		CReadArgs rargs;
-		rargs.cacheable_ = cacheable;
-		rargs.dst_       = first_word;
-		rargs.nbytes_    = sizeof(first_word);
-		rargs.off_       = off & ~3ULL;
+		rargs.cacheable_  = cacheable;
+		rargs.dst_        = first_word;
+
+		bool lastbyte_in_firstword =  ( merge_last && totbytes <= (int)sizeof(SRPWord) );
+
+		if ( byteResolution_ ) {
+			if ( lastbyte_in_firstword ) {
+				rargs.nbytes_ = totbytes; //lastbyte_in_firstword implies totbytes <= sizeof(SRPWord)
+			} else {
+				rargs.nbytes_ = 1;
+			} 
+			rargs.off_    = off;
+		} else {
+			rargs.nbytes_ = sizeof(first_word);
+			rargs.off_    = off & ~3ULL;
+		}
+		remaining = (totbytes <= rargs.nbytes_ ? totbytes : rargs.nbytes_) - first_byte - 1;
+
+		firstlen  = rargs.nbytes_;
 
 		read(node, &rargs);
 
@@ -911,10 +985,8 @@ struct timespec retry_then;
 
 		toput--;
 
-		int remaining = (totbytes <= (int)sizeof(SRPWord) ? totbytes : sizeof(SRPWord)) - first_byte - 1;
-
-		if ( merge_last && totbytes <= (int)sizeof(SRPWord) ) {
-			// last byte is also in first word
+		if ( lastbyte_in_firstword ) {
+			// totbytes must be <= sizeof(SRPWord) and > 0 (since last==first was handled above)
 			int last_byte = (totbytes-1);
 			first_word[ last_byte  ] = (first_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
 			remaining--;
@@ -930,14 +1002,25 @@ struct timespec retry_then;
 	if ( merge_last ) {
 
 		CReadArgs rargs;
+		int       last_byte;
+
 		rargs.cacheable_ = cacheable;
 		rargs.dst_       = last_word;
-		rargs.nbytes_    = sizeof(last_word);
-		rargs.off_       = (off + dbytes) & ~3ULL;
+
+		if ( byteResolution_ ) {
+			rargs.nbytes_    = 1;
+			rargs.off_       = off + dbytes - 1;
+			last_byte        = 0;
+		} else {
+			rargs.nbytes_    = sizeof(last_word);
+			rargs.off_       = (off + dbytes - 1) & ~3ULL;
+			last_byte        = (totbytes-1) & (sizeof(SRPWord)-1);
+		}
+
+		lastlen = rargs.nbytes_;
 
 		read(node, &rargs);
 
-		int last_byte = (totbytes-1) & (sizeof(SRPWord)-1);
 		last_word[ last_byte  ] = (last_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
 		toput--;
 
@@ -948,12 +1031,27 @@ struct timespec retry_then;
 	}
 
 	put = 0;
-	if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
-		xbuf[put++] = vc_ << 24;
+	tid = getTid();
+
+	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
+		expected    = 3;
+		tidoff      = 0;
+		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
+			xbuf[put++] = vc_ << 24;
+			expected++;
+			tidoff  = 4;
+		}
+		xbuf[put++] = tid;
+		xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
+	} else {
+		xbuf[put++] = CMD_WRITE_V3 | PROTO_VERS_3;
+		xbuf[put++] = tid;
+		xbuf[put++] = ( byteResolution_ ? off : (off & ~3ULL) );
+		xbuf[put++] = off >> 32;
+		xbuf[put++] = ( byteResolution_ ? totbytes : nWords << 2 ) - 1;
+		expected    = 6;
+		tidoff      = 4;
 	}
-	tid         = getTid();
-	xbuf[put++] = tid;
-	xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
 
 	if ( doSwap ) {
 		for ( j=0; j<put; j++ ) {
@@ -969,15 +1067,15 @@ struct timespec retry_then;
 	i++;
 
 	if ( merge_first ) {
+		iov[i].iov_len  = firstlen;
 		if ( doSwapV1 )
 			swpw( first_word );
 		iov[i].iov_base = first_word;
-		iov[i].iov_len  = sizeof(SRPWord);
 		i++;
 	}
 
 	if ( toput > 0 ) {
-		iov[i].iov_base = src + (merge_first ? sizeof(SRPWord) - headbytes : 0);
+		iov[i].iov_base = src + (merge_first ? (firstlen - headbytes) : 0);
 		iov[i].iov_len  = toput;
 
 		if ( doSwapV1 ) {
@@ -996,13 +1094,19 @@ struct timespec retry_then;
 		if ( doSwapV1 )
 			swpw( last_word );
 		iov[i].iov_base = last_word;
-		iov[i].iov_len  = sizeof(SRPWord);
+		iov[i].iov_len  = lastlen;
 		i++;
 	}
 
-	iov[i].iov_base = &zero;
-	iov[i].iov_len  = sizeof(SRPWord);
-	i++;
+	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
+		iov[i].iov_base = &zero;
+		iov[i].iov_len  = sizeof(SRPWord);
+		i++;
+	} else if ( byteResolution_ && (totbytes & 3) ) {
+		iov[i].iov_base = &pad;
+		iov[i].iov_len  = sizeof(SRPWord) - (totbytes & 3);
+		i++;
+	}
 
 	unsigned attempt = 0;
 	uint32_t got_tid;
@@ -1012,10 +1116,6 @@ struct timespec retry_then;
 
 		BufChain xchn = assembleXBuf(iov, iovlen, iov_pld, toput);
 
-		int     bufsz = (nWords + 3)*sizeof(SRPWord);
-		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
-			bufsz += sizeof(SRPWord);
-		}
 		BufChain rchn;
 		uint8_t *rbuf;
 		struct timespec then, now;
@@ -1051,17 +1151,27 @@ struct timespec retry_then;
 			for ( i=0; i<dbytes; i++ )
 				printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
 #endif
-			memcpy( &got_tid, rbuf + ( protoVersion_ == INetIODev::SRP_UDP_V1 ? sizeof(SRPWord) : 0 ), sizeof(SRPWord) );
+			memcpy( &got_tid, rbuf + tidoff, sizeof(SRPWord) );
 			if ( doSwap ) {
 				swp32( &got_tid );
 			}
 		} while ( tid != (got_tid & tidMsk_) );
 
-		dynTimeout_.update( &now, &then );
+		if ( useDynTimeout_ )
+			dynTimeout_.update( &now, &then );
 
-		if ( got != bufsz ) {
-			throw IOError("read return value didn't match buffer size");
+		if ( got != (int)sizeof(SRPWord)*(nWords + expected) ) {
+			if ( got < (int)sizeof(SRPWord)*expected ) {
+				printf("got %i, nw %i, exp %i\n", got, nWords, expected);
+				throw IOError("Received message (write response) truncated");
+			} else {
+				rchn->extract( &status, got - sizeof(status), sizeof(status) );
+				if ( doSwap )
+					swp32( &status );
+				throw BadStatusError("SRP Write terminated with bad status", status);
+			}
 		}
+
 		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
 			if ( LE == hostByteOrder() ) {
 				swpw( rbuf );
@@ -1078,25 +1188,28 @@ struct timespec retry_then;
 			throw BadStatusError("writing SRP", status);
 		return dbytes;
 retry:
-		dynTimeout_.relax();
+		if ( useDynTimeout_ )
+			dynTimeout_.relax();
 		nRetries_++;
 	} while ( ++attempt <= retryCnt_ );
 
-	dynTimeout_.reset( usrTimeout_ );
+	if ( useDynTimeout_ )
+		dynTimeout_.reset( usrTimeout_ );
 
 	throw IOError("Too many retries");
 }
 
 uint64_t CSRPAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
-uint64_t rval = 0;
-int headbytes = (args->off_ & (sizeof(SRPWord)-1));
-int totbytes;
-int nWords;
-unsigned dbytes = args->nbytes_;
-uint64_t off    = args->off_;
-uint8_t *src    = args->src_;
-uint8_t  msk1   = args->msk1_;
+uint64_t rval            = 0;
+unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
+unsigned dbytes          = args->nbytes_;
+uint64_t off             = args->off_;
+uint8_t *src             = args->src_;
+uint8_t  msk1            = args->msk1_;
+
+int      totbytes;
+int      nWords;
 
 	if ( dbytes == 0 )
 		return 0;
@@ -1144,9 +1257,12 @@ void CSRPAddressImpl::dump(FILE *f) const
 	fprintf(f,"SRP Info:\n");
 	fprintf(f,"  Protocol Version  : %8u\n",   protoVersion_);
 	fprintf(f,"  Timeout (user)    : %8"PRIu64"us\n", usrTimeout_.getUs());
-	fprintf(f,"  Timeout (dynamic) : %8"PRIu64"us\n", dynTimeout_.get().getUs());
+	fprintf(f,"  Timeout %s : %8"PRIu64"us\n", useDynTimeout_ ? "(dynamic)" : "(capped) ", dynTimeout_.get().getUs());
+	if ( useDynTimeout_ )
+	{
 	fprintf(f,"  max Roundtrip time: %8"PRIu64"us\n", dynTimeout_.getMaxRndTrip().getUs());
 	fprintf(f,"  avg Roundtrip time: %8"PRIu64"us\n", dynTimeout_.getAvgRndTrip().getUs());
+	}
 	fprintf(f,"  Retry Limit       : %8u\n",   retryCnt_);
 	fprintf(f,"  # of retried ops  : %8u\n",   nRetries_);
 	fprintf(f,"  # of writes (OK)  : %8u\n",   nWrites_);
@@ -1177,6 +1293,7 @@ shared_ptr<CCommAddressImpl> addr;
 
 		case SRP_UDP_V1:
 		case SRP_UDP_V2:
+		case SRP_UDP_V3:
 			addr = make_shared<CSRPAddressImpl>(key, bldr, port);
 		break;
 

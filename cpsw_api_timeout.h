@@ -31,12 +31,12 @@ public:
 		}
 	}
 
-	CTimeout(const struct timespec tv)
+	CTimeout(const struct timespec &tv)
 	:tv_(tv)
 	{
 	}
 
-	void set(const struct timespec tv)
+	void set(const struct timespec &tv)
 	{
 		tv_ = tv;
 	}

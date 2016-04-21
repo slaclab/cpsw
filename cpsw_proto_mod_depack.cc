@@ -187,20 +187,20 @@ void * CProtoModDepack::threadBody()
 {
 	try {
 		while ( 1 ) {
-			CFrame *frame  = &frameWin_[ toFrameIdx( oldestFrame_ ) ];
+			CFrame *frame  = CFrame::NO_FRAME == oldestFrame_ ? NULL : &frameWin_[ toFrameIdx( oldestFrame_ ) ];
 #ifdef DEPACK_DEBUG
 printf("depack: trying to pop\n");
 #endif
 
 			// wait for new datagram
-			BufChain bufch = upstream_->pop( frame->running_ ? & frame->timeout_ : 0, IProtoPort::ABS_TIMEOUT );
+			BufChain bufch = upstream_->pop( frame && frame->running_ ? & frame->timeout_ : 0, IProtoPort::ABS_TIMEOUT );
 
 			if ( ! bufch ) {
 #ifdef DEPACK_DEBUG
 {
 CTimeout del;
 	clock_gettime( CLOCK_REALTIME, &del.tv_ );
-	if ( frame->running_ )
+	if ( frame && frame->running_ )
 		del -= frame->timeout_;
 printf("Depack input timeout (late: %ld.%ld)\n", del.tv_.tv_sec, del.tv_.tv_nsec/1000);
 }
@@ -252,7 +252,12 @@ CAxisFrameHeader hdr;
 	}
 
 #ifdef DEPACK_DEBUG
-printf("%s frame %d (frag %d; oldest %d)\n", hdr.getFrameNo() < oldestFrame_ ? "Dropping" : "Accepting", hdr.getFrameNo(), hdr.getFragNo(), oldestFrame_);
+printf("%s frame %d (frag %d; oldest %d)\n",
+		hdr.getFrameNo() < oldestFrame_ && (CFrame::NO_FRAME != oldestFrame_ || 0 != hdr.getFragNo()) ? "Dropping" : "Accepting",
+		hdr.getFrameNo(),
+		hdr.getFragNo(),
+		oldestFrame_
+);
 #endif
 
 	// if there is a 'string' of frames that falls outside of the window
@@ -260,10 +265,16 @@ printf("%s frame %d (frag %d; oldest %d)\n", hdr.getFrameNo() < oldestFrame_ ? "
 	// the window...
 
 	if ( hdr.getFrameNo() < oldestFrame_ ) {
-		oldFrameDrops_++;
-		frameSync( &hdr );
-		return;
+		if ( CFrame::NO_FRAME == oldestFrame_ && 0 == hdr.getFragNo() ) {
+			// special case - if this the first fragment then we accept 
+			oldestFrame_ = hdr.getFrameNo();
+		} else {
+			oldFrameDrops_++;
+			frameSync( &hdr );
+			return;
+		}
 	}
+	// at this point oldestFrame_ cannot be NO_FRAME
 
 	FrameID relOff = CAxisFrameHeader::moduloFrameSz( hdr.getFrameNo() - oldestFrame_ );
 
@@ -384,8 +395,16 @@ printf("Last frag %d\n", frame->lastFrag_);
 
 bool CProtoModDepack::releaseOldestFrame(bool onlyComplete)
 {
-unsigned frameIdx      = oldestFrame_ & (frameWinSize_ - 1 );
-CFrame  *frame         = &frameWin_[frameIdx];
+
+	if ( CFrame::NO_FRAME == oldestFrame_ )
+		return false;
+
+	unsigned frameIdx      = oldestFrame_ & (frameWinSize_ - 1 );
+	CFrame  *frame         = &frameWin_[frameIdx];
+
+#ifdef DEPACK_DEBUG
+	printf("releaseOldestFrame onlyComplete %d, isComplete %d, running %d\n", onlyComplete, frame->isComplete(), frame->running_);
+#endif
 
 	if ( ( onlyComplete && ! frame->isComplete() ) || ! frame->running_ )
 		return false;

@@ -49,6 +49,8 @@ public:
 	void setTimeoutCap(uint64_t cap)
 	{
 		timeoutCap_ = cap;
+		if ( dynTimeout_.getUs() < cap )
+			dynTimeout_.set( cap );
 	}
 
 	void relax();
@@ -99,6 +101,7 @@ private:
 	INetIODev::ProtocolVersion protoVersion_;
 	CTimeout         usrTimeout_;
 	mutable DynTimeout dynTimeout_;
+	bool             useDynTimeout_;
 	unsigned         retryCnt_;
 	mutable unsigned nRetries_;
 	mutable unsigned nWrites_;
@@ -108,6 +111,7 @@ private:
 	mutable uint32_t tid_;
 	uint32_t         tidMsk_;
 	uint32_t         tidLsb_;
+	bool             byteResolution_;
 
 protected:
 	mutable CMtx     mutex_;

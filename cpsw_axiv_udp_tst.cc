@@ -233,7 +233,7 @@ static void usage(const char *nm)
 {
 	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRrs] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
-	fprintf(stderr,"       -V <version>:  SRP version (1 or 2)\n");
+	fprintf(stderr,"       -V <version>:  SRP version (1..3)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
 	fprintf(stderr,"                      of real device and UDP\n");
 	fprintf(stderr,"       -s          :  test system monitor ADCs\n");
@@ -320,8 +320,8 @@ const char *str;
 	}
 	
 
-	if ( vers != 1 && vers != 2 ) {
-		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
+	if ( vers != 1 && vers != 2 && vers != 3 ) {
+		fprintf(stderr,"Invalid protocol version '%i' -- must be 1..3\n", vers);
 		throw TestFailed();
 	}
 
@@ -389,10 +389,14 @@ uint16_t u16;
 
 	{
 	INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
-		if ( 1 == vers )
-			bldr->setSRPVersion          ( INetIODev::SRP_UDP_V1 );
-		else
-			bldr->setSRPVersion          ( INetIODev::SRP_UDP_V2 );
+	INetIODev::ProtocolVersion protoVers;
+		switch ( vers ) {
+			default: throw TestFailed();
+			case 1: protoVers = INetIODev::SRP_UDP_V1; break;
+			case 2: protoVers = INetIODev::SRP_UDP_V2; break;
+			case 3: protoVers = INetIODev::SRP_UDP_V3; break;
+		}
+		bldr->setSRPVersion              (             protoVers );
 		bldr->setUdpPort                 (                  port );
 		u64 = length;
 		u64/= 10; /* MB/s */
@@ -423,7 +427,6 @@ uint16_t u16;
 			bldr->setTDestMuxTDEST   (               tDestSTRM );
 		root->addAtAddress( IField::create("dataSource"), bldr );
 	}
-	IDev::getRootDev()->addAtAddress( root );
 
 	// can use raw memory for testing instead of UDP
 	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );

@@ -58,14 +58,32 @@ public:
 		return rval;
 	}
 
+	uint64_t getPatt(uint32_t val, ByteOrder bo)
+	{
+		if ( val < 2 )
+			return (val ? 0xffffffffffffffffUL : 0x000000000000UL );
+		if ( (val == 2) != (bo == BE) )
+			return 0xefcdab8967452301;
+		else
+			return 0x0123456789abcdef;
+	}
+
 	void clr(uint32_t val)
 	{
-	uint64_t v64;
-		v->setVal( &val, 1 );
+	uint64_t v64, vexp;
+		if ( 3 == val ) {
+			vsle->setVal( 0x0123456789abcdef );
+		} else if ( 2 == val ) {
+			vsbe->setVal( 0x0123456789abcdef );
+		} else {
+			v->setVal( &val, 1 );
+		}
+
+		vexp = getPatt( val, BE );
 
 		vsbe->getVal( &v64, 1 );
-		if ( v64 != (val ? 0xffffffffffffffffUL : 0x000000000000UL ) ) {
-			fprintf(stderr,"Unable to %s pseudo registers\n", val ? "set" : "clear");
+		if ( v64 != vexp ) {
+			fprintf(stderr,"Unable to %s pseudo registers (got 0x%016"PRIx64" -- expected 0x%016"PRIx64"\n", val ? "set" : "clear", v64, vexp);
 			throw TestFailed();
 		}
 	}
@@ -76,24 +94,28 @@ public:
 int
 main(int argc, char **argv)
 {
-const char *ip_addr = "127.0.0.1";
+const char *ip_addr  = "127.0.0.1";
 int        *i_p;
-int         vers    = 2;
-int         port    = 8192;
-unsigned sizes[]    = { 1, 4, 8, 12, 16, 22, 32, 45, 64 };
-unsigned lsbs[]     = { 0, 3 };
-unsigned offs[]     = { 0, 1, 2, 3, 4, 5 };
-unsigned vc         = 0;
-int      useRssi    = 0;
-int      tDest      = -1;
+int         vers     = 2;
+INetIODev::ProtocolVersion protoVers;
+int         port     = 8192;
+unsigned sizes[]     = { 1, 4, 8, 12, 16, 22, 30, 32, 45, 64 };
+unsigned lsbs[]      = { 0, 3 };
+unsigned offs[]      = { 0, 1, 2, 3, 4, 5 };
+unsigned vc          = 0;
+int      useRssi     = 0;
+int      tDest       = -1;
+unsigned byteResHack =  0;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:V:p:r")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:b")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
-			case 'a': ip_addr = optarg;   break;
-			case 'V': i_p     = &vers;    break;
-			case 'p': i_p     = &port;    break;
-			case 'r': useRssi = 1;        break;
+			case 'a': ip_addr     = optarg;   break;
+			case 'V': i_p         = &vers;    break;
+			case 'p': i_p         = &port;    break;
+			case 'r': useRssi     = 1;        break;
+			case 't': i_p         = &tDest;   break;
+			case 'b': byteResHack = 0x10000;  break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				throw TestFailed();
@@ -104,14 +126,20 @@ int      tDest      = -1;
 		}
 	}
 
-	if ( vers != 1 && vers != 2 ) {
-		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
+	if ( vers != 1 && vers != 2 && vers != 3 ) {
+		fprintf(stderr,"Invalid protocol version '%i' -- must be 1..3\n", vers);
 		throw TestFailed();
 	}
 
+	if ( vers < 3 )
+		byteResHack = 0;
+
+	{
+	NetIODev root;
+
 	try {
 
-		NetIODev  root = INetIODev::create("fpga", ip_addr);
+		          root = INetIODev::create("fpga", ip_addr);
 		MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
 		MMIODev   srvm = IMMIODev::create ("srvm",0x10000, LE);
 
@@ -119,13 +147,18 @@ int      tDest      = -1;
 
 		mmio->addAtAddress( srvm, REGBASE );
 
-		if ( 1 == vers )
-			pbldr->setSRPVersion          ( INetIODev::SRP_UDP_V1 );
-		else
-			pbldr->setSRPVersion          ( INetIODev::SRP_UDP_V2 );
+		switch ( vers ) {
+			case 1: protoVers = INetIODev::SRP_UDP_V1; break;
+			case 2: protoVers = INetIODev::SRP_UDP_V2; break;
+			case 3: protoVers = INetIODev::SRP_UDP_V3; break;
+			default:
+				throw TestFailed();
+		}
+
+		pbldr->setSRPVersion              (             protoVers );
 		pbldr->setUdpPort                 (                  port );
 		pbldr->setSRPTimeoutUS            (               1000000 );
-		pbldr->setSRPRetryCount           (                     4 );
+		pbldr->setSRPRetryCount           (       byteResHack | 4 ); // enable byte-resolution access
 		pbldr->setSRPMuxVirtualChannel    (                    vc );
 		pbldr->useRssi                    (               useRssi );
 		if ( tDest >= 0 ) {
@@ -175,6 +208,8 @@ int      tDest      = -1;
 
 		clr.clr( 0 );
 		clr.clr( 1 );
+		clr.clr( 2 );
+		clr.clr( 3 );
 
 		for ( size_idx = 0; size_idx < sizeof(sizes)/sizeof(sizes[0]); size_idx++ ) {
 			for ( lsb_idx = 0; lsb_idx < sizeof(lsbs)/sizeof(lsbs[0]); lsb_idx++ ) {
@@ -194,12 +229,12 @@ int      tDest      = -1;
 					uint64_t msk_le  = msk << shft_le;
 					uint64_t msk_be  = msk << shft_be;
 
-					for (int patt=0; patt < 2; patt++ ) {
+					for (int patt=0; patt < 4; patt++ ) {
 						clr.clr( patt );
 						v_le->setVal( &v_expect, 1 );
 						v_got = clr.getScratch( LE );
 
-						v = ((patt ? -1UL : 0UL) & ~msk_le) | ((v_expect << shft_le) & msk_le);
+						v = (clr.getPatt(patt, LE) & ~msk_le) | ((v_expect << shft_le) & msk_le);
 
 						if ( v_got != v ) {
 							fprintf(stderr,"Mismatch (%s patt %i - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_le->getName(), patt, v_le->getSizeBits(), sizes[size_idx], v_got, v);
@@ -210,7 +245,7 @@ int      tDest      = -1;
 						v_be->setVal( &v_expect, 1 );
 						v_got = clr.getScratch( BE );
 
-						v = ((patt ? -1UL : 0UL) & ~msk_be) | ((v_expect << shft_be) & msk_be);
+						v = (clr.getPatt(patt, BE) & ~msk_be) | ((v_expect << shft_be) & msk_be);
 
 						if ( v_got != v ) {
 							fprintf(stderr,"Mismatch (%s patt %i - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_be->getName(), patt, v_be->getSizeBits(), sizes[size_idx], v_got, v);
@@ -273,12 +308,16 @@ int      tDest      = -1;
 		root->findByName("mmio")->tail()->dump( stdout );
 
 	} catch (IOError &e) {
+		if ( root )
+			root->findByName("mmio")->tail()->dump( stdout );
 		printf("I/O Error -- is 'udpsrv' running (with matching protocol version) ?\n");
 		printf("             note: udpsrv debugging messages might slow it down...\n");
 		throw;
 	} catch (CPSWError &e) {
 		printf("CPSW Error: %s\n", e.getInfo().c_str());
 		throw;
+	}
+
 	}
 
 	if ( CpswObjCounter::report() ) {
