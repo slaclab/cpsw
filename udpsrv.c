@@ -44,6 +44,7 @@
 #define V1PORT_DEF     8191
 #define V2PORT_DEF     8192
 #define V3PORT_DEF     8190
+#define V3BPORT_DEF    8189
 #define V2RSSIPORT_DEF 8202
 #define SPORT_DEF      8193
 #define SRSSIPORT_DEF  8203
@@ -90,6 +91,7 @@ static void usage(const char *nm)
 	fprintf(stderr, "        -L <percent>: lose/drop <percent> packets\n");
 	fprintf(stderr, " Defaults: -a %s -P %d -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, V2PORT_DEF, V1PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
 	fprintf(stderr, "           V3 (norssi) is listening at %d\n", V3PORT_DEF);
+	fprintf(stderr, "           V3 (norssi, byte-resolution) is listening at %d\n", V3BPORT_DEF);
 }
 
 static void payload_swap(int v1, uint32_t *buf, int nelms)
@@ -208,14 +210,16 @@ int           lfram = -1;
 			tail  = buf[got-1];
 
 #ifdef DEBUG
-			printf("Got stream message:\n");
-			printf("   Version %d -- Frame #%d, frag #%d, tdest 0x%02x, tid 0x%02x, tusr1 0x%02x\n",
-			       vers,
-			       fram,
-			       frag,
-			       tdest,
-			       tid,
-			       tusr1);
+			if ( debug ) {
+				printf("Got stream message:\n");
+				printf("   Version %d -- Frame #%d, frag #%d, tdest 0x%02x, tid 0x%02x, tusr1 0x%02x\n",
+						vers,
+						fram,
+						frag,
+						tdest,
+						tid,
+						tusr1);
+			}
 #endif
 
 			if ( vers != 0 || frag != 0 || ( tdest != 0 && (0 == sa->srp_vers || sa->srp_tdest != tdest ) ) || tid != 0 || tusr1 != (frag == 0 ? (1<<1) : 0) ) {
@@ -622,7 +626,7 @@ static void sh(int sn)
 }
 
 struct srpvariant {
-	int port, vers, haveRssi;
+	int port, vers, haveRssi, opts;
 };
 
 struct strmvariant {
@@ -643,15 +647,17 @@ unsigned tdest      = 0;
 int      i;
 sigset_t sigset;
 
-#define V1_NORSSI 0
-#define V2_NORSSI 1
-#define V2_RSSI   2
-#define V3_NORSSI 3
+#define V1_NORSSI  0
+#define V2_NORSSI  1
+#define V2_RSSI    2
+#define V3_NORSSI  3
+#define V3B_NORSSI 4
 struct srpvariant srpvars[] = {
-	{ V1PORT_DEF,     1, WITHOUT_RSSI },
-	{ V2PORT_DEF,     2, WITHOUT_RSSI },
-	{ V2RSSIPORT_DEF, 2, WITH_RSSI    },
-	{ V3PORT_DEF,     3, WITHOUT_RSSI },
+	{ V1PORT_DEF,     1, WITHOUT_RSSI,               0 },
+	{ V2PORT_DEF,     2, WITHOUT_RSSI,               0 },
+	{ V2RSSIPORT_DEF, 2, WITH_RSSI,                  0 },
+	{ V3PORT_DEF,     3, WITHOUT_RSSI,               0 },
+	{ V3BPORT_DEF,    3, WITHOUT_RSSI, SRP_OPT_BYTERES },
 };
 
 #define STRM_NORSSI 0
@@ -753,6 +759,7 @@ struct srp_args       srp_args[sizeof(srpvars)/sizeof(srpvars[0])];
 		if ( srpvars[i].port <= 0 )
 			continue;
 		srp_args[i].vers     = srpvars[i].vers;
+		srp_args[i].opts     = srpvars[i].opts;
 		// don't scramble SRP - since SRP is synchronous (single request-response) it becomes extremely slow when scrambled
 		srp_args[i].port     = udpPrtCreate( ina, srpvars[i].port, sim_loss, 0, srpvars[i].haveRssi );
 		if ( pthread_create( &srp_args[i].tid, 0, srpHandler, (void*)&srp_args[i] ) ) {
