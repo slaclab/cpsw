@@ -921,7 +921,7 @@ struct timespec retry_then;
 #endif
 int      expected;
 int      tidoff;
-int      firstlen = 0, lastlen; // silence compiler warning about un-initialized use of firstlen
+int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initialized use
 
 	if ( dbytes == 0 )
 		return 0;
