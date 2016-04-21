@@ -12,7 +12,7 @@
 
 #include <vector>
 
-#define FIXME 0
+#define FIXME_BR 0
 
 using boost::dynamic_pointer_cast;
 
@@ -591,14 +591,15 @@ struct timespec now;
 uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
 {
 SRPWord  bufh[5];
-int      hwrds;
+unsigned hwrds;
 uint8_t  buft[sizeof(SRPWord)];
 SRPWord  xbuf[5];
 SRPWord  header;
 SRPWord  status;
 unsigned i;
 int      j, put;
-unsigned headbytes = (INetIODev::SRP_UDP_V3 <= protoVersion_ ? 0 : (off & (sizeof(SRPWord)-1)) );
+bool     byte_resolution = FIXME_BR && INetIODev::SRP_UDP_V3 <= protoVersion_;
+unsigned headbytes = (byte_resolution ? 0 : (off & (sizeof(SRPWord)-1)) );
 unsigned tailbytes = 0;
 int      totbytes;
 struct iovec  iov[5];
@@ -644,9 +645,9 @@ struct timespec retry_then;
 	} else {
 		xbuf[put++] = CMD_READ_V3 | PROTO_VERS_3;
 		xbuf[put++] = tid;
-		xbuf[put++] = off;
+		xbuf[put++] =   byte_resolution ? off       : off & ~3ULL;
 		xbuf[put++] = off >> 32;
-		xbuf[put++] = totbytes - 1;
+		xbuf[put++] = ( byte_resolution ? totbytes : (nWords << 2) ) - 1;
 		expected += 6;
 		hwrds       = 5;
 		tidoffwrd   = 1;
@@ -674,7 +675,7 @@ struct timespec retry_then;
 	i++;
 
 	if ( totbytes & (sizeof(SRPWord)-1) ) {
-		tailbytes = sizeof(SRPWord) - (totbytes & (sizeof(SRPWord)-1));
+		tailbytes       = sizeof(SRPWord) - (totbytes & (sizeof(SRPWord)-1));
 		// padding if not word-aligned
 		iov[i].iov_base = buft;
 		iov[i].iov_len  = tailbytes;
@@ -828,14 +829,15 @@ retry:
 	
 uint64_t CSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
-uint64_t rval = 0;
-unsigned headbytes = (INetIODev::SRP_UDP_V3 <= protoVersion_ ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
-int totbytes;
-int nWords;
-uint64_t off = args->off_;
-uint8_t *dst = args->dst_;
+uint64_t rval            = 0;
+bool     byte_resolution = FIXME_BR && INetIODev::SRP_UDP_V3 <= protoVersion_ ; 
+unsigned headbytes       = (byte_resolution ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
+uint64_t off             = args->off_;
+uint8_t *dst             = args->dst_;
+unsigned sbytes          = args->nbytes_;
 
-unsigned sbytes = args->nbytes_;
+int      totbytes;
+int      nWords;
 
 	if ( sbytes == 0 )
 		return 0;
@@ -905,12 +907,13 @@ SRPWord  xbuf[5];
 SRPWord  status;
 SRPWord  header;
 SRPWord  zero = 0;
+SRPWord  pad  = 0;
 uint8_t  first_word[sizeof(SRPWord)];
 uint8_t  last_word[sizeof(SRPWord)];
 int      j, put;
 unsigned i;
-bool     byte_resolution = FIXME && INetIODev::SRP_UDP_V3 <= protoVersion_;
-unsigned headbytes = ( byte_resolution ? 0 : (off & (sizeof(SRPWord)-1)) );
+bool     byte_resolution = FIXME_BR && INetIODev::SRP_UDP_V3 <= protoVersion_;
+unsigned headbytes       = ( byte_resolution ? 0 : (off & (sizeof(SRPWord)-1)) );
 unsigned totbytes;
 struct iovec  iov[5];
 int      got;
@@ -922,6 +925,7 @@ struct timespec retry_then;
 #endif
 int      expected;
 int      tidoff;
+int      firstlen = 0, lastlen; // silence compiler warning about un-initialized use of firstlen
 
 	if ( dbytes == 0 )
 		return 0;
@@ -935,7 +939,7 @@ int      tidoff;
 	nWords = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
 #ifdef NETIO_DEBUG
-	fprintf(stderr, "SRP writeBlk_unlocked off %"PRIx64"; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords);
+	fprintf(stderr, "SRP writeBlk_unlocked off %"PRIx64"; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i, msk1 0x%02x, mskn 0x%02x\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords, msk1, mskn);
 #endif
 
 
@@ -962,15 +966,22 @@ int      tidoff;
 		rargs.cacheable_  = cacheable;
 		rargs.dst_        = first_word;
 
+		bool lastbyte_in_firstword =  ( merge_last && totbytes <= (int)sizeof(SRPWord) );
+
 		if ( byte_resolution ) {
-			rargs.nbytes_ = 1;
+			if ( lastbyte_in_firstword ) {
+				rargs.nbytes_ = totbytes; //lastbyte_in_firstword implies totbytes <= sizeof(SRPWord)
+			} else {
+				rargs.nbytes_ = 1;
+			} 
 			rargs.off_    = off;
-			remaining     = 0;
 		} else {
 			rargs.nbytes_ = sizeof(first_word);
 			rargs.off_    = off & ~3ULL;
-			remaining     = (totbytes <= (int)sizeof(SRPWord) ? totbytes : sizeof(SRPWord)) - first_byte - 1;
 		}
+		remaining = (totbytes <= rargs.nbytes_ ? totbytes : rargs.nbytes_) - first_byte - 1;
+
+		firstlen  = rargs.nbytes_;
 
 		read(node, &rargs);
 
@@ -978,8 +989,8 @@ int      tidoff;
 
 		toput--;
 
-		if ( merge_last && totbytes <= (int)sizeof(SRPWord) ) {
-			// last byte is also in first word
+		if ( lastbyte_in_firstword ) {
+			// totbytes must be <= sizeof(SRPWord) and > 0 (since last==first was handled above)
 			int last_byte = (totbytes-1);
 			first_word[ last_byte  ] = (first_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
 			remaining--;
@@ -995,14 +1006,25 @@ int      tidoff;
 	if ( merge_last ) {
 
 		CReadArgs rargs;
+		int       last_byte;
+
 		rargs.cacheable_ = cacheable;
 		rargs.dst_       = last_word;
-		rargs.nbytes_    = sizeof(last_word);
-		rargs.off_       = (off + dbytes - 1) & ~3ULL;
+
+		if ( byte_resolution ) {
+			rargs.nbytes_    = 1;
+			rargs.off_       = off + dbytes - 1;
+			last_byte        = 0;
+		} else {
+			rargs.nbytes_    = sizeof(last_word);
+			rargs.off_       = (off + dbytes - 1) & ~3ULL;
+			last_byte        = (totbytes-1) & (sizeof(SRPWord)-1);
+		}
+
+		lastlen = rargs.nbytes_;
 
 		read(node, &rargs);
 
-		int last_byte = (totbytes-1) & (sizeof(SRPWord)-1);
 		last_word[ last_byte  ] = (last_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
 		toput--;
 
@@ -1028,9 +1050,9 @@ int      tidoff;
 	} else {
 		xbuf[put++] = CMD_WRITE_V3 | PROTO_VERS_3;
 		xbuf[put++] = tid;
-		xbuf[put++] = off & ~3ULL;
+		xbuf[put++] = ( byte_resolution ? off : (off & ~3ULL) );
 		xbuf[put++] = off >> 32;
-		xbuf[put++] = totbytes - 1;
+		xbuf[put++] = ( byte_resolution ? totbytes : nWords << 2 ) - 1;
 		expected    = 6;
 		tidoff      = 4;
 	}
@@ -1049,15 +1071,15 @@ int      tidoff;
 	i++;
 
 	if ( merge_first ) {
+		iov[i].iov_len  = firstlen;
 		if ( doSwapV1 )
 			swpw( first_word );
 		iov[i].iov_base = first_word;
-		iov[i].iov_len  = sizeof(SRPWord);
 		i++;
 	}
 
 	if ( toput > 0 ) {
-		iov[i].iov_base = src + (merge_first ? sizeof(SRPWord) - headbytes : 0);
+		iov[i].iov_base = src + (merge_first ? (firstlen - headbytes) : 0);
 		iov[i].iov_len  = toput;
 
 		if ( doSwapV1 ) {
@@ -1076,13 +1098,17 @@ int      tidoff;
 		if ( doSwapV1 )
 			swpw( last_word );
 		iov[i].iov_base = last_word;
-		iov[i].iov_len  = sizeof(SRPWord);
+		iov[i].iov_len  = lastlen;
 		i++;
 	}
 
 	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
 		iov[i].iov_base = &zero;
 		iov[i].iov_len  = sizeof(SRPWord);
+		i++;
+	} else if ( byte_resolution && (totbytes & 3) ) {
+		iov[i].iov_base = &pad;
+		iov[i].iov_len  = sizeof(SRPWord) - (totbytes & 3);
 		i++;
 	}
 
@@ -1179,14 +1205,16 @@ retry:
 
 uint64_t CSRPAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
-uint64_t rval = 0;
-unsigned headbytes = (INetIODev::SRP_UDP_V3 <= protoVersion_ && FIXME ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
-int totbytes;
-int nWords;
-unsigned dbytes = args->nbytes_;
-uint64_t off    = args->off_;
-uint8_t *src    = args->src_;
-uint8_t  msk1   = args->msk1_;
+uint64_t rval            = 0;
+bool     byte_resolution = FIXME_BR && INetIODev::SRP_UDP_V3 <= protoVersion_ ; 
+unsigned headbytes       = (byte_resolution ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
+unsigned dbytes          = args->nbytes_;
+uint64_t off             = args->off_;
+uint8_t *src             = args->src_;
+uint8_t  msk1            = args->msk1_;
+
+int      totbytes;
+int      nWords;
 
 	if ( dbytes == 0 )
 		return 0;

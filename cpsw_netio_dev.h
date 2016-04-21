@@ -111,6 +111,7 @@ private:
 	mutable uint32_t tid_;
 	uint32_t         tidMsk_;
 	uint32_t         tidLsb_;
+	bool             byteResolution_;
 
 protected:
 	mutable CMtx     mutex_;
