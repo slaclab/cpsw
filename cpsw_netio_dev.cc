@@ -34,12 +34,13 @@ struct Mutex {
 // if RSSI is used then AFAIK the max. segment size
 // (including RSSI header) is 1024 octets.
 // Must subtract RSSI (8), packetizer (9), SRP (V3: 20 + 4)
-#define MAXWORDS (256 - 9)
+#define MAXWORDS (256 - 11)
 
 class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 	private:
 		INetIODev::ProtocolVersion protocolVersion_;
 		uint64_t                   SRPTimeoutUS_;
+		int                        SRPDynTimeout_;
 		unsigned                   SRPRetryCount_;
 		unsigned                   UdpPort_;
 		unsigned                   UdpOutQueueDepth_;
@@ -60,6 +61,7 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 		CPortBuilder()
 		: protocolVersion_(SRP_UDP_V2),
 		  SRPTimeoutUS_(0),
+		  SRPDynTimeout_(-1),
 		  SRPRetryCount_(-1),
 		  UdpPort_(8192),
 		  UdpOutQueueDepth_(0),
@@ -128,6 +130,18 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 		virtual bool            hasUdp()
 		{
 			return true;
+		}
+
+		virtual void            useSRPDynTimeout(bool v)
+		{
+			SRPDynTimeout_ = (v ? 1 : 0);
+		}
+
+		virtual bool            hasSRPDynTimeout()
+		{
+			if ( SRPDynTimeout_ < 0 )
+				return ! hasTDestMux();
+			return SRPDynTimeout_ ? true : false;
 		}
 
 		virtual void            setUdpPort(unsigned v)
@@ -343,6 +357,7 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, INetIODev::PortBuilder bldr, ProtoPor
  protoVersion_(bldr->getSRPVersion()),
  usrTimeout_(bldr->getSRPTimeoutUS()),
  dynTimeout_(usrTimeout_),
+ useDynTimeout_(bldr->hasSRPDynTimeout()),
  retryCnt_(bldr->getSRPRetryCount()),
  nRetries_(0),
  nWrites_(0),
@@ -730,7 +745,8 @@ struct timespec retry_then;
 			}
 		} while ( (bufh[tidoffwrd] & tidMsk_) != tid );
 
-		dynTimeout_.update( &now, &then );
+		if ( useDynTimeout_ )
+			dynTimeout_.update( &now, &then );
 
 		if ( got != (int)sizeof(bufh[0])*(nWords + expected) ) {
 			if ( got < (int)sizeof(bufh[0])*expected ) {
@@ -798,12 +814,14 @@ struct timespec retry_then;
 		return sbytes;
 
 retry:
-		dynTimeout_.relax();
+		if ( useDynTimeout_ )
+			dynTimeout_.relax();
 		nRetries_++;
 
 	} while ( ++attempt <= retryCnt_ );
 
-	dynTimeout_.reset( usrTimeout_ );
+	if ( useDynTimeout_ )
+		dynTimeout_.reset( usrTimeout_ );
 
 	throw IOError("No response -- timeout");
 }
@@ -1117,7 +1135,8 @@ int      tidoff;
 			}
 		} while ( tid != (got_tid & tidMsk_) );
 
-		dynTimeout_.update( &now, &then );
+		if ( useDynTimeout_ )
+			dynTimeout_.update( &now, &then );
 
 		if ( got != (int)sizeof(SRPWord)*(nWords + expected) ) {
 			if ( got < (int)sizeof(SRPWord)*expected ) {
@@ -1147,11 +1166,13 @@ int      tidoff;
 			throw BadStatusError("writing SRP", status);
 		return dbytes;
 retry:
-		dynTimeout_.relax();
+		if ( useDynTimeout_ )
+			dynTimeout_.relax();
 		nRetries_++;
 	} while ( ++attempt <= retryCnt_ );
 
-	dynTimeout_.reset( usrTimeout_ );
+	if ( useDynTimeout_ )
+		dynTimeout_.reset( usrTimeout_ );
 
 	throw IOError("Too many retries");
 }
@@ -1213,9 +1234,12 @@ void CSRPAddressImpl::dump(FILE *f) const
 	fprintf(f,"SRP Info:\n");
 	fprintf(f,"  Protocol Version  : %8u\n",   protoVersion_);
 	fprintf(f,"  Timeout (user)    : %8"PRIu64"us\n", usrTimeout_.getUs());
-	fprintf(f,"  Timeout (dynamic) : %8"PRIu64"us\n", dynTimeout_.get().getUs());
+	fprintf(f,"  Timeout %s : %8"PRIu64"us\n", useDynTimeout_ ? "(dynamic)" : "(capped) ", dynTimeout_.get().getUs());
+	if ( useDynTimeout_ )
+	{
 	fprintf(f,"  max Roundtrip time: %8"PRIu64"us\n", dynTimeout_.getMaxRndTrip().getUs());
 	fprintf(f,"  avg Roundtrip time: %8"PRIu64"us\n", dynTimeout_.getAvgRndTrip().getUs());
+	}
 	fprintf(f,"  Retry Limit       : %8u\n",   retryCnt_);
 	fprintf(f,"  # of retried ops  : %8u\n",   nRetries_);
 	fprintf(f,"  # of writes (OK)  : %8u\n",   nWrites_);
