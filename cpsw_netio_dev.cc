@@ -12,8 +12,6 @@
 
 #include <vector>
 
-#define FIXME_BR 0
-
 using boost::dynamic_pointer_cast;
 
 typedef shared_ptr<NetIODevImpl> NetIODevImplP;
@@ -358,12 +356,13 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, INetIODev::PortBuilder bldr, ProtoPor
  usrTimeout_(bldr->getSRPTimeoutUS()),
  dynTimeout_(usrTimeout_),
  useDynTimeout_(bldr->hasSRPDynTimeout()),
- retryCnt_(bldr->getSRPRetryCount()),
+ retryCnt_(bldr->getSRPRetryCount() & 0xffff), // undocumented hack to test byte-resolution access
  nRetries_(0),
  nWrites_(0),
  nReads_(0),
  vc_(bldr->getSRPMuxVirtualChannel()),
  tid_(0),
+ byteResolution_( bldr->getSRPVersion() >= INetIODev::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
  mutex_( CMtx::AttrRecursive(), "SRPADDR" )
 {
 ProtoPortMatchParams cmp;
@@ -598,8 +597,7 @@ SRPWord  header;
 SRPWord  status;
 unsigned i;
 int      j, put;
-bool     byte_resolution = FIXME_BR && INetIODev::SRP_UDP_V3 <= protoVersion_;
-unsigned headbytes = (byte_resolution ? 0 : (off & (sizeof(SRPWord)-1)) );
+unsigned headbytes = (byteResolution_ ? 0 : (off & (sizeof(SRPWord)-1)) );
 unsigned tailbytes = 0;
 int      totbytes;
 struct iovec  iov[5];
@@ -645,9 +643,9 @@ struct timespec retry_then;
 	} else {
 		xbuf[put++] = CMD_READ_V3 | PROTO_VERS_3;
 		xbuf[put++] = tid;
-		xbuf[put++] =   byte_resolution ? off       : off & ~3ULL;
+		xbuf[put++] =   byteResolution_ ? off       : off & ~3ULL;
 		xbuf[put++] = off >> 32;
-		xbuf[put++] = ( byte_resolution ? totbytes : (nWords << 2) ) - 1;
+		xbuf[put++] = ( byteResolution_ ? totbytes : (nWords << 2) ) - 1;
 		expected += 6;
 		hwrds       = 5;
 		tidoffwrd   = 1;
@@ -830,8 +828,7 @@ retry:
 uint64_t CSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 uint64_t rval            = 0;
-bool     byte_resolution = FIXME_BR && INetIODev::SRP_UDP_V3 <= protoVersion_ ; 
-unsigned headbytes       = (byte_resolution ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
+unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
 uint64_t off             = args->off_;
 uint8_t *dst             = args->dst_;
 unsigned sbytes          = args->nbytes_;
@@ -912,8 +909,7 @@ uint8_t  first_word[sizeof(SRPWord)];
 uint8_t  last_word[sizeof(SRPWord)];
 int      j, put;
 unsigned i;
-bool     byte_resolution = FIXME_BR && INetIODev::SRP_UDP_V3 <= protoVersion_;
-unsigned headbytes       = ( byte_resolution ? 0 : (off & (sizeof(SRPWord)-1)) );
+unsigned headbytes       = ( byteResolution_ ? 0 : (off & (sizeof(SRPWord)-1)) );
 unsigned totbytes;
 struct iovec  iov[5];
 int      got;
@@ -944,7 +940,7 @@ int      firstlen = 0, lastlen; // silence compiler warning about un-initialized
 
 
 	bool merge_first = headbytes      || msk1;
-	bool merge_last  = ( ! byte_resolution && (totbytes & (sizeof(SRPWord)-1)) ) || mskn;
+	bool merge_last  = ( ! byteResolution_ && (totbytes & (sizeof(SRPWord)-1)) ) || mskn;
 
 	if ( (merge_first || merge_last) && cacheable < IField::WT_CACHEABLE ) {
 		throw IOError("Cannot merge bits/bytes to non-cacheable area");
@@ -968,7 +964,7 @@ int      firstlen = 0, lastlen; // silence compiler warning about un-initialized
 
 		bool lastbyte_in_firstword =  ( merge_last && totbytes <= (int)sizeof(SRPWord) );
 
-		if ( byte_resolution ) {
+		if ( byteResolution_ ) {
 			if ( lastbyte_in_firstword ) {
 				rargs.nbytes_ = totbytes; //lastbyte_in_firstword implies totbytes <= sizeof(SRPWord)
 			} else {
@@ -1011,7 +1007,7 @@ int      firstlen = 0, lastlen; // silence compiler warning about un-initialized
 		rargs.cacheable_ = cacheable;
 		rargs.dst_       = last_word;
 
-		if ( byte_resolution ) {
+		if ( byteResolution_ ) {
 			rargs.nbytes_    = 1;
 			rargs.off_       = off + dbytes - 1;
 			last_byte        = 0;
@@ -1050,9 +1046,9 @@ int      firstlen = 0, lastlen; // silence compiler warning about un-initialized
 	} else {
 		xbuf[put++] = CMD_WRITE_V3 | PROTO_VERS_3;
 		xbuf[put++] = tid;
-		xbuf[put++] = ( byte_resolution ? off : (off & ~3ULL) );
+		xbuf[put++] = ( byteResolution_ ? off : (off & ~3ULL) );
 		xbuf[put++] = off >> 32;
-		xbuf[put++] = ( byte_resolution ? totbytes : nWords << 2 ) - 1;
+		xbuf[put++] = ( byteResolution_ ? totbytes : nWords << 2 ) - 1;
 		expected    = 6;
 		tidoff      = 4;
 	}
@@ -1106,7 +1102,7 @@ int      firstlen = 0, lastlen; // silence compiler warning about un-initialized
 		iov[i].iov_base = &zero;
 		iov[i].iov_len  = sizeof(SRPWord);
 		i++;
-	} else if ( byte_resolution && (totbytes & 3) ) {
+	} else if ( byteResolution_ && (totbytes & 3) ) {
 		iov[i].iov_base = &pad;
 		iov[i].iov_len  = sizeof(SRPWord) - (totbytes & 3);
 		i++;
@@ -1206,8 +1202,7 @@ retry:
 uint64_t CSRPAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 uint64_t rval            = 0;
-bool     byte_resolution = FIXME_BR && INetIODev::SRP_UDP_V3 <= protoVersion_ ; 
-unsigned headbytes       = (byte_resolution ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
+unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
 unsigned dbytes          = args->nbytes_;
 uint64_t off             = args->off_;
 uint8_t *src             = args->src_;
