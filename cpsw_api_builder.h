@@ -112,6 +112,8 @@ public:
 		virtual ProtocolVersion getSRPVersion()                     = 0;
 		virtual void            setSRPTimeoutUS(uint64_t)           = 0; // default: 10000 if no rssi, 500000 if rssi
 		virtual uint64_t        getSRPTimeoutUS()                   = 0;
+		virtual void            useSRPDynTimeout(bool)              = 0; // default: YES unless TDEST demuxer in use
+		virtual bool            hasSRPDynTimeout()                  = 0; // dynamically adjusted timeout (based on RTT)
 		virtual void            setSRPRetryCount(unsigned)          = 0; // default: 10
 		virtual unsigned        getSRPRetryCount()                  = 0;
 
