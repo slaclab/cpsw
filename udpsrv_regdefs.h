@@ -23,7 +23,7 @@
 
 #define AXI_SPI_EEPROM_SIZE (1024)
 
-//#define DEBUG
+#define DEBUG
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
