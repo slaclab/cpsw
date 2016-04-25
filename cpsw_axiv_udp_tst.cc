@@ -459,7 +459,10 @@ uint16_t u16;
 	ScalVal_RO overflow     = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/overflow") ));
 	ScalVal    oneShot      = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/oneShot") ));
 	ScalVal    packetLength = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/packetLength") ));
+	if ( tDestSTRM < 0 ) {
+	// tDest from this register is unused if there is a tdest demuxer in FW
 	ScalVal    tDest        = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/tDest") ));
+	}
 	ScalVal    tId          = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/tId") ));
 	ScalVal_RO dataCnt      = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/dataCnt") ));
 	ScalVal_RO eventCnt     = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/eventCnt") ));
