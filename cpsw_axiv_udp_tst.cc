@@ -134,15 +134,17 @@ private:
 	int         shots_;
 	bool        cont_;
 	ScalVal     trig_;
+	Dev         root_;
 public:
 	CTimeout trigTime;
 
-	ThreadArg(uint64_t size, int shots, ScalVal trig)
+	ThreadArg(uint64_t size, int shots, ScalVal trig, Dev root)
 	:firstFrame_(-1),
 	 nFrames_(0),
 	 size_(size),
 	 shots_(shots),
-	 trig_(trig)
+	 trig_(trig),
+	 root_(root)
 	{
 	}
 
@@ -182,17 +184,21 @@ public:
 	{
 		trig_->setVal( (uint64_t)0 );
 	}
+
+	Dev getRoot()
+	{
+		return root_;
+	}
 };
 
 
 static void *rxThread(void *arg)
 {
-Stream strm = IStream::create( IPath::create("/fpga/dataSource") );
-
 uint8_t  buf[16];
 int64_t  got;
 ThreadArg *stats = static_cast<ThreadArg*>(arg);
 CTimeout now;
+Stream strm = IStream::create( stats->getRoot()->findByName("dataSource") );
 
 
 	while ( stats->nFrames() < stats->getShots() ) {
@@ -509,7 +515,7 @@ uint16_t u16;
 		pthread_t tid;
 		void     *ign;
 		struct timespec p, dly;
-		ThreadArg arg( (uint64_t)4*(uint64_t)length, shots, period == 0 ? trig : ScalVal() );
+		ThreadArg arg( (uint64_t)4*(uint64_t)length, shots, period == 0 ? trig : ScalVal(), root );
 		if ( pthread_create( &tid, 0, rxThread, &arg ) ) {
 			perror("pthread_create");
 		}
