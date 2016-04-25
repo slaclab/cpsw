@@ -237,7 +237,7 @@ Stream strm = IStream::create( stats->getRoot()->findByName("dataSource") );
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRrs] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest]\n", nm);
+	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRrs] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest] [-T timeout]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
 	fprintf(stderr,"       -V <version>:  SRP version (1..3)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
@@ -254,6 +254,7 @@ static void usage(const char *nm)
 	fprintf(stderr,"       -r          :  use RSSI (stream)\n");
 	fprintf(stderr,"       -D <tdest>  :  use tdest demuxer (SRP)\n");
 	fprintf(stderr,"       -d <tdest>  :  use tdest demuxer (stream)\n");
+	fprintf(stderr,"       -T <us>     :  set SRP timeout\n");
 	fprintf(stderr,"       -h          :  print this message\n\n\n");
 	fprintf(stderr,"Base addresses of AxiVersion, Sysmon and PRBS\n");
 	fprintf(stderr,"may be changed by defining VERS_BASE, SYSM_BASE\n");
@@ -268,6 +269,7 @@ const char *ip_addr = "192.168.2.10";
 bool        use_mem = false;
 int        *i_p;
 int         vers    = 2;
+int         srpTo   = 0;
 int         length  = 0;
 int         shots   = 10;
 int         period  = 1000; // ms
@@ -285,7 +287,7 @@ uint32_t    sysm_base = 0x00010000;
 uint32_t    prbs_base = 0x00030000;
 const char *str;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:s")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:sT:")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;     break;
@@ -301,6 +303,7 @@ const char *str;
 			case 'R': srpRssi = true;       break;
 			case 'd': i_p     = &tDestSTRM; break;
 			case 'D': i_p     = &tDestSRP;  break;
+			case 'T': i_p     = &srpTo;     break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -404,10 +407,14 @@ uint16_t u16;
 		}
 		bldr->setSRPVersion              (             protoVers );
 		bldr->setUdpPort                 (                  port );
-		u64 = length;
-		u64/= 10; /* MB/s */
-		if ( u64 < 90000 )
-			u64 = 90000;
+		if ( srpTo > 0 ) {
+			u64 = srpTo;
+		} else {
+			u64 = length;
+			u64/= 10; /* MB/s */
+			if ( u64 < 90000 )
+				u64 = 90000;
+		}
 		bldr->setSRPTimeoutUS            (                   u64 );
 		bldr->setSRPRetryCount           (                     5 );
 		bldr->setSRPMuxVirtualChannel    (                     0 );
