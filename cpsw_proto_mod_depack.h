@@ -180,7 +180,7 @@ protected:
 	CProtoModDepack( CProtoModDepack &orig, Key &k );
 
 public:
-	CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned long timeoutUS);
+	CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, uint64_t timeoutUS);
 
 	~CProtoModDepack();
 
