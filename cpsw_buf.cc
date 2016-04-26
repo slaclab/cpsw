@@ -202,10 +202,11 @@ BufChainImpl c;
 
 bool CBufImpl::adjPayload(ssize_t delta)
 {
-unsigned old_size = getSize();
+long old_size = getSize();
+long beg      = (long)beg_;
 BufChainImpl c;
 
-	if ( delta > beg_ || delta > old_size )
+	if ( delta > beg || delta > old_size )
 		return false;
 
 	beg_ += delta;
