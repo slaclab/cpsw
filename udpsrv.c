@@ -273,10 +273,10 @@ int           lfram = -1;
 	printf("JAM\n");
 				}
 
-				sa->isRunning = buf[9];
+				sa->isRunning = !!(buf[8] & 1);
 #ifdef DEBUG
 				if ( debug ) {
-					printf("Stream start/stop msg 0x%02"PRIx8"\n", buf[9]);
+					printf("Stream start/stop msg 0x%02"PRIx8"\n", buf[8]);
 				}
 #endif
 			}
