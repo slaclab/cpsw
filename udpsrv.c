@@ -274,6 +274,11 @@ int           lfram = -1;
 				}
 
 				sa->isRunning = buf[9];
+#ifdef DEBUG
+				if ( debug ) {
+					printf("Stream start/stop msg 0x%02"PRIx8"\n", buf[9]);
+				}
+#endif
 			}
 		}
 	}
