@@ -22,16 +22,20 @@ static void sendMsg(Stream strm, uint8_t m)
 CAxisFrameHeader hdr;
 uint8_t          buf[1500];
 uint32_t         crc;
-unsigned         i;
+unsigned         i, endi;
 
 	hdr.insert(buf, sizeof(buf));
-	buf[ hdr.getSize() ] = m;
-	crc = crc32_le_t4( -1, buf+hdr.getSize(), 100 ) ^ -1;
+	buf[ (endi = hdr.getSize()) ] = m;
+	crc = crc32_le_t4( -1, buf+endi, 100 ) ^ -1;
+	endi += 100;
 	for ( i=0; i<sizeof(crc); i++ ) {
-		buf[hdr.getSize()+100+i] = crc & 0xff;
+		buf[endi+i] = crc & 0xff;
 		crc >>= 8;
 	}
-	strm->write( buf, hdr.getSize() + 100 + i );
+	endi += i;
+	hdr.iniTail( buf + endi );
+	endi += hdr.getTailSize();
+	strm->write( buf, endi );
 }
 
 class StrmRxFailed {};

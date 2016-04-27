@@ -31,7 +31,8 @@ bool CTDestPort::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 
 BufChain CTDestPort::processOutput(BufChain bc)
 {
-Buf b = bc->getHead();
+Buf    b = bc->getHead();
+size_t new_sz;
 
 	if ( stripHeader_ ) {
 		// add our own
@@ -41,6 +42,19 @@ Buf b = bc->getHead();
 		b->adjPayload( - hdr.getSize() );
 
 		hdr.insert( b->getPayload(), b->getSize() );
+
+		// append tail
+		b = bc->getTail();
+
+		new_sz = b->getSize() + hdr.getTailSize();
+		if ( b->getAvail() >= new_sz ) {
+			b->setSize( new_sz );
+		} else {
+			b = bc->createAtTail( IBuf::CAPA_ETH_HDR );
+			b->setSize( hdr.getTailSize() );
+		}
+
+		hdr.iniTail( b->getPayload() + b->getSize() - hdr.getTailSize() );
 	} else {
 		CAxisFrameHeader::insertTDest( b->getPayload(), b->getSize(), getDest() );
 	}

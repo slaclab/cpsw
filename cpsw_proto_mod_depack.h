@@ -192,7 +192,9 @@ public:
 	size_t       getTailSize() { return V0_TAIL_SIZE;   }
 
 	static bool getTailEOF(uint8_t *tailbuf)           { return (*tailbuf) & (1<<FRAG_LAST_BIT);    }
-	static void setTailEOF(uint8_t *tailbuf, bool eof) { (*tailbuf) = eof ? (1<<FRAG_LAST_BIT) : 0; }
+	static void setTailEOF(uint8_t *tailbuf, bool eof) { if ( eof ) (*tailbuf) |= (1<<FRAG_LAST_BIT); else (*tailbuf) &= ~(1<<FRAG_LAST_BIT); }
+
+	static void iniTail(uint8_t *tailbuf)              { *tailbuf = 0; }
 
 };
 

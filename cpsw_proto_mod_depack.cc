@@ -446,7 +446,6 @@ BufChain CProtoModDepack::processOutput(BufChain bc)
 #define SAFETY 40 // in case there are IP options or other stuff (such as our own headers and tails)
 
 Buf    b;
-size_t new_sz;
 
 	// Insert new frame and frag numbers into the header supplied by upper layer
 
@@ -461,15 +460,6 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 	hdr.insert( b->getPayload(), hdr.getSize() );
 
 	b = bc->getTail();
-
-	// ALWAYS Append tail
-	new_sz = b->getSize() + hdr.getTailSize();
-	if ( b->getAvail() >= new_sz ) {
-		b->setSize( new_sz );
-	} else {
-		b = bc->createAtTail( IBuf::CAPA_ETH_HDR );
-		b->setSize( hdr.getTailSize() );
-	}
 
 	hdr.setTailEOF( b->getPayload() + b->getSize() - hdr.getTailSize(), true );
 
