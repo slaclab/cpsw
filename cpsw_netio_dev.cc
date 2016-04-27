@@ -1615,8 +1615,8 @@ uint64_t rval;
 
 	rval = bch->getSize();
 
-	protoStack_->push( bch, &args->timeout_, IProtoPort::REL_TIMEOUT );
-
+	if ( ! protoStack_->push( bch, &args->timeout_, IProtoPort::REL_TIMEOUT ) )
+		return 0;
 	return rval;
 }
 
