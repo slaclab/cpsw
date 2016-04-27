@@ -465,7 +465,7 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 
 	// ugly hack - limit to ethernet MTU
 	if ( bc->getSize() > 1500 - 20 - 8 - SAFETY )
-		throw InvalidArgError("Outgoing data cannot be fragmented (not implemented in firmware)");
+		throw InvalidArgError("Outgoing data cannot be fragmented");
 
 	return bc;
 }

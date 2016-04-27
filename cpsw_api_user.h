@@ -99,9 +99,10 @@ public:
 	// make a copy of this path
 	virtual Path        clone()                const = 0;
 
+	// count number of array elements addressed by this path
 	virtual unsigned    getNelms()             const = 0;
 
-	// create an empty path
+	// create a path
 	static  Path        create();             // absolute; starting at root
 	static  Path        create(const char*);  // absolute; starting at root
 	static  Path        create(Hub);          // relative; starting at passed arg
@@ -181,7 +182,7 @@ public:
 // Assume, e.g., that ScalVal 'v' refers to an array with 100
 // elements:
 //
-//    v = IScalVal::create( path_prefix->findByName( "something[400-500]" ) );
+//    v = IScalVal::create( path_prefix->findByName( "something[400-499]" ) );
 //
 // If you want to read just element 456 then you can
 //
@@ -207,7 +208,7 @@ public:
 //   - For now only the rightmost array can be sliced. Support for multiple
 //     dimensions can be added in the future.
 //
-//     E.g., if you have a ScalVal:  "container[0-3]/value[0-100]"
+//     E.g., if you have a ScalVal:  "container[0-3]/value[0-99]"
 //     then you can only slice 'value'.
 //
 class IndexRange : public std::vector< std::pair<int,int> > {
