@@ -56,28 +56,34 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 		int                        TDestMuxStripHeader_;
 		unsigned                   TDestMuxOutQueueDepth_;
 	public:
-		CPortBuilder()
-		: protocolVersion_(SRP_UDP_V2),
-		  SRPTimeoutUS_(0),
-		  SRPDynTimeout_(-1),
-		  SRPRetryCount_(-1),
-		  UdpPort_(8192),
-		  UdpOutQueueDepth_(0),
-		  UdpNumRxThreads_(0),
-		  UdpPollSecs_(-1),
-		  hasRssi_(false),
-		  hasDepack_(-1),
-		  DepackOutQueueDepth_(0),
-		  DepackLdFrameWinSize_(0),
-		  DepackLdFragWinSize_(0),
-		  hasSRPMux_(-1),
-		  SRPMuxVirtualChannel_(0),
-		  hasTDestMux_(false),
-		  TDestMuxTDEST_(0),
-		  TDestMuxStripHeader_(-1),
-		  TDestMuxOutQueueDepth_(0)
+		virtual void reset()
 		{
+			protocolVersion_        = SRP_UDP_V2;
+			SRPTimeoutUS_           = 0;
+			SRPDynTimeout_          = -1;
+			SRPRetryCount_          = -1;
+			UdpPort_                = 8192;
+			UdpOutQueueDepth_       = 0;
+			UdpNumRxThreads_        = 0;
+			UdpPollSecs_            = -1;
+			hasRssi_                = false;
+			hasDepack_              = -1;
+			DepackOutQueueDepth_    = 0;
+			DepackLdFrameWinSize_   = 0;
+			DepackLdFragWinSize_    = 0;
+			hasSRPMux_              = -1;
+			SRPMuxVirtualChannel_   = 0;
+			hasTDestMux_            = false;
+			TDestMuxTDEST_          = 0;
+			TDestMuxStripHeader_    = -1;
+			TDestMuxOutQueueDepth_  = 0;
 		}
+
+		CPortBuilder()
+		{
+			reset();
+		}
+
 
 		bool hasSRP()
 		{

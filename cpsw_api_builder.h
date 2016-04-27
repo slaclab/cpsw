@@ -153,6 +153,8 @@ public:
 		virtual void            setTDestMuxOutQueueDepth(unsigned)  = 0; // default: 1 if SRP, 50 if no SRP
 		virtual unsigned        getTDestMuxOutQueueDepth()          = 0;
 
+		virtual void            reset()                             = 0; // reset to defaults
+
 		virtual PortBuilder     clone()                             = 0;
 	};
 
