@@ -2,6 +2,7 @@
 #include <cpsw_error.h>
 #include <cpsw_thread.h>
 
+#define VC_OFF_V3 7 // v3 is little endian and has an extra word upfront
 #define VC_OFF_V2 3 // v2 is little endian
 #define VC_OFF_V1 4 // v1 is big endian
 
@@ -9,14 +10,24 @@ BufChain CSRPPort::processOutput(BufChain bc)
 {
 unsigned off = VC_OFF_V2;
 
+	switch ( getProtoVersion() ) {
+		case INetIODev::SRP_UDP_V1: off = VC_OFF_V1; break;
+		case INetIODev::SRP_UDP_V2: off = VC_OFF_V2; break;
+		case INetIODev::SRP_UDP_V3: off = VC_OFF_V3; break;
+
+		default:
+		throw InternalError("CSRPPort::processOutput -- unknown protocol version");
 	}
 
-	if ( INetIODev::SRP_UDP_V1 == getProtoVersion() )
-		off = VC_OFF_V1;
+	if ( bc->getSize() <= off ) {
+		throw InternalError("CSRPPort::processOutput -- message too small");
+	}
 
 	Buf b = bc->getHead();
-	if ( b->getSize() <= off ) {
-		throw InternalError("CSRPPort::processOutput -- message too small");
+
+	while ( b->getSize() <= off ) {
+		off -= b->getSize();
+		b    = b->getNext();
 	}
 
 	// insert virtual channel number;
@@ -37,19 +48,23 @@ SRPPort CProtoModSRPMux::newPort(int dest)
 
 int CProtoModSRPMux::extractDest(BufChain bc)
 {
-int      vc;
+uint8_t  vc;
 unsigned off = VC_OFF_V2;
 
+	switch ( getProtoVersion() ) {
+		case INetIODev::SRP_UDP_V1: off = VC_OFF_V1; break;
+		case INetIODev::SRP_UDP_V2: off = VC_OFF_V2; break;
+		case INetIODev::SRP_UDP_V3: off = VC_OFF_V3; break;
 
-	if ( INetIODev::SRP_UDP_V1 == getProtoVersion() )
-		off = VC_OFF_V1;
+		default:
+		throw InternalError("CSRPPort::processOutput -- unknown protocol version");
+	}
 
-	Buf b = bc->getHead();
-	if ( b->getSize() <= off ) {
+	if ( bc->getSize() <= off ) {
 		return DEST_MIN-1;
 	}
 
-	vc = *(b->getPayload() + off);
+	bc->extract(&vc, off, sizeof(vc));
 
 	if ( vc > DEST_MAX ) {
 		return DEST_MIN - 1;
