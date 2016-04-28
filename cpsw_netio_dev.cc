@@ -298,10 +298,7 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 
 		virtual void            useTDestMux(bool v)
 		{
-			if ( ! (hasTDestMux_ = v) ) {
-				setTDestMuxOutQueueDepth( 0 );
-				TDestMuxStripHeader_ = -1;
-			}
+			hasTDestMux_ = v;
 		}
 
 		virtual bool            hasTDestMux()
