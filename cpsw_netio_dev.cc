@@ -718,15 +718,7 @@ struct timespec retry_then;
 		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
 		do {
-if ( INetIODev::SRP_UDP_V3 == protoVersion_ ) {
-printf("netio pushed\n");
-sleep(1);
-printf("netio willpop\n");
-}
 			rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
-if ( INetIODev::SRP_UDP_V3 == protoVersion_ ) {
-printf("netio popped %d\n", rchn ? 1 : 0);
-}
 			if ( ! rchn ) {
 #ifdef NETIO_DEBUG
 				time_retry( &retry_then, attempt, "READ", protoStack_ );
