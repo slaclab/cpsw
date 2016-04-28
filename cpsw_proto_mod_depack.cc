@@ -8,6 +8,8 @@
 
 //#define DEPACK_DEBUG
 
+#define RSSI_PAYLOAD 1024
+
 static uint64_t getNum(uint8_t *p, unsigned bit_offset, unsigned bit_size)
 {
 int      i;
@@ -452,7 +454,7 @@ bool CProtoModDepack::releaseOldestFrame(bool onlyComplete)
 
 BufChain CProtoModDepack::processOutput(BufChain bc)
 {
-#define SAFETY 40 // in case there are IP options or other stuff (such as our own headers and tails)
+#define SAFETY 16 // in case there are other protocols
 
 Buf    b;
 
@@ -472,8 +474,8 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 
 	hdr.setTailEOF( b->getPayload() + b->getSize() - hdr.getTailSize(), true );
 
-	// ugly hack - limit to ethernet MTU
-	if ( bc->getSize() > 1500 - 20 - 8 - SAFETY )
+	// ugly hack - limit to ethernet RSSI payload
+	if ( bc->getSize() > RSSI_PAYLOAD - SAFETY )
 		throw InvalidArgError("Outgoing data cannot be fragmented");
 
 	return bc;
