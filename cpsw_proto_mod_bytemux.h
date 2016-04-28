@@ -157,7 +157,7 @@ public:
 	CByteMuxPort(Key &k, ProtoMod owner, int dest, unsigned queueDepth)
 	: CShObj(k),
 	  CPortImpl(queueDepth),
-      dest_(dest),
+	  dest_(dest),
 	  owner_(owner)
 	{
 	}
