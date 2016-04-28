@@ -41,17 +41,18 @@
 
 #define EOFRAG   0x80
 
-#define V1PORT_DEF     8191
-#define V2PORT_DEF     8192
-#define V3PORT_DEF     8190
-#define V3BPORT_DEF    8189
-#define V2RSSIPORT_DEF 8202
-#define SPORT_DEF      8193
-#define SRSSIPORT_DEF  8203
-#define SCRMBL_DEF     1
-#define INA_DEF        "127.0.0.1"
-#define SIMLOSS_DEF     1
-#define NFRAGS_DEF      NFRAGS
+#define V1PORT_DEF        8191
+#define V2PORT_DEF        8192
+#define V3PORT_DEF        8190
+#define V3BPORT_DEF       8189
+#define V2RSSIPORT_DEF    8202
+#define SPORT_DEF         8193
+#define SRSSIPORT_DEF     8203
+#define SRSSIPORT_V3_DEF  8200
+#define SCRMBL_DEF           1
+#define INA_DEF           "127.0.0.1"
+#define SIMLOSS_DEF          1
+#define NFRAGS_DEF        NFRAGS
 
 // byte swap ?
 #define bsl(x) (x)
@@ -90,8 +91,9 @@ static void usage(const char *nm)
 	fprintf(stderr, "        -S <lddepth>: scramble packet order (arg is ld2(scrambler-depth))\n");
 	fprintf(stderr, "        -L <percent>: lose/drop <percent> packets\n");
 	fprintf(stderr, " Defaults: -a %s -P %d -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, V2PORT_DEF, V1PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
-	fprintf(stderr, "           V3 (norssi) is listening at %d\n", V3PORT_DEF);
-	fprintf(stderr, "           V3 (norssi, byte-resolution) is listening at %d\n", V3BPORT_DEF);
+	fprintf(stderr, "           V3 (norssi                 ) is listening at  %d\n", V3PORT_DEF);
+	fprintf(stderr, "           V3 (norssi, byte-resolution) is listening at %d\n",  V3BPORT_DEF);
+	fprintf(stderr, "           V3 (rssi,   stream         ) is listening at %d\n",  SRSSIPORT_V3_DEF);
 }
 
 static void payload_swap(int v1, uint32_t *buf, int nelms)
@@ -180,7 +182,7 @@ static int append_tail(uint8_t *tbuf, int eof)
 	return 1;
 }
 
-static int handleSRP(int vers, unsigned opts, uint32_t *rbuf, int got);
+static int handleSRP(int vers, unsigned opts, uint32_t *rbuf, unsigned rbufsz, int got);
 
 void *poller(void *arg)
 {
@@ -302,7 +304,7 @@ Buf      bufmem;
 
 			do {
 				int      got;
-				uint32_t rbuf[300];
+				uint32_t rbuf[1000000];
 				uint32_t *bufp  = rbuf + 2;
 				unsigned  bufsz = sizeof(rbuf) - 2*sizeof(rbuf[0]);
 
@@ -322,17 +324,34 @@ Buf      bufmem;
 					if ( debug )
 						printf("Got %d SRP octets\n", got);
 #endif
-					if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, got)) > 0 ) {
-						uint8_t *hp = (uint8_t*)rbuf;
-						insert_header( hp, sa->fram, 0, sa->srp_tdest);
-						append_tail( ((uint8_t*)(bufp)) + put , 1 );
-						sa->fram++;
-						if ( udpPrtSend( sa->port, hp, put + 9 ) < 0 )
-							fprintf(stderr,"fragmenter: write error (sending SRP reply)\n");
+					if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, bufsz - 1, got)) > 0 ) {
+						unsigned frag = 0;
+
+printf("%d in SRP reply\n", put);
+
+						while ( put > 0 ) {
+							unsigned chunk = 1024 - 8 - 12; /* must be word-aligned */
+							uint8_t  tail;
+							uint8_t *tailp;
+							uint8_t *hp   = ((uint8_t*)bufp) - 8;
+							if ( put < chunk )
+								chunk = put;
+							put  -= chunk;
+							tailp = ((uint8_t*)bufp)+chunk;
+							tail  = *tailp; /* save */
+							insert_header( hp, sa->fram, frag, sa->srp_tdest);
+							append_tail( tailp, put > 0 ? 0 : 1 );
+							if ( udpPrtSend( sa->port, hp, chunk + 9 ) < 0 )
+								fprintf(stderr,"fragmenter: write error (sending SRP reply)\n");
 #ifdef DEBUG
-						else if ( debug )
-							printf("Sent to port %d\n", udpPrtIsConn( sa->port ));
+							else if ( debug )
+								printf("Sent to port %d\n", udpPrtIsConn( sa->port ));
 #endif
+							*tailp = tail;
+							bufp  += chunk>>2;
+							frag++;
+						}
+						sa->fram++;
 					} else {
 						fprintf(stderr,"handleSRP ERROR (from fragger)\n");
 					}
@@ -392,7 +411,7 @@ struct udpsrv_range *udpsrv_ranges = 0;
 
 typedef enum { CMD_NOP, CMD_RD, CMD_WR, CMD_PWR } Cmd;
 
-static int handleSRP(int vers, unsigned opts, uint32_t *rbuf, int got)
+static int handleSRP(int vers, unsigned opts, uint32_t *rbuf, unsigned rbufsz, int got)
 {
 int      v1       = (vers == 1);
 int      v3       = (vers == 3);
@@ -532,6 +551,11 @@ uint32_t status   =  0;
 				noexec = 1;
 			}
 		}
+		if ( size > rbufsz ) {
+			fprintf(stderr,"rbuf size too small (%d; requested %d)\n", rbufsz, size);
+			st     = -1;
+			noexec = 1;
+		}
 	}
 
 	if ( ! noexec ) {
@@ -602,7 +626,7 @@ int      bsize;
 			goto bail;
 		}
 		
-		bsize = handleSRP(srp_arg->vers, srp_arg->opts, rbuf, got);
+		bsize = handleSRP(srp_arg->vers, srp_arg->opts, rbuf, sizeof(rbuf), got);
 
 		if ( bsize < 0 )
 			goto bail;
@@ -668,8 +692,9 @@ struct srpvariant srpvars[] = {
 #define STRM_NORSSI 0
 #define STRM_RSSI   1
 struct strmvariant strmvars[] = {
-	{ SPORT_DEF,     WITHOUT_RSSI, 0 }, /* run no SRP on scrambled channel */
-	{ SRSSIPORT_DEF, WITH_RSSI,    2 }, /* SRP will be slow due to scrambled RSSI */
+	{ SPORT_DEF,        WITHOUT_RSSI, 0 }, /* run no SRP on scrambled channel */
+	{ SRSSIPORT_DEF,    WITH_RSSI,    2 }, /* SRP will be slow due to scrambled RSSI */
+	{ SRSSIPORT_V3_DEF, WITH_RSSI,    3 }, /* SRP will be slow due to scrambled RSSI */
 };
 
 int    nprts;
