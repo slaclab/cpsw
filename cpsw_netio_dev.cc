@@ -352,6 +352,20 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 		}
 };
 
+static bool hasRssi(ProtoPort stack)
+{
+ProtoPortMatchParams cmp;
+	cmp.haveRssi_.include();
+	return cmp.requestedMatches() == cmp.findMatches( stack );
+}
+
+static bool hasDepack(ProtoPort stack)
+{
+ProtoPortMatchParams cmp;
+	cmp.haveDepack_.include();
+	return cmp.requestedMatches() == cmp.findMatches( stack );
+}
+
 
 CSRPAddressImpl::CSRPAddressImpl(AKey key, INetIODev::PortBuilder bldr, ProtoPort stack)
 :CCommAddressImpl(key, stack),
@@ -366,14 +380,14 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, INetIODev::PortBuilder bldr, ProtoPor
  vc_(bldr->getSRPMuxVirtualChannel()),
  tid_(0),
  byteResolution_( bldr->getSRPVersion() >= INetIODev::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
+ maxWordsRx_( protoVersion_ < INetIODev::SRP_UDP_V3 || !hasDepack( stack) ? MAXWORDS : (1<<28) ),
+ maxWordsTx_( MAXWORDS ),
  mutex_( CMtx::AttrRecursive(), "SRPADDR" )
 {
-ProtoPortMatchParams cmp;
 ProtoModSRPMux       srpMuxMod( dynamic_pointer_cast<ProtoModSRPMux::element_type>( stack->getProtoMod() ) );
 int                  nbits;
 
-	cmp.haveRssi_.include();
-	if ( cmp.requestedMatches() == cmp.findMatches( stack ) ) {
+	if ( hasRssi( stack ) ) {
 		// have RSSI
 
 		// FIXME: should find out dynamically what RSSI's retransmission
@@ -704,7 +718,15 @@ struct timespec retry_then;
 		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
 		do {
+if ( INetIODev::SRP_UDP_V3 == protoVersion_ ) {
+printf("netio pushed\n");
+sleep(1);
+printf("netio willpop\n");
+}
 			rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
+if ( INetIODev::SRP_UDP_V3 == protoVersion_ ) {
+printf("netio popped %d\n", rchn ? 1 : 0);
+}
 			if ( ! rchn ) {
 #ifdef NETIO_DEBUG
 				time_retry( &retry_then, attempt, "READ", protoStack_ );
@@ -836,8 +858,8 @@ uint64_t off             = args->off_;
 uint8_t *dst             = args->dst_;
 unsigned sbytes          = args->nbytes_;
 
-int      totbytes;
-int      nWords;
+unsigned totbytes;
+unsigned nWords;
 
 	if ( sbytes == 0 )
 		return 0;
@@ -847,10 +869,10 @@ int      nWords;
 
 	CMtx::lg GUARD( &mutex_ );
 
-	while ( nWords > MAXWORDS ) {
-		int nbytes = MAXWORDS*4 - headbytes;
+	while ( nWords > maxWordsRx_ ) {
+		int nbytes = maxWordsRx_*4 - headbytes;
 		rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);	
-		nWords -= MAXWORDS;
+		nWords -= maxWordsRx_;
 		sbytes -= nbytes;	
 		dst    += nbytes;
 		off    += nbytes;
@@ -972,7 +994,7 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 				rargs.nbytes_ = totbytes; //lastbyte_in_firstword implies totbytes <= sizeof(SRPWord)
 			} else {
 				rargs.nbytes_ = 1;
-			} 
+			}
 			rargs.off_    = off;
 		} else {
 			rargs.nbytes_ = sizeof(first_word);
@@ -1211,8 +1233,8 @@ uint64_t off             = args->off_;
 uint8_t *src             = args->src_;
 uint8_t  msk1            = args->msk1_;
 
-int      totbytes;
-int      nWords;
+unsigned totbytes;
+unsigned nWords;
 
 	if ( dbytes == 0 )
 		return 0;
@@ -1222,10 +1244,10 @@ int      nWords;
 
 	CMtx::lg GUARD( &mutex_ );
 
-	while ( nWords > MAXWORDS ) {
-		int nbytes = MAXWORDS*4 - headbytes;
+	while ( nWords > maxWordsTx_ ) {
+		int nbytes = maxWordsTx_*4 - headbytes;
 		rval += writeBlk_unlocked(node, args->cacheable_, src, off, nbytes, msk1, 0);	
-		nWords -= MAXWORDS;
+		nWords -= maxWordsTx_;
 		dbytes -= nbytes;	
 		src    += nbytes;
 		off    += nbytes;

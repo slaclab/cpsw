@@ -112,6 +112,8 @@ private:
 	uint32_t         tidMsk_;
 	uint32_t         tidLsb_;
 	bool             byteResolution_;
+	unsigned         maxWordsRx_;
+	unsigned         maxWordsTx_;
 
 protected:
 	mutable CMtx     mutex_;
