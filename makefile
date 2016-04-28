@@ -124,6 +124,10 @@ rssi_tst_SRCS            = rssi_tst.cc udpsrv_port.cc udpsrv_util.cc
 rssi_tst_LIBS            = $(CPSW_LIBS)
 TESTPROGRAMS            += rssi_tst
 
+cpsw_srpv3_large_tst_SRCS += cpsw_srpv3_large_tst.cc
+cpsw_srpv3_large_tst_LIBS += $(CPSW_LIBS)
+TESTPROGRAMS              += cpsw_srpv3_large_tst
+
 TEST_AXIV_YES=
 TEST_AXIV_NO=cpsw_axiv_udp_tst
 DISABLED_TESTPROGRAMS=$(TEST_AXIV_$(TEST_AXIV))
