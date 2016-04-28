@@ -1291,12 +1291,18 @@ shared_ptr<CCommAddressImpl> addr;
 
 	switch( bldr->getSRPVersion() ) {
 		case SRP_UDP_NONE:
+#ifdef NETIO_DEBUG
+			fprintf(stderr,"Creating CCommAddress\n");
+#endif
 			addr = make_shared<CCommAddressImpl>(key, port);
 		break;
 
 		case SRP_UDP_V1:
 		case SRP_UDP_V2:
 		case SRP_UDP_V3:
+#ifdef NETIO_DEBUG
+			fprintf(stderr,"Creating SRP address (V %d)\n", bldr->getSRPVersion());
+#endif
 			addr = make_shared<CSRPAddressImpl>(key, bldr, port);
 		break;
 
@@ -1403,33 +1409,62 @@ bool                 hasSRP = SRP_UDP_NONE != bldr->getSRPVersion();
 
 	cmp.udpDestPort_ = bldr->getUdpPort();
 
+#ifdef NETIO_DEBUG
+	printf("makeProtoPort for port %d\n", bldr->getUdpPort());
+#endif
+
 	if ( findProtoPort( &cmp ) ) {
 
 		if ( ! bldr->hasTDestMux() && ( !hasSRP || !bldr->hasSRPMux() ) ) {
 			throw ConfigurationError("Some kind of demuxer must be used when sharing a UDP port");
 		}
 
+#ifdef NETIO_DEBUG
+	printf("makeProtoPort port %d found\n", bldr->getUdpPort());
+#endif
+
 		// existing RSSI configuration must match the requested one
 		if ( bldr->hasRssi() ) {
+#ifdef NETIO_DEBUG
+	printf("  including RSSI\n");
+#endif
 			cmp.haveRssi_.include();
 		} else {
+#ifdef NETIO_DEBUG
+	printf("  excluding RSSI\n");
+#endif
 			cmp.haveRssi_.exclude();
 		}
 
 		// existing DEPACK configuration must match the requested one
 		if ( bldr->hasDepack() ) {
 			cmp.haveDepack_.include();
+#ifdef NETIO_DEBUG
+	printf("  including depack\n");
+#endif
 		} else {
 			cmp.haveDepack_.exclude();
+#ifdef NETIO_DEBUG
+	printf("  excluding depack\n");
+#endif
 		}
 
 		if ( bldr->hasTDestMux() ) {
 			cmp.tDest_ = bldr->getTDestMuxTDEST();
+#ifdef NETIO_DEBUG
+	printf("  tdest %d\n", bldr->getTDestMuxTDEST());
+#endif
 		} else {
 			cmp.tDest_.exclude();
+#ifdef NETIO_DEBUG
+	printf("  tdest excluded\n");
+#endif
 		}
 
 		if ( (foundTDestPort = findProtoPort( &cmp )) ) {
+#ifdef NETIO_DEBUG
+	printf("  tdest port FOUND\n");
+#endif
 
 			// either no tdest demuxer or using an existing tdest port
 			if ( ! hasSRP ) {
@@ -1470,6 +1505,9 @@ bool                 hasSRP = SRP_UDP_NONE != bldr->getSRPVersion();
 				if ( ! tDestMuxMod ) {
 					throw InternalError("No TDEST Demultiplexer - but there should be one");
 				}
+#ifdef NETIO_DEBUG
+	printf("  using (existing) tdest MUX\n");
+#endif
 			} else {
 				throw ConfigurationError("Unable to create new port on existing protocol modules");
 			}
@@ -1486,12 +1524,18 @@ bool                 hasSRP = SRP_UDP_NONE != bldr->getSRPVersion();
 		rval = CShObj::create< ProtoModUdp >( &dst, bldr->getUdpOutQueueDepth(), bldr->getUdpNumRxThreads(), bldr->getUdpPollSecs() );
 
 		if ( bldr->hasRssi() ) {
+#ifdef NETIO_DEBUG
+	printf("  creating RSSI\n");
+#endif
 			ProtoModRssi rssi = CShObj::create<ProtoModRssi>();
 			rval->addAtPort( rssi );
 			rval = rssi;
 		}
 
 		if ( bldr->hasDepack() ) {
+#ifdef NETIO_DEBUG
+	printf("  creating depack\n");
+#endif
 			ProtoModDepack depackMod  = CShObj::create< ProtoModDepack > (
 			                                bldr->getDepackOutQueueDepth(),
 			                                bldr->getDepackLdFrameWinSize(),
@@ -1503,6 +1547,9 @@ bool                 hasSRP = SRP_UDP_NONE != bldr->getSRPVersion();
 	}
 
 	if ( bldr->hasTDestMux()  && ! foundTDestPort ) {
+#ifdef NETIO_DEBUG
+	printf("  creating tdest port\n");
+#endif
 		if ( ! tDestMuxMod ) {
 			tDestMuxMod = CShObj::create< ProtoModTDestMux >();
 			rval->addAtPort( tDestMuxMod );
@@ -1512,10 +1559,16 @@ bool                 hasSRP = SRP_UDP_NONE != bldr->getSRPVersion();
 
 	if ( bldr->hasSRPMux() ) {
 		if ( ! srpMuxMod ) {
+#ifdef NETIO_DEBUG
+	printf("  creating SRP mux module\n");
+#endif
 			srpMuxMod   = CShObj::create< ProtoModSRPMux >( bldr->getSRPVersion() );
 			rval->addAtPort( srpMuxMod );
 		}
 		rval = srpMuxMod->createPort( bldr->getSRPMuxVirtualChannel() );
+#ifdef NETIO_DEBUG
+	printf("  creating SRP mux port\n");
+#endif
 	}
 
 	return rval;

@@ -418,10 +418,19 @@ bool CProtoModDepack::releaseOldestFrame(bool onlyComplete)
 	frame->release( 0 );
 
 	if ( isComplete ) {
+#ifdef DEPACK_DEBUG
+	printf("PUSHDOWN FRAME %d", frame->frameID_);
+#endif
 		unsigned l = completeFrame->getLen();
 		if ( ! pushDown( completeFrame, &TIMEOUT_INDEFINITE ) ) {
+#ifdef DEPACK_DEBUG
+	printf(" => DROPPED\n");
+#endif
 			oqueueFullDrops_++;
 		} else {
+#ifdef DEPACK_DEBUG
+	printf("\n");
+#endif
 			fragsAccepted_  += l;
 			framesAccepted_ += 1;
 		}
