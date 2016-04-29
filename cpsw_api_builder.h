@@ -268,4 +268,12 @@ public:
 	static IntField create(const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_Signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP);
 };
 
+class ICommandField;
+typedef shared_ptr<ICommandField> CommandField;
+
+class ICommandField: public virtual IField {
+public:
+        static CommandField create(const char *name);
+};
+
 #endif
