@@ -1,7 +1,7 @@
 #ifndef Q_HELPER_H
 #define Q_HELPER_H
 
-#include <boost/smart_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/atomic.hpp>
 
 // simplified implementation of buffers etc.

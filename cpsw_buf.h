@@ -1,7 +1,7 @@
 #ifndef CPSW_BUF_H
 #define CPSW_BUF_H
 
-#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <stdint.h>
 #include <time.h>
 

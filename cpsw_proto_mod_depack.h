@@ -1,7 +1,6 @@
 #ifndef CPSW_PROTO_MOD_DEPACK_H
 #define CPSW_PROTO_MOD_DEPACK_H
 
-#include <boost/intrusive/list.hpp>
 #include <boost/atomic.hpp>
 #include <vector>
 
