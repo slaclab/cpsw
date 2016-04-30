@@ -18,11 +18,6 @@ Command_Adapt rval = IEntryAdapt::check_interface<Command_Adapt, CommandImpl>( p
 	return rval;
 }
 
-CommandField ICommandField::create(const char *name)
-{
-	return CShObj::create<CommandImpl>(name);
-}
-
 CCommandImpl::CCommandImpl(Key &k, const char *name):
 	CEntryImpl(k, name, 1)
 {

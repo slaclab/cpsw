@@ -27,7 +27,7 @@ public:
 	const Path getParent() const { return pParent_; }    
 };
 
-class CCommandImpl : public CEntryImpl, public virtual ICommandField {
+class CCommandImpl : public CEntryImpl {
 public:
 		// derived classes should chain through this method
 		virtual CommandImplContext createContext( Path pParent )   const;
