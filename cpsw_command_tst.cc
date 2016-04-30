@@ -7,6 +7,9 @@
 class CMyCommandImpl;
 typedef shared_ptr<CMyCommandImpl> MyCommandImpl;
 
+// Context for CMyCommandImpl; we want to keep
+// a ScalVal around for re-use every time the
+// command executes.
 class CMyContext : public CCommandImplContext {
 private:
 	ScalVal theVal_;
@@ -25,11 +28,15 @@ public:
 
 class CMyCommandImpl : public CCommandImpl {
 public:
+
+	// make a new CMyContext
 	virtual CommandImplContext createContext(Path pParent) const
 	{
 		return make_shared<CMyContext>(pParent);
 	}
 
+	// execute the command using the ScalVal stored
+	// in CMyContext
 	virtual void executeCommand(CommandImplContext context) const
 	{
 		shared_ptr<CMyContext> myContext( static_pointer_cast<CMyContext>(context) );

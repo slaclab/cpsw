@@ -14,6 +14,39 @@ typedef shared_ptr<CCommandImpl> CommandImpl;
 class CCommandImplContext;
 typedef shared_ptr<CCommandImplContext> CommandImplContext;
 
+// Context info for 'CommandImpl'
+// Reminder: 'CommandImpl' implements the command algorithm
+//           but cannot hold any mutable state information
+//           because the same 'CommandImpl' object could
+//           be attached at multiple places in the hierarchy.
+//           This is reflected by the fact that the member
+//           functions of CCommandImpl are 'const' (unable
+//           to alter the state of CCommandImpl).
+//
+//           The CCommand_Adapt object, OTOH is specifically
+//           created for a given 'Path' and may thus hold
+//           related context. The Adapter does not have to
+//           know about the semantics nor contents of the
+//           context. It lets the CCommandImpl (or derived
+//           class) create a suitable context (from the Path
+//           associated with the adapter) and passes that
+//           context when executing the command.
+//
+//           As an example:
+//
+//           A certain command (derived from CCommandImpl might
+//           need a ScalVal from its 'executeCommand' method.
+//
+//           It could either create (and destroy) such
+//           a ScalVal "on the fly" each time executeCommand()
+//           runs (the ScalVal would then be a local variable).
+//           It would use the 'pParent_' member from the context.
+//
+//           Alternatively, a new context class could be
+//           derived from CCommandImplContext with a ScalVal member.
+//           This member would be created once (from createContext())
+//           and reused every time the command executes.           
+//           See cpsw_command_tst.cc for an example.
 
 class CCommandImplContext {
 private:
@@ -29,9 +62,12 @@ public:
 
 class CCommandImpl : public CEntryImpl {
 public:
-		// derived classes should chain through this method
+		// create a context from the pParent Path
 		virtual CommandImplContext createContext( Path pParent )   const;
+
+		// context is passed back to 'executeCommand'
         virtual void executeCommand( CommandImplContext pContext ) const;
+
         CCommandImpl(Key &k, const char* name);
 };
 
@@ -46,6 +82,7 @@ public:
         CCommand_Adapt(Key &k, Path p, shared_ptr<const CCommandImpl> ie);
 
         static Command create(Path p);
+
         virtual void execute() { asCommandImpl()->executeCommand( pContext_ ); }
 
 protected:
