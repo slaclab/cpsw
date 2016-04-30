@@ -8,6 +8,7 @@ HEADERS = cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
 cpsw_SRCS+= cpsw_sval.cc
+cpsw_SRCS+= cpsw_command.cc
 cpsw_SRCS+= cpsw_mmio_dev.cc
 cpsw_SRCS+= cpsw_mem_dev.cc
 cpsw_SRCS+= cpsw_netio_dev.cc
@@ -127,6 +128,10 @@ TESTPROGRAMS            += rssi_tst
 cpsw_srpv3_large_tst_SRCS += cpsw_srpv3_large_tst.cc
 cpsw_srpv3_large_tst_LIBS += $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_srpv3_large_tst
+
+cpsw_command_tst_SRCS    = cpsw_command_tst.cc
+cpsw_command_tst_LIBS    = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_command_tst
 
 TEST_AXIV_YES=
 TEST_AXIV_NO=cpsw_axiv_udp_tst
