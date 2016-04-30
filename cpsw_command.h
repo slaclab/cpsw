@@ -47,6 +47,11 @@ typedef shared_ptr<CCommandImplContext> CommandImplContext;
 //           This member would be created once (from createContext())
 //           and reused every time the command executes.           
 //           See cpsw_command_tst.cc for an example.
+//
+//           WARNING: when keeping shared pointers in the context
+//           be careful not to create circular references (e.g.,
+//           command A has a pointer to command B in its context
+//           and command B one to command A) !
 
 class CCommandImplContext {
 private:
