@@ -129,6 +129,10 @@ cpsw_srpv3_large_tst_SRCS += cpsw_srpv3_large_tst.cc
 cpsw_srpv3_large_tst_LIBS += $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_srpv3_large_tst
 
+cpsw_command_tst_SRCS    = cpsw_command_tst.cc
+cpsw_command_tst_LIBS    = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_command_tst
+
 TEST_AXIV_YES=
 TEST_AXIV_NO=cpsw_axiv_udp_tst
 DISABLED_TESTPROGRAMS=$(TEST_AXIV_$(TEST_AXIV))
