@@ -4,6 +4,8 @@
 #include <string>
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
 #include <iostream>
 
 #undef PATH_DEBUG
@@ -306,13 +308,15 @@ Path IPath::create(Hub h)
 // ASSUMPTIONS: from < to on entry
 static inline int getnum(const char *from, const char *to)
 {
-int rval;
-	for ( rval = 0; from < to; from++ ) {
-			if ( '0' > *from || '9' < *from )
-				throw InvalidPathError( from );
-			rval = 10*rval + (*from-'0');
-	}
-	return rval;
+unsigned long rval;
+char         *endp;
+
+	rval = strtoul(from, &endp, 0);
+
+	if ( endp != to || rval > (unsigned long)INT_MAX )
+		throw InvalidPathError( from );
+
+	return (int)rval;
 }
 
 Path PathImpl::findByName(const char *s) const
