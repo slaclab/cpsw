@@ -1,8 +1,11 @@
 #include <cpsw_path.h>
 #include <cpsw_hub.h>
+#include <cpsw_obj_cnt.h>
 #include <string>
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
 #include <iostream>
 
 #undef PATH_DEBUG
@@ -14,6 +17,8 @@ using std::cout;
 typedef shared_ptr<const DevImpl::element_type> ConstDevImpl;
 
 DevImpl theRootDev( CShObj::create<DevImpl>("ROOT") );
+
+DECLARE_OBJ_COUNTER( ocnt, "Path", 0 )
 
 Dev IDev::getRootDev()
 {
@@ -28,10 +33,8 @@ public:
 	PathImpl();
 	PathImpl(Hub);
 	PathImpl(DevImpl);
-#define HAVE_CC
-#ifdef HAVE_CC
+
 	PathImpl(const PathImpl&);
-#endif
 
 	virtual void clear();
 	virtual void clear(Hub);
@@ -152,26 +155,20 @@ PathImpl::PathImpl()
 	// maintain an empty marker element so that the back iterator
 	// can easily detect the end of the list
 	push_back( PathEntry(NULLADDR) );
-#ifdef HAVE_CC
-	cpsw_obj_count++;
-#endif
+	++ocnt();
 }
 
 PathImpl::~PathImpl()
 {
-#ifdef HAVE_CC
-	cpsw_obj_count--;
-#endif
+	--ocnt();
 }
 
-#ifdef HAVE_CC
 PathImpl::PathImpl(const PathImpl &in)
 : PathEntryContainer(in),
   originDev_(in.originDev_)
 {
-	cpsw_obj_count++;
+	++ocnt();
 }
-#endif
 
 PathImpl::PathImpl(Hub h)
 : PathEntryContainer()
@@ -185,7 +182,7 @@ ConstDevImpl c = dynamic_pointer_cast<ConstDevImpl::element_type, Hub::element_t
 	// maintain an empty marker element so that the back iterator
 	// can easily detect the end of the list
 	push_back( PathEntry(NULLADDR) );
-	cpsw_obj_count++;
+	++ocnt();
 }
 
 PathImpl::PathImpl(DevImpl c)
@@ -195,7 +192,7 @@ PathImpl::PathImpl(DevImpl c)
 	// maintain an empty marker element so that the back iterator
 	// can easily detect the end of the list
 	push_back( PathEntry(NULLADDR) );
-	cpsw_obj_count++;
+	++ocnt();
 }
 
 
@@ -311,13 +308,15 @@ Path IPath::create(Hub h)
 // ASSUMPTIONS: from < to on entry
 static inline int getnum(const char *from, const char *to)
 {
-int rval;
-	for ( rval = 0; from < to; from++ ) {
-			if ( '0' > *from || '9' < *from )
-				throw InvalidPathError( from );
-			rval = 10*rval + (*from-'0');
-	}
-	return rval;
+unsigned long rval;
+char         *endp;
+
+	rval = strtoul(from, &endp, 0);
+
+	if ( endp != to || rval > (unsigned long)INT_MAX )
+		throw InvalidPathError( from );
+
+	return (int)rval;
 }
 
 Path PathImpl::findByName(const char *s) const
@@ -449,7 +448,7 @@ bool PathImpl::verifyAtTail(ConstDevImpl h)
 static void append2(PathImpl *h, PathImpl *t)
 {
 	if ( ! h->verifyAtTail( t->originAsDevImpl() ) )
-		throw InvalidPathError(Path(t));
+		throw InvalidPathError( Path(t)->toString() );
 
 	PathImpl::iterator it = t->begin();
 
@@ -489,7 +488,7 @@ void PathImpl::append(Path p)
 void PathImpl::append(Address a, int f, int t)
 {
 	if ( ! verifyAtTail( a->getOwnerAsDevImpl() ) ) {
-		throw InvalidPathError( Path( this ) );
+		throw InvalidPathError( Path( this )->toString() );
 	}
 	push_back( PathEntry(a, f, t, getNelms()) );
 }
@@ -521,7 +520,7 @@ void CompositePathIterator::append(Path p)
 	if ( p->empty() )
 		return;
 	if ( ! validConcatenation( p ) ) {
-		throw InvalidPathError(p);
+		throw InvalidPathError( p->toString() );
 	}
 	if ( ! atEnd() ) {
 		l_.push_back( *this );

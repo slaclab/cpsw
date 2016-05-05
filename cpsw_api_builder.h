@@ -4,7 +4,7 @@
 #include <cpsw_api_user.h>
 
 // ************** BIG NOTE ****************
-//   The builder API is NOT THREAD SAFE. 
+//   The builder API is NOT THREAD SAFE.
 // ****************************************
 
 using boost::static_pointer_cast;
@@ -18,7 +18,6 @@ class IDev;
 typedef shared_ptr<IField>     Field;
 typedef shared_ptr<IDev>       Dev;
 typedef shared_ptr<CEntryImpl> EntryImpl;
-
 
 typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21 } ByteOrder;
 
@@ -91,20 +90,139 @@ public:
 };
 
 
-class INoSsiDev;
-typedef shared_ptr<INoSsiDev> NoSsiDev;
+class INetIODev;
+typedef shared_ptr<INetIODev> NetIODev;
 
-class INoSsiDev : public virtual IDev {
+class INetIODev : public virtual IDev {
 public:
-	typedef enum ProtocolVersion { SRP_UDP_V1 = 1, SRP_UDP_V2 = 2 } ProtocolVersion;
+	typedef enum ProtocolVersion { SRP_UDP_NONE = -1, SRP_UDP_V1 = 1, SRP_UDP_V2 = 2, SRP_UDP_V3 = 3 } ProtocolVersion;
 
-	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 1000, unsigned retryCnt = 5, uint8_t vc = 0) = 0;
-	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth = 32, unsigned outQDepth = 16, unsigned ldFrameWinSize = 4, unsigned ldFragWinSize = 4, unsigned nUdpThreads = 2) = 0;
+	class IPortBuilder;
+	typedef shared_ptr<IPortBuilder> PortBuilder;
+
+	class IPortBuilder {
+	public:
+		// Note: most of the parameters configured into a PortBuilder object are
+		//       only used if the associated protocol module is not already present
+		//       and they are ignored otherwise.
+		//       E.g., if a UDP port is shared (via TDEST and or SRP VC multiplexers)
+		//       and already present when adding a new TDEST/VC then the UDP parameters
+		//       (queue depth, number of threads) are ignored.
+		virtual void            setSRPVersion(ProtocolVersion)      = 0; // default: SRP_UDP_V2
+		virtual ProtocolVersion getSRPVersion()                     = 0;
+		virtual void            setSRPTimeoutUS(uint64_t)           = 0; // default: 10000 if no rssi, 500000 if rssi
+		virtual uint64_t        getSRPTimeoutUS()                   = 0;
+		virtual void            useSRPDynTimeout(bool)              = 0; // default: YES unless TDEST demuxer in use
+		virtual bool            hasSRPDynTimeout()                  = 0; // dynamically adjusted timeout (based on RTT)
+		virtual void            setSRPRetryCount(unsigned)          = 0; // default: 10
+		virtual unsigned        getSRPRetryCount()                  = 0;
+
+		virtual bool            hasUdp()                            = 0; // default: YES
+		virtual void            setUdpPort(unsigned)                = 0; // default: 8192
+		virtual unsigned        getUdpPort()                        = 0;
+		virtual void            setUdpOutQueueDepth(unsigned)       = 0; // default: 10
+		virtual unsigned        getUdpOutQueueDepth()               = 0;
+		virtual void            setUdpNumRxThreads(unsigned)        = 0; // default: 1
+		virtual unsigned        getUdpNumRxThreads()                = 0;
+		virtual void            setUdpPollSecs(int)                 = 0; // default: NO if SRP w/o TDEST or RSSI, 60s if no SRP
+		virtual int             getUdpPollSecs()                    = 0;
+
+		virtual void            useRssi(bool)                       = 0; // default: NO
+		virtual bool            hasRssi()                           = 0;
+
+		virtual void            useDepack(bool)                     = 0; // default: NO
+		virtual bool            hasDepack()                         = 0;
+		virtual void            setDepackOutQueueDepth(unsigned)    = 0; // default: 50
+		virtual unsigned        getDepackOutQueueDepth()            = 0;
+		virtual void            setDepackLdFrameWinSize(unsigned)   = 0; // default: 5 if no rssi, 1 if rssi
+		virtual unsigned        getDepackLdFrameWinSize()           = 0;
+		virtual void            setDepackLdFragWinSize(unsigned)    = 0; // default: 5 if no rssi, 1 if rssi
+		virtual unsigned        getDepackLdFragWinSize()            = 0;
+
+		virtual void            useSRPMux(bool)                     = 0; // default: YES if SRP, NO if no SRP
+		virtual bool            hasSRPMux()                         = 0;
+		virtual void            setSRPMuxVirtualChannel(unsigned)   = 0; // default: 0
+		virtual unsigned        getSRPMuxVirtualChannel()           = 0;
+
+		virtual void            useTDestMux(bool)                   = 0; // default: NO
+		virtual bool            hasTDestMux()                       = 0;
+		virtual void            setTDestMuxTDEST(unsigned)          = 0; // default: 0
+		virtual unsigned        getTDestMuxTDEST()                  = 0;
+		virtual void            setTDestMuxStripHeader(bool)        = 0; // default: YES if SRP, NO if no SRP
+		virtual bool            getTDestMuxStripHeader()            = 0;
+		virtual void            setTDestMuxOutQueueDepth(unsigned)  = 0; // default: 1 if SRP, 50 if no SRP
+		virtual unsigned        getTDestMuxOutQueueDepth()          = 0;
+
+		virtual void            reset()                             = 0; // reset to defaults
+
+		virtual PortBuilder     clone()                             = 0;
+	};
+
+	static PortBuilder createPortBuilder();
+
+	virtual void addAtAddress(Field child, PortBuilder bldr)        = 0;
+
+	// DEPRECATED -- use addAtAddress(Field, PortBuilder)
+	virtual void addAtAddress(Field           child,
+	                          ProtocolVersion version        = SRP_UDP_V2,
+	                          unsigned        dport          =       8192,
+	                          unsigned        timeoutUs      =       1000,
+	                          unsigned        retryCnt       =         10,
+	                          uint8_t         vc             =          0,
+	                          bool            useRssi        =      false,
+	                          int             tDest          =         -1
+	) = 0;
+
+	// DEPRECATED -- use addAtAddress(Field, PortBuilder)
+	virtual void addAtStream(Field            child,
+	                         unsigned         dport,
+	                         unsigned         timeoutUs,
+	                         unsigned         inQDepth       =         32,
+	                         unsigned         outQDepth      =         16,
+	                         unsigned         ldFrameWinSize =          4,
+	                         unsigned         ldFragWinSize  =          4,
+	                         unsigned         nUdpThreads    =          2,
+	                         bool             useRssi        =      false,
+	                         int              tDest          =         -1
+	) = 0;
 
 	virtual const char *getIpAddressString() const = 0;
 
-	static NoSsiDev create(const char *name, const char *ipaddr);
+	static NetIODev create(const char *name, const char *ipaddr);
 };
+
+class IMutableEnum;
+typedef shared_ptr<IMutableEnum> MutableEnum;
+
+class IMutableEnum : public IEnum {
+public:
+	// optional function to transform a numerical
+	// value before applying the reverse map:
+	//
+	//  read -> transform -> mapFromNumToString
+	//
+	// This can be used, e.g., to map any nonzero
+	// value to 1 for a boolean-style enum.
+	typedef uint64_t (*TransformFunc)(uint64_t in);
+
+	virtual void add(const char *enum_string, uint64_t enum_num) = 0;
+
+	static MutableEnum create(TransformFunc f);
+
+	// Create with variable argument list. The list are NULL-terminated
+	// pairs of { const char *, int }:
+	//
+	//   create( f, "honey", 0, "marmelade", 2, NULL );
+	//
+	// NOTE: the numerical values are **int**. If you need 64-bit
+	//       values then you must the 'add' method.
+	static MutableEnum create(TransformFunc f, ...);
+
+	static MutableEnum create();
+};
+
+extern Enum const enumBool;
+extern Enum const enumYesNo;
 
 class IIntField;
 typedef shared_ptr<IIntField> IntField;
@@ -130,12 +248,14 @@ public:
 		virtual Builder lsBit(int)            = 0;
 		virtual Builder mode(Mode)            = 0;
 		virtual Builder wordSwap(unsigned)    = 0;
+		virtual Builder setEnum(Enum)         = 0;
+
 		virtual Builder reset()               = 0;
 
 		virtual IntField build()              = 0;
 		virtual IntField build(const char*)   = 0;
 
-		virtual Builder clone() = 0;	
+		virtual Builder clone() = 0;
 
 		static Builder create();
 	};

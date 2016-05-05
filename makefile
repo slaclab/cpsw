@@ -1,42 +1,143 @@
 
-#HARCH=linux-x86_64
-#BOOSTINCP=-I/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/include
-#BOOSTLIBP=-L/afs/slac/g/lcls/package/boost/1.57.0/$(HARCH)/lib
+CPSW_DIR=.
 
-#include local definitions
--include mak.local
+include $(CPSW_DIR)/defs.mak
 
-LSRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
-LSRCS+= cpsw_sval.cc
-LSRCS+= cpsw_mmio_dev.cc
-LSRCS+= cpsw_mem_dev.cc
-LSRCS+= cpsw_nossi_dev.cc
-LSRCS+= cpsw_buf.cc
-LSRCS+= cpsw_proto_mod.cc
-LSRCS+= cpsw_proto_mod_depack.cc
-LSRCS+= cpsw_proto_mod_udp.cc
-LSRCS+= cpsw_proto_mod_srpmux.cc
+HEADERS = cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h
 
-TSRCS = cpsw_path_tst.cc
-TSRCS+= cpsw_sval_tst.cc
-TSRCS+= cpsw_large_tst.cc
-TSRCS+= cpsw_nossi_tst.cc
-TSRCS+= cpsw_axiv_udp_tst.cc
-TSRCS+= cpsw_buf_tst.cc
-TSRCS+= cpsw_stream_tst.cc
-TSRCS+= cpsw_srpmux_tst.cc
+cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
+cpsw_SRCS+= cpsw_entry_adapt.cc
+cpsw_SRCS+= cpsw_sval.cc
+cpsw_SRCS+= cpsw_command.cc
+cpsw_SRCS+= cpsw_mmio_dev.cc
+cpsw_SRCS+= cpsw_mem_dev.cc
+cpsw_SRCS+= cpsw_netio_dev.cc
+cpsw_SRCS+= cpsw_buf.cc
+cpsw_SRCS+= cpsw_bufq.cc
+cpsw_SRCS+= cpsw_event.cc
+cpsw_SRCS+= cpsw_enum.cc
+cpsw_SRCS+= cpsw_obj_cnt.cc
+cpsw_SRCS+= cpsw_rssi_proto.cc
+cpsw_SRCS+= cpsw_rssi.cc
+cpsw_SRCS+= cpsw_rssi_states.cc
+cpsw_SRCS+= cpsw_rssi_timer.cc
+cpsw_SRCS+= cpsw_proto_mod_depack.cc
+cpsw_SRCS+= cpsw_proto_mod_udp.cc
+cpsw_SRCS+= cpsw_proto_mod_srpmux.cc
+cpsw_SRCS+= cpsw_proto_mod_tdestmux.cc
+cpsw_SRCS+= cpsw_proto_mod_rssi.cc
+cpsw_SRCS+= cpsw_thread.cc
 
-SRCS = $(LSRCS) $(TSRCS)
+DEP_HEADERS  = $(HEADERS)
+DEP_HEADERS += cpsw_address.h
+DEP_HEADERS += cpsw_buf.h
+DEP_HEADERS += cpsw_event.h
+DEP_HEADERS += cpsw_entry_adapt.h
+DEP_HEADERS += cpsw_entry.h
+DEP_HEADERS += cpsw_enum.h
+DEP_HEADERS += cpsw_freelist.h
+DEP_HEADERS += cpsw_hub.h
+DEP_HEADERS += cpsw_mem_dev.h
+DEP_HEADERS += cpsw_mmio_dev.h
+DEP_HEADERS += cpsw_netio_dev.h
+DEP_HEADERS += cpsw_obj_cnt.h
+DEP_HEADERS += cpsw_path.h
+DEP_HEADERS += cpsw_proto_mod_depack.h
+DEP_HEADERS += cpsw_proto_mod.h
+DEP_HEADERS += cpsw_proto_mod_bytemux.h
+DEP_HEADERS += cpsw_proto_mod_srpmux.h
+DEP_HEADERS += cpsw_proto_mod_tdestmux.h
+DEP_HEADERS += cpsw_proto_mod_udp.h
+DEP_HEADERS += cpsw_rssi_proto.h
+DEP_HEADERS += cpsw_rssi.h
+DEP_HEADERS += cpsw_rssi_timer.h
+DEP_HEADERS += cpsw_proto_mod_rssi.h
+DEP_HEADERS += cpsw_shared_obj.h
+DEP_HEADERS += cpsw_sval.h
+DEP_HEADERS += cpsw_thread.h
+DEP_HEADERS += cpsw_mutex.h
+DEP_HEADERS += crc32-le-tbl-4.h
+DEP_HEADERS += udpsrv_regdefs.h
+DEP_HEADERS += udpsrv_port.h
+DEP_HEADERS += udpsrv_rssi_port.h
+DEP_HEADERS += udpsrv_util.h
 
-CXXFLAGS = -I. $(BOOSTINCP) -g -Wall -O2
-CFLAGS=-O2 -g -I.
+STATIC_LIBRARIES+=cpsw
 
-TBINS=$(patsubst %.cc,%,$(wildcard *_tst.cc))
+tstaux_SRCS+= crc32-le-tbl-4.c
+
+STATIC_LIBRARIES+=tstaux
+
+udpsrv_SRCS = udpsrv.c
+udpsrv_SRCS+= udpsrv_port.cc
+udpsrv_SRCS+= udpsrv_util.cc
+udpsrv_SRCS+= udpsrv_mod_mem.cc
+udpsrv_SRCS+= udpsrv_mod_axiprom.cc
+
+udpsrv_CXXFLAGS+= -DUDPSRV
+
+udpsrv_LIBS = tstaux cpsw pthread rt
+
+PROGRAMS   += udpsrv
+
+cpsw_path_tst_SRCS       = cpsw_path_tst.cc
+cpsw_path_tst_LIBS       = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_path_tst
+
+cpsw_shared_obj_tst_SRCS = cpsw_shared_obj_tst.cc
+cpsw_shared_obj_tst_LIBS = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_shared_obj_tst
+
+cpsw_sval_tst_SRCS       = cpsw_sval_tst.cc
+cpsw_sval_tst_LIBS       = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_sval_tst
+
+cpsw_large_tst_SRCS      = cpsw_large_tst.cc
+cpsw_large_tst_LIBS      = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_large_tst
+
+cpsw_netio_tst_SRCS      = cpsw_netio_tst.cc
+cpsw_netio_tst_LIBS      = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_netio_tst
+
+cpsw_axiv_udp_tst_SRCS   = cpsw_axiv_udp_tst.cc
+cpsw_axiv_udp_tst_LIBS   = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_axiv_udp_tst
+
+cpsw_buf_tst_SRCS        = cpsw_buf_tst.cc
+cpsw_buf_tst_LIBS        = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_buf_tst
+
+cpsw_stream_tst_SRCS     = cpsw_stream_tst.cc
+cpsw_stream_tst_LIBS     = $(CPSW_LIBS)
+cpsw_stream_tst_LIBS    += tstaux
+TESTPROGRAMS            += cpsw_stream_tst
+
+cpsw_srpmux_tst_SRCS     = cpsw_srpmux_tst.cc
+cpsw_srpmux_tst_LIBS     = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_srpmux_tst
+
+cpsw_enum_tst_SRCS       = cpsw_enum_tst.cc
+cpsw_enum_tst_LIBS       = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_enum_tst
+
+rssi_tst_SRCS            = rssi_tst.cc udpsrv_port.cc udpsrv_util.cc
+rssi_tst_LIBS            = $(CPSW_LIBS)
+TESTPROGRAMS            += rssi_tst
+
+cpsw_srpv3_large_tst_SRCS += cpsw_srpv3_large_tst.cc
+cpsw_srpv3_large_tst_LIBS += $(CPSW_LIBS)
+TESTPROGRAMS              += cpsw_srpv3_large_tst
+
+cpsw_command_tst_SRCS    = cpsw_command_tst.cc
+cpsw_command_tst_LIBS    = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_command_tst
 
 TEST_AXIV_YES=
 TEST_AXIV_NO=cpsw_axiv_udp_tst
+DISABLED_TESTPROGRAMS=$(TEST_AXIV_$(TEST_AXIV))
 
-FILTERED_TBINS=$(filter-out $(TEST_AXIV_$(TEST_AXIV)), $(TBINS))
+include $(CPSW_DIR)/rules.mak
 
 # may override for individual test targets which will be
 # executed with for all option sets, eg:
@@ -44,56 +145,20 @@ FILTERED_TBINS=$(filter-out $(TEST_AXIV_$(TEST_AXIV)), $(TBINS))
 #    some_tst_run:RUN_OPTS='' '-a -b'
 #
 # (will run once w/o opts, a second time with -a -b)
-RUN_OPTS=''
 
-# run for V2 and V1
-cpsw_nossi_tst_run:RUN_OPTS='' '-V1 -p8191'
+# run for V2 and V1 and over TDEST demuxer (v2)
+# NOTE: the t1 test will be slow as the packetized channel is scrambled
+#       by udpsrv (and this increases average roundtrip time)
+cpsw_netio_tst_run:     RUN_OPTS='' '-V1 -p8191' '-p8202 -r' '-p8203 -r -t1' '-p8190 -V3' '-p8189 -V3 -b'
 
-cpsw_srpmux_tst_run:RUN_OPTS='' '-V1 -p8191'
+cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
 
-cpsw_axiv_udp_tst_run:RUN_OPTS='' '-S 100'
+cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 30'
 
-all: tbins
+# error percentage should be >  value used for udpsrv (-L) times number
+# of fragments (-f)
+cpsw_stream_tst_run:    RUN_OPTS='-e 22' '-s8203 -R'
 
-tbins: $(TBINS)
+rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
 
-test: $(addsuffix _run,$(FILTERED_TBINS))
-	@echo "ALL TESTS PASSED"
-
-%_tst_run: %_tst
-	@for opt in $(RUN_OPTS) ; do \
-		if ./$< $${opt} ; then \
-			echo "TEST ./$< $${opt} PASSED" ; \
-		else \
-			echo "TEST ./$< $${opt} FAILED" ; \
-			exit 1; \
-		fi \
-	done
-
-cpsw_nossi_tst: udpsrv
-
-cpsw_nossi_tst_LIBS+=-lboost_system -lpthread
-cpsw_axiv_udp_tst_LIBS+=-lboost_system -lpthread
-cpsw_stream_tst_LIBS+=-lboost_system -lpthread
-cpsw_srpmux_tst_LIBS+=-lboost_system -lpthread
-
-udpsrv: udpsrv.c
-	$(CC) $(CFLAGS) -o $@ $^ -lpthread
-
-%_tst: %_tst.cc libcpsw.a
-	$(CXX) $(CXXFLAGS) -o $@ $< -L. $(BOOSTLIBP) -lcpsw $($@_LIBS)
-
-libcpsw.a: $(LSRCS:%.cc=%.o)
-	$(AR) cr $@ $^
-
-deps: $(SRCS)
-	$(CXX) $(CXXFLAGS) -MM $(SRCS) > $@
-
-clean:
-	$(RM) deps *.o *_tst udpsrv
-
--include deps
-
-# invoke with :  eval `make libpath`
-libpath:
-	@echo export LD_LIBRARY_PATH=$(BOOSTLIBP:-L%=%)
+cpsw_netio_tst: udpsrv

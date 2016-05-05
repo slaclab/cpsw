@@ -15,6 +15,7 @@ typedef shared_ptr<const CDevImpl> ConstDevImpl;
 
 struct PathEntry {
 	Address  c_p_;
+	shared_ptr<void> address_pvt_; // address may attach context to be used by read/write
 	int      idxf_, idxt_;
 	unsigned nelmsLeft_;
 

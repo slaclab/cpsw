@@ -1,44 +1,38 @@
-#ifndef CPSW_PROTO_MOD_SRP_H
-#define CPSW_PROTO_MOD_SRP_H
+#ifndef CPSW_PROTO_MOD_SRP_MUX_H
+#define CPSW_PROTO_MOD_SRP_MUX_H
 
-#include <cpsw_buf.h>
-#include <cpsw_proto_mod.h>
+#include <cpsw_proto_mod_bytemux.h>
 #include <cpsw_api_builder.h>
 
 class CProtoModSRPMux;
-typedef shared_ptr<CProtoModSRPMux> ProtoModSRPMux;
+typedef shared_ptr<CProtoModSRPMux>  ProtoModSRPMux;
 class CSRPPort;
-typedef shared_ptr<CSRPPort>     SRPPort;
+typedef shared_ptr<CSRPPort>         SRPPort;
 
-class CProtoModSRPMux : public CShObj, public CProtoModImpl {
-
-public:
-	const static int VC_MIN = 0;   // the code relies on VC occupying 1 byte
-	const static int VC_MAX = 255;
-
+class CProtoModSRPMux : public CProtoModByteMux<SRPPort> {
 private:
-
-	weak_ptr<SRPPort::element_type> downstream_[VC_MAX-VC_MIN+1];
-
-	
-	INoSsiDev::ProtocolVersion protoVersion_;	
-	
+	INetIODev::ProtocolVersion protoVersion_;	
 
 protected:
-	ProtoPort upstream_;
-
 	CProtoModSRPMux(const CProtoModSRPMux &orig, Key &k)
-	: CShObj(k),
-	  protoVersion_(orig.protoVersion_)
+	: CProtoModByteMux<SRPPort>(orig, k),
+  	  protoVersion_(orig.protoVersion_)
 	{
-		throw InternalError("Clone not implemented");
 	}
 
+	SRPPort newPort(int dest);
+
 public:
-	CProtoModSRPMux(Key &k, INoSsiDev::ProtocolVersion protoVersion)
-	: CShObj(k),
+
+	CProtoModSRPMux(Key &k, INetIODev::ProtocolVersion protoVersion)
+	: CProtoModByteMux<SRPPort>(k, "SRP VC Demux"),
 	  protoVersion_(protoVersion)
 	{
+	}
+
+	SRPPort createPort(int dest)
+	{
+		return addPort(dest, newPort(dest));
 	}
 
 	// range of bits in TID that the downstream user may occupy
@@ -52,114 +46,46 @@ public:
 		return 24;
 	}
 
-	virtual INoSsiDev::ProtocolVersion getProtoVersion()
+	virtual int extractDest(BufChain);
+
+
+	virtual INetIODev::ProtocolVersion getProtoVersion()
 	{
 		return protoVersion_;
 	}
 
-	// in case there is no downstream module
-	virtual SRPPort createPort(int vc);
-
-	virtual bool pushDown(BufChain bc, const CTimeout *rel_timeout);
-
-	virtual SRPPort findPort(int vc)
+	virtual CProtoModSRPMux *clone(Key k)
 	{
-		if ( vc < VC_MIN || vc > VC_MAX )
-			throw InvalidArgError("Virtual channel number out of range");
-		if ( downstream_[ vc - VC_MIN ].expired() )
-			return SRPPort();
-		return SRPPort( downstream_[ vc - VC_MIN ] );
+		return new CProtoModSRPMux( *this, k );
 	}
 
-	virtual CProtoModSRPMux *clone(Key k) { return new CProtoModSRPMux( *this, k ); }
-
-	virtual ~CProtoModSRPMux()
+	virtual const char *getName() const
 	{
+		return "SRP VC Demux";
 	}
+
+	virtual ~CProtoModSRPMux() {}
+
 };
 
-class CSRPPort : public CShObj, public CPortImpl {
-private:
-	int                                vc_;
-	// we use strong pointers in the upstream direction
-	// and the 'owner' represents this.
-	// Thus the 'downstream' vector in the protocol
-	// module must host weak pointers
-	ProtoModSRPMux                     owner_;
-	weak_ptr< ProtoMod::element_type > downstream_;
-
+class CSRPPort : public CByteMuxPort {
 protected:
 	CSRPPort(const CSRPPort &orig, Key k)
-	: CShObj(k),
-	  CPortImpl(orig)
+	: CByteMuxPort(orig, k)
 	{
-	}
-
-	virtual ProtoPort getSelfAsProtoPort()
-	{
-		return getSelfAs<SRPPort>();
 	}
 
 	virtual BufChain processOutput(BufChain bc);
 
-public:
-	CSRPPort(Key &k, ProtoModSRPMux owner, int vc)
-	: CShObj(k),
-	  CPortImpl(1), // queue depth 1 is enough for synchronous operations
-      vc_(vc),
-	  owner_(owner)
-	{
-	}
-
-	int getVC()
-	{
-		return vc_;
-	}
-
-protected:
-
-	friend class CProtoModSRPMux;
-
-public:
-
-	virtual ProtoMod getProtoMod()
-	{
-		return owner_;
-	}
-
-	virtual ProtoModSRPMux getProtoModAsSRPMux()
-	{
-		return owner_;
-	}
-
-	virtual INoSsiDev::ProtocolVersion getProtoVersion()
-	{
-		return ProtoModSRPMux( owner_ )->getProtoVersion();
-	}
-
-	virtual void attach(ProtoMod m)
-	{
-		if ( ! downstream_.expired() ) {
-			throw ConfigurationError("Already a module attached downstream");
-		}
-		m->attach( getSelfAs<SRPPort>() );
-		downstream_ = m;
-	}
-
-	virtual ProtoPort getUpstreamPort()
-	{
-	ProtoMod  owner = getProtoMod();
-	ProtoPort rval;
-		if ( owner )
-			rval = owner->getUpstreamPort();
-		return rval;
-	}
-
-	virtual ~CSRPPort()
-	{
-	}
-
 	virtual int iMatch(ProtoPortMatchParams *cmp);
+
+public:
+	CSRPPort(Key &k, ProtoModSRPMux owner, int dest)
+	: CByteMuxPort(k, owner, dest, 1) // queue depth 1 is enough for synchronous operations
+	{
+	}
+
+	virtual INetIODev::ProtocolVersion getProtoVersion();
 };
 
 #endif

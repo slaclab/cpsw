@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <cpsw_hub.h>
 #include <cpsw_path.h>
+#include <cpsw_obj_cnt.h>
 #include <iostream>
 
 using std::cout;
@@ -192,8 +193,8 @@ Field  c4 = IField::create("leaf1", 8);
 	printf("CPSW Error: %s\n", e.getInfo().c_str());
 	throw;
 }
-	if ( cpsw_obj_count != 1 ) {
-		fprintf(stderr,"Leaked objects: %i\n", cpsw_obj_count - 1);
+	if ( CpswObjCounter::report() ) {
+		fprintf(stderr,"FAILED -- objects leaked\n");
 		throw TestFailed();
 	}
 

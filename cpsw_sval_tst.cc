@@ -1,5 +1,6 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_hub.h>
+#include <cpsw_obj_cnt.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +45,7 @@ template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL
 uint8_t *buf = m->getBufp();
 	swp( (uint8_t*)&got, sizeof(got), nat);
 	printf("Mismatch (width %li, swap len %i, mem: %sE, host: %s, %ssigned, %s-writeback) @%i, got 0x%04"PRIx64", exp 0x%04"PRIx64"\n",
-			sizeof(EL),
+			(long int)sizeof(EL),
 			wlen,
 			LE == mem ? "L":"B",
 			nat == hostByteOrder() ? "NAT" : "INV",
@@ -386,12 +387,13 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 
 }
 
-	if ( cpsw_obj_count != 1 ) {
-		// the default 'root' device node is still alive
-		printf("CPSW object count %i (expected 1)\n", cpsw_obj_count);
+	if ( CpswObjCounter::report(true) ) {
 		throw TestFailed("Unexpected object count");
 	}
 
+} catch ( CPSWError e ) {
+	printf("CPSW Error: %s\n", e.getInfo().c_str());
+	throw;
 } catch ( TestFailed e ) {
 	printf("Test failed -- because: %s\n", e.info);
 	throw;

@@ -1,48 +1,25 @@
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 #include <cpsw_api_user.h>
 #include <cpsw_path.h>
-#include <cpsw_entry.h>
+#include <cpsw_entry_adapt.h>
 #include <cpsw_sval.h>
 #include <cpsw_address.h>
 
-using boost::dynamic_pointer_cast;
+#include <string>
 
-IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
-	:CShObj(k),
-	 ie_(ie), p_(p->clone())
-{
-	if ( p->empty() )
-		throw InvalidPathError("<EMPTY>");
+using std::string;
 
-	Address  a = CompositePathIterator( &p )->c_p_;
-
-	if ( a->getEntryImpl() != ie )
-		throw InternalError("inconsistent args passed to IEntryAdapt");
-	if ( UNKNOWN == a->getByteOrder() ) {
-		throw ConfigurationError("Configuration Error: byte-order not set");
-	}
-}
-
-template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p)
-{
-	if ( p->empty() )
-		throw InvalidArgError("Empty Path");
-
-	Address a = CompositePathIterator( &p )->c_p_;
-	shared_ptr<const typename IMPL::element_type> e = dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
-	if ( e ) {
-		ADAPT rval = CShObj::template create<ADAPT>(p, e);
-		return rval;
-	}
-	throw InterfaceNotImplementedError( p );
-}
+class CStreamAdapt;
+typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
 static uint64_t b2B(uint64_t bits)
 {
 	return (bits + 7)/8;
 }
 
-CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
+CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap, Enum enm)
 : CEntryImpl(
 		k,
 		name,
@@ -52,9 +29,14 @@ CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool i
 	ls_bit_(lsBit),
 	size_bits_(sizeBits),
 	mode_(mode),
-	wordSwap_(wordSwap)
+	wordSwap_(wordSwap),
+	enum_(enm)
 {
 unsigned byteSize = b2B(sizeBits);
+
+	if ( lsBit > 7 ) {
+		throw InvalidArgError("lsBit (bit shift) must be in 0..7");
+	}
 
 	if ( wordSwap == byteSize )
 		wordSwap = this->wordSwap_ = 0;
@@ -89,16 +71,13 @@ CScalVal_WOAdapt::CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImp
 
 ScalVal_RO IScalVal_RO::create(Path p)
 {
-ScalVal_ROAdapt rval = check_interface<ScalVal_ROAdapt, IntEntryImpl>( p );
+ScalVal_ROAdapt rval = IEntryAdapt::check_interface<ScalVal_ROAdapt, IntEntryImpl>( p );
 	if ( rval ) {
 		if ( ! (rval->getMode() & IIntField::RO) ) 
-			throw InterfaceNotImplementedError( p );
+			throw InterfaceNotImplementedError( p->toString() );
 	}
 	return rval;
 }
-
-class CStreamAdapt;
-typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
 class CStreamAdapt : public IEntryAdapt, public virtual IStream {
 public:
@@ -107,7 +86,7 @@ public:
 	{
 	}
 
-	virtual int64_t read(uint8_t *buf, size_t size, CTimeout timeout, uint64_t off)
+	virtual int64_t read(uint8_t *buf, uint64_t size, const CTimeout timeout, uint64_t off)
 	{
 		CompositePathIterator it( &p_);
 		Address cl = it->c_p_;
@@ -121,11 +100,27 @@ public:
 		return cl->read( &it, &args );
 	}
 
+	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeout)
+	{
+		CompositePathIterator it( &p_);
+		Address cl = it->c_p_;
+		CWriteArgs args;
+
+		args.cacheable_ = ie_->getCacheable();
+		args.off_       = 0;
+		args.src_       = buf;
+		args.nbytes_    = size;
+		args.msk1_      = 0;
+		args.mskn_      = 0;
+		args.timeout_   = timeout;
+		return cl->write( &it, &args );
+	}
+
 };
 
 Stream IStream::create(Path p)
 {
-StreamAdapt rval = check_interface<StreamAdapt, EntryImpl>( p );
+StreamAdapt rval = IEntryAdapt::check_interface<StreamAdapt, EntryImpl>( p );
 	return rval;
 }
 
@@ -134,10 +129,10 @@ StreamAdapt rval = check_interface<StreamAdapt, EntryImpl>( p );
 // support write-only yet.
 ScalVal_WO IScalVal_WO::create(Path p)
 {
-ScalVal_WOAdapt rval = check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
+ScalVal_WOAdapt rval = IEntryAdapt::check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
 	if ( rval ) {
 		if ( ! (rval->getMode() & IIntField::WO) ) 
-			throw InterfaceNotImplementedError( p );
+			throw InterfaceNotImplementedError( p->toString() );
 	}
 	return rval;
 }
@@ -145,10 +140,10 @@ ScalVal_WOAdapt rval = check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
 
 ScalVal IScalVal::create(Path p)
 {
-ScalVal_Adapt rval = check_interface<ScalVal_Adapt, IntEntryImpl>( p );
+ScalVal_Adapt rval = IEntryAdapt::check_interface<ScalVal_Adapt, IntEntryImpl>( p );
 	if ( rval ) {
 		if ( rval->getMode() != IIntField::RW )
-			throw InterfaceNotImplementedError( p );
+			throw InterfaceNotImplementedError( p->toString() );
 	}
 	return rval;
 }
@@ -306,12 +301,13 @@ public:
 			if ( range->size() != 1 ) {
 				throw InvalidArgError("Currently only 1-level of indices supported, sorry");
 			}
-			if ( range->getFrom() >= 0 )
-				f = range->getFrom();
 			if ( range->getTo() >= 0 )
-				t = range->getTo();
-			if ( f < (*this)->idxf_ || t > (*this)->idxt_ || t < f )
+				t = f + range->getTo();
+			if ( range->getFrom() >= 0 )
+				f += range->getFrom();
+			if ( f < (*this)->idxf_ || t > (*this)->idxt_ || t < f ) {
 				throw InvalidArgError("Array indices out of range");
+			}
 			if ( f != (*this)->idxf_ || t != (*this)->idxt_ ) {
 				suffix = IPath::create();
 				Address cl = (*this)->c_p_;
@@ -338,10 +334,11 @@ ByteOrder        targetEndian = cl->getByteOrder();
 unsigned         ibuf_nchars;
 unsigned         nelmsOnPath  = it->nelmsLeft_;
 
-	if ( nelms >= nelmsOnPath )
+	if ( nelms >= nelmsOnPath ) {
 		nelms = nelmsOnPath;
-	else
+	} else {
 		throw InvalidArgError("Invalid Argument: buffer too small");
+	}
 
 	if ( sbytes > dbytes )
 		ibuf_nchars = sbytes * nelms;
@@ -445,6 +442,34 @@ unsigned         nelmsOnPath  = it->nelmsLeft_;
 		}
 	}
 	return nelms;
+}
+
+unsigned CScalVal_ROAdapt::getVal(CString *strs, unsigned nelms, IndexRange *range)
+{
+uint64_t buf[nelms];
+unsigned got,i;
+Enum     enm = getEnum();
+
+	got = getVal(buf, nelms, range);
+
+	if ( enm ) {
+		for ( i=0; i < got; i++ ) {
+			IEnum::Item item = enm->map(buf[i]);
+			strs[i] = item.first;
+		}
+	} else {
+		char strbuf[100];
+		const char *fmt = isSigned() ? "%" PRIi64 : "%" PRIu64;
+		strbuf[sizeof(strbuf)-1] = 0;
+		for ( i=0; i < got; i++ ) {
+			snprintf(strbuf, sizeof(strbuf) - 1, fmt, buf[i]);
+			strs[i] = make_shared<string>( strbuf );
+		}
+	}
+	while ( i < nelms )
+		strs[i].reset();
+
+	return got;
 }
 
 #ifdef SVAL_DEBUG
@@ -595,33 +620,70 @@ prib("byte-swapped", obufp + oidx);
 
 	return nelms;
 }
-	
-unsigned CScalVal_WOAdapt::setVal(uint64_t  v, IndexRange *r)
+
+unsigned CScalVal_WOAdapt::setVal(const char* *strs, unsigned nelms, IndexRange *range)
 {
-unsigned nelms;
+uint64_t buf[nelms];
+unsigned i;
+Enum     enm = getEnum();
 
+	if ( enm ) {
+		for ( i=0; i<nelms; i++ ) {
+			IEnum::Item item = enm->map( strs[i] );
+			buf[i] = item.second;
+		}
+	} else {
+		const char *fmt = isSigned() ? "%"SCNi64 : "%"SCNu64;
+		for ( i=0; i<nelms; i++ ) {
+			if ( 1 != sscanf(strs[i],fmt,&buf[i]) ) {
+				throw ConversionError("CScalVal_RO::setVal -- unable to scan string into number");
+			}
+		}
+	}
 
+	return setVal(buf, nelms, range);
+}
+
+static unsigned nelmsFromIdx(IndexRange *r, Path p, unsigned nelms)
+{
 	if ( r ) {
 		int f = r->getFrom();
 		int t = r->getTo();
 
-		if ( f < 0 && t < 0 ) {
-			nelms = getNelms();
-		} else {
-			CompositePathIterator it( &p_ );
+		if ( f >= 0 || t >= 0 ) {
+			CompositePathIterator it( &p );
 			if ( f < 0 )
 				f = it->idxf_; 
+			else
+				f = it->idxf_ + f;
 			if ( t < 0 )
 				t = it->idxt_; 
+			else
+				t = it->idxf_ + t;
 			t = t - f + 1;
 			int d = it.getNelmsRight();
 			if ( t >= 0 && t < d )
 				d = t;
 			nelms = it.getNelmsLeft() * d;
 		}
-	} else {
-		nelms = getNelms();
 	}
+	return nelms;
+}
+
+unsigned CScalVal_WOAdapt::setVal(const char *v, IndexRange *r)
+{
+unsigned nelms = nelmsFromIdx(r, p_, getNelms());
+const char *arg[nelms];
+unsigned i;
+	for (i=0; i<nelms; i++ )
+		arg[i] = v;
+
+	return setVal(arg, nelms, r);
+}
+	
+unsigned CScalVal_WOAdapt::setVal(uint64_t  v, IndexRange *r)
+{
+unsigned nelms = nelmsFromIdx(r, p_, getNelms());
 
 	// since reads may be collapsed at a lower layer we simply build an array here
 	if ( getSize() <= sizeof(uint8_t) ) {
@@ -694,6 +756,12 @@ IIntField::Builder CIntEntryImpl::CBuilder::wordSwap(unsigned wordSwap)
 	return getSelfAs<BuilderImpl>();
 }
 
+IIntField::Builder CIntEntryImpl::CBuilder::setEnum(Enum enm)
+{
+	enum_ = enm;
+	return getSelfAs<BuilderImpl>();
+}
+
 IIntField::Builder CIntEntryImpl::CBuilder::reset()
 {
 	init();
@@ -717,7 +785,7 @@ IntField CIntEntryImpl::CBuilder::build()
 
 IntField CIntEntryImpl::CBuilder::build(const char *name)
 {
-	return CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_);
+	return CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_, enum_);
 }
 
 IIntField::Builder  CIntEntryImpl::CBuilder::create()

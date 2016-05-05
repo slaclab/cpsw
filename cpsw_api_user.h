@@ -6,6 +6,7 @@
 #include <string.h>
 #include <boost/shared_ptr.hpp>
 #include <vector>
+#include <string>
 
 using std::list;
 using boost::shared_ptr;
@@ -17,6 +18,7 @@ class IPath;
 class IScalVal_RO;
 class IScalVal_WO;
 class IScalVal;
+class IEnum;
 typedef shared_ptr<const IHub>   Hub;
 typedef shared_ptr<const IChild> Child;
 typedef shared_ptr<const IEntry> Entry;
@@ -24,6 +26,8 @@ typedef shared_ptr<IPath>        Path;
 typedef shared_ptr<IScalVal_RO>  ScalVal_RO;
 typedef shared_ptr<IScalVal_WO>  ScalVal_WO;
 typedef shared_ptr<IScalVal>     ScalVal;
+typedef shared_ptr<IEnum>        Enum;
+typedef shared_ptr<const std::string> CString;
 class IEventListener;
 class IEventSource;
 typedef shared_ptr<IEventSource> EventSource;
@@ -95,9 +99,10 @@ public:
 	// make a copy of this path
 	virtual Path        clone()                const = 0;
 
+	// count number of array elements addressed by this path
 	virtual unsigned    getNelms()             const = 0;
 
-	// create an empty path
+	// create a path
 	static  Path        create();             // absolute; starting at root
 	static  Path        create(const char*);  // absolute; starting at root
 	static  Path        create(Hub);          // relative; starting at passed arg
@@ -116,6 +121,50 @@ public:
 	virtual Children   getChildren()               const = 0;
 };
 
+// Enum class
+class IEnum {
+public:
+	typedef std::pair< CString, uint64_t>                 Item;
+	typedef std::iterator<std::input_iterator_tag, Item>  IteratorBase;
+
+	class IIterator {
+	public:
+		virtual IIterator    & operator++()               = 0;
+		virtual Item           operator*()                = 0;
+		virtual bool           operator==(IIterator *)    = 0;
+		virtual               ~IIterator() {}
+	};
+
+	class iterator : public IteratorBase {
+		private:
+			char rawmem[32];
+
+			IIterator *ifp;
+		public:
+			iterator(const IEnum*,bool);
+			iterator(const iterator&);
+			iterator();
+			iterator     & operator=(const iterator&);
+
+			iterator     & operator++()        { ++(*ifp); return *this;   }
+			Item           operator*()         { return *(*ifp);           }
+			bool operator==(const iterator &b) { return (*ifp)==b.ifp;     }
+			bool operator!=(const iterator &b) { return ! ((*ifp)==b.ifp); }
+
+			~iterator() { ifp->~IIterator(); }
+	};
+
+	virtual iterator begin()       const = 0;
+	virtual iterator end()         const = 0;
+
+	virtual unsigned getNelms()    const = 0;
+
+	virtual Item map(uint64_t)           = 0;
+	virtual Item map(const char *)       = 0;
+
+	virtual ~IEnum() {}
+};
+
 // Base interface to integral values
 class IScalVal_Base : public virtual IEntry {
 public:
@@ -123,6 +172,7 @@ public:
 	virtual uint64_t getSizeBits()      const = 0; // size in bits
 	virtual bool     isSigned()         const = 0;
 	virtual Path     getPath()          const = 0;
+	virtual Enum     getEnum()          const = 0;
 	virtual ~IScalVal_Base () {}
 };
 
@@ -132,18 +182,18 @@ public:
 // Assume, e.g., that ScalVal 'v' refers to an array with 100
 // elements:
 //
-//    v = IScalVal::create( path_prefix->findByName( "something[400-500]" ) );
+//    v = IScalVal::create( path_prefix->findByName( "something[400-499]" ) );
 //
 // If you want to read just element 456 then you can
 //
-//    IndexRange rng(456);
+//    IndexRange rng(56);
 //
 //    v->getVal( buf, 1, &rng );
 //
 // IndexRange also allows for easy iteration through an array:
 // Assume you want to read in chunks of 10 elements:
 //
-//    IndexRange rng(400, 409);
+//    IndexRange rng(0, 9);
 //
 //    for (unsigned i=0; i<10; i++, ++rng) { // prefix increment is more efficient
 //       v->getVal( buf, 10, &rng );
@@ -158,7 +208,7 @@ public:
 //   - For now only the rightmost array can be sliced. Support for multiple
 //     dimensions can be added in the future.
 //
-//     E.g., if you have a ScalVal:  "container[0-3]/value[0-100]"
+//     E.g., if you have a ScalVal:  "container[0-3]/value[0-99]"
 //     then you can only slice 'value'.
 //
 class IndexRange : public std::vector< std::pair<int,int> > {
@@ -188,10 +238,11 @@ public:
 	// NOTE: nelms must be large enough to hold ALL values addressed by the
 	//       underlying Path. The range of indices may be reduced using the
 	//       'range' argument.
-	virtual unsigned getVal(uint64_t *p, unsigned nelms, IndexRange *range = 0)      = 0;
-	virtual unsigned getVal(uint32_t *p, unsigned nelms, IndexRange *range = 0)      = 0;
-	virtual unsigned getVal(uint16_t *p, unsigned nelms, IndexRange *range = 0)      = 0;
-	virtual unsigned getVal(uint8_t  *p, unsigned nelms, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint64_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint32_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint16_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(uint8_t  *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
+	virtual unsigned getVal(CString  *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
 	virtual ~IScalVal_RO () {}
 
 	// Throws an exception if path doesn't point to an object which supports this interface
@@ -205,11 +256,13 @@ public:
 	// NOTE: nelms must be large enough to hold ALL values addressed by the
 	//       underlying Path. The range of indices may be reduced using the
 	//       'range' argument.
-	virtual unsigned setVal(uint64_t *p, unsigned nelms, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint32_t *p, unsigned nelms, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint16_t *p, unsigned nelms, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint8_t  *p, unsigned nelms, IndexRange *range = 0) = 0;
-	virtual unsigned setVal(uint64_t  v, IndexRange *range = 0) = 0; // set all elements to same value
+	virtual unsigned setVal(uint64_t    *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint32_t    *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint16_t    *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint8_t     *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(const char* *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(uint64_t     v, IndexRange *range = 0) = 0; // set all elements to same value
+	virtual unsigned setVal(const char*  v, IndexRange *range = 0) = 0; // set all elements to same value
 	virtual ~IScalVal_WO () {}
 
 	// Throws an exception if path doesn't point to an object which supports this interface
@@ -236,50 +289,28 @@ public:
 //   CTimeout()
 //      the default constructor builds an INDEFINITE timeout
 //
-// and there are operators '+=' and '-='
+// and there are operators '+=',  '-=', '<'
 //
 #include <cpsw_api_timeout.h>
-
-static const CTimeout TIMEOUT_NONE( 0, 0 );
-static const CTimeout TIMEOUT_INDEFINITE;
 
 
 class IStream {
 public:
-	virtual int64_t read(uint8_t *buf, size_t size, CTimeout timeout = TIMEOUT_INDEFINITE, uint64_t off = 0) = 0;
+	virtual int64_t read(uint8_t *buf, uint64_t size,  const CTimeout timeout = TIMEOUT_INDEFINITE, uint64_t off = 0) = 0;
+
+	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeout = TIMEOUT_NONE) = 0;
 
 	static Stream create(Path p);
 };
 
-// Event AKA Interrupt interface
+class ICommand;
+typedef shared_ptr<ICommand> Command;
 
-class IEventSource {
+class ICommand: public virtual IEntry {
 public:
-	typedef uint32_t EventID;
-	class IEvent {
-		public:
-		virtual EventID getID()                                = 0;
-		virtual size_t  getPayloadSize()                       = 0;
-		virtual size_t  getPayload(uint8_t *buf, size_t bufsz) = 0;
-		virtual ~IEvent() {};
-	};
-	// NOTE: the user must ensure an EventListener is removed before
-	//       it is destroyed since we don't oblige the user to provide
-	//       a shared pointer here.
-	virtual void addListener(EventID,    IEventListener *) = 0;
-	virtual void removeListener(EventID, IEventListener *) = 0;
-	virtual ~IEventSource() {}
-
-	static EventSource create(Path p);
+        virtual void execute() = 0;
+        static Command create(Path p);
 };
 
-class IEventListener {
-public:
-	// the 'notify' callback must not hold on to a reference
-	// to the Event object - it becomes invalid upon return
-	// from notify.
-	virtual void notify(IEventSource::IEvent *e) = 0;
-	virtual ~IEventListener() {}
-};
 
 #endif

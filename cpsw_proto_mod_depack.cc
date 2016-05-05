@@ -1,24 +1,25 @@
 #include <cpsw_proto_mod_depack.h>
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
+#include <cpsw_thread.h>
 
 #include <stdio.h>
 #include <errno.h>
-#include <pthread.h>
 
-#define DEPACK_DEBUG
+//#define DEPACK_DEBUG
 
+#define RSSI_PAYLOAD 1024
 
-static unsigned getNum(uint8_t *p, unsigned bit_offset, unsigned bit_size)
+static uint64_t getNum(uint8_t *p, unsigned bit_offset, unsigned bit_size)
 {
-int i;
+int      i;
 unsigned shift = bit_offset % 8;
 unsigned rval;
 
-	p += bit_offset/8;
-
 	if ( bit_size == 0 )
 		return 0;
+
+	p += bit_offset/8;
 
 	// protocol uses little-endian representation
 	rval = 0;
@@ -33,6 +34,50 @@ unsigned rval;
 	return rval;
 }
 
+static void setNum(uint8_t *p, unsigned bit_offset, unsigned bit_size, uint64_t val)
+{
+int      i,l;
+unsigned shift = bit_offset % 8;
+uint8_t  msk1, mskn;
+
+	if ( bit_size == 0 )
+		return;
+
+	p += bit_offset/8;
+
+	// mask of bits to preserve in the first and last word, respectively.
+
+	l = (shift + bit_size + 7)/8;
+
+	// l is > 0
+
+	msk1 = (1 << shift) - 1;
+    mskn = ~ ( (1 << ((shift + bit_size) % 8)) - 1 );
+	if ( mskn == 0xff )
+		mskn = 0x00;
+
+	if ( 1 == l ) {
+		msk1 |= mskn;
+	}
+
+	val <<= shift;
+
+	// protocol uses little-endian representation
+
+	// l cannot be 0 here
+	p[0] = (val & ~msk1) | (p[0] & msk1);
+	val >>= 8;
+
+	for ( i = 1; i < l-1; i++ ) {
+		p[i] = val;
+		val >>= 8;
+	}
+
+	if ( i < l ) {
+		p[i] = (val & ~mskn) | (p[i] & mskn);
+	}
+}
+
 bool CAxisFrameHeader::parse(uint8_t *hdrBase, size_t hdrSize)
 {
 	if ( hdrSize  <  (VERSION_BIT_OFFSET + VERSION_BIT_SIZE + 7)/8 )
@@ -41,7 +86,7 @@ bool CAxisFrameHeader::parse(uint8_t *hdrBase, size_t hdrSize)
 	vers_ = getNum( hdrBase, VERSION_BIT_OFFSET, VERSION_BIT_SIZE );
 
 	if ( vers_ != VERSION_0 )
-		return false; // we don't know what size the header would be not its format
+		return false; // we don't know what size the header would be nor its format
 
 	if ( hdrSize < getSize() )
 		return false;
@@ -49,12 +94,29 @@ bool CAxisFrameHeader::parse(uint8_t *hdrBase, size_t hdrSize)
 	frameNo_ = getNum( hdrBase, FRAME_NO_BIT_OFFSET, FRAME_NO_BIT_SIZE );
 	fragNo_  = getNum( hdrBase, FRAG_NO_BIT_OFFSET,  FRAG_NO_BIT_SIZE  );
 
+	tDest_   = getNum( hdrBase, TDEST_BIT_OFFSET,    TDEST_BIT_SIZE );
+	tId_     = getNum( hdrBase, TID_BIT_OFFSET,      TID_BIT_SIZE );
+	tUsr1_   = getNum( hdrBase, TUSR1_BIT_OFFSET,    TUSR1_BIT_SIZE );
+
 	return true;
 }
 
+void CAxisFrameHeader::insert(uint8_t *hdrBase, size_t hdrSize)
+{
+	if ( hdrSize < getSize() )
+		throw InvalidArgError("Insufficient space for header");
+	setNum( hdrBase, VERSION_BIT_OFFSET,  VERSION_BIT_SIZE,  vers_    );
+	setNum( hdrBase, FRAME_NO_BIT_OFFSET, FRAME_NO_BIT_SIZE, frameNo_ );
+	setNum( hdrBase, FRAG_NO_BIT_OFFSET,  FRAG_NO_BIT_SIZE,  fragNo_  );
+	setNum( hdrBase, TDEST_BIT_OFFSET,    TDEST_BIT_SIZE,    tDest_   );
+	setNum( hdrBase, TID_BIT_OFFSET,      TID_BIT_SIZE,      tId_     );
+	setNum( hdrBase, TUSR1_BIT_OFFSET,    TUSR1_BIT_SIZE,    tUsr1_   );
+}
 
-CProtoModDepack::CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, uint64_t timeoutUS)
+
+CProtoModDepack::CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, CTimeout timeout)
 	: CProtoMod(k, oqueueDepth),
+	  CRunnable("'Depacketizer' protocol module"),
 	  badHeaderDrops_(0),
 	  oldFrameDrops_(0),
 	  newFrameDrops_(0),
@@ -71,19 +133,28 @@ CProtoModDepack::CProtoModDepack(Key &k, CBufQueueBase::size_type oqueueDepth, u
 	  emptyDrops_(0),
 	  timedOutFrames_(0),
 	  pastLastDrops_(0),
-	  timeout_( timeoutUS ),
+	  timeout_( timeout ),
 	  frameWinSize_( 1<<ldFrameWinSize ),
 	  fragWinSize_( 1<<ldFragWinSize ),
 	  oldestFrame_( CFrame::NO_FRAME ),
 	  frameWin_( frameWinSize_, CFrame(fragWinSize_) )
 {
-	if ( pthread_create( &tid_, 0, pthreadBody, this ) ) {
-		throw IOError("unable to create thread ", errno);
-	}
 }
+
+void CProtoModDepack::modStartup()
+{
+	threadStart();
+}
+
+void CProtoModDepack::modShutdown()
+{
+	threadStop();
+}
+
 
 CProtoModDepack::CProtoModDepack(CProtoModDepack &orig, Key &k)
 	: CProtoMod(orig, k),
+	  CRunnable(orig),
 	  badHeaderDrops_(0),
 	  oldFrameDrops_(0),
 	  newFrameDrops_(0),
@@ -106,48 +177,32 @@ CProtoModDepack::CProtoModDepack(CProtoModDepack &orig, Key &k)
 	  oldestFrame_( CFrame::NO_FRAME ),
 	  frameWin_( frameWinSize_, CFrame(fragWinSize_) )
 {
-	if ( pthread_create( &tid_, 0, pthreadBody, this ) ) {
-		throw IOError("unable to create thread ", errno);
-	}
 }
 
 
 CProtoModDepack::~CProtoModDepack()
 {
-void *ign;
-	pthread_cancel( tid_ );
-	pthread_join( tid_ , &ign );
+	threadStop();
 }
 
-void * CProtoModDepack::pthreadBody(void *arg)
-{
-CProtoModDepack *obj = static_cast<CProtoModDepack*>( arg );
-	try {
-		obj->threadBody();
-	} catch ( CPSWError e ) {
-		fprintf(stderr,"CPSW Error (CUdpHandlerThread): %s\n", e.getInfo().c_str());
-		throw;
-	}
-	return 0;
-}
-
-void CProtoModDepack::threadBody()
+void * CProtoModDepack::threadBody()
 {
 	try {
 		while ( 1 ) {
-			CFrame *frame  = &frameWin_[ toFrameIdx( oldestFrame_ ) ];
+			CFrame *frame  = CFrame::NO_FRAME == oldestFrame_ ? NULL : &frameWin_[ toFrameIdx( oldestFrame_ ) ];
 #ifdef DEPACK_DEBUG
 printf("depack: trying to pop\n");
 #endif
+
 			// wait for new datagram
-			BufChain bufch = upstream_->pop( frame->running_ ? & frame->timeout_ : 0, IProtoPort::ABS_TIMEOUT );
+			BufChain bufch = upstream_->pop( frame && frame->running_ ? & frame->timeout_ : 0, IProtoPort::ABS_TIMEOUT );
 
 			if ( ! bufch ) {
 #ifdef DEPACK_DEBUG
 {
 CTimeout del;
 	clock_gettime( CLOCK_REALTIME, &del.tv_ );
-	if ( frame->running_ )
+	if ( frame && frame->running_ )
 		del -= frame->timeout_;
 printf("Depack input timeout (late: %ld.%ld)\n", del.tv_.tv_sec, del.tv_.tv_nsec/1000);
 }
@@ -170,6 +225,7 @@ printf("Depack input timeout (late: %ld.%ld)\n", del.tv_.tv_sec, del.tv_.tv_nsec
 	} catch ( IntrError e ) {
 		// signal received; terminate...
 	}
+	return NULL;
 }
 
 void CProtoModDepack::frameSync(CAxisFrameHeader *hdr_p)
@@ -197,18 +253,30 @@ CAxisFrameHeader hdr;
 		return;
 	}
 
+#ifdef DEPACK_DEBUG
+printf("%s frame %d (frag %d; oldest %d)\n",
+		hdr.getFrameNo() < oldestFrame_ && (CFrame::NO_FRAME != oldestFrame_ || 0 != hdr.getFragNo()) ? "Dropping" : "Accepting",
+		hdr.getFrameNo(),
+		hdr.getFragNo(),
+		oldestFrame_
+);
+#endif
+
 	// if there is a 'string' of frames that falls outside of the window
 	// (which could happen during a 'resync') then we should readjust
 	// the window...
 
 	if ( hdr.getFrameNo() < oldestFrame_ ) {
-		oldFrameDrops_++;
-		frameSync( &hdr );
-#ifdef DEPACK_DEBUG
-printf("Dropping old frame %d (frag %d; oldest %d)\n", hdr.getFrameNo(), hdr.getFragNo(), oldestFrame_);
-#endif
-		return;
+		if ( CFrame::NO_FRAME == oldestFrame_ && 0 == hdr.getFragNo() ) {
+			// special case - if this the first fragment then we accept 
+			oldestFrame_ = hdr.getFrameNo();
+		} else {
+			oldFrameDrops_++;
+			frameSync( &hdr );
+			return;
+		}
 	}
+	// at this point oldestFrame_ cannot be NO_FRAME
 
 	FrameID relOff = CAxisFrameHeader::moduloFrameSz( hdr.getFrameNo() - oldestFrame_ );
 
@@ -329,8 +397,16 @@ printf("Last frag %d\n", frame->lastFrag_);
 
 bool CProtoModDepack::releaseOldestFrame(bool onlyComplete)
 {
-unsigned frameIdx      = oldestFrame_ & (frameWinSize_ - 1 );
-CFrame  *frame         = &frameWin_[frameIdx];
+
+	if ( CFrame::NO_FRAME == oldestFrame_ )
+		return false;
+
+	unsigned frameIdx      = oldestFrame_ & (frameWinSize_ - 1 );
+	CFrame  *frame         = &frameWin_[frameIdx];
+
+#ifdef DEPACK_DEBUG
+	printf("releaseOldestFrame onlyComplete %d, isComplete %d, running %d\n", onlyComplete, frame->isComplete(), frame->running_);
+#endif
 
 	if ( ( onlyComplete && ! frame->isComplete() ) || ! frame->running_ )
 		return false;
@@ -344,10 +420,19 @@ CFrame  *frame         = &frameWin_[frameIdx];
 	frame->release( 0 );
 
 	if ( isComplete ) {
+#ifdef DEPACK_DEBUG
+	printf("PUSHDOWN FRAME %d", frame->frameID_);
+#endif
 		unsigned l = completeFrame->getLen();
 		if ( ! pushDown( completeFrame, &TIMEOUT_INDEFINITE ) ) {
+#ifdef DEPACK_DEBUG
+	printf(" => DROPPED\n");
+#endif
 			oqueueFullDrops_++;
 		} else {
+#ifdef DEPACK_DEBUG
+	printf("\n");
+#endif
 			fragsAccepted_  += l;
 			framesAccepted_ += 1;
 		}
@@ -367,6 +452,35 @@ CFrame  *frame         = &frameWin_[frameIdx];
 	return true;
 }
 
+BufChain CProtoModDepack::processOutput(BufChain bc)
+{
+#define SAFETY 16 // in case there are other protocols
+
+Buf    b;
+
+	// Insert new frame and frag numbers into the header supplied by upper layer
+
+	b = bc->getHead();
+
+CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
+
+	hdr.setFrameNo( frameIdGen_.newFrameID() );
+	hdr.setFragNo ( 0 );
+	hdr.setSOF(true);
+
+	hdr.insert( b->getPayload(), hdr.getSize() );
+
+	b = bc->getTail();
+
+	hdr.setTailEOF( b->getPayload() + b->getSize() - hdr.getTailSize(), true );
+
+	// ugly hack - limit to ethernet RSSI payload
+	if ( bc->getSize() > RSSI_PAYLOAD - SAFETY )
+		throw InvalidArgError("Outgoing data cannot be fragmented");
+
+	return bc;
+}
+
 void CProtoModDepack::releaseFrames(bool onlyComplete)
 {
 	while ( releaseOldestFrame( onlyComplete ) )
@@ -383,10 +497,21 @@ struct timespec now;
 	if ( clock_gettime( CLOCK_REALTIME, &now ) ) 
 		throw InternalError("clock_gettime failed");
 
-	frame->timeout_ = getAbsTimeout( &timeout_ );
+	frame->timeout_ = upstream_->getAbsTimeoutPop( &timeout_ );
 
 	frame->running_ = true;
 }
+
+int CProtoModDepack::iMatch(ProtoPortMatchParams *cmp)
+{
+	cmp->haveDepack_.handledBy_ = getProtoMod();
+	if ( cmp->haveDepack_.doMatch_ ) {
+		cmp->haveDepack_.matchedBy_ = getSelfAs<ProtoModDepack>();
+		return 1;
+	}
+	return 0;
+}
+
 
 void CProtoModDepack::dumpInfo(FILE *f)
 {

@@ -4,6 +4,10 @@
 
 #include <cpsw_buf.h>
 
+#include <string>
+
+using std::string;
+
 #define NBUF 4
 
 class TestFailed {
@@ -50,7 +54,7 @@ unsigned i;
 
 try {
 	for ( i=0; i<NBUF; i++ )
-		b[i] = IBuf::getBuf();
+		b[i] = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 
 	if ( 0 != b[0]->getSize() )
 		throw TestFailed("initial size mismatch");
@@ -125,9 +129,9 @@ try {
 		throw TestFailed("final buffer count wrong");
 
 	// check release of a chain:
-	b[0] = IBuf::getBuf();
+	b[0] = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 	for ( i=1; i<NBUF; i++ )
-		IBuf::getBuf()->after( b[0] );
+		IBuf::getBuf( IBuf::CAPA_ETH_BIG )->after( b[0] );
 	Buf p;
 	for ( p = b[0], i=0; p; p = p->getNext(), i++ ) {
 		p->getPayload()[0] = (uint8_t)i;
@@ -155,8 +159,8 @@ try {
 
 	// test chains
 	BufChain ch0 = IBufChain::create();
-	b[0] = ch0->createAtHead();
-	b[1] = ch0->createAtTail();
+	b[0] = ch0->createAtHead( IBuf::CAPA_MAX );
+	b[1] = ch0->createAtTail( IBuf::CAPA_MAX );
 
 	size_t s_orig = ch0->getSize();
 
@@ -175,14 +179,14 @@ try {
 	if ( ch0->getSize() != s_orig + 20 + 40 -13 )
 		throw TestFailed("buffer size test 1 failed");
 
-	b[2] = IBuf::getBuf();
+	b[2] = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 	b[2]->setSize( 53 );
 
 	b[2]->before( b[0] );
 	if ( ch0->getHead() != b[2] )
 		throw TestFailed("inserting buffer at head failed");
 
-	b[3] = IBuf::getBuf();
+	b[3] = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 	b[3]->setSize( 127 );
 
 	b[3]->after( b[1] );
@@ -261,7 +265,7 @@ try {
 
 	ch0 = IBufChain::create();
 	// exercise insert/extract
-	unsigned NN = 4*ch0->createAtTail()->getCapacity();
+	unsigned NN = 4*ch0->createAtTail( IBuf::CAPA_MAX )->getCapacity();
 	uint32_t rawmemi [NN];
 	uint32_t rawmemo [4*NN];
 
