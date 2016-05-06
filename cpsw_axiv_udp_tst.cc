@@ -235,6 +235,7 @@ Stream strm = IStream::create( stats->getRoot()->findByName("dataSource") );
 	return 0;
 }
 
+#if 0
 static void testNUL(NetIODev root)
 {
 INetIODev::PortBuilder bldr( root->createPortBuilder() );
@@ -264,6 +265,7 @@ int64_t got;
 	printf("\n");
 
 }
+#endif
 
 static void testBram(ScalVal bram)
 {
@@ -715,8 +717,6 @@ uint16_t u16;
 	if ( tDestMEM >= 0 ) {
 		ScalVal bram( IScalVal::create( root->findByName("axi4/bram") ) );
 		testBram( bram );
-	} else if ( vers == 3 ) {
-		testNUL(root);
 	}
 
 
