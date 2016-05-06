@@ -285,6 +285,19 @@ unsigned o,l,i;
 		throw TestFailed();
 	}
 
+	for ( i=0; i<nelms; i++ ) {
+		oval[i] = (uint8_t)(rand()>>16);
+	}
+	memset(ival, 0x00, sizeof(ival[0])*nelms );
+	bram->setVal( oval, nelms );
+	bram->getVal( ival, nelms );
+	if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
+		fprintf(stderr,"Readback of BRAM (random-data) FAILED\n");
+		throw TestFailed();
+	}
+
+
+
 	for ( o=0; o<sizeof(offs)/sizeof(offs[0]); o++ ) {
 		for ( l=0; l<sizeof(lens)/sizeof(lens[0]); l++ ) {
 			IndexRange r(offs[o], offs[o]+lens[l] - 1);
