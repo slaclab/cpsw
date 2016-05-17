@@ -268,4 +268,28 @@ public:
 	static IntField create(const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_Signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP);
 };
 
+class ISequenceCommand;
+typedef shared_ptr<ISequenceCommand> SequenceCommand;
+
+class ISequenceCommand: public virtual IField {
+public:
+	// Create a SequenceCommand
+	//   This object takes a vector of entryNames and a vector of values
+	//   When executed by the user it steps through and sets each entry to the
+	//   associated value.
+	//
+	//   entryPath vector of strings of paths to IntField/SequenceCommand or "usleep"
+	//   values is the associated value to put
+	//
+	//   Ex create a command that sleeps for 1 second and then puts 0xdeadbeef in val:
+	//       std::vector<std::string> names;
+	//       std::vector<uint64_t> values;
+	//       names.push_back( "usleep" );
+	//       values.push_back(1000000);
+	//       names.push_back( "val" );
+	//       values.push_back( (uint64_t)0xdeadbeef );
+	//       ISequenceCommand::create("cmd", c_names, c_values);
+	static SequenceCommand create(const char* name, std::vector<std::string> entryPath, std::vector<uint64_t> values);
+}; 
+
 #endif

@@ -7,6 +7,9 @@
 class CMyCommandImpl;
 typedef shared_ptr<CMyCommandImpl> MyCommandImpl;
 
+// Context for CMyCommandImpl; we want to keep
+// a ScalVal around for re-use every time the
+// command executes.
 class CMyContext : public CCommandImplContext {
 private:
 	ScalVal theVal_;
@@ -25,11 +28,15 @@ public:
 
 class CMyCommandImpl : public CCommandImpl {
 public:
+
+	// make a new CMyContext
 	virtual CommandImplContext createContext(Path pParent) const
 	{
 		return make_shared<CMyContext>(pParent);
 	}
 
+	// execute the command using the ScalVal stored
+	// in CMyContext
 	virtual void executeCommand(CommandImplContext context) const
 	{
 		shared_ptr<CMyContext> myContext( static_pointer_cast<CMyContext>(context) );
@@ -61,12 +68,20 @@ MMIODev  mmio( IMMIODev::create( "mmio", MEM_SIZE) );
 	mmio->addAtAddress( IIntField::create("val" , 32     ), REGBASE+REG_SCR_OFF );
 	mmio->addAtAddress( CMyCommandImpl::create("cmd"), 0 );
 
+	std::vector<std::string> c_names;
+	std::vector<uint64_t> c_values;
+	c_names.push_back( "usleep" );
+	c_values.push_back(1000);
+	c_names.push_back( "val1" );
+	c_values.push_back( (uint64_t)0x1 );
+	mmio->addAtAddress( ISequenceCommand::create("seqCmd", c_names, c_values), 0 );
+
 	root->addAtAddress( mmio, INetIODev::createPortBuilder() );
 
 	ScalVal val( IScalVal::create( root->findByName("mmio/val") ) );
 
 	Command cmd( ICommand::create( root->findByName("mmio/cmd") ) );
-
+	Command seqCmd( ICommand::create( root->findByName("mmio/seqCmd") ) );
 	uint64_t v = -1ULL;
 
 	val->setVal( (uint64_t)0 );
@@ -79,6 +94,13 @@ MMIODev  mmio( IMMIODev::create( "mmio", MEM_SIZE) );
 
 	val->getVal( &v, 1 );
 	if ( v != 0xdeadbeef ) {
+		throw TestFailed();
+	}
+
+	seqCmd->execute();
+
+	val->getVal( &v, 1 );
+	if ( v != 0x1 ) {
 		throw TestFailed();
 	}
 

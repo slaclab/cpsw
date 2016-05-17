@@ -49,3 +49,101 @@ Command CCommand_Adapt::create(Path p)
 	return comm;
 }
 
+SequenceCommand ISequenceCommand::create(const char* name, std::vector<std::string> entryPath, std::vector<uint64_t> values)
+{
+	return CShObj::create<SequenceCommandImpl>( name, entryPath, values );
+}
+
+CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, std::vector<std::string> names, std::vector<uint64_t> values):
+	CCommandImpl(k, name),
+	names_(names),
+	values_(values)
+{
+
+}
+
+CommandImplContext CSequenceCommandImpl::createContext(Path pParent) const
+{
+	return make_shared<CSequenceCommandContext>(pParent, names_, values_);
+}
+
+void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
+{
+	shared_ptr<CSequenceCommandContext> myContext( static_pointer_cast<CSequenceCommandContext>(context) );
+	myContext->executeSequence(names_, values_);
+}
+
+
+CSequenceCommandContext::CSequenceCommandContext(Path p, std::vector<std::string> names, std::vector<uint64_t> values):
+	CCommandImplContext( p )
+{
+	ScalVal s;
+	/* Check that we have a valid command set or throw an error */
+	try {
+		for( std::vector<std::string>::iterator it = names.begin(); it != names.end(); ++it )
+		{
+			if( (*it).compare(0, 6, "usleep") == 0 ) {
+			}
+			else {
+				p->findByName( (*it).c_str() );
+			}
+		}
+	} catch( CPSWError &e ) {
+		std::string str = "SequenceCommand invalid argument: " + e.getInfo();
+		throw InvalidArgError(str.c_str());
+	}
+}
+
+void CSequenceCommandContext::executeSequence(std::vector<std::string> names, std::vector<uint64_t> values)
+{
+	Path p;
+	Command c;
+#if 0
+// without caching and bit-level access at the SRP protocol level we cannot
+// support write-only yet.
+	ScalVal_WO s;
+#else
+	ScalVal s;
+#endif
+	int j = 0;
+	try {
+		for( std::vector<std::string>::iterator it = names.begin(); it != names.end(); ++it, j++ )
+		{
+			if( (*it).compare(0, 6, "usleep") == 0 ) {
+				usleep( (useconds_t) values[j] );
+			}
+			else {
+				p = pParent_->findByName( (*it).c_str() );
+				try {
+					// if ScalVal
+#if 0
+// without caching and bit-level access at the SRP protocol level we cannot
+// support write-only yet.
+					s = IScalVal_WO::create( p );
+#else
+					s = IScalVal::create( p );
+#endif
+					s->setVal( &values[j], 1 );
+					break;
+				} 
+				catch( CPSWError &e ) {
+				}
+				try {
+					// else if command
+					c = ICommand::create( p );
+					c->execute();
+					break;
+				}
+				catch( CPSWError &e ) {
+					std::string str = "SequenceCommand invalid arg: " + p->toString();
+					throw InvalidArgError(str.c_str());
+				}
+			}
+		}
+	} catch( CPSWError &e ) {
+		throw e;
+	}
+	return;
+}
+
+

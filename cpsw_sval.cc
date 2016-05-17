@@ -680,32 +680,54 @@ unsigned i;
 
 	return setVal(arg, nelms, r);
 }
+
+template <typename EL> class Vals {
+private:
+	EL          *vals_;
+	unsigned     nelms_;
+
+	static const unsigned STACK_BREAK = 1024*100;
+
+public:
+	Vals(unsigned nelms)
+	: vals_( nelms*sizeof(EL) > STACK_BREAK ? new EL[nelms] : NULL ),
+	  nelms_( nelms )
+	{
+	}
+
+	unsigned setVal(CScalVal_WOAdapt *scalValAdapt, IndexRange *r, uint64_t v)
+	{
+	EL onStack[ vals_ ? 0 : nelms_ ];
+	EL *valp = vals_ ? vals_ : onStack;
+
+		for ( unsigned i = 0; i<nelms_; i++ )
+			valp[i] = (EL)v;
+		return scalValAdapt->setVal( valp, nelms_, r );
+	}
+	
+	~Vals()
+	{
+		delete [] vals_;
+	}
+};
 	
 unsigned CScalVal_WOAdapt::setVal(uint64_t  v, IndexRange *r)
 {
 unsigned nelms = nelmsFromIdx(r, p_, getNelms());
 
-	// since reads may be collapsed at a lower layer we simply build an array here
+	// since writes may be collapsed at a lower layer we simply build an array here
 	if ( getSize() <= sizeof(uint8_t) ) {
-		uint8_t vals[nelms];
-		for ( unsigned i=0; i<nelms; i++ )
-			vals[i] = v;
-		return setVal(vals, nelms, r);
+		Vals<uint8_t> vals( nelms );
+		return vals.setVal( this, r, v );
 	} else if ( getSize() <= sizeof(uint16_t) ) {
-		uint16_t vals[nelms];
-		for ( unsigned i=0; i<nelms; i++ )
-			vals[i] = v;
-		return setVal(vals, nelms, r);
+		Vals<uint16_t> vals( nelms );
+		return vals.setVal( this, r, v );
 	} else if ( getSize() <= sizeof(uint32_t) ) {
-		uint32_t vals[nelms];
-		for ( unsigned i=0; i<nelms; i++ )
-			vals[i] = v;
-		return setVal(vals, nelms, r);
+		Vals<uint32_t> vals( nelms );
+		return vals.setVal( this, r, v );
 	} else {
-		uint64_t vals[nelms];
-		for ( unsigned i=0; i<nelms; i++ )
-			vals[i] = v;
-		return setVal(vals, nelms, r);
+		Vals<uint64_t> vals( nelms );
+		return vals.setVal( this, r, v );
 	}
 }
 

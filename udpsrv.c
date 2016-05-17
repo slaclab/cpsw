@@ -327,8 +327,6 @@ Buf      bufmem;
 					if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, bufsz - 1, got)) > 0 ) {
 						unsigned frag = 0;
 
-printf("%d in SRP reply\n", put);
-
 						while ( put > 0 ) {
 							unsigned chunk = 1024 - 8 - 12; /* must be word-aligned */
 							uint8_t  tail;

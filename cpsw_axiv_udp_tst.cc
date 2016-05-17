@@ -1,6 +1,5 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_mmio_dev.h>
-#include <cpsw_command.h>
 #include <boost/atomic.hpp>
 
 #include <string.h>
@@ -12,10 +11,6 @@
 #include <vector>
 
 #include <pthread.h>
-
-#include <yaml-cpp/yaml.h>
-
-#include "cpsw_yaml.h"
 
 #define VLEN 123
 #define ADCL 10
@@ -46,53 +41,15 @@ public:
 	CAXIVersImpl(Key &k, const char *name);
 };
 
-class CMasterResetImpl;
-typedef shared_ptr<CMasterResetImpl> MasterResetImpl;
-
-class CMasterResetImpl: public CCommandImpl {
-public:
-        CMasterResetImpl(Key &k, const char* name):
-        CCommandImpl(k, name) {}
-
-        virtual void executeCommand(CommandImplContext pContext) const 
-        {
-//		AxiVersion axiv = IAxiVersion::create( pContext->getParent() );
-//		axiv->MasterReset();
-        }
-};
-
-class CCounterResetImpl;
-typedef shared_ptr<CCounterResetImpl> CounterResetImpl;
-
-class CCounterResetImpl: public CCommandImpl {
-public:
-        CCounterResetImpl(Key &k, const char* name):
-        CCommandImpl(k, name) {}
-
-        virtual void executeCommand(CommandImplContext pContext) const 
-        {
-		printf("Counter reset\n");
-		uint64_t u64 = 0;
-		ScalVal c = IScalVal::create( pContext->getParent()->findByName( "counter" ) );
-		c->setVal( &u64, 1 );
-        }
-};
-
-
 AXIVers IAXIVers::create(const char *name)
 {
 AXIVersImpl v = CShObj::create<AXIVersImpl>(name);
 Field f;
-	f = CShObj::create<MasterResetImpl>("Command");
-	v->CDevImpl::addAtAddress( f , 1 );
-	f = CShObj::create<CounterResetImpl>("CounterReset");
-	v->CDevImpl::addAtAddress( f , 1 );
-
 	f = IIntField::create("dnaValue", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f , 0x08 );
 	f = IIntField::create("fdSerial", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f, 0x10 );
-	f = IIntField::create("counter",  32, false, 0, IIntField::RW);
+	f = IIntField::create("counter",  32, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f, 0x24 );
 	f = IIntField::create("bldStamp",  8, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f, 0x800, VLEN  );
@@ -280,7 +237,7 @@ Stream strm = IStream::create( stats->getRoot()->findByName("dataSource") );
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRrs] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest] [-T timeout] [-y yaml_file]\n", nm);
+	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRrs] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest] [-T timeout]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
 	fprintf(stderr,"       -V <version>:  SRP version (1..3)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
@@ -298,7 +255,6 @@ static void usage(const char *nm)
 	fprintf(stderr,"       -D <tdest>  :  use tdest demuxer (SRP)\n");
 	fprintf(stderr,"       -d <tdest>  :  use tdest demuxer (stream)\n");
 	fprintf(stderr,"       -T <us>     :  set SRP timeout\n");
-	fprintf(stderr,"       -y <file>   :  yaml file describing axiv object\n");
 	fprintf(stderr,"       -h          :  print this message\n\n\n");
 	fprintf(stderr,"Base addresses of AxiVersion, Sysmon and PRBS\n");
 	fprintf(stderr,"may be changed by defining VERS_BASE, SYSM_BASE\n");
@@ -309,7 +265,7 @@ int
 main(int argc, char **argv)
 {
 int         rval    = 0;
-const char *ip_addr = "192.168.2.20";
+const char *ip_addr = "192.168.2.10";
 bool        use_mem = false;
 int        *i_p;
 int         vers    = 2;
@@ -330,9 +286,8 @@ uint32_t    vers_base = 0x00000000;
 uint32_t    sysm_base = 0x00010000;
 uint32_t    prbs_base = 0x00030000;
 const char *str;
-YAML::Node  doc;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:sT:y:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:sT:")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;     break;
@@ -349,8 +304,6 @@ YAML::Node  doc;
 			case 'd': i_p     = &tDestSTRM; break;
 			case 'D': i_p     = &tDestSRP;  break;
 			case 'T': i_p     = &srpTo;     break;
-			case 'y': doc     = YAML::LoadFile(optarg); break;
-
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -415,41 +368,33 @@ YAML::Node  doc;
 try {
 
 NetIODev  root = INetIODev::create("fpga", ip_addr);
-MemDev    rmem = IMemDev::create  ("rmem", 0x100000);
-MMIODev   mmio; /* can be generated if file name is passed in */
-uint8_t   str[VLEN];
-int16_t   adcv[ADCL];
-uint64_t  u64;
-uint32_t  u32;
-uint16_t  u16;
+MMIODev   mmio = IMMIODev::create ("mmio",0x10000000);
+AXIVers   axiv = IAXIVers::create ("vers");
+MMIODev   sysm = IMMIODev::create ("sysm",    0x1000, LE);
+MemDev    rmem = IMemDev::create  ("rmem",  0x100000);
+PRBS      prbs = IPRBS::create    ("prbs");
 
-
-	if( !doc.IsNull() ) {
-		mmio = doc.as<MMIODev>();
-	}
-	else {
-		mmio = IMMIODev::create ("mmio",0x10000000);
-
-		AXIVers   axiv = IAXIVers::create ("vers");
-		MMIODev   sysm = IMMIODev::create ("sysm",0x1000, LE);
-		PRBS      prbs = IPRBS::create    ("prbs");
-
-		sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
-
-		mmio->addAtAddress( axiv, vers_base );
-		mmio->addAtAddress( sysm, sysm_base );
-		mmio->addAtAddress( prbs, prbs_base );
-	}
+uint8_t str[VLEN];
+int16_t adcv[ADCL];
+uint64_t u64;
+uint32_t u32;
+uint16_t u16;
 
 	rmem->addAtAddress( mmio );
 
 	uint8_t *buf = rmem->getBufp();
-
 	for (int i=16; i<24; i++ )
 		buf[i]=i-16;
 
 	if ( use_mem )
 		length = 0;
+
+
+	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
+
+	mmio->addAtAddress( axiv, vers_base );
+	mmio->addAtAddress( sysm, sysm_base );
+	mmio->addAtAddress( prbs, prbs_base );
 
 	{
 	INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
@@ -498,12 +443,7 @@ uint16_t  u16;
 
 	// can use raw memory for testing instead of UDP
 	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );
-	/*
-        *Command cmd = ICommand::create( pre->findByName("mmio/vers/Command") );
-        *cmd->execute();
-        *Command counterRst = ICommand::create( pre->findByName("mmio/vers/CounterReset") );
-        *counterRst->execute();
-	*/
+
 	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
 	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
 	ScalVal_RO dnaValue = IScalVal_RO::create( pre->findByName("mmio/vers/dnaValue") );
