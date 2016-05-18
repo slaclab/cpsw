@@ -50,28 +50,6 @@ struct convert<IField::Cacheable> {
 };
 
 template<>
-struct convert<INetIODev::ProtocolVersion> {
-  static bool decode(const Node& node, INetIODev::ProtocolVersion& rhs) {
-    if (!node.IsScalar())
-      return false;
-
-    std::string str = node.Scalar();
-
-    if( str.compare( "SRP_UDP_V1" ) == 0 )
-      rhs = INetIODev::SRP_UDP_V1;
-    else if (str.compare( "SRP_UDP_V2" ) == 0 ) 
-      rhs = INetIODev::SRP_UDP_V2;
-    else if (str.compare( "SRP_UDP_V3" ) == 0 ) 
-      rhs = INetIODev::SRP_UDP_V3;
-    else
-      return false;
-
-    return true;
-  }
-};
-
-
-template<>
 struct convert<IIntField::Mode> {
   static bool decode(const Node& node, IIntField::Mode& rhs) {
     if (!node.IsScalar())
@@ -106,32 +84,21 @@ struct convert<IntField> {
 //    }
     IIntField::Builder bldr = IIntField::IBuilder::create();
 
-    std::string name;
-    int val;
-    IIntField::Mode mode;
-    
-    name = node["name"].as<std::string>();
-    bldr->name( name.c_str() );
-
+    bldr->name( node["name"].as<std::string>() );
     if( node["sizeBits"] ) {
-        val = node["sizeBits"].as<int>();
-        bldr->sizeBits( val );
+        bldr->sizeBits( node["sizeBits"].as<uint64_t>() );
     }
     if( node["isSigned"] ) {
-        val = node["isSigned"].as<int>();
-        bldr->isSigned( (bool) val );
+        bldr->isSigned( node["isSigned"].as<bool>() );
     }
     if( node["lsBit"] ) {
-        val = node["lsBit"].as<int>();
-        bldr->lsBit( val );
+        bldr->lsBit( node["lsBit"].as<int>() );
     }
     if( node["mode"] ) {
-        mode = node["mode"].as<IIntField::Mode>();
-        bldr->mode( mode );
+        bldr->mode( node["mode"].as<IIntField::Mode>() );
     }
     if( node["wordSwap"] ) {
-        val = node["wordSwap"].as<int>();
-        bldr->wordSwap( val );
+        bldr->wordSwap( node["wordSwap"].as<unsigned>() );
     }
     if( node["enums"] ) {
       const YAML::Node& enums = node["enums"];
@@ -160,6 +127,7 @@ struct convert<SequenceCommand> {
     std::vector<std::string> fields;
     std::vector<uint64_t> values;
 
+
     name = "C_";
     name = name + node["name"].as<std::string>();
 
@@ -167,7 +135,7 @@ struct convert<SequenceCommand> {
         const YAML::Node& seq = node["sequence"];
         for( unsigned i = 0; i < seq.size(); i++ )
         {
-            fields.push_back( seq[i]["field"].as<std::string>() );
+            fields.push_back( seq[i]["entry"].as<std::string>() );
             values.push_back( seq[i]["value"].as<uint64_t>() );
         }
     }
@@ -177,7 +145,6 @@ struct convert<SequenceCommand> {
 
 
     rhs = ISequenceCommand::create( name.c_str(), fields, values );
-
     return true;
   }
 };
@@ -246,10 +213,42 @@ struct convert<MMIODev> {
 };
 
 template<>
+struct convert<INetIODev::ProtocolVersion> {
+  static bool decode(const Node& node, INetIODev::ProtocolVersion& rhs) {
+    if (!node.IsScalar())
+      return false;
+
+    std::string str = node.Scalar();
+
+    if ( str.compare( "SRP_UDP_V1" ) == 0 )
+      rhs = INetIODev::SRP_UDP_V1;
+    else if (str.compare( "SRP_UDP_V2" ) == 0 ) 
+      rhs = INetIODev::SRP_UDP_V2;
+    else if (str.compare( "SRP_UDP_V3" ) == 0 ) 
+      rhs = INetIODev::SRP_UDP_V3;
+    else
+      return false;
+
+    return true;
+  }
+};
+
+template<>
 struct convert<INetIODev::PortBuilder> {
   static bool decode(const Node& node, INetIODev::PortBuilder& rhs) {
     rhs = INetIODev::createPortBuilder(); 
-
+    if( node["SRP"] )
+    {
+      const YAML::Node& SRP = node["SRP"];
+      if( SRP["ProtocolVersion"] )
+          rhs->setSRPVersion( SRP["ProtocolVersion"].as<INetIODev::ProtocolVersion>() ); 
+      if( SRP["TimeoutUS"] )
+          rhs->setSRPTimeoutUS( SRP["TimeoutUS"].as<uint64_t>() ); 
+      if( SRP["DynTimeout"] )
+          rhs->useSRPDynTimeout( SRP["DynTimeout"].as<bool>() ); 
+      if( SRP["RetryCount"] )
+          rhs->setSRPRetryCount( SRP["RetryCount"].as<unsigned>() ); 
+    }
     if ( node["udp"] )
     {
       const YAML::Node& udp = node["udp"];
@@ -298,7 +297,6 @@ struct convert<INetIODev::PortBuilder> {
   }
 };
 
-
 template<>
 struct convert<NetIODev> {
   static bool decode(const Node& node, NetIODev& rhs) {
@@ -322,7 +320,5 @@ struct convert<NetIODev> {
     return true;
   }
 };
-
 }
-
 #endif
