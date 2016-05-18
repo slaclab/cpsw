@@ -245,24 +245,75 @@ struct convert<MMIODev> {
   }
 };
 
-/*
+
 template<>
 struct convert<NetIODev> {
   static bool decode(const Node& node, NetIODev& rhs) {
-    MMIODev mmio;
-    if( str.compare( "RO" ) == 0 )
-      rhs = IIntField::RO;
-    else if (str.compare( "WO" ) == 0 ) 
-      rhs = IIntField::WO;
-    else if (str.compare( "RW" ) == 0 ) 
-      rhs = IIntField::RW;
-    else
-      return false;
+    std::string name = node["name"].as<std::string>();
+    std::string ipAddr = node["ipAddr"].as<std::string>();
+    rhs = INetIODev::create( name.c_str(), ipAddr.c_str() );
+    INetIODev::PortBuilder bldr = INetIODev::createPortBuilder(); 
+    Field f;
+
+    if ( node["udp"] )
+    {
+      const YAML::Node& udp = node["udp"];
+      if ( udp["port"] )
+          bldr->setUdpPort( udp["port"].as<unsigned>() );
+      if ( udp["outQueueDepth"] )
+          bldr->setUdpOutQueueDepth( udp["outQueueDepth"].as<unsigned>() );
+      if ( udp["numRxThreads"]  )
+          bldr->setUdpNumRxThreads( udp["numRxThreads"].as<unsigned>() );
+      if( udp["pollSecs"] )
+          bldr->setUdpPollSecs( udp["pollSecs"].as<int>() ); 
+    }
+    if ( node["RSSI"] )
+      bldr->useRssi( node["RSSI"].as<bool>() );
+    if ( node["depack"] )
+    {
+      const YAML::Node& depack = node["depack"];
+      bldr->useDepack( true );
+      if ( depack["outQueueDepth"] )
+         bldr->setDepackOutQueueDepth( depack["outQueueDepth"].as<unsigned>() );
+      if ( depack["ldFrameWinSize"] )
+         bldr->setDepackLdFrameWinSize( depack["ldFrameWinSize"].as<unsigned>() );
+      if ( depack["ldFragWinSize"] )
+         bldr->setDepackLdFragWinSize( depack["ldFragWinSize"].as<unsigned>() );
+    }
+    if ( node["SRPMux"] )
+    {
+      const YAML::Node& SRPMux = node["SRPMux"];
+      bldr->useSRPMux( true );
+      if ( SRPMux["VirtualChannel"] )
+        bldr->setSRPMuxVirtualChannel( SRPMux["VirtualChannel"].as<unsigned>() );
+    }
+    if ( node["TDestMux"] )
+    {
+      const YAML::Node& TDestMux = node["TDestMux"];
+      bldr->useTDestMux( true );
+      if ( TDestMux["TDEST"] )
+        bldr->setTDestMuxTDEST( TDestMux["TDEST"].as<unsigned>() );
+      if ( TDestMux["StripHeader"] )
+        bldr->setTDestMuxStripHeader( TDestMux["StripHeader"].as<bool>() );
+      if ( TDestMux["outQueueDepth"] )
+        bldr->setTDestMuxOutQueueDepth( TDestMux["outQueueDepth"].as<unsigned>() );
+    }
+
+    // This device contains other mmio
+    if ( node["MMIODev"] )
+    {
+      const YAML::Node& mmio = node["MMIODev"];
+      for( unsigned i = 0; i < mmio.size(); i++ )
+      {
+        f = mmio[i].as<MMIODev>();
+        rhs->addAtAddress( f, bldr );
+      }
+    }
 
     return true;
   }
 };
-*/
+
 }
 
 #endif
