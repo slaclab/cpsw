@@ -101,7 +101,7 @@ cpsw_netio_tst_LIBS      = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_netio_tst
 
 cpsw_axiv_udp_tst_SRCS   = cpsw_axiv_udp_tst.cc
-cpsw_axiv_udp_tst_LIBS   = $(CPSW_LIBS) $(YAML_LIBS)
+cpsw_axiv_udp_tst_LIBS   = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_axiv_udp_tst
 
 cpsw_buf_tst_SRCS        = cpsw_buf_tst.cc

@@ -52,9 +52,8 @@ BOOST_ARCH_linux_x86_64=linux-x86_64
 BOOST_ARCH_linuxRT_x86_64=linuxRT_glibc-x86_64
 
 BOOST_ARCH=$(BOOST_ARCH_$(TARNM))
-BOOST_DIR=/afs/slac/g/lcls/package/boost/$(BOOST_VERSION)/$(BOOST_ARCH)
-boostinc_DIR=$(addsuffix /include,$(BOOST_DIR))
-boostlib_DIR=$(addsuffix /lib,$(BOOST_DIR))
+boostinc_DIR=/afs/slac/g/lcls/package/boost/$(BOOST_VERSION)/$(BOOST_ARCH)/include
+boostlib_DIR=/afs/slac/g/lcls/package/boost/$(BOOST_VERSION)/$(BOOST_ARCH)/lib
 
 # to the directory where boost headers are installed.
 # These aforementioned variables are tried in the listed
@@ -73,14 +72,3 @@ boostlib_DIR=$(addsuffix /lib,$(BOOST_DIR))
 # the (cross) tools.
 # Note 'boostlib_DIR' (& friends) must be absolute paths
 # or relative to $(CPSW_DIR).
-
-# yaml-cpp is located the same way
-YAML_CPP_VERSION             = yaml-cpp-0.5.3
-YAML_CPP_ARCH_linux_x86_64   = rhel6-x86_64
-YAML_CPP_ARCH_linuxRT_x86_64 = buildroot-2015.02-x86_64
-YAML_CPP_ARCH                = $(YAML_CPP_ARCH_$(TARNM))
-YAML_CPP_DIR                 = /afs/slac/g/lcls/package/yaml-cpp/$(YAML_CPP_VERSION)/$(YAML_CPP_ARCH)
-
-# use 'addsuffix'
-yaml_cpplib_DIR          = $(addsuffix /lib,$(YAML_CPP_DIR))
-yaml_cppinc_DIR          = $(addsuffix /include,$(YAML_CPP_DIR))
