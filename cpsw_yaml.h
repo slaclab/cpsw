@@ -245,6 +245,59 @@ struct convert<MMIODev> {
   }
 };
 
+template<>
+struct convert<INetIODev::PortBuilder> {
+  static bool decode(const Node& node, INetIODev::PortBuilder& rhs) {
+    rhs = INetIODev::createPortBuilder(); 
+
+    if ( node["udp"] )
+    {
+      const YAML::Node& udp = node["udp"];
+      if ( udp["port"] )
+          rhs->setUdpPort( udp["port"].as<unsigned>() );
+      if ( udp["outQueueDepth"] )
+          rhs->setUdpOutQueueDepth( udp["outQueueDepth"].as<unsigned>() );
+      if ( udp["numRxThreads"]  )
+          rhs->setUdpNumRxThreads( udp["numRxThreads"].as<unsigned>() );
+      if( udp["pollSecs"] )
+          rhs->setUdpPollSecs( udp["pollSecs"].as<int>() ); 
+    }
+    if ( node["RSSI"] )
+      rhs->useRssi( node["RSSI"].as<bool>() );
+    if ( node["depack"] )
+    {
+      const YAML::Node& depack = node["depack"];
+      rhs->useDepack( true );
+      if ( depack["outQueueDepth"] )
+         rhs->setDepackOutQueueDepth( depack["outQueueDepth"].as<unsigned>() );
+      if ( depack["ldFrameWinSize"] )
+         rhs->setDepackLdFrameWinSize( depack["ldFrameWinSize"].as<unsigned>() );
+      if ( depack["ldFragWinSize"] )
+         rhs->setDepackLdFragWinSize( depack["ldFragWinSize"].as<unsigned>() );
+    }
+    if ( node["SRPMux"] )
+    {
+      const YAML::Node& SRPMux = node["SRPMux"];
+      rhs->useSRPMux( true );
+      if ( SRPMux["VirtualChannel"] )
+        rhs->setSRPMuxVirtualChannel( SRPMux["VirtualChannel"].as<unsigned>() );
+    }
+    if ( node["TDestMux"] )
+    {
+      const YAML::Node& TDestMux = node["TDestMux"];
+      rhs->useTDestMux( true );
+      if ( TDestMux["TDEST"] )
+        rhs->setTDestMuxTDEST( TDestMux["TDEST"].as<unsigned>() );
+      if ( TDestMux["StripHeader"] )
+        rhs->setTDestMuxStripHeader( TDestMux["StripHeader"].as<bool>() );
+      if ( TDestMux["outQueueDepth"] )
+        rhs->setTDestMuxOutQueueDepth( TDestMux["outQueueDepth"].as<unsigned>() );
+    }
+
+    return true;
+  }
+};
+
 
 template<>
 struct convert<NetIODev> {
@@ -252,52 +305,8 @@ struct convert<NetIODev> {
     std::string name = node["name"].as<std::string>();
     std::string ipAddr = node["ipAddr"].as<std::string>();
     rhs = INetIODev::create( name.c_str(), ipAddr.c_str() );
-    INetIODev::PortBuilder bldr = INetIODev::createPortBuilder(); 
+    INetIODev::PortBuilder bldr = node.as<INetIODev::PortBuilder>(); 
     Field f;
-
-    if ( node["udp"] )
-    {
-      const YAML::Node& udp = node["udp"];
-      if ( udp["port"] )
-          bldr->setUdpPort( udp["port"].as<unsigned>() );
-      if ( udp["outQueueDepth"] )
-          bldr->setUdpOutQueueDepth( udp["outQueueDepth"].as<unsigned>() );
-      if ( udp["numRxThreads"]  )
-          bldr->setUdpNumRxThreads( udp["numRxThreads"].as<unsigned>() );
-      if( udp["pollSecs"] )
-          bldr->setUdpPollSecs( udp["pollSecs"].as<int>() ); 
-    }
-    if ( node["RSSI"] )
-      bldr->useRssi( node["RSSI"].as<bool>() );
-    if ( node["depack"] )
-    {
-      const YAML::Node& depack = node["depack"];
-      bldr->useDepack( true );
-      if ( depack["outQueueDepth"] )
-         bldr->setDepackOutQueueDepth( depack["outQueueDepth"].as<unsigned>() );
-      if ( depack["ldFrameWinSize"] )
-         bldr->setDepackLdFrameWinSize( depack["ldFrameWinSize"].as<unsigned>() );
-      if ( depack["ldFragWinSize"] )
-         bldr->setDepackLdFragWinSize( depack["ldFragWinSize"].as<unsigned>() );
-    }
-    if ( node["SRPMux"] )
-    {
-      const YAML::Node& SRPMux = node["SRPMux"];
-      bldr->useSRPMux( true );
-      if ( SRPMux["VirtualChannel"] )
-        bldr->setSRPMuxVirtualChannel( SRPMux["VirtualChannel"].as<unsigned>() );
-    }
-    if ( node["TDestMux"] )
-    {
-      const YAML::Node& TDestMux = node["TDestMux"];
-      bldr->useTDestMux( true );
-      if ( TDestMux["TDEST"] )
-        bldr->setTDestMuxTDEST( TDestMux["TDEST"].as<unsigned>() );
-      if ( TDestMux["StripHeader"] )
-        bldr->setTDestMuxStripHeader( TDestMux["StripHeader"].as<bool>() );
-      if ( TDestMux["outQueueDepth"] )
-        bldr->setTDestMuxOutQueueDepth( TDestMux["outQueueDepth"].as<unsigned>() );
-    }
 
     // This device contains other mmio
     if ( node["MMIODev"] )
