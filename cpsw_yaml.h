@@ -84,7 +84,7 @@ struct convert<IntField> {
 //    }
     IIntField::Builder bldr = IIntField::IBuilder::create();
 
-    bldr->name( node["name"].as<std::string>() );
+    bldr->name( node["name"].as<std::string>().c_str() );
     if( node["sizeBits"] ) {
         bldr->sizeBits( node["sizeBits"].as<uint64_t>() );
     }
