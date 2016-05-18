@@ -72,7 +72,7 @@ MMIODev  mmio( IMMIODev::create( "mmio", MEM_SIZE) );
 	std::vector<uint64_t> c_values;
 	c_names.push_back( "usleep" );
 	c_values.push_back(1000);
-	c_names.push_back( "val1" );
+	c_names.push_back( "val" );
 	c_values.push_back( (uint64_t)0x1 );
 	mmio->addAtAddress( ISequenceCommand::create("seqCmd", c_names, c_values), 0 );
 
