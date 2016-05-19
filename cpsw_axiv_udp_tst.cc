@@ -235,9 +235,124 @@ Stream strm = IStream::create( stats->getRoot()->findByName("dataSource") );
 	return 0;
 }
 
+#if 0
+static void testNUL(NetIODev root)
+{
+INetIODev::PortBuilder bldr( root->createPortBuilder() );
+	bldr->setSRPVersion( INetIODev::SRP_UDP_NONE );
+	bldr->setUdpPort( 8193 );
+	bldr->setTDestMuxTDEST( 3 );
+	bldr->setTDestMuxStripHeader( true );
+
+	root->addAtAddress( IField::create("EP"), bldr );
+
+Stream strm( IStream::create( root->findByName("EP") ) );
+
+uint8_t obuf[20];
+uint8_t ibuf[20];
+int64_t got;
+
+	memset(obuf,0,sizeof(obuf));
+	obuf[0] = 3;
+	obuf[1] = 3;
+
+	strm->write( obuf, sizeof(obuf) );
+	got = strm->read( ibuf, sizeof(ibuf) );
+	printf("Got %"PRId64" bytes in reply to SRPV3 NUL\n", got);
+
+	for ( int i=0; i<got; i++ )
+		printf("0x%02x ", ibuf[i]);
+	printf("\n");
+
+}
+#endif
+
+static void testBram(ScalVal bram)
+{
+unsigned nelms = bram->getNelms();
+uint8_t oval[nelms];
+uint8_t ival[nelms];
+uint64_t offs[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+uint64_t lens[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+unsigned o,l,i;
+
+	memset(oval, 0xaa, sizeof(oval[0])*nelms );
+	memset(ival, 0x00, sizeof(ival[0])*nelms );
+	bram->setVal( oval, nelms );
+	bram->getVal( ival, nelms );
+	if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
+		fprintf(stderr,"Readback of BRAM (0xaa) FAILED\n");
+		throw TestFailed();
+	}
+
+	for ( i=0; i<nelms; i++ ) {
+		oval[i] = (uint8_t)(rand()>>16);
+	}
+	memset(ival, 0x00, sizeof(ival[0])*nelms );
+	bram->setVal( oval, nelms );
+	bram->getVal( ival, nelms );
+	if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
+		fprintf(stderr,"Readback of BRAM (random-data) FAILED\n");
+		throw TestFailed();
+	}
+
+
+
+	for ( o=0; o<sizeof(offs)/sizeof(offs[0]); o++ ) {
+		for ( l=0; l<sizeof(lens)/sizeof(lens[0]); l++ ) {
+			IndexRange r(offs[o], offs[o]+lens[l] - 1);
+			// fill target 
+			bram->setVal( 0xaa );
+			// fill 'expected' array
+			memset(oval, 0xaa, sizeof(oval[0])*nelms );
+			// zero readback array
+			memset(ival, 0x00, sizeof(ival[0])*nelms );
+
+			// merge random data into 'expected' at offset/len
+			for (i=0; i<lens[l]; i++ )
+				oval[ offs[o] + i ] = (uint8_t)(rand()>>16); 
+
+			// merge on target
+			bram->setVal(oval + offs[o], lens[l], &r);
+
+			// read everything back
+			bram->getVal(ival, nelms);
+
+			// compare
+			if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
+				fprintf(stderr,"BRAM write-test: Readback (offset %"PRId64", len %"PRId64") FAILED\n", offs[o], lens[l]);
+				throw TestFailed();
+#ifdef DEBUG
+			} else {
+				printf("BRAM write-test (offset %"PRId64", len %"PRId64") PASSED\n", offs[o], lens[l]);
+#endif
+			}
+
+			// clear
+			memset(ival, 0xaa, nelms);
+
+			// readback subset only
+			bram->getVal(ival+offs[o], lens[l], &r);
+
+			// compare
+			if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
+				fprintf(stderr,"BRAM read-test: (offset %"PRId64", len %"PRId64") FAILED\n", offs[o], lens[l]);
+				throw TestFailed();
+#ifdef DEBUG
+			} else {
+				printf("BRAM read-test (offset %"PRId64", len %"PRId64") PASSED\n", offs[o], lens[l]);
+#endif
+			}
+
+		}
+	}
+
+	printf("BRAM Test PASSED\n");
+}
+
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRrs] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest] [-T timeout]\n", nm);
+	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRrs] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest] [-M tdest] [-T timeout]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
 	fprintf(stderr,"       -V <version>:  SRP version (1..3)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
@@ -254,6 +369,7 @@ static void usage(const char *nm)
 	fprintf(stderr,"       -r          :  use RSSI (stream)\n");
 	fprintf(stderr,"       -D <tdest>  :  use tdest demuxer (SRP)\n");
 	fprintf(stderr,"       -d <tdest>  :  use tdest demuxer (stream)\n");
+	fprintf(stderr,"       -M <tdest>  :  use tdest demuxer (AXI4 memory)\n");
 	fprintf(stderr,"       -T <us>     :  set SRP timeout\n");
 	fprintf(stderr,"       -h          :  print this message\n\n\n");
 	fprintf(stderr,"Base addresses of AxiVersion, Sysmon and PRBS\n");
@@ -281,13 +397,15 @@ bool        srpRssi = false;
 bool        strRssi = false;
 int         tDestSRP  = -1;
 int         tDestSTRM = -1;
+int         tDestMEM  = -1;
 bool        sysmon    = false;
 uint32_t    vers_base = 0x00000000;
 uint32_t    sysm_base = 0x00010000;
 uint32_t    prbs_base = 0x00030000;
+unsigned    byteResHack = 0x00000;
 const char *str;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:sT:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:sT:M:b")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;     break;
@@ -303,7 +421,9 @@ const char *str;
 			case 'R': srpRssi = true;       break;
 			case 'd': i_p     = &tDestSTRM; break;
 			case 'D': i_p     = &tDestSRP;  break;
+			case 'M': i_p     = &tDestMEM;  break;
 			case 'T': i_p     = &srpTo;     break;
+			case 'b': byteResHack = 0x10000;break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -371,6 +491,7 @@ NetIODev  root = INetIODev::create("fpga", ip_addr);
 MMIODev   mmio = IMMIODev::create ("mmio",0x10000000);
 AXIVers   axiv = IAXIVers::create ("vers");
 MMIODev   sysm = IMMIODev::create ("sysm",    0x1000, LE);
+MMIODev   axi4 = IMMIODev::create ("axi4",   0x10000, LE);
 MemDev    rmem = IMemDev::create  ("rmem",  0x100000);
 PRBS      prbs = IPRBS::create    ("prbs");
 
@@ -424,6 +545,14 @@ uint16_t u16;
 		}
 
 		root->addAtAddress( mmio, bldr );
+
+		if ( vers >= 3 && tDestMEM >= 0 ) {
+			bldr->setTDestMuxTDEST       (              tDestMEM );
+			bldr->setSRPRetryCount       (       byteResHack | 4 ); // enable byte-resolution access
+			axi4->addAtAddress( IIntField::create("bram", 8, false, 0), 0x00000000, 0x10000 );
+			root->addAtAddress( axi4, bldr );
+		}
+
 	}
 
 	if ( length > 0 ) {
@@ -595,7 +724,14 @@ uint16_t u16;
 	for (int i=0; i<1000; i++ )
 		counter->getVal( &u32, 1 );
 
+
 	root->findByName("mmio")->tail()->dump(stdout);
+
+	if ( tDestMEM >= 0 ) {
+		ScalVal bram( IScalVal::create( root->findByName("axi4/bram") ) );
+		testBram( bram );
+	}
+
 
 } catch (CPSWError &e) {
 	printf("CPSW Error: %s\n", e.getInfo().c_str());

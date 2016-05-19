@@ -3,7 +3,7 @@
 #include <vector>
 
 using std::vector;
-
+#define RSSI_DEBUG 3
 #ifdef RSSI_DEBUG
 int rssi_debug = RSSI_DEBUG;
 #endif
