@@ -84,6 +84,7 @@ struct convert<IntField> {
 //    }
     IIntField::Builder bldr = IIntField::IBuilder::create();
 
+    std::string name = node["name"].as<std::string>();
     bldr->name( node["name"].as<std::string>().c_str() );
     if( node["sizeBits"] ) {
         bldr->sizeBits( node["sizeBits"].as<uint64_t>() );
@@ -128,8 +129,9 @@ struct convert<SequenceCommand> {
     std::vector<uint64_t> values;
 
 
-    name = "C_";
-    name = name + node["name"].as<std::string>();
+    //name = "C_";
+    //name = name + node["name"].as<std::string>();
+    name = node["name"].as<std::string>();
 
     if( node["sequence"] ) {
         const YAML::Node& seq = node["sequence"];
@@ -158,6 +160,21 @@ struct convert<MMIODev> {
     rhs = IMMIODev::create( name.c_str(), size );
     Field f;
 
+    if ( node["MMIODev"] )
+    {
+      const YAML::Node& mmio = node["MMIODev"];
+      for( unsigned i = 0; i < mmio.size(); i++ )
+      {
+        uint64_t offset = mmio[i]["offset"].as<uint64_t>();
+        unsigned nelms   = mmio[i]["nelms"] ? mmio[i]["nelms"].as<unsigned>() : 1;
+        uint64_t stride = mmio[i]["stride"] ? 
+                          mmio[i]["stride"].as<uint64_t>() : IMMIODev::STRIDE_AUTO;
+        ByteOrder byteOrder = mmio[i]["ByteOrder"] ? mmio[i]["ByteOrder"].as<ByteOrder>() : UNKNOWN;
+        f = mmio[i].as<MMIODev>();
+        rhs->addAtAddress( f, offset, nelms, stride, byteOrder );
+      }
+    }
+
     // This device contains iField
     if ( node["IntField"] )
     {
@@ -165,15 +182,8 @@ struct convert<MMIODev> {
       for( unsigned i = 0; i < iField.size(); i++ )
       {
         uint64_t offset = iField[i]["offset"].as<uint64_t>();
-        int nelms;
-        if( iField[i]["nelms"] )
-          nelms = iField[i]["nelms"].as<int>();
-        else
-          nelms = 1;
-//        int nelms   = iField[i]["nelms"] ? 
-//                      iField[i]["nelms"].as<int>() : 1;
-        uint64_t stride = iField[i]["stride"] ? 
-                          iField[i]["stride"].as<uint64_t>() : IMMIODev::STRIDE_AUTO;
+        unsigned nelms  = iField[i]["nelms"] ? iField[i]["nelms"].as<unsigned>() : 1;
+        uint64_t stride = iField[i]["stride"] ? iField[i]["stride"].as<uint64_t>() : IMMIODev::STRIDE_AUTO;
         ByteOrder byteOrder = iField[i]["ByteOrder"] ? iField[i]["ByteOrder"].as<ByteOrder>() : UNKNOWN;
         std::string desc = iField[i]["description"].as<std::string>();
         IField::Cacheable cacheable = iField[i]["cacheable"] ? \
@@ -195,19 +205,6 @@ struct convert<MMIODev> {
       }
     }
     // This device contains other mmio
-//    const YAML::Node& mmio = node["MMIODev"];
-    if ( node["MMIODev"] )
-    {
-      const YAML::Node& mmio = node["MMIODev"];
-      for( unsigned i = 0; i < mmio.size(); i++ )
-      {
-/*change address to offset */
-        uint64_t offset = mmio[i]["offset"].as<uint64_t>();
-        int nelms   = mmio[i]["nelms"] ? mmio[i]["nelms"].as<int>() : 1;
-        f = mmio[i].as<MMIODev>();
-        rhs->addAtAddress( f, offset, nelms );
-      }
-    }
     return true;
   }
 };
@@ -226,6 +223,8 @@ struct convert<INetIODev::ProtocolVersion> {
       rhs = INetIODev::SRP_UDP_V2;
     else if (str.compare( "SRP_UDP_V3" ) == 0 ) 
       rhs = INetIODev::SRP_UDP_V3;
+    else if (str.compare( "SRP_UDP_NONE" ) == 0 ) 
+      rhs = INetIODev::SRP_UDP_NONE;
     else
       return false;
 
@@ -303,16 +302,26 @@ struct convert<NetIODev> {
     std::string name = node["name"].as<std::string>();
     std::string ipAddr = node["ipAddr"].as<std::string>();
     rhs = INetIODev::create( name.c_str(), ipAddr.c_str() );
-    INetIODev::PortBuilder bldr = node.as<INetIODev::PortBuilder>(); 
+    INetIODev::PortBuilder bldr; 
     Field f;
 
-    // This device contains other mmio
     if ( node["MMIODev"] )
     {
       const YAML::Node& mmio = node["MMIODev"];
       for( unsigned i = 0; i < mmio.size(); i++ )
       {
-        f = mmio[i].as<MMIODev>();
+        f    = mmio[i].as<MMIODev>();
+        bldr = mmio[i].as<INetIODev::PortBuilder>();
+        rhs->addAtAddress( f, bldr );
+      }
+    }
+    if ( node["StreamDev"] )
+    {
+      const YAML::Node& stream = node["StreamDev"];
+      for( unsigned i = 0; i < stream.size(); i++ )
+      {
+        f    = IField::create( stream[i]["name"].as<std::string>().c_str() );
+        bldr = stream[i].as<INetIODev::PortBuilder>();
         rhs->addAtAddress( f, bldr );
       }
     }
