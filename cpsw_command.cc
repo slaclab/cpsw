@@ -106,6 +106,7 @@ void CSequenceCommandContext::executeSequence(std::vector<std::string> names, st
 	ScalVal s;
 #endif
 	int j = 0;
+	uint64_t v;
 	try {
 		for( std::vector<std::string>::iterator it = names.begin(); it != names.end(); ++it, j++ )
 		{
@@ -113,7 +114,13 @@ void CSequenceCommandContext::executeSequence(std::vector<std::string> names, st
 				usleep( (useconds_t) values[j] );
 			}
 			else {
-				p = pParent_->findByName( (*it).c_str() );
+				try {
+					p = pParent_->findByName( (*it).c_str() );
+				}
+				catch( CPSWError &e ) {
+					std::string str = "SequenceCommand invalid path: " + *(it);
+					throw InvalidArgError(str.c_str());
+				}
 				try {
 					// if ScalVal
 #if 0
@@ -123,8 +130,9 @@ void CSequenceCommandContext::executeSequence(std::vector<std::string> names, st
 #else
 					s = IScalVal::create( p );
 #endif
-					s->setVal( &values[j], 1 );
-					break;
+					//set all nelms to same value if addressing multiple
+					s->setVal( values[j] );
+					continue;
 				} 
 				catch( CPSWError &e ) {
 				}
@@ -132,7 +140,7 @@ void CSequenceCommandContext::executeSequence(std::vector<std::string> names, st
 					// else if command
 					c = ICommand::create( p );
 					c->execute();
-					break;
+					continue;
 				}
 				catch( CPSWError &e ) {
 					std::string str = "SequenceCommand invalid arg: " + p->toString();
@@ -143,6 +151,7 @@ void CSequenceCommandContext::executeSequence(std::vector<std::string> names, st
 	} catch( CPSWError &e ) {
 		throw e;
 	}
+
 	return;
 }
 
