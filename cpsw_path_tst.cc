@@ -5,6 +5,24 @@
 #include <cpsw_obj_cnt.h>
 #include <iostream>
 
+static void test_a53564754e5eaa9029ff()
+{
+Dev root = IDev::create("root");
+Dev dev  = IDev::create("device", 100);
+Field f  = IField::create("reg", 1);
+	dev->addAtAddress( f, 16 );
+	root->addAtAddress( dev, 4 );
+
+Path p1 = root->findByName("device/reg");
+Path p2 = root->findByName("device[0-3]/reg[0-15]");
+Path p3 = root->findByName("device[2]/reg[3-4]");
+Path p4 = root->findByName("device/reg[0]");
+	printf("%d\n", p1->getNelms());
+	printf("%d\n", p2->getNelms());
+	printf("%d\n", p3->getNelms());
+	printf("%d\n", p4->tail()->getNelms());
+}
+
 using std::cout;
 
 class DVisitor : public IVisitor {
@@ -187,6 +205,8 @@ Field  c4 = IField::create("leaf1", 8);
 		nleft/=els[i]->getNelms();
 		nright*= els[i]->getNelms();
 	}
+
+	test_a53564754e5eaa9029ff();
 
 	printf("leaving\n");
 } catch (CPSWError e ) {
