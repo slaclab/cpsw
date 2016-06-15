@@ -368,8 +368,14 @@ use_origin:
 
 		sl = strchr(s,'/');
 
-		if ( op && sl && sl < op )
-			op = 0;
+		if ( sl ) {
+			if ( op && op > sl )
+				op = 0;
+			if ( cl && cl > sl )
+				cl = 0;
+			if ( mi && mi > sl )
+				mi = 0;
+		}
 
 		if ( op ) {
 			if (   !cl
