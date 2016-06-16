@@ -18,14 +18,6 @@ typedef shared_ptr<NetIODevImpl> NetIODevImplP;
 
 typedef uint32_t SRPWord;
 
-struct Mutex {
-	CMtx m_;
-	Mutex()
-	: m_( CMtx::AttrRecursive(), "SRPADDR" )
-	{
-	}
-};
-
 //#define NETIO_DEBUG
 //#define TIMEOUT_DEBUG
 
