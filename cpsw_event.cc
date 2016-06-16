@@ -51,7 +51,7 @@ private:
 	CEventSet(const CEventSet &orig);
 	CEventSet operator=(const CEventSet &orig);
 
-	bool tryRemoveSrc(unsigned index);
+	bool tryRemoveSrc(IEventHandler *);
 
 public:
 
@@ -107,32 +107,19 @@ public:
 
 	virtual void del(IEventHandler *h)
 	{
-	unsigned i;
 	unsigned attempt = 0;
 
-		// can't lock the source yet -- unknown
-	retry:
-
-		{CMtx::lg guard( &mtx_ );
-
-			for ( i=0; i<srcs_.size(); i++ ) {
-				if ( srcs_[i].second == h ) {
-
-					// since we must acquire the source lock after the
-					// event set lock we should only try and back off
-					// if we can't acquire the source
-
-					if ( ! tryRemoveSrc( i ) ) {
-						if ( ++attempt > 10 ) {
-							throw InternalError("Unable to remove event handler -- starved");
-						}
-						goto retry;
-					}
-
-				}
+		while ( ! tryRemoveSrc( h ) ) {
+			if ( ++attempt > 10 ) {
+				throw InternalError("Unable to remove event handler -- starved");
 			}
+			struct timespec t;
+			t.tv_sec  = 0;
+			t.tv_nsec = 10000000;
+			nanosleep( &t, NULL );
 		}
 	}
+
 
 	virtual Binding *pollAll()
 	{
@@ -302,26 +289,40 @@ int sent = sentVal_.exchange( 0, memory_order_acquire );
 // we cannot acquire the source lock prior to the
 // event-set lock.
 
-bool CEventSet::tryRemoveSrc(unsigned index)
+bool CEventSet::tryRemoveSrc(IEventHandler *h)
 {
-IEventSource *src = srcs_[index].first;
-unsigned      j;
+IEventSource *src;
+unsigned     i,j;
 
-	try { CMtx::lg guard( &src->mtx_, false /* dont' block */);
+// can't lock the source yet -- unknown
 
-		for ( j=index+1; j<srcs_.size(); j++ ) {
-			srcs_[j-1] = srcs_[j];
+CMtx::lg guard( &mtx_ );
+
+	for ( i=0; i<srcs_.size(); i++ ) {
+
+		if ( srcs_[i].second == h ) {
+			src = srcs_[i].first;
+
+			try {
+
+				CMtx::lg guard( &src->mtx_, false /* dont' block */);
+
+				for ( j=i+1; j<srcs_.size(); j++ ) {
+					srcs_[j-1] = srcs_[j];
+				}
+				srcs_.pop_back();
+				src->clrEventSet( getSelfAs<EventSetImpl>() );
+
+				return true;
+
+			} catch ( CMtx::MutexBusy ) {
+				return false;
+			}
 		}
-		srcs_.pop_back();
-		src->clrEventSet( getSelfAs<EventSetImpl>() );
-		return true;
-	} catch ( CMtx::MutexBusy ) {
-		struct timespec t;
-		t.tv_sec  = 0;
-		t.tv_nsec = 10000000;
-		nanosleep( &t, NULL );
+
 	}
-	return false;
+
+	return true;
 }
 
 CEventSet::~CEventSet()
