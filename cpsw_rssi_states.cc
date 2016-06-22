@@ -195,17 +195,17 @@ fprintf(stderr,"%s OTH rejected (state %s)\n", context->getName(), getName());
 
 			if ( context->unOrderedSegs_.canAccept( hdr.getSeqNo() ) ) {
 
-				b.reset();
-				context->unOrderedSegs_.store( hdr.getSeqNo(), bc );
-
 #ifdef RSSI_DEBUG
 if (rssi_debug > 1 )
 {
-fprintf(stderr,"RX: %s  stored (oldest %d)", context->getName(), context->unOrderedSegs_.getOldest());
+fprintf(stderr,"RX: %s  storing (oldest %d)", context->getName(), context->unOrderedSegs_.getOldest());
 hdr.dump(stderr, b->getSize() > hdr.getHSize());
 fprintf(stderr," (state %s)\n", getName());
 }
 #endif
+
+				b.reset();
+				context->unOrderedSegs_.store( hdr.getSeqNo(), bc );
 
 				drainReassembleBuffer( context );
 
