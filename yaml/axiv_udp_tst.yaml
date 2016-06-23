@@ -2,7 +2,7 @@
 
 SysMem: &SysMem
   name: sysm
-  sizeBits: 0x1000
+  size: 0x1000
   description: Adcs
   IntField:
     - offset: 0x400
@@ -15,7 +15,7 @@ SysMem: &SysMem
 Prbs: &Prbs
   name: prbs
   description: Prbs
-  sizeBits: 0x1000
+  size: 0x1000
   IntField:
     - offset: 0x00 
       name: axiEn
@@ -73,7 +73,7 @@ Prbs: &Prbs
 AxiVersion: &AxiVersion
   name: AxiVersion
   description: AXI-Lite Version Module
-  sizeBits: 0x1000
+  size: 0x1000
   IntField:
     - offset: 0x08
       name: dnaValue
@@ -127,15 +127,15 @@ mmio: &mmio
 # Final device that will be used to generate configuration
 NetIODev: &netio
   name: fpga
-  ipAddr: 192.168.2.10
+  ipAddr: 10.0.0.101
   MMIODev:
     - <<: *mmio
       SRP:
-        ProtocolVersion: SRP_UDP_V3
+        ProtocolVersion: SRP_UDP_V2
       udp:
-        port: 8193
-      RSSI: yes
-      depack:
-        useDepack: yes
-      TDestMux:
-        TDEST: 0
+        port: 8192
+#      RSSI: yes
+#      depack:
+#        useDepack: yes
+#      TDestMux:
+#        TDEST: 0

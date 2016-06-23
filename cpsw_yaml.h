@@ -169,8 +169,8 @@ struct convert<MMIODev> {
         unsigned nelms   = mmio[i]["nelms"] ? mmio[i]["nelms"].as<unsigned>() : 1;
         uint64_t stride = mmio[i]["stride"] ? mmio[i]["stride"].as<uint64_t>() : IMMIODev::STRIDE_AUTO;
         ByteOrder byteOrder = mmio[i]["ByteOrder"] ? mmio[i]["ByteOrder"].as<ByteOrder>() : UNKNOWN;
-        IField::Cacheable cacheable = iField[i]["cacheable"] ? \
-                       iField[i]["cacheable"].as<IField::Cacheable>() : \
+        IField::Cacheable cacheable = mmio[i]["cacheable"] ? \
+                       mmio[i]["cacheable"].as<IField::Cacheable>() : \
                        IField::UNKNOWN_CACHEABLE;
         f = mmio[i].as<MMIODev>();
         f->setCacheable( cacheable );
@@ -349,7 +349,7 @@ YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s) {
 
 YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h) {
     Children ch = h->getChildren();
-    for( int i = 0; i < ch->size(); i++ )
+    for( unsigned i = 0; i < ch->size(); i++ )
     {
 //       out << ch[i]; 
     }

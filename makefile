@@ -102,6 +102,15 @@ TESTPROGRAMS            += cpsw_netio_tst
 
 cpsw_axiv_udp_tst_SRCS   = cpsw_axiv_udp_tst.cc
 cpsw_axiv_udp_tst_LIBS   = $(CPSW_LIBS)
+cpsw_axiv_udp_tst_LIBS   = $(CPSW_LIBS)
+cpsw_axiv_udp_tst_LIBS  += yaml-cpp
+YAML_VERSION             = yaml-cpp-0.5.3
+YAML_ARCH_linux_x86_64   = rhel6-x86_64
+YAML_ARCH_linuxRT_x86_64 = buildroot-2015.02-x86_64
+YAML_ARCH                = $(YAML_ARCH_$(TARNM))
+yaml_DIR                 = /afs/slac/g/lcls/package/yaml-cpp/$(YAML_VERSION)/$(YAML_ARCH)
+yaml_cpp_DIR            += $(yaml_DIR)/lib
+INCLUDE_DIRS            += $(yaml_DIR)/include
 TESTPROGRAMS            += cpsw_axiv_udp_tst
 
 cpsw_buf_tst_SRCS        = cpsw_buf_tst.cc
