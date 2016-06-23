@@ -106,7 +106,6 @@ void CSequenceCommandContext::executeSequence(std::vector<std::string> names, st
 	ScalVal s;
 #endif
 	int j = 0;
-	uint64_t v;
 	try {
 		for( std::vector<std::string>::iterator it = names.begin(); it != names.end(); ++it, j++ )
 		{
