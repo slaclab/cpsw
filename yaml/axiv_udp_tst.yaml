@@ -125,13 +125,17 @@ mmio: &mmio
 
 
 # Final device that will be used to generate configuration
-fpga: 
+NetIODev: &netio
   name: fpga
-  ipAddress: 192.168.2.10
-  protocol: SRP_UDP_V2
-  timeoutUs: 500
-  retryCount: 10
-  virtualChannel: 0
-  peripherals:
+  ipAddr: 192.168.2.10
+  MMIODev:
     - <<: *mmio
-      address: 8192
+      SRP:
+        ProtocolVersion: SRP_UDP_V3
+      udp:
+        port: 8193
+      RSSI: yes
+      depack:
+        useDepack: yes
+      TDestMux:
+        TDEST: 0
