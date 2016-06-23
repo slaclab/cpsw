@@ -497,15 +497,11 @@ uint32_t u32;
 uint16_t u16;
 
 	try {
-		printf("load %s\n", yaml_doc);
 		YAML::Node doc = YAML::LoadFile( yaml_doc );
-		printf("loaded file\n");
 		root = doc.as<NetIODev>();
-		printf("as netio\n");
 		pre = IPath::create( root );
 	} catch (...) { 
 		//unable to load YAML doc
-		printf("caught error\n");
 		root.reset();
 		pre.reset();
 	}
