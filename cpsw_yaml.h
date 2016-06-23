@@ -167,10 +167,13 @@ struct convert<MMIODev> {
       {
         uint64_t offset = mmio[i]["offset"].as<uint64_t>();
         unsigned nelms   = mmio[i]["nelms"] ? mmio[i]["nelms"].as<unsigned>() : 1;
-        uint64_t stride = mmio[i]["stride"] ? 
-                          mmio[i]["stride"].as<uint64_t>() : IMMIODev::STRIDE_AUTO;
+        uint64_t stride = mmio[i]["stride"] ? mmio[i]["stride"].as<uint64_t>() : IMMIODev::STRIDE_AUTO;
         ByteOrder byteOrder = mmio[i]["ByteOrder"] ? mmio[i]["ByteOrder"].as<ByteOrder>() : UNKNOWN;
+        IField::Cacheable cacheable = iField[i]["cacheable"] ? \
+                       iField[i]["cacheable"].as<IField::Cacheable>() : \
+                       IField::UNKNOWN_CACHEABLE;
         f = mmio[i].as<MMIODev>();
+        f->setCacheable( cacheable );
         rhs->addAtAddress( f, offset, nelms, stride, byteOrder );
       }
     }
@@ -191,6 +194,7 @@ struct convert<MMIODev> {
                        IField::UNKNOWN_CACHEABLE;
         f = iField[i].as<IntField>();
         f->setDescription( desc );
+        f->setCacheable( cacheable );
         rhs->addAtAddress( f, offset, nelms, stride, byteOrder );
       }
     }
@@ -330,4 +334,26 @@ struct convert<NetIODev> {
   }
 };
 }
+
+// YAML Emitter overloads
+
+YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s) {
+    uint64_t u64;
+    s->getVal( &u64 );
+    out << YAML::BeginMap;
+    out << YAML::Key << s->getName();
+    out << YAML::Value << u64;
+    out << YAML::EndMap;
+    return out;
+}
+
+YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h) {
+    Children ch = h->getChildren();
+    for( int i = 0; i < ch->size(); i++ )
+    {
+//       out << ch[i]; 
+    }
+    return out;
+}
+
 #endif
