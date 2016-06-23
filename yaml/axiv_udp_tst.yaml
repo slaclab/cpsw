@@ -2,70 +2,70 @@
 
 SysMem: &SysMem
   name: sysm
-  size: 0x1000
+  sizeBits: 0x1000
   description: Adcs
-  registers:
-    - address: 0x400
+  IntField:
+    - offset: 0x400
       name:  adcs
       description: ""
-      size: 16
+      sizeBits: 16
       stride: 4
       nelms: 10
 
 Prbs: &Prbs
   name: prbs
   description: Prbs
-  size: 0x1000
-  registers:
-    - address: 0x00 
+  sizeBits: 0x1000
+  IntField:
+    - offset: 0x00 
       name: axiEn
       description: ""
-      size: 1
+      sizeBits: 1
       lsBit: 0
-    - address: 0x00 
+    - offset: 0x00 
       name: trig
       description: ""
-      size: 1
+      sizeBits: 1
       lsBit: 1
-    - address: 0x00 
+    - offset: 0x00 
       name: busy
       description: ""
-      size: 1
+      sizeBits: 1
       lsBit: 2
       mode: RO
-    - address: 0x00 
+    - offset: 0x00 
       name: overflow
       description: ""
-      size: 1
+      sizeBits: 1
       lsBit: 3
       mode: RO
-    - address: 0x00 
+    - offset: 0x00 
       name: oneShot
       description: ""
-      size: 1
+      sizeBits: 1
       lsBit: 4
-    - address: 0x04 
+    - offset: 0x04 
       name: packetLength
       description: ""
-    - address: 0x08 
+    - offset: 0x08 
       name: tDest
       description: ""
-      size: 8
+      sizeBits: 8
       lsBit: 0
-    - address: 0x09 
+    - offset: 0x09 
       name: tId
       description: ""
-      size: 8
+      sizeBits: 8
       lsBit: 0
-    - address: 0x0c 
+    - offset: 0x0c 
       name: dataCnt
       description: ""
       mode: RO
-    - address: 0x10 
+    - offset: 0x10 
       name: eventCnt
       description: ""
       mode: RO
-    - address: 0x14 
+    - offset: 0x14 
       name: randomData
       description: ""
       mode: RO
@@ -73,40 +73,40 @@ Prbs: &Prbs
 AxiVersion: &AxiVersion
   name: AxiVersion
   description: AXI-Lite Version Module
-  size: 0x1000
-  registers:
-    - address: 0x08
+  sizeBits: 0x1000
+  IntField:
+    - offset: 0x08
       name: dnaValue
       description: ""
-      size: 64
+      sizeBits: 64
       wordSwap: 4
       mode: RO
-    - address: 0x10
+    - offset: 0x10
       name: fdSerial
       description: ""
-      size: 64
+      sizeBits: 64
       wordSwap: 4
       mode: RO
-    - address: 0x24
+    - offset: 0x24
       name: counter
       description: ""
-      size: 32
+      sizeBits: 32
       mode: RW
-    - address: 0x800
+    - offset: 0x800
       name: bldStamp
       description: ""
-      size: 8
+      sizeBits: 8
       nelms: 123
       mode: RO
-    - address: 0x04
+    - offset: 0x04
       name: scratchPad
       description: ""
-      size: 32
+      sizeBits: 32
       lsBit: 0
     - name: bits
-      address: 0x04
+      offset: 0x04
       description: ""
-      size: 22
+      sizeBits: 22
       lsBit: 4
 
 #MMIO range, will be attached to fpga
@@ -114,14 +114,14 @@ AxiVersion: &AxiVersion
 mmio: &mmio
   name: mmio
   size: 0x100000
-  peripherals:
+  MMIODev:
     - <<: *AxiVersion   # merge tag for AxiVersion
       name: vers        # overwrite name
-      address: 0x00000
+      offset: 0x00000
     - <<: *SysMem
-      address: 0x10000
+      offset: 0x10000
     - <<: *Prbs
-      address: 0x30000
+      offset: 0x30000
 
 
 # Final device that will be used to generate configuration
