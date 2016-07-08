@@ -34,6 +34,7 @@ CXXFLAGS+= $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
 CXXFLAGS+= $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
 CXXFLAGS+= $(OPT_CXXFLAGS)
 CXXFLAGS+= $(USR_CXXFLAGS) $(or $(USR_CXXFLAGS_$(TARNM)),$(USR_CXXFLAGS_default))
+CXXFLAGS+= -DWITH_YAML
 
 CFLAGS  += $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
 CFLAGS  += $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
@@ -56,7 +57,7 @@ cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(or $(boostinc_DIR_$(TARNM)), $(boostinc_
 cpswlib_DIRS=$(CPSW_DIR)/O.$(TARCH)$(addprefix :,$(or $(boostlib_DIR_$(TARNM)), $(boostlib_DIR_default), $(boostlib_DIR)))
 
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
-CPSW_LIBS   = cpsw pthread rt
+CPSW_LIBS   = cpsw yaml-cpp pthread rt
 
 # definitions
 include $(CPSW_DIR)/config.mak

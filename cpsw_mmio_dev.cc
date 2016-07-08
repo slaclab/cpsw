@@ -2,6 +2,10 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 CMMIOAddressImpl::CMMIOAddressImpl(
 			AKey      key,
 			uint64_t  offset,
@@ -105,3 +109,33 @@ void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, ui
 	   );
 }
 
+#ifdef WITH_YAML
+void
+CMMIODevImpl::addAtAddress(Field child, const YAML::Node &node)
+{
+uint64_t  offset;
+unsigned  nelms     = DFLT_NELMS;
+uint64_t  stride    = DFLT_STRIDE;
+ByteOrder byteOrder = DFLT_BYTE_ORDER;
+
+	mustReadNode(node, "offset",    &offset);
+	readNode    (node, "nelms",     &nelms);
+	readNode    (node, "stride",    &stride);
+	readNode    (node, "byteOrder", &byteOrder);
+	
+	addAtAddress(child, offset, nelms, stride, byteOrder);
+}
+
+CMMIODevImpl::CMMIODevImpl(Key &key, const YAML::Node &node)
+: CDevImpl(key, node),
+  byteOrder_(DFLT_BYTE_ORDER)
+{
+	if ( 0 == size_ ) {
+		throw InvalidArgError("'size' zero or unset");
+	}
+
+	readNode( node, "byteOrder", &byteOrder_ );
+}
+
+const char * const CMMIODevImpl::className_ = "MMIODev";
+#endif

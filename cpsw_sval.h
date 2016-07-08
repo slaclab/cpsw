@@ -74,10 +74,21 @@ private:
 	Mode     mode_;
 	unsigned wordSwap_;
 	Enum     enum_;
+
+	void checkArgs();
+
 public:
 
 
 	CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP, Enum enm = Enum());
+
+#ifdef WITH_YAML
+	CIntEntryImpl(Key &k, const YAML::Node &n);
+
+	static const char  *const className_;
+
+	virtual const char *getClassName() const { return className_; }
+#endif
 
 	CIntEntryImpl(CIntEntryImpl &orig, Key &k)
 	:CEntryImpl(orig, k),

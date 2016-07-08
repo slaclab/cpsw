@@ -28,6 +28,14 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	public:
 		CMemDevImpl(Key &k, const char *name, uint64_t size);
 
+#ifdef WITH_YAML
+		CMemDevImpl(Key &k, const YAML::Node &n);
+
+		static const char  *const className_;
+
+		virtual const char *getClassName() const { return className_; }
+#endif
+
 		CMemDevImpl & operator=(CMemDevImpl &orig);
 
 		virtual void addAtAddress(Field child, unsigned nelms = 1);

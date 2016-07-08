@@ -7,6 +7,10 @@
 #include <boost/weak_ptr.hpp>
 #include <boost/make_shared.hpp>
 
+namespace YAML {
+	class Node;
+};
+
 using boost::weak_ptr;
 using boost::make_shared;
 
@@ -22,9 +26,16 @@ class CEntryImpl: public virtual IField, public CShObj {
 		//            constructor!
 		std::string	        name_;
 		std::string         description_;
+	protected:
 		uint64_t    	    size_;
+	private:
 		mutable Cacheable   cacheable_;
 		mutable bool        locked_;
+
+
+	private:
+
+		void checkArgs();
 
 	protected:
 		// prevent public copy construction -- cannot copy the 'self'
@@ -34,6 +45,16 @@ class CEntryImpl: public virtual IField, public CShObj {
 
 	public:
 		CEntryImpl(Key &k, const char *name, uint64_t size);
+
+#ifdef WITH_YAML
+		CEntryImpl(Key &k, const YAML::Node &n);
+
+		static YAML::Node overrideNode(const YAML::Node &);
+
+		static const char  *const className_;
+
+		virtual const char *getClassName() const { return className_; }
+#endif
 
 		virtual CEntryImpl *clone(Key &k) { return new CEntryImpl( *this, k ); }
 

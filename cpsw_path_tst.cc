@@ -3,15 +3,38 @@
 #include <cpsw_hub.h>
 #include <cpsw_path.h>
 #include <cpsw_obj_cnt.h>
-#include <iostream>
+#include <sstream>
+#include <string>
+#include <cpsw_yaml.h>
 
-static void test_a53564754e5eaa9029ff()
+static void test_a53564754e5eaa9029ff(bool use_yaml)
 {
-Dev root = IDev::create("root");
-Dev dev  = IDev::create("device", 100);
-Field f  = IField::create("reg", 1);
+const char *yaml=
+"name: root\n"
+"class: Dev\n"
+"children:\n"
+"- name: device\n"
+"  class: Dev\n"
+"  size: 100\n"
+"  nelms: 4\n"
+"  children:\n"
+"  - name: reg\n"
+"    class: Field\n"
+"    size: 1\n"
+"    nelms: 16\n";
+
+Dev root;
+
+if ( use_yaml ) {
+	root = CYamlFactoryBaseImpl::loadYamlStream( yaml );
+} else {
+
+	root = IDev::create("root");
+	Dev dev  = IDev::create("device", 100);
+	Field f  = IField::create("reg", 1);
 	dev->addAtAddress( f, 16 );
 	root->addAtAddress( dev, 4 );
+}
 
 Path p1 = root->findByName("device/reg");
 Path p2 = root->findByName("device[0-3]/reg[0-15]");
@@ -54,12 +77,33 @@ Hub      hh;
 	}
 }
 
-int
-main(int argc, char **argv)
+static Dev build_yaml()
 {
+const char *yaml=
+"name: root\n"
+"class: Dev\n"
+"children:\n"
+"- name: outer\n"
+"  class: Dev\n"
+"  nelms: 2\n"
+"  children:\n"
+"  - name: inner\n"
+"    class: Dev\n"
+"    cacheable: WT_CACHEABLE\n"
+"    nelms: 4\n"
+"    children:\n"
+"    - name: leaf\n"
+"      class: Field\n"
+"      size: 7\n"
+"    - name: leaf1\n"
+"      class: Field\n"
+"      size: 8\n"
+"      nelms: 4\n";
+	return CYamlFactoryBaseImpl::loadYamlStream( yaml );
+}
 
-try {
-Path    p  = IPath::create();
+static Dev build()
+{
 Dev     r  = IDev::create("root");
 	printf("root  use-count: %li\n", r.use_count());
 Dev    c1 = IDev::create("outer");
@@ -78,6 +122,31 @@ Field  c4 = IField::create("leaf1", 8);
 	c2.reset();
 	c3.reset();
 	c4.reset();
+
+	return r;
+}
+
+
+int
+main(int argc, char **argv)
+{
+bool use_yaml = false;
+int  opt;
+
+while ( (opt = getopt(argc, argv, "Y")) > 0 ) {
+	switch (opt) {
+		default:
+			fprintf(stderr,"Unknown option -%c\n", opt);
+			exit(1);
+		case 'Y':
+			use_yaml = true;
+		break;
+	}
+}
+
+try {
+Path    p  = IPath::create();
+Dev     r  = use_yaml ? build_yaml() : build();
 
 	printf("root  use-count: %li\n", r.use_count());
 	{
@@ -104,7 +173,6 @@ Field  c4 = IField::create("leaf1", 8);
 	printf("root  use-count: %li\n", r.use_count());
 	p1.reset();
 	printf("root  use-count: %li\n", r.use_count());
-	printf("outer use-count: %li\n", c1.use_count());
 
 
 	// testing element counts
@@ -206,7 +274,7 @@ Field  c4 = IField::create("leaf1", 8);
 		nright*= els[i]->getNelms();
 	}
 
-	test_a53564754e5eaa9029ff();
+	test_a53564754e5eaa9029ff(use_yaml);
 
 	printf("leaving\n");
 } catch (CPSWError e ) {

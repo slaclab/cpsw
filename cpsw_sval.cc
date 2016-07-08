@@ -9,6 +9,10 @@
 
 #include <string>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 using std::string;
 
 class CStreamAdapt;
@@ -19,34 +23,76 @@ static uint64_t b2B(uint64_t bits)
 	return (bits + 7)/8;
 }
 
+static uint64_t
+computeSize(unsigned wordSwap, uint64_t sizeBits, int lsBit)
+{
+	return	wordSwap > 0 && wordSwap != b2B(sizeBits) ? b2B(sizeBits) + (lsBit ? 1 : 0) : b2B(sizeBits + lsBit);
+}
+
+void
+CIntEntryImpl::checkArgs()
+{
+unsigned byteSize = b2B(size_bits_);
+
+	if ( ls_bit_ > 7 ) {
+		throw InvalidArgError("lsBit (bit shift) must be in 0..7");
+	}
+
+	if ( wordSwap_ == byteSize )
+		wordSwap_ = 0;
+
+	if ( wordSwap_ > 0 ) {
+		if ( ( byteSize % wordSwap_ ) != 0 ) {
+			throw InvalidArgError("wordSwap does not divide size");
+		}
+	}
+}
+
+
 CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap, Enum enm)
 : CEntryImpl(
 		k,
 		name,
-		wordSwap > 0 && wordSwap != b2B(sizeBits) ? b2B(sizeBits) + (lsBit ? 1 : 0) : b2B(sizeBits + lsBit)
+		computeSize(wordSwap, sizeBits, lsBit)
 	),
 	is_signed_(is_signed),
 	ls_bit_(lsBit),
 	size_bits_(sizeBits),
 	mode_(mode),
-	wordSwap_(wordSwap),
+	wordSwap_( wordSwap ),
 	enum_(enm)
 {
-unsigned byteSize = b2B(sizeBits);
-
-	if ( lsBit > 7 ) {
-		throw InvalidArgError("lsBit (bit shift) must be in 0..7");
-	}
-
-	if ( wordSwap == byteSize )
-		wordSwap = this->wordSwap_ = 0;
-
-	if ( wordSwap > 0 ) {
-		if ( ( byteSize % wordSwap ) != 0 ) {
-			throw InvalidArgError("wordSwap does not divide size");
-		}
-	}
+	checkArgs();
 }
+
+
+#ifdef WITH_YAML
+CIntEntryImpl::CIntEntryImpl(Key &key, const YAML::Node &node)
+:CEntryImpl(key, node),
+ is_signed_(DFLT_IS_SIGNED),
+ ls_bit_(DFLT_LS_BIT),
+ size_bits_(DFLT_SIZE_BITS),
+ mode_(DFLT_MODE),
+ wordSwap_(DFLT_WORD_SWAP)
+{
+MutableEnum e;
+
+	readNode(node, "isSigned", &is_signed_);
+	readNode(node, "lsBit",    &ls_bit_   );
+	readNode(node, "sizeBits", &size_bits_);
+	readNode(node, "mode",     &mode_     );
+	readNode(node, "wordSwap", &wordSwap_ );
+
+	readNode(node, "enums",    &e         );
+	enum_     = e;
+
+	size_     = computeSize(wordSwap_, size_bits_, ls_bit_);
+
+	checkArgs();
+}
+
+const char * const CIntEntryImpl::className_ = "IntField";
+#endif
 
 IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
 {

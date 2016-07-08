@@ -45,6 +45,11 @@ public:
 	: CPSWError(n)
 	{
 	}
+
+	NotFoundError(const std::string &s)
+	: CPSWError(s)
+	{
+	}
 };
 
 class InvalidPathError: public CPSWError {

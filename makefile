@@ -27,6 +27,7 @@ cpsw_SRCS+= cpsw_proto_mod_srpmux.cc
 cpsw_SRCS+= cpsw_proto_mod_tdestmux.cc
 cpsw_SRCS+= cpsw_proto_mod_rssi.cc
 cpsw_SRCS+= cpsw_thread.cc
+cpsw_SRCS+= cpsw_yaml.cc
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h
@@ -79,6 +80,11 @@ udpsrv_CXXFLAGS+= -DUDPSRV
 udpsrv_LIBS = tstaux cpsw pthread rt
 
 PROGRAMS   += udpsrv
+
+y_tst_SRCS = y_tst.cc
+y_tst_LIBS = $(CPSW_LIBS)
+y_tst_LDFLAGS=-Wl,-u,EntryImplfactory_
+TESTPROGRAMS += y_tst
 
 cpsw_path_tst_SRCS       = cpsw_path_tst.cc
 cpsw_path_tst_LIBS       = $(CPSW_LIBS)
@@ -158,6 +164,8 @@ cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 30'
 # error percentage should be >  value used for udpsrv (-L) times number
 # of fragments (-f)
 cpsw_stream_tst_run:    RUN_OPTS='-e 22' '-s8203 -R'
+
+cpsw_path_tst_run:      RUN_OPTS='' '-Y'
 
 rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
 

@@ -37,6 +37,9 @@ class IField : public virtual IEntry, public virtual IVisitable {
 public:
 	// the enum is ordered in increasing 'looseness' of the cacheable attribute
 	typedef enum Cacheable { UNKNOWN_CACHEABLE = 0, NOT_CACHEABLE, WT_CACHEABLE, WB_CACHEABLE } Cacheable;
+
+	static const uint64_t DFLT_SIZE = 0;
+
 public:
 	virtual Cacheable getCacheable()                 const = 0;
 	virtual void      setCacheable(Cacheable)              = 0;
@@ -45,15 +48,16 @@ public:
 	virtual ~IField() {}
 	virtual EntryImpl getSelf()                            = 0;
 
-	static Field create(const char *name, uint64_t size = 0);
+	static Field create(const char *name, uint64_t size = DFLT_SIZE);
 };
 
 class IDev : public virtual IHub, public virtual IField {
 public:
-	virtual  void addAtAddress( Field f, unsigned nelms = 1 ) = 0;
+	static const unsigned DFLT_NELMS = 1;
+	virtual  void addAtAddress( Field f, unsigned nelms = DFLT_NELMS ) = 0;
 	virtual ~IDev() {}
 
-	static Dev create(const char *name, uint64_t size = 0);
+	static Dev create(const char *name, uint64_t size = DFLT_SIZE);
 
 	static Dev getRootDev();
 };
@@ -73,9 +77,13 @@ class IMMIODev : public virtual IDev {
 public:
 static const uint64_t STRIDE_AUTO = -1ULL;
 
-	virtual void addAtAddress(Field child, uint64_t offset, unsigned nelms = 1, uint64_t stride = STRIDE_AUTO, ByteOrder byteOrder = UNKNOWN ) = 0;
+static const ByteOrder DFLT_BYTE_ORDER = UNKNOWN;
+static const uint64_t  DFLT_STRIDE = STRIDE_AUTO;
 
-	static MMIODev create(const char *name, uint64_t size, ByteOrder byteOrder = UNKNOWN);
+	virtual void addAtAddress(Field child, uint64_t offset, unsigned nelms = DFLT_NELMS, uint64_t stride = DFLT_STRIDE, ByteOrder byteOrder = DFLT_BYTE_ORDER ) = 0;
+
+
+	static MMIODev create(const char *name, uint64_t size, ByteOrder byteOrder = DFLT_BYTE_ORDER);
 };
 
 class IMemDev;

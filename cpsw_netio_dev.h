@@ -170,6 +170,16 @@ protected:
 public:
 	CNetIODevImpl(Key &key, const char *name, const char *ip);
 
+#ifdef WITH_YAML
+	CNetIODevImpl(Key &k, const YAML::Node &n);
+
+	virtual void addAtAddress(Field child, const YAML::Node &n);
+
+	static const char  *const className_;
+
+	virtual const char *getClassName() const { return className_; }
+#endif
+
 	virtual const char *getIpAddressString() const { return ip_str_.c_str(); }
 	virtual in_addr_t   getIpAddress()       const { return d_ip_; }
 

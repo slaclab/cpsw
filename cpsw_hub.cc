@@ -6,6 +6,10 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 using boost::static_pointer_cast;
 using boost::make_shared;
 
@@ -215,6 +219,26 @@ CDevImpl::CDevImpl(Key &k, const char *name, uint64_t size)
 	// by default - mark containers as write-through cacheable; user may still override
 	setCacheable( WT_CACHEABLE );
 }
+
+#ifdef WITH_YAML
+CDevImpl::CDevImpl(Key &key, const YAML::Node &node)
+: CEntryImpl(key, node)
+{
+	setCacheable(WT_CACHEABLE); // default for containers
+}
+
+void
+CDevImpl::addAtAddress(Field child, const YAML::Node &node)
+{
+unsigned nelms = DFLT_NELMS;
+
+	readNode(node, "nelms", &nelms);
+
+	addAtAddress(child, nelms);
+}
+
+const char * const CDevImpl::className_ = "Dev";
+#endif
 
 Dev IDev::create(const char *name, uint64_t size)
 {

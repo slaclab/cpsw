@@ -50,6 +50,15 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 		{
 		}
 
+#ifdef WITH_YAML
+		CMMIODevImpl(Key &k, const YAML::Node &n);
+		virtual void addAtAddress(Field child, const YAML::Node &node);
+
+		static const char  *const className_;
+
+		virtual const char *getClassName() const { return className_; }
+#endif
+
 		virtual CMMIODevImpl *clone(Key &k) { return new CMMIODevImpl( *this, k ); }
 
 		virtual ByteOrder getByteOrder() const { return byteOrder_; }

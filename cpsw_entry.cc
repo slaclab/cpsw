@@ -1,20 +1,22 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_path.h>
 #include <cpsw_entry.h>
+#include <cpsw_hub.h>
 #include <ctype.h>
 
 #include <cpsw_obj_cnt.h>
 
 #include <stdint.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
+using boost::dynamic_pointer_cast;
+
 static DECLARE_OBJ_COUNTER( ocnt, "EntryImpl", 1 ) // root device
 
-CEntryImpl::CEntryImpl(Key &k, const char *name, uint64_t size)
-: CShObj(k),
-  name_( name ),
-  size_( size),
-  cacheable_( UNKNOWN_CACHEABLE ),
-  locked_( false )
+void CEntryImpl::checkArgs()
 {
 const char *cptr;
 	for ( cptr = name_.c_str(); *cptr; cptr++ ) {
@@ -23,6 +25,16 @@ const char *cptr;
                      && '-' != *cptr  )
 					throw InvalidIdentError(name_);
 	}
+}
+
+CEntryImpl::CEntryImpl(Key &k, const char *name, uint64_t size)
+: CShObj(k),
+  name_( name ),
+  size_( size),
+  cacheable_( UNKNOWN_CACHEABLE ),
+  locked_( false )
+{
+	checkArgs();
 	++ocnt();
 }
 
@@ -36,6 +48,45 @@ CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
 {
 	++ocnt();
 }
+
+#ifdef WITH_YAML
+YAML::Node CEntryImpl::overrideNode(const YAML::Node &node)
+{
+	return node;
+}
+
+CEntryImpl::CEntryImpl(Key &key, const YAML::Node &node)
+: CShObj(key),
+  size_( DFLT_SIZE ),
+  cacheable_( UNKNOWN_CACHEABLE ),
+  locked_( false )
+{
+
+	mustReadNode( node, "name", &name_ );
+
+	{
+	const YAML::Node & n( getNode(node,"description") );
+	if ( n ) {
+		setDescription( n.as<std::string>() );
+	}
+	}
+
+	readNode( node, "size", &size_ );
+
+	{
+	const YAML::Node & n( getNode(node, "cacheable") );
+	if ( n ) {
+		setCacheable( n.as<IField::Cacheable>() );
+	}
+	}
+
+	checkArgs();
+
+	++ocnt();
+}
+
+const char * const CEntryImpl::className_ = "Field";
+#endif
 
 CEntryImpl::~CEntryImpl()
 {
@@ -70,5 +121,3 @@ Field IField::create(const char *name, uint64_t size)
 {
 	return CShObj::create<EntryImpl>(name, size);
 }
-
-

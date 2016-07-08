@@ -12,6 +12,10 @@
 
 #include <vector>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 using boost::dynamic_pointer_cast;
 
 typedef shared_ptr<NetIODevImpl> NetIODevImplP;
@@ -532,12 +536,35 @@ CSRPAddressImpl::~CSRPAddressImpl()
 }
 
 CNetIODevImpl::CNetIODevImpl(Key &k, const char *name, const char *ip)
-: CDevImpl(k, name), ip_str_(ip ? ip : "ANY")
+: CDevImpl(k, name),
+  ip_str_(ip ? ip : "ANY")
 {
 	if ( INADDR_NONE == ( d_ip_ = ip ? inet_addr( ip ) : INADDR_ANY ) ) {
 		throw InvalidArgError( ip );
 	}
 }
+
+#ifdef WITH_YAML
+CNetIODevImpl::CNetIODevImpl(Key &k, const YAML::Node &node)
+: CDevImpl(k, node),
+  ip_str_( getNode(node, "ipAddr") ? getNode(node, "ipAddr").as<std::string>().c_str() : "ANY" )
+{
+const YAML::Node & ipn( getNode(node, "ipAddr") );
+
+	if ( ipn ) {
+		ip_str_ = ipn.as<std::string>();
+		std::string ip( ipn.as<std::string>() );
+		if ( INADDR_NONE == ( d_ip_ = inet_addr( ip_str_.c_str() ) ) ) {
+			throw InvalidArgError( ip_str_.c_str() );
+		}
+	} else {
+		ip_str_ = std::string("ANY");
+		d_ip_   = INADDR_ANY;
+	}
+}
+
+const char * const CNetIODevImpl::className_ = "NetIODev";
+#endif
 
 void CSRPAddressImpl::setTimeoutUs(unsigned timeoutUs)
 {
@@ -1319,6 +1346,15 @@ shared_ptr<CCommAddressImpl> addr;
 	add(addr, child);
 	addr->startProtoStack();
 }
+
+#ifdef WITH_YAML
+void CNetIODevImpl::addAtAddress(Field child, const YAML::Node &node)
+{
+PortBuilder bldr( node.as<INetIODev::PortBuilder>() );
+
+	addAtAddress(child, bldr);
+}
+#endif
 
 void CNetIODevImpl::addAtAddress(Field child, INetIODev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 {

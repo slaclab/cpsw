@@ -4,10 +4,28 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size)
 : CDevImpl(k, name, size), buf_( new uint8_t[size] )
 {
 }
+
+#ifdef WITH_YAML
+CMemDevImpl::CMemDevImpl(Key &key, const YAML::Node &node)
+: CDevImpl(key, node),
+  buf_( new uint8_t[size_] )
+{
+	if ( 0 == size_ ) {
+		throw InvalidArgError("'size' zero or unset");
+	}
+}
+
+const char * const CMemDevImpl::className_ = "MemDev";
+
+#endif
 
 CMemDevImpl::CMemDevImpl(CMemDevImpl &orig, Key &k)
 : CDevImpl(orig, k),

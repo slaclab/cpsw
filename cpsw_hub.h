@@ -43,6 +43,14 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 
 	public:
 		CDevImpl(Key &k, const char *name, uint64_t size= 0);
+
+#ifdef WITH_YAML
+		CDevImpl(Key &k, const YAML::Node &n);
+
+		static const char  *const className_;
+
+		virtual const char *getClassName() const { return className_; }
+#endif
 		virtual ~CDevImpl();
 
 		virtual CDevImpl *clone(Key &k) { return new CDevImpl( *this, k ); }
@@ -54,6 +62,10 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		    IAddress::AKey k = getAKey();
 			add( make_shared<CAddressImpl>(k, nelms), child->getSelf() );
 		}
+
+#ifdef WITH_YAML
+		virtual void addAtAddress(Field child, const YAML::Node &n);
+#endif
 
 		virtual Path findByName(const char *s);
 
