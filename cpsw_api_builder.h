@@ -38,7 +38,8 @@ public:
 	// the enum is ordered in increasing 'looseness' of the cacheable attribute
 	typedef enum Cacheable { UNKNOWN_CACHEABLE = 0, NOT_CACHEABLE, WT_CACHEABLE, WB_CACHEABLE } Cacheable;
 
-	static const uint64_t DFLT_SIZE = 0;
+	static const uint64_t  DFLT_SIZE      = 0;
+	static const Cacheable DFLT_CACHEABLE = UNKNOWN_CACHEABLE;
 
 public:
 	virtual Cacheable getCacheable()                 const = 0;

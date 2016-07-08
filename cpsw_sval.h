@@ -88,6 +88,8 @@ public:
 	static const char  *const className_;
 
 	virtual const char *getClassName() const { return className_; }
+
+	virtual void dumpYamlPart(YAML::Node &n) const;
 #endif
 
 	CIntEntryImpl(CIntEntryImpl &orig, Key &k)

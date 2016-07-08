@@ -72,6 +72,11 @@ public:
 	CUdpPeerPollerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me = NULL, unsigned pollSecs = 60);
 	CUdpPeerPollerThread(CUdpPeerPollerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me);
 
+	virtual unsigned getPollSecs() const
+	{
+		return pollSecs_;
+	}
+
 	virtual ~CUdpPeerPollerThread() { threadStop(); }
 };
 
@@ -113,7 +118,7 @@ protected:
 	std::vector< CUdpRxHandlerThread * > rxHandlers_;
 	CUdpPeerPollerThread                 *poller_;
 
-	void createThreads(unsigned nRxThreads, int pollSecons);
+	void createThreads(unsigned nRxThreads, int pollSeconds);
 
 	virtual bool doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout);
 
@@ -158,6 +163,10 @@ public:
 	virtual uint64_t getNumRxDgrams();
 	virtual void modStartup();
 	virtual void modShutdown();
+
+#ifdef WITH_YAML
+	virtual void dumpYaml(YAML::Node &) const;
+#endif
 
 	virtual ~CProtoModUdp();
 

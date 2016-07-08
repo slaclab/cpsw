@@ -162,7 +162,7 @@ public:
 	{
 	}
 
-	int getDest()
+	int getDest() const
 	{
 		return dest_;
 	}

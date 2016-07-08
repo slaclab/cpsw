@@ -1,6 +1,10 @@
 #include <cpsw_proto_mod_tdestmux.h>
 #include <cpsw_proto_mod_depack.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 int CProtoModTDestMux::extractDest(BufChain bc)
 {
 Buf b = bc->getHead();
@@ -72,3 +76,17 @@ int rval = 0;
 	}
 	return rval;
 }
+
+#ifdef WITH_YAML
+void
+CTDestPort::dumpYaml(YAML::Node &node) const
+{
+YAML::Node parms;
+
+	parms["StripHeader"  ] = stripHeader_;
+	parms["outQueueDepth"] = getQueueDepth();
+	parms["TDSET"        ] = getDest();
+
+	node["TDestMux"] = parms;
+}
+#endif

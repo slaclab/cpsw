@@ -84,7 +84,7 @@ PROGRAMS   += udpsrv
 y_tst_SRCS = y_tst.cc
 y_tst_LIBS = $(CPSW_LIBS)
 y_tst_LDFLAGS=-Wl,-u,EntryImplfactory_
-TESTPROGRAMS += y_tst
+#TESTPROGRAMS += y_tst
 
 cpsw_path_tst_SRCS       = cpsw_path_tst.cc
 cpsw_path_tst_LIBS       = $(CPSW_LIBS)

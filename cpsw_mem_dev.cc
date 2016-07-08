@@ -24,7 +24,6 @@ CMemDevImpl::CMemDevImpl(Key &key, const YAML::Node &node)
 }
 
 const char * const CMemDevImpl::className_ = "MemDev";
-
 #endif
 
 CMemDevImpl::CMemDevImpl(CMemDevImpl &orig, Key &k)

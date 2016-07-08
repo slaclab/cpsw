@@ -126,6 +126,14 @@ ByteOrder byteOrder = DFLT_BYTE_ORDER;
 	addAtAddress(child, offset, nelms, stride, byteOrder);
 }
 
+void
+CMMIOAddressImpl::dumpYamlPart(YAML::Node &node) const
+{
+	CAddressImpl::dumpYamlPart( node );
+	node["offset"] = offset_;
+	node["stride"] = stride_;
+}
+
 CMMIODevImpl::CMMIODevImpl(Key &key, const YAML::Node &node)
 : CDevImpl(key, node),
   byteOrder_(DFLT_BYTE_ORDER)
@@ -135,6 +143,13 @@ CMMIODevImpl::CMMIODevImpl(Key &key, const YAML::Node &node)
 	}
 
 	readNode( node, "byteOrder", &byteOrder_ );
+}
+
+void
+CMMIODevImpl::dumpYamlPart(YAML::Node &node) const
+{
+	CDevImpl::dumpYamlPart(node);
+	node["byteOrder"] = byteOrder_;
 }
 
 const char * const CMMIODevImpl::className_ = "MMIODev";

@@ -31,6 +31,9 @@ class CMMIOAddressImpl : public CAddressImpl {
 		virtual uint64_t  read(CompositePathIterator *node, CReadArgs  *args) const;
 		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 		virtual void attach(EntryImpl child);
+#ifdef WITH_YAML
+		virtual void dumpYamlPart(YAML::Node &) const;
+#endif
 };
 
 
@@ -55,6 +58,8 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 		virtual void addAtAddress(Field child, const YAML::Node &node);
 
 		static const char  *const className_;
+
+		virtual void dumpYamlPart(YAML::Node &) const;
 
 		virtual const char *getClassName() const { return className_; }
 #endif

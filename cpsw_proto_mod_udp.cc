@@ -15,6 +15,10 @@
 
 #include <sched.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 //#define UDP_DEBUG
 //#define UDP_DEBUG_STRM
 
@@ -256,6 +260,19 @@ CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, uns
 	sockIni( tx_.getSd(), dest, 0, true );
 	createThreads( nRxThreads, pollSecs );
 }
+
+#ifdef WITH_YAML
+void
+CProtoModUdp::dumpYaml(YAML::Node &node) const
+{
+	YAML::Node udpParms;
+	udpParms["port"]          = getDestPort();
+	udpParms["outQueueDepth"] = getQueueDepth();
+	udpParms["numRxThreads"]  = rxHandlers_.size();
+	udpParms["pollSecs"]      = poller_ ? poller_->getPollSecs() : 0;
+	node["udp"] = udpParms;
+}
+#endif
 
 CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)
 :CProtoMod(orig, k),

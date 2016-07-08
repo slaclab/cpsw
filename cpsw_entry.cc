@@ -31,7 +31,7 @@ CEntryImpl::CEntryImpl(Key &k, const char *name, uint64_t size)
 : CShObj(k),
   name_( name ),
   size_( size),
-  cacheable_( UNKNOWN_CACHEABLE ),
+  cacheable_( DFLT_CACHEABLE ),
   locked_( false )
 {
 	checkArgs();
@@ -58,7 +58,7 @@ YAML::Node CEntryImpl::overrideNode(const YAML::Node &node)
 CEntryImpl::CEntryImpl(Key &key, const YAML::Node &node)
 : CShObj(key),
   size_( DFLT_SIZE ),
-  cacheable_( UNKNOWN_CACHEABLE ),
+  cacheable_( DFLT_CACHEABLE ),
   locked_( false )
 {
 
@@ -83,6 +83,35 @@ CEntryImpl::CEntryImpl(Key &key, const YAML::Node &node)
 	checkArgs();
 
 	++ocnt();
+}
+
+// Quite dumb ATM; no attempt to consolidate
+// identical nodes.
+void CEntryImpl::dumpYamlPart(YAML::Node &node) const
+{
+const char *d = getDescription();
+	node["name"] = getName();
+
+	if ( d && strlen(d) > 0 ) {
+		node["description"] = d;
+	}
+
+	if ( getSize() != DFLT_SIZE )
+		node["size"] = getSize();
+
+	if ( getCacheable() != DFLT_CACHEABLE )
+		node["cacheable"] = getCacheable();
+}
+
+YAML::Node 
+CEntryImpl::dumpYaml() const
+{
+YAML::Node node;
+	dumpYamlPart( node );
+
+	node["class"] = getClassName();
+
+	return node;
 }
 
 const char * const CEntryImpl::className_ = "Field";

@@ -168,6 +168,15 @@ Dev     r  = use_yaml ? build_yaml() : build();
 
 	recurse( r, 0 );
 
+{
+	YAML::Node main_node( r->getSelf()->dumpYaml() );
+	YAML::Emitter out;
+
+	out << main_node;
+
+	std::cout << out.c_str() << "\n";
+}
+
 	r.reset();
 	p.reset();
 	printf("root  use-count: %li\n", r.use_count());
@@ -275,6 +284,7 @@ Dev     r  = use_yaml ? build_yaml() : build();
 	}
 
 	test_a53564754e5eaa9029ff(use_yaml);
+
 
 	printf("leaving\n");
 } catch (CPSWError e ) {

@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <errno.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 //#define DEPACK_DEBUG
 
 #define RSSI_PAYLOAD 1024
@@ -140,6 +144,34 @@ CProtoModDepack::CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameW
 	  frameWin_( frameWinSize_, CFrame(fragWinSize_) )
 {
 }
+
+#ifdef WITH_YAML
+static unsigned ld(unsigned v)
+{
+unsigned rval = 0;
+	if ( v & 0xffff0000 )
+		rval += 16;
+	if ( v & 0xff00ff00 )
+		rval +=  8;
+	if ( v & 0xf0f0f0f0 )
+		rval +=  4;
+	if ( v & 0xcccccccc )
+		rval +=  2;
+	if ( v & 0xaaaaaaaa )
+		rval +=  1;
+	return rval;	
+}
+
+void
+CProtoModDepack::dumpYaml(YAML::Node &node) const
+{
+YAML::Node parms;
+	parms["outQueueDepth" ] = getQueueDepth();
+	parms["ldFrameWinSize"] = ld( frameWinSize_ );
+	parms["ldFragWinSize" ] = ld( fragWinSize_ );
+	node["depack"] = parms;
+}
+#endif
 
 void CProtoModDepack::modStartup()
 {

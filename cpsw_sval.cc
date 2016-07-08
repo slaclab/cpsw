@@ -91,6 +91,30 @@ MutableEnum e;
 	checkArgs();
 }
 
+void
+CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
+{
+
+	CEntryImpl::dumpYamlPart(node);
+
+	node["isSigned"] = is_signed_;
+	node["lsBit"]    = ls_bit_;
+	node["sizeBits"] = size_bits_;
+	node["mode"]     = mode_;
+	node["wordSwap"] = wordSwap_;
+
+	if ( enum_ ) {
+		IEnum::iterator it( enum_->begin() );
+
+		while ( it != enum_->end() ) {
+			YAML::Node item;
+			item["name"]  = *(*it).first;
+			item["value"] = (*it).second; 
+    		node["enums"].push_back( item );
+		}
+	}
+}
+
 const char * const CIntEntryImpl::className_ = "IntField";
 #endif
 

@@ -399,6 +399,20 @@ int                  nbits;
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
 }
 
+#ifdef WITH_YAML
+void
+CSRPAddressImpl::dumpYamlPart(YAML::Node &node) const
+{
+	CCommAddressImpl::dumpYamlPart( node );
+	YAML::Node srpParms;
+	srpParms["ProtocolVersion"] = protoVersion_;
+	srpParms["TimeoutUS"      ] = usrTimeout_.getUs();
+	srpParms["DynTimeout"     ] = useDynTimeout_;
+	srpParms["RetryCount"     ] = retryCnt_;
+	node["SRP"] = srpParms;
+}
+#endif
+
 CSRPAddressImpl::CSRPAddressImpl(AKey k, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 :CCommAddressImpl(k,ProtoPort()),
  protoVersion_(version),
@@ -561,6 +575,13 @@ const YAML::Node & ipn( getNode(node, "ipAddr") );
 		ip_str_ = std::string("ANY");
 		d_ip_   = INADDR_ANY;
 	}
+}
+
+void
+CNetIODevImpl::dumpYamlPart(YAML::Node & node) const
+{
+	CDevImpl::dumpYamlPart( node );
+	node["ipAddr"] = ip_str_;
 }
 
 const char * const CNetIODevImpl::className_ = "NetIODev";
@@ -1691,6 +1712,18 @@ unsigned             qDepth      = 5;
 	if ( tdm )
 		protoStack_ = tdm->createPort( tDest, stripHeader, qDepth );
 }
+
+#ifdef WITH_YAML
+void
+CCommAddressImpl::dumpYamlPart( YAML::Node &node) const
+{
+ProtoPort port;
+	CAddressImpl::dumpYamlPart( node );
+	for ( port = protoStack_; port; port = port->getUpstreamPort() ) {
+		port->dumpYaml( node );
+	}
+}
+#endif
 
 uint64_t CCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {

@@ -13,6 +13,8 @@
 
 #include <cpsw_obj_cnt.h>
 
+#include <cpsw_yaml.h>
+
 using boost::dynamic_pointer_cast;
 
 class TestFailed {};
@@ -306,6 +308,12 @@ unsigned byteResHack =  0;
 		}
 
 		root->findByName("mmio")->tail()->dump( stdout );
+
+		{
+		YAML::Emitter out;
+			out << root->getSelf()->dumpYaml();
+			std::cout << out.c_str() << "\n";
+		}
 
 	} catch (IOError &e) {
 		if ( root )

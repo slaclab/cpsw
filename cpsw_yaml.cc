@@ -5,6 +5,7 @@
 #include <cpsw_sval.h>
 #include <cpsw_mem_dev.h>
 #include <cpsw_mmio_dev.h>
+#include <cpsw_netio_dev.h>
 
 #include <sstream>
 
@@ -204,3 +205,4 @@ DECLARE_YAML_FACTORY(DevImpl);
 DECLARE_YAML_FACTORY(IntEntryImpl);
 DECLARE_YAML_FACTORY(MemDevImpl);
 DECLARE_YAML_FACTORY(MMIODevImpl);
+DECLARE_YAML_FACTORY(NetIODevImpl);

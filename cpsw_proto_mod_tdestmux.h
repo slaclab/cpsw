@@ -69,6 +69,10 @@ public:
 	{
 	}
 
+#ifdef WITH_YAML
+	virtual void dumpYaml(YAML::Node &) const;
+#endif
+
 	virtual bool pushDownstream(BufChain bc, const CTimeout *rel_timeout);
 
 };

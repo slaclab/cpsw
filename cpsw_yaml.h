@@ -37,6 +37,17 @@ struct convert<ByteOrder> {
 
     return true;
   }
+
+  static Node encode(const ByteOrder &rhs) {
+    Node node;
+    if ( LE == rhs )
+      node = "LE";
+    else if ( BE == rhs )
+      node = "BE";
+    else
+      node = "UNKNOWN";
+    return node;
+  }
 };
 
 template<>
@@ -57,6 +68,18 @@ struct convert<IField::Cacheable> {
       rhs = IField::UNKNOWN_CACHEABLE;
 
     return true;
+  }
+  static Node encode(const IField::Cacheable& rhs) {
+	Node node;
+
+	switch ( rhs ) {
+		case IField::NOT_CACHEABLE: node = "NOT_CACHEABLE"; break;
+		case IField::WT_CACHEABLE:  node = "WT_CACHEABLE";  break;
+		case IField::WB_CACHEABLE:  node = "WB_CACHEABLE";  break;
+		default:                    node = "UNKNOWN_CACHEABLE"; break;
+	}
+
+    return node;
   }
 };
 
@@ -84,6 +107,17 @@ struct convert<IIntField::Mode> {
       return false;
 
     return true;
+  }
+  static Node encode(const IIntField::Mode &rhs) {
+    Node node;
+    switch ( rhs ) {
+      case IIntField::RO: node = "RO"; break;
+      case IIntField::RW: node = "RW"; break;
+      case IIntField::WO: node = "WO"; break;
+	  default:
+	  break;
+    }
+	return node;
   }
 };
 
@@ -274,6 +308,18 @@ struct convert<INetIODev::ProtocolVersion> {
 
     return true;
   }
+
+  static Node encode(const INetIODev::ProtocolVersion &rhs) {
+    Node node;
+    switch( rhs ) {
+      case INetIODev::SRP_UDP_V1: node = "SRP_UDP_V1"; break;
+      case INetIODev::SRP_UDP_V2: node = "SRP_UDP_V2"; break;
+      case INetIODev::SRP_UDP_V3: node = "SRP_UDP_V3"; break;
+      default: node = "SRP_UDP_NONE"; break;
+	}
+    return node;
+  }
+
 };
 
 template<>
@@ -473,21 +519,8 @@ public:
 
 	virtual EntryImpl makeField(const YAML::Node & node)
 	{
-//	const YAML::Node n( T::element_type::overrideNode(node) );
-	const YAML::Node &n( node );
-	YAML::const_iterator it;
-	it = n.begin();
-	while ( it != n.end() ) {
-		std::cout << it->first << "\n";
-		++it;
-	}
-	const YAML::Node n1 = n;
+	const YAML::Node &n( T::element_type::overrideNode(node) );
 		T fld( CShObj::create<T>(n) );
-	it = n1.begin();
-	while ( it != n1.end() ) {
-		std::cout << it->first << "\n";
-		++it;
-	}
 		addChildren( *fld, n );
 		return fld;
 	}
@@ -511,6 +544,7 @@ template <typename T> static void readNode(const YAML::Node &node, const char *f
 		*val = n.as<T>();
 	}
 }
+
 
 #define DECLARE_YAML_FACTORY(FieldType) CYamlFieldFactory<FieldType> FieldType##factory_
 

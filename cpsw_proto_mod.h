@@ -23,6 +23,12 @@ typedef shared_ptr<CPortImpl> ProtoPortImpl;
 
 class ProtoPortMatchParams;
 
+#ifdef WITH_YAML
+namespace YAML {
+	class Node;
+}
+#endif
+
 class IProtoPort {
 public:
 	static const bool         ABS_TIMEOUT = true;
@@ -45,6 +51,10 @@ public:
 
 	virtual CTimeout  getAbsTimeoutPop (const CTimeout *) = 0;
 	virtual CTimeout  getAbsTimeoutPush(const CTimeout *) = 0;
+
+#ifdef WITH_YAML
+	virtual void      dumpYaml(YAML::Node &)     const    = 0;
+#endif
 
 	virtual int       match(ProtoPortMatchParams*)        = 0;
 };
@@ -212,6 +222,7 @@ class CPortImpl : public IPortImpl {
 private:
 	weak_ptr< ProtoMod::element_type > downstream_;
 	BufQueue                           outputQueue_;
+	unsigned                           depth_;
 
 protected:
 
@@ -237,8 +248,14 @@ protected:
 
 public:
 	CPortImpl(unsigned n)
-	: outputQueue_( n > 0 ? IBufQueue::create( n ) : BufQueue() )
+	: outputQueue_( n > 0 ? IBufQueue::create( n ) : BufQueue() ),
+	  depth_(n)
 	{
+	}
+
+	virtual unsigned getQueueDepth() const
+	{
+		return depth_;
 	}
 
 	virtual IEventSource *getReadEventSource()

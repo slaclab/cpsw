@@ -54,6 +54,14 @@ class CEntryImpl: public virtual IField, public CShObj {
 		static const char  *const className_;
 
 		virtual const char *getClassName() const { return className_; }
+
+		// every class implements this and chains through its
+		// superclass first (thus, derived classes can overwrite fields)
+		virtual void dumpYamlPart(YAML::Node &) const;
+
+		// used by EntryImpl and DevImpl to append class name and iterate
+		// through children
+		virtual YAML::Node dumpYaml() const;
 #endif
 
 		virtual CEntryImpl *clone(Key &k) { return new CEntryImpl( *this, k ); }

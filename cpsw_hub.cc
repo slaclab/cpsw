@@ -237,6 +237,34 @@ unsigned nelms = DFLT_NELMS;
 	addAtAddress(child, nelms);
 }
 
+void
+CAddressImpl::dumpYamlPart(YAML::Node &node) const
+{
+	node["nelms"]     = nelms_;
+	node["ByteOrder"] = byteOrder_;
+}
+
+void
+CDevImpl::dumpYamlPart(YAML::Node &node) const
+{
+	CEntryImpl::dumpYamlPart(node);
+}
+
+YAML::Node
+CDevImpl::dumpYaml() const
+{
+YAML::Node node( CEntryImpl::dumpYaml() );
+MyChildren::iterator it;
+
+	for ( it = children_.begin(); it != children_.end(); ++it ) {
+		YAML::Node child_node( it->second->getEntryImpl()->dumpYaml() );
+		it->second->dumpYamlPart( child_node );
+		node["children"].push_back( child_node ); 
+	}
+
+	return node;
+}
+
 const char * const CDevImpl::className_ = "Dev";
 #endif
 

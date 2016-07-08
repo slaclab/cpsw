@@ -2,6 +2,10 @@
 #include <cpsw_error.h>
 #include <cpsw_thread.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 #define VC_OFF_V3 7 // v3 is little endian and has an extra word upfront
 #define VC_OFF_V2 3 // v2 is little endian
 #define VC_OFF_V1 4 // v1 is big endian
@@ -88,3 +92,15 @@ int rval = 0;
 	}
 	return rval;
 }
+
+#ifdef WITH_YAML
+void
+CSRPPort::dumpYaml(YAML::Node &node) const
+{
+YAML::Node parms;
+
+	parms["VirtualChannel"] = getDest();
+
+	node["SRPMux"] = parms;
+}
+#endif

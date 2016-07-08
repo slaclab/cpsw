@@ -54,6 +54,10 @@ public:
 
 	virtual ~CProtoModRssi();
 
+#ifdef WITH_YAML
+	virtual void dumpYaml(YAML::Node &) const;
+#endif
+
 	static ProtoModRssi create();
 };
 
