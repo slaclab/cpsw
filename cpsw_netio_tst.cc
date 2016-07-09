@@ -13,7 +13,10 @@
 
 #include <cpsw_obj_cnt.h>
 
+#ifdef WITH_YAML
 #include <cpsw_yaml.h>
+#include <fstream>
+#endif
 
 using boost::dynamic_pointer_cast;
 
@@ -26,18 +29,25 @@ private:
 public:
 	Clr(Path where, MMIODev h)
 	{
-	char nam[100];
-		if ( ! h )
+	char  nam[100];
+	Entry te( static_pointer_cast<const CAddressImpl>( where->tail() )->getEntry() );
+	Entry he( h );
+		if ( he && te != he ) {
+			printf("Tail is %s (%p); expected %s (%p)\n", te->getName(), te.get(), he->getName(), he.get());
 			throw ConfigurationError("Clr: tail of 'where' path is not a Hub!");
+		}
 		sprintf(nam,"clr");
+		if ( h ) // NULL if yaml loaded
 		h->addAtAddress( IIntField::create(nam, 32), REG_CLR_OFF );
 		v = IScalVal::create( where->findByName( nam ) );
 
 		sprintf(nam,"scratch-be");
+		if ( h ) // NULL if yaml loaded
 		h->addAtAddress( IIntField::create(nam, 64), REG_SCR_OFF, 1, IMMIODev::STRIDE_AUTO, BE );
 		vsbe = IScalVal::create( where->findByName( nam ) );
 
 		sprintf(nam,"scratch-le");
+		if ( h ) // NULL if yaml loaded
 		h->addAtAddress( IIntField::create(nam, 64), REG_SCR_OFF, 1, IMMIODev::STRIDE_AUTO, LE );
 		vsle = IScalVal::create( where->findByName( nam ) );
 	}
@@ -108,8 +118,10 @@ unsigned vc          = 0;
 int      useRssi     = 0;
 int      tDest       = -1;
 unsigned byteResHack =  0;
+const char *use_yaml =  0;
+const char *dmp_yaml =  0;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:b")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:bY:y:")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr     = optarg;   break;
@@ -118,6 +130,14 @@ unsigned byteResHack =  0;
 			case 'r': useRssi     = 1;        break;
 			case 't': i_p         = &tDest;   break;
 			case 'b': byteResHack = 0x10000;  break;
+#ifdef WITH_YAML
+			case 'Y': use_yaml    = optarg;   break;
+			case 'y': dmp_yaml    = optarg;   break;
+#else
+			case 'y':
+			case 'Y': fprintf(stderr,"YAML support not compiled in\n");
+				throw TestFailed();
+#endif
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				throw TestFailed();
@@ -137,13 +157,21 @@ unsigned byteResHack =  0;
 		byteResHack = 0;
 
 	{
-	NetIODev root;
+	Dev root;
 
 	try {
+		MMIODev  srvm;
 
-		          root = INetIODev::create("fpga", ip_addr);
+		if ( use_yaml ) {
+#ifdef WITH_YAML
+			root = CYamlFactoryBaseImpl::loadYamlFile( use_yaml, "fpga" );
+#endif
+		} else {
+		NetIODev netio = INetIODev::create("fpga", ip_addr);
 		MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
-		MMIODev   srvm = IMMIODev::create ("srvm",0x10000, LE);
+		          srvm = IMMIODev::create ("srvm",0x10000, LE);
+
+		root = netio;
 
 		INetIODev::PortBuilder pbldr( INetIODev::createPortBuilder() );
 
@@ -168,7 +196,9 @@ unsigned byteResHack =  0;
 		}
 
 
-		root->addAtAddress( mmio, pbldr );
+		netio->addAtAddress( mmio, pbldr );
+
+		}
 
 		Path pre = root->findByName("mmio/srvm");
 
@@ -182,9 +212,11 @@ unsigned byteResHack =  0;
 					if ( offs[off_idx] + (sizes[size_idx] + lsbs[lsb_idx] + 7)/8 > 8 )
 						continue;
 					sprintf(nam,"vro-%i-%i-%i-be",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
+					if ( ! use_yaml )
 					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx]    , 1, IMMIODev::STRIDE_AUTO, BE ); 
 					ScalVal_RO v_be = IScalVal_RO::create( pre->findByName(nam) );
 					sprintf(nam,"vro-%i-%i-%i-le",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
+					if ( ! use_yaml )
 					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx] + 8, 1, IMMIODev::STRIDE_AUTO, LE ); 
 					ScalVal_RO v_le = IScalVal_RO::create( pre->findByName(nam) );
 
@@ -200,6 +232,10 @@ unsigned byteResHack =  0;
 					uint64_t shft_be = ((sizeof(v_expect) - (offs[off_idx] + v_be->getSize()))*8 + lsbs[lsb_idx]);
 					if ( v_got != (v = ((v_expect >> shft_be) & msk)) ) {
 						fprintf(stderr,"Mismatch (%s - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_be->getName(), v_be->getSizeBits(), sizes[size_idx], v_got, v);
+{
+uint64_t xxx;
+	v_be->getVal( &xxx );
+}
 						throw TestFailed();
 					}
 				}
@@ -219,10 +255,16 @@ unsigned byteResHack =  0;
 					if ( offs[off_idx] + (sizes[size_idx] + lsbs[lsb_idx] + 7)/8 > 8 )
 						continue;
 					sprintf(nam,"vrw-%i-%i-%i-be",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
+
+					if ( ! use_yaml )
 					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx] + REG_SCR_OFF, 1, IMMIODev::STRIDE_AUTO, BE ); 
+
 					ScalVal v_be = IScalVal::create( pre->findByName(nam) );
 					sprintf(nam,"vrw-%i-%i-%i-le",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
+
+					if ( ! use_yaml )
 					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx] + REG_SCR_OFF, 1, IMMIODev::STRIDE_AUTO, LE ); 
+
 					ScalVal v_le = IScalVal::create( pre->findByName(nam) );
 
 					uint64_t shft_le = (offs[off_idx]*8 + lsbs[lsb_idx]);
@@ -259,9 +301,11 @@ unsigned byteResHack =  0;
 		}
 
 		sprintf(nam,"arr-16-0-2-le");
+		if ( ! use_yaml )
 		srvm->addAtAddress( IIntField::create(nam, 16, false, 0), REG_ARR_OFF + 2, (REG_ARR_SZ-4)/2, IMMIODev::STRIDE_AUTO, LE ); 
 		ScalVal v_le = IScalVal::create( pre->findByName(nam) );
 		sprintf(nam,"arr-32-0-0-le");
+		if ( ! use_yaml )
 		srvm->addAtAddress( IIntField::create(nam, 32, false, 0), REG_ARR_OFF + 0, (REG_ARR_SZ)/4, IMMIODev::STRIDE_AUTO, LE ); 
 		ScalVal v32_le = IScalVal::create( pre->findByName(nam) );
 
@@ -309,11 +353,14 @@ unsigned byteResHack =  0;
 
 		root->findByName("mmio")->tail()->dump( stdout );
 
-		{
+#ifdef WITH_YAML
+		if ( dmp_yaml ) {
 		YAML::Emitter out;
+		std::ofstream os( dmp_yaml );
 			out << root->getSelf()->dumpYaml();
-			std::cout << out.c_str() << "\n";
+			os << out.c_str() << "\n";
 		}
+#endif
 
 	} catch (IOError &e) {
 		if ( root )

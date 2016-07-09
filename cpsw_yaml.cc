@@ -152,25 +152,32 @@ std::string typeLabel;
 }
 
 Dev
-CYamlFactoryBaseImpl::loadYamlFile(const char *file_name)
+CYamlFactoryBaseImpl::dispatchMakeField(const YAML::Node &node, const char *root_name)
 {
+const YAML::Node &root( root_name ? node[root_name] : node );
 	/* Root node must be a Dev */
-	return dynamic_pointer_cast<Dev::element_type>( dispatchMakeField( YAML::LoadFile( file_name ) ) );
+	return dynamic_pointer_cast<Dev::element_type>( dispatchMakeField( root ) );
+}
+
+
+Dev
+CYamlFactoryBaseImpl::loadYamlFile(const char *file_name, const char *root_name)
+{
+	return dispatchMakeField( YAML::LoadFile( file_name ), root_name );
 }
 
 Dev
-CYamlFactoryBaseImpl::loadYamlStream(std::istream &in)
+CYamlFactoryBaseImpl::loadYamlStream(std::istream &in, const char *root_name)
 {
-	/* Root node must be a Dev */
-	return dynamic_pointer_cast<Dev::element_type>( dispatchMakeField( YAML::Load( in ) ) );
+	return dispatchMakeField( YAML::Load( in ), root_name );
 }
 
 Dev
-CYamlFactoryBaseImpl::loadYamlStream(const char *yaml)
+CYamlFactoryBaseImpl::loadYamlStream(const char *yaml, const char *root_name)
 {
 std::string  str( yaml );
 std::stringstream sstrm( str );
-	return loadYamlStream( sstrm );
+	return loadYamlStream( sstrm, root_name );
 }
 
 

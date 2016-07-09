@@ -121,7 +121,7 @@ ByteOrder byteOrder = DFLT_BYTE_ORDER;
 	mustReadNode(node, "offset",    &offset);
 	readNode    (node, "nelms",     &nelms);
 	readNode    (node, "stride",    &stride);
-	readNode    (node, "byteOrder", &byteOrder);
+	readNode    (node, "ByteOrder", &byteOrder);
 	
 	addAtAddress(child, offset, nelms, stride, byteOrder);
 }
@@ -142,14 +142,14 @@ CMMIODevImpl::CMMIODevImpl(Key &key, const YAML::Node &node)
 		throw InvalidArgError("'size' zero or unset");
 	}
 
-	readNode( node, "byteOrder", &byteOrder_ );
+	readNode( node, "ByteOrder", &byteOrder_ );
 }
 
 void
 CMMIODevImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CDevImpl::dumpYamlPart(node);
-	node["byteOrder"] = byteOrder_;
+	node["ByteOrder"] = byteOrder_;
 }
 
 const char * const CMMIODevImpl::className_ = "MMIODev";

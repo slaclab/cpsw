@@ -500,12 +500,13 @@ class CYamlFactoryBaseImpl {
 		virtual void addChildren(CDevImpl &, const YAML::Node &);
 
 		static  Field dispatchMakeField(const YAML::Node &);
+		static  Dev   dispatchMakeField(const YAML::Node &node, const char *root_name);
 
 	public:
-		static Dev loadYamlFile(const char *file_name);
-		static Dev loadYamlStream(std::istream &yaml);
+		static Dev loadYamlFile(const char *file_name, const char *root_node);
+		static Dev loadYamlStream(std::istream &yaml,  const char *root_node);
 		// convenience wrapper
-		static Dev loadYamlStream(const char *yaml);
+		static Dev loadYamlStream(const char *yaml,    const char *root_node);
 
 		static void dumpTypes();
 };

@@ -1,10 +1,16 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_proto_mod_depack.h>
 #include <crc32-le-tbl-4.h>
+#include <cpsw_entry.h>
 
 #include <stdio.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#include <fstream>
+#endif
 
 #define NGOOD 200
 
@@ -12,7 +18,7 @@
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-h] [-s <port>] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent] [-n n_frames] [-R]\n", nm);
+	fprintf(stderr,"Usage: %s [-h] [-s <port>] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent] [-n n_frames] [-R] [-y dump-yaml] [-Y load-yaml]\n", nm);
 }
 
 extern int rssi_debug;
@@ -58,6 +64,8 @@ unsigned nUdpThreads = 4;
 unsigned useRssi     = 0;
 unsigned tDest       = -1;
 unsigned sport       = 8193;
+const char *dmp_yaml = 0;
+const char *use_yaml = 0;
 
 	unsigned iQDepth = 40;
 	unsigned oQDepth =  5;
@@ -68,7 +76,7 @@ unsigned sport       = 8193;
 
 	rssi_debug=0;
 
-	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:Rs:t:")) > 0 ) {
+	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:Rs:t:y:Y:")) > 0 ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'q': i_p = &iQDepth;        break;
@@ -81,6 +89,14 @@ unsigned sport       = 8193;
 			case 'n': i_p = &ngood;          break;
 			case 'R': useRssi = 1;           break;
 			case 't': i_p = &tDest;          break;
+#ifdef WITH_YAML
+			case 'Y': use_yaml    = optarg;   break;
+			case 'y': dmp_yaml    = optarg;   break;
+#else
+			case 'y':
+			case 'Y': fprintf(stderr,"YAML support not compiled in\n");
+				throw TestFailed();
+#endif
 			default:
 			case 'h': usage(argv[0]); return 1;
 		}
@@ -107,23 +123,33 @@ unsigned sport       = 8193;
 
 try {
 //NetIODev root = INetIODev::create("udp", "192.168.2.10");
-NetIODev root = INetIODev::create("udp", "127.0.0.1");
-Field    data = IField::create("data");
+Dev      root;
 
-INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
+	if ( use_yaml ) {
+#ifdef WITH_YAML
+		root = CYamlFactoryBaseImpl::loadYamlFile( use_yaml, 0 );
+#endif
+	} else {
+	NetIODev netio = INetIODev::create("udp", "127.0.0.1");
+	Field    data  = IField::create("data");
 
-	bldr->setSRPVersion          ( INetIODev::SRP_UDP_NONE );
-	bldr->setUdpPort             (                   sport );
-	bldr->setUdpOutQueueDepth    (                 iQDepth );
-	bldr->setUdpNumRxThreads     (             nUdpThreads );
-	bldr->setDepackOutQueueDepth (                 oQDepth );
-	bldr->setDepackLdFrameWinSize(          ldFrameWinSize );
-	bldr->setDepackLdFragWinSize (           ldFragWinSize );
-	bldr->useRssi                (                 useRssi );
-	if ( tDest < 256 )
-		bldr->setTDestMuxTDEST   (                   tDest );
+		root = netio;
 
-	root->addAtAddress( data, bldr );
+	INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
+
+		bldr->setSRPVersion          ( INetIODev::SRP_UDP_NONE );
+		bldr->setUdpPort             (                   sport );
+		bldr->setUdpOutQueueDepth    (                 iQDepth );
+		bldr->setUdpNumRxThreads     (             nUdpThreads );
+		bldr->setDepackOutQueueDepth (                 oQDepth );
+		bldr->setDepackLdFrameWinSize(          ldFrameWinSize );
+		bldr->setDepackLdFragWinSize (           ldFragWinSize );
+		bldr->useRssi                (                 useRssi );
+		if ( tDest < 256 )
+			bldr->setTDestMuxTDEST   (                   tDest );
+
+		netio->addAtAddress( data, bldr );
+	}
 
 	Path   strmPath = root->findByName("data");
 
@@ -220,6 +246,15 @@ INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
 		if ( errs*100 > err_percent * ngood )
 			goto bail;
 	}
+
+#ifdef WITH_YAML
+	if ( dmp_yaml ) {
+		YAML::Emitter out;
+		std::ofstream os( dmp_yaml );
+			out << root->getSelf()->dumpYaml();
+			os << out.c_str() << "\n";
+	}
+#endif
 
 
 } catch ( CPSWError e ) {

@@ -1719,6 +1719,11 @@ CCommAddressImpl::dumpYamlPart( YAML::Node &node) const
 {
 ProtoPort port;
 	CAddressImpl::dumpYamlPart( node );
+	// since SRP V2 is the default we switch it OFF here; if SRP
+	// is chained after us they will re-enable
+	YAML::Node noSRP;
+	noSRP["ProtocolVersion"] = INetIODev::SRP_UDP_NONE;
+	node["SRP"] = noSRP;
 	for ( port = protoStack_; port; port = port->getUpstreamPort() ) {
 		port->dumpYaml( node );
 	}

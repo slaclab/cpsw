@@ -5,7 +5,10 @@
 #include <cpsw_obj_cnt.h>
 #include <sstream>
 #include <string>
+
+#ifdef WITH_YAML
 #include <cpsw_yaml.h>
+#endif
 
 static void test_a53564754e5eaa9029ff(bool use_yaml)
 {
@@ -26,7 +29,9 @@ const char *yaml=
 Dev root;
 
 if ( use_yaml ) {
-	root = CYamlFactoryBaseImpl::loadYamlStream( yaml );
+#ifdef WITH_YAML
+	root = CYamlFactoryBaseImpl::loadYamlStream( yaml, 0 );
+#endif
 } else {
 
 	root = IDev::create("root");
@@ -79,6 +84,7 @@ Hub      hh;
 
 static Dev build_yaml()
 {
+#ifdef WITH_YAML
 const char *yaml=
 "name: root\n"
 "class: Dev\n"
@@ -99,7 +105,10 @@ const char *yaml=
 "      class: Field\n"
 "      size: 8\n"
 "      nelms: 4\n";
-	return CYamlFactoryBaseImpl::loadYamlStream( yaml );
+	return CYamlFactoryBaseImpl::loadYamlStream( yaml, 0 );
+#else
+	return Dev();
+#endif
 }
 
 static Dev build()
@@ -139,8 +148,13 @@ while ( (opt = getopt(argc, argv, "Y")) > 0 ) {
 			fprintf(stderr,"Unknown option -%c\n", opt);
 			exit(1);
 		case 'Y':
+#ifdef WITH_YAML
 			use_yaml = true;
 		break;
+#else
+		fprintf(stderr,"YAML support not compiled in\n");
+		throw TestFailed();
+#endif
 	}
 }
 
