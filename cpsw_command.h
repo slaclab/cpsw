@@ -94,4 +94,24 @@ protected:
         virtual shared_ptr<const CCommandImpl> asCommandImpl() const { return static_pointer_cast<const CCommandImpl, const CEntryImpl>(ie_); }
 };
 
+class CSequenceCommandImpl;
+typedef shared_ptr<CSequenceCommandImpl> SequenceCommandImpl;
+
+class CSequenceCommandContext : public CCommandImplContext {
+private:
+public:
+	CSequenceCommandContext(Path p, std::vector<std::string> names, std::vector<uint64_t> values);
+	void executeSequence(std::vector<std::string> names, std::vector<uint64_t> values);
+};
+
+class CSequenceCommandImpl : public CCommandImpl, public virtual ISequenceCommand {
+private:
+	std::vector<std::string> names_;
+	std::vector<uint64_t> values_;
+public:
+	CSequenceCommandImpl(Key &k, const char *name, std::vector<std::string> names, std::vector<uint64_t> values);
+	virtual CommandImplContext createContext(Path pParent) const;
+	virtual void executeCommand(CommandImplContext context) const;
+};
+
 #endif
