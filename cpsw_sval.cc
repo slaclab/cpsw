@@ -111,6 +111,8 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 			item["name"]  = *(*it).first;
 			item["value"] = (*it).second; 
     		node["enums"].push_back( item );
+
+			++it;
 		}
 	}
 }
