@@ -13,11 +13,7 @@ typedef shared_ptr<CDevImpl> DevImpl;
  */
 
 // Lookup a node iterating through merge tags
-//#define getNode(n,f) (n)[(f)]
-
-#ifndef getNode
 const YAML::Node getNode(const YAML::Node &node, const char *fld);
-#endif
 
 namespace YAML {
 template<>
@@ -114,7 +110,7 @@ struct convert<IIntField::Mode> {
       case IIntField::RO: node = "RO"; break;
       case IIntField::RW: node = "RW"; break;
       case IIntField::WO: node = "WO"; break;
-	  default:
+      default:
 	  break;
     }
 	return node;
@@ -125,16 +121,18 @@ template<>
 struct convert<MutableEnum> {
 	static bool decode(const Node &node, MutableEnum &rhs)
 	{
-		if ( ! node.IsSequence() )
+		if ( ! node.IsSequence() ) {
 			return false;
+		}
 
 		MutableEnum e = IMutableEnum::create();
 
 		for ( YAML::const_iterator it(node.begin()); it != node.end(); ++it ) {
 			const YAML::Node &nam( getNode( *it, "name"  ) );
 			const YAML::Node &val( getNode( *it, "value" ) );
-			if ( ! nam || ! val )
+			if ( ! nam || ! val ) {
 				return false;
+			}
 			e->add( nam.as<std::string>().c_str(), val.as<uint64_t>() );
 		}
 		rhs = e;
@@ -503,10 +501,12 @@ class CYamlFactoryBaseImpl {
 		static  Dev   dispatchMakeField(const YAML::Node &node, const char *root_name);
 
 	public:
-		static Dev loadYamlFile(const char *file_name, const char *root_node);
-		static Dev loadYamlStream(std::istream &yaml,  const char *root_node);
+		static Dev loadYamlFile(const char *file_name, const char *root_name);
+		static Dev loadYamlStream(std::istream &yaml,  const char *root_name);
 		// convenience wrapper
-		static Dev loadYamlStream(const char *yaml,    const char *root_node);
+		static Dev loadYamlStream(const char *yaml,    const char *root_name);
+
+		static void dumpYamlFile(Entry top, const char *file_name, const char *root_name);
 
 		static void dumpTypes();
 };
