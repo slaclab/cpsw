@@ -12,6 +12,10 @@
 
 #include <pthread.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 #define VLEN 123
 #define ADCL 10
 
@@ -405,7 +409,10 @@ uint32_t    prbs_base = 0x00030000;
 unsigned    byteResHack = 0x00000;
 const char *str;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:sT:M:b")) > 0; ) {
+const char *use_yaml  = 0;
+const char *dmp_yaml  = 0;
+
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:sT:M:by:Y:")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;     break;
@@ -424,6 +431,15 @@ const char *str;
 			case 'M': i_p     = &tDestMEM;  break;
 			case 'T': i_p     = &srpTo;     break;
 			case 'b': byteResHack = 0x10000;break;
+#ifdef WITH_YAML
+			case 'Y': use_yaml    = optarg; break;
+			case 'y': dmp_yaml    = optarg; break;
+#else
+			case 'y':
+			case 'Y':
+				fprintf(stderr,"YAML support not compiled in\n");
+				throw TestFailed();
+#endif
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -487,91 +503,109 @@ const char *str;
 
 try {
 
-NetIODev  root = INetIODev::create("fpga", ip_addr);
-MMIODev   mmio = IMMIODev::create ("mmio",0x10000000);
-AXIVers   axiv = IAXIVers::create ("vers");
-MMIODev   sysm = IMMIODev::create ("sysm",    0x1000, LE);
-MMIODev   axi4 = IMMIODev::create ("axi4",   0x10000, LE);
-MemDev    rmem = IMemDev::create  ("rmem",  0x100000);
-PRBS      prbs = IPRBS::create    ("prbs");
-
-uint8_t str[VLEN];
-int16_t adcv[ADCL];
-uint64_t u64;
-uint32_t u32;
-uint16_t u16;
-
-	rmem->addAtAddress( mmio );
-
-	uint8_t *buf = rmem->getBufp();
-	for (int i=16; i<24; i++ )
-		buf[i]=i-16;
+Dev       root;
+uint8_t   str[VLEN];
+int16_t   adcv[ADCL];
+uint64_t  u64;
+uint32_t  u32;
+uint16_t  u16;
 
 	if ( use_mem )
 		length = 0;
 
+	if ( use_yaml ) {
+#ifdef WITH_YAML
+		root = CYamlFactoryBaseImpl::loadYamlFile( use_yaml, "root" );
+#endif
+	} else {
+		NetIODev  comm = INetIODev::create("fpga", ip_addr);
+		MMIODev   mmio = IMMIODev::create ("mmio",0x10000000);
+		AXIVers   axiv = IAXIVers::create ("vers");
+		MMIODev   sysm = IMMIODev::create ("sysm",    0x1000, LE);
+		MMIODev   axi4 = IMMIODev::create ("axi4",   0x10000, LE);
+		MemDev    rmem = IMemDev::create  ("rmem",  0x100000);
+		PRBS      prbs = IPRBS::create    ("prbs");
 
-	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
+		if ( use_mem )
+			root = rmem;
+		else
+			root = comm;
 
-	mmio->addAtAddress( axiv, vers_base );
-	mmio->addAtAddress( sysm, sysm_base );
-	mmio->addAtAddress( prbs, prbs_base );
+		rmem->addAtAddress( mmio );
 
-	{
-	INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
-	INetIODev::ProtocolVersion protoVers;
-		switch ( vers ) {
-			default: throw TestFailed();
-			case 1: protoVers = INetIODev::SRP_UDP_V1; break;
-			case 2: protoVers = INetIODev::SRP_UDP_V2; break;
-			case 3: protoVers = INetIODev::SRP_UDP_V3; break;
+		uint8_t *buf = rmem->getBufp();
+		for (int i=16; i<24; i++ )
+			buf[i]=i-16;
+
+
+		sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
+
+		mmio->addAtAddress( axiv, vers_base );
+		mmio->addAtAddress( sysm, sysm_base );
+		mmio->addAtAddress( prbs, prbs_base );
+
+		{
+			INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
+			INetIODev::ProtocolVersion protoVers;
+			switch ( vers ) {
+				default: throw TestFailed();
+				case 1: protoVers = INetIODev::SRP_UDP_V1; break;
+				case 2: protoVers = INetIODev::SRP_UDP_V2; break;
+				case 3: protoVers = INetIODev::SRP_UDP_V3; break;
+			}
+			bldr->setSRPVersion              (             protoVers );
+			bldr->setUdpPort                 (                  port );
+			if ( srpTo > 0 ) {
+				u64 = srpTo;
+			} else {
+				u64 = length;
+				u64/= 10; /* MB/s */
+				if ( u64 < 90000 )
+					u64 = 90000;
+			}
+			bldr->setSRPTimeoutUS            (                   u64 );
+			bldr->setSRPRetryCount           (                     5 );
+			bldr->setSRPMuxVirtualChannel    (                     0 );
+			bldr->useRssi                    (               srpRssi );
+			if ( tDestSRP >= 0 ) {
+				bldr->setTDestMuxTDEST       (              tDestSRP );
+			}
+
+			comm->addAtAddress( mmio, bldr );
+
+			if ( vers >= 3 && tDestMEM >= 0 ) {
+				bldr->setTDestMuxTDEST       (              tDestMEM );
+				bldr->setSRPRetryCount       (       byteResHack | 4 ); // enable byte-resolution access
+				axi4->addAtAddress( IIntField::create("bram", 8, false, 0), 0x00000000, 0x10000 );
+				comm->addAtAddress( axi4, bldr );
+			}
+
 		}
-		bldr->setSRPVersion              (             protoVers );
-		bldr->setUdpPort                 (                  port );
-		if ( srpTo > 0 ) {
-			u64 = srpTo;
-		} else {
-			u64 = length;
-			u64/= 10; /* MB/s */
-			if ( u64 < 90000 )
-				u64 = 90000;
-		}
-		bldr->setSRPTimeoutUS            (                   u64 );
-		bldr->setSRPRetryCount           (                     5 );
-		bldr->setSRPMuxVirtualChannel    (                     0 );
-		bldr->useRssi                    (               srpRssi );
-		if ( tDestSRP >= 0 ) {
-			bldr->setTDestMuxTDEST       (              tDestSRP );
-		}
 
-		root->addAtAddress( mmio, bldr );
-
-		if ( vers >= 3 && tDestMEM >= 0 ) {
-			bldr->setTDestMuxTDEST       (              tDestMEM );
-			bldr->setSRPRetryCount       (       byteResHack | 4 ); // enable byte-resolution access
-			axi4->addAtAddress( IIntField::create("bram", 8, false, 0), 0x00000000, 0x10000 );
-			root->addAtAddress( axi4, bldr );
+		if ( length > 0 ) {
+			INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
+			bldr->setSRPVersion          ( INetIODev::SRP_UDP_NONE );
+			bldr->setUdpPort             ( sport                   );
+			bldr->setUdpOutQueueDepth    (                      32 );
+			bldr->setUdpNumRxThreads     (                       2 );
+			bldr->setDepackOutQueueDepth (                      16 );
+			bldr->setDepackLdFrameWinSize(                       4 );
+			bldr->setDepackLdFragWinSize (                       4 );
+			bldr->useRssi                (                 strRssi );
+			if ( tDestSTRM >= 0 )
+				bldr->setTDestMuxTDEST   (               tDestSTRM );
+			comm->addAtAddress( IField::create("dataSource"), bldr );
 		}
-
 	}
 
-	if ( length > 0 ) {
-		INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
-		bldr->setSRPVersion          ( INetIODev::SRP_UDP_NONE );
-		bldr->setUdpPort             ( sport                   );
-		bldr->setUdpOutQueueDepth    (                      32 );
-		bldr->setUdpNumRxThreads     (                       2 );
-		bldr->setDepackOutQueueDepth (                      16 );
-		bldr->setDepackLdFrameWinSize(                       4 );
-		bldr->setDepackLdFragWinSize (                       4 );
-		bldr->useRssi                (                 strRssi );
-		if ( tDestSTRM >= 0 )
-			bldr->setTDestMuxTDEST   (               tDestSTRM );
-		root->addAtAddress( IField::create("dataSource"), bldr );
+#ifdef WITH_YAML
+	if ( dmp_yaml ) {
+		CYamlFactoryBaseImpl::dumpYamlFile( root, dmp_yaml, "root" );
 	}
+#endif
 
 	// can use raw memory for testing instead of UDP
-	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );
+	Path pre = IPath::create( root );
 
 	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
 	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
@@ -731,7 +765,6 @@ uint16_t u16;
 		ScalVal bram( IScalVal::create( root->findByName("axi4/bram") ) );
 		testBram( bram );
 	}
-
 
 } catch (CPSWError &e) {
 	printf("CPSW Error: %s\n", e.getInfo().c_str());

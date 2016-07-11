@@ -7,6 +7,10 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_obj_cnt.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 using std::string;
 
 class TestFailed {
@@ -20,28 +24,55 @@ public:
 int
 main(int argc, char **argv)
 {
+int opt;
+const char *use_yaml = 0;
+const char *dmp_yaml = 0;
+
+	while ( (opt = getopt(argc, argv, "y:Y:")) > 0 ) {
+		switch (opt) {
+#ifdef WITH_YAML
+			case 'Y': use_yaml = optarg; break;
+			case 'y': dmp_yaml = optarg; break;
+#else
+			case 'Y':
+			case 'y':
+				fprintf(stderr,"YAML support not compiled in\n");
+				throw TestFailed();
+#endif
+		}
+	}
 try {
 
 {
-	MemDev  root = IMemDev::create("mem", SZ);
-	MMIODev mmio = IMMIODev::create("mmio", SZ, LE);
+	Dev root;
 
-	root->addAtAddress( mmio );
+	if ( use_yaml ) {
+#ifdef WITH_YAML
+		root = CYamlFactoryBaseImpl::loadYamlFile( use_yaml, "root" );
+#endif
+	} else {
+		MemDev  memio = IMemDev::create("mem", SZ);
+		MMIODev mmio  = IMMIODev::create("mmio", SZ, LE);
 
-	IIntField::Builder b = IIntField::IBuilder::create();
+		memio->addAtAddress( mmio );
 
-	b->sizeBits(4);
-	b->setEnum( enumBool );
+		IIntField::Builder b = IIntField::IBuilder::create();
 
-	mmio->addAtAddress( b->build("bool"), 0 );
+		b->sizeBits(4);
+		b->setEnum( enumBool );
 
-	Enum menu = IMutableEnum::create(NULL, "apples" , 2, "oranges", 0, "kiwi",    3, "mango",  13, NULL);
+		mmio->addAtAddress( b->build("bool"), 0 );
 
-	b->setEnum( menu );
+		Enum menu = IMutableEnum::create(NULL, "apples" , 2, "oranges", 0, "kiwi",    3, "mango",  13, NULL);
 
-	menu.reset();
+		b->setEnum( menu );
 
-	mmio->addAtAddress( b->build("menu"), 0 );
+		menu.reset();
+
+		mmio->addAtAddress( b->build("menu"), 0 );
+
+		root = memio;
+	}
 
 	ScalVal boolVal = IScalVal::create( root->findByName("mmio/bool") );
 	ScalVal menuVal = IScalVal::create( root->findByName("mmio/menu") );
@@ -57,11 +88,13 @@ try {
 		throw TestFailed("reading initial value of 'mango'");
 	}
 
+
 	boolVal->getVal( &str );
 	if ( ::strcmp(str->c_str(), "True" ) ) {
 		throw TestFailed("reading initial value of 'mango' (as bool)");
 	}
 
+std::cout << "YYY\n";
 	IEnum::iterator itbeg = menuVal->getEnum()->begin();
 	IEnum::iterator itend = menuVal->getEnum()->end();
 	IEnum::iterator it;
@@ -82,6 +115,7 @@ try {
 		}
 		nitems++;
 	}
+
 
 	// try num->string
 	for ( it=itbeg; it != itend; ++it ) {
@@ -114,6 +148,12 @@ try {
 	if ( nitems != 8 || nitems != 2*menuVal->getEnum()->getNelms() ) {
 		throw TestFailed("Unexpected number of enum entries");
 	}
+
+#ifdef WITH_YAML
+	if ( dmp_yaml ) {
+		CYamlFactoryBaseImpl::dumpYamlFile( root, dmp_yaml, "root" );
+	}
+#endif
 
 }
 
