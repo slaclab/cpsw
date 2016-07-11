@@ -8,19 +8,30 @@
 #include <cpsw_netio_dev.h>
 
 #include <sstream>
+#include <fstream>
+#include <iostream>
 
 using boost::dynamic_pointer_cast;
 
-#ifndef getNode
+// Weird things happen when we do iterative lookup.
+// Must be caused by how nodes are implemented and
+// reference counted.
+// Use RECURSIVE lookup!
+#define RECURSIVE_GET_NODE
 #ifndef RECURSIVE_GET_NODE
 const YAML::Node getNode(const YAML::Node &node, const char *key)
 {
 YAML::Node n(node);
 
 	do {
+std::cout<< "looking for "<<key;
 		const YAML::Node & val_node( n[key] );
-		if ( val_node )
+		if ( val_node ) {
+std::cout<< " -> found: " << val_node << "\n";
 			return val_node;
+		}
+
+std::cout<< " -> not found --> looking for merge node ";
 
 		const YAML::Node & merge_node( n["<<"] );
 
@@ -35,9 +46,12 @@ YAML::Node n(node);
 		// seems we shouldn't assign to 'n' if n["<<"] is
 		// not defined.
 
-		if ( ! merge_node )
+		if ( ! merge_node ) {
+std::cout<< " -> not found\n";
 			return merge_node;
+		}
 		n = merge_node;
+std::cout<< "found - IT - ";
 
 	} while ( 1 );
 }
@@ -54,7 +68,6 @@ const YAML::Node getNode(const YAML::Node &node, const char *key)
 
 	return getNode( node["<<"], key );
 }
-#endif
 #endif
 
 class CYamlFactoryBaseImpl::TypeRegistry {
@@ -145,7 +158,7 @@ CYamlFactoryBaseImpl::dispatchMakeField(const YAML::Node & node)
 {
 std::string typeLabel;
 
-	mustReadNode(node,"class", &typeLabel);
+	mustReadNode(node, "class", &typeLabel);
 	std::cout<<"making " << typeLabel << "\n";
 
 	return getRegistry()->lkup( typeLabel.c_str() )->makeField( node );
@@ -180,6 +193,36 @@ std::stringstream sstrm( str );
 	return loadYamlStream( sstrm, root_name );
 }
 
+void
+CYamlFactoryBaseImpl::dumpYamlFile(Entry top, const char *file_name, const char *root_name)
+{
+shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const EntryImpl::element_type>(top) );
+
+	if ( ! topi ) {
+		std::cerr << "WARNING: 'top' not an EntryImpl?\n";
+		return;
+	}
+
+	const YAML::Node &top_node( topi->dumpYaml() );
+
+
+	YAML::Emitter emit;
+
+	if ( root_name ) {
+		YAML::Node root_node;
+		root_node[root_name]=top_node;
+		emit << root_node;
+	} else {
+		emit << top_node;
+	}
+
+	if ( file_name ) {
+		std::ofstream os( file_name );
+		os        << emit.c_str() << "\n";
+	} else {
+		std::cout << emit.c_str() << "\n";
+	}
+}
 
 void 
 CYamlFactoryBaseImpl::dumpTypes()
