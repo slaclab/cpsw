@@ -8,7 +8,7 @@
 #include <cpsw_netio_dev.h>
 
 #include <sstream>
-
+#include <iostream>
 using boost::dynamic_pointer_cast;
 
 #ifndef getNode
