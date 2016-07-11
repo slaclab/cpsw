@@ -55,6 +55,18 @@ BOOST_ARCH=$(BOOST_ARCH_$(TARNM))
 boostinc_DIR=/afs/slac/g/lcls/package/boost/$(BOOST_VERSION)/$(BOOST_ARCH)/include
 boostlib_DIR=/afs/slac/g/lcls/package/boost/$(BOOST_VERSION)/$(BOOST_ARCH)/lib
 
+# YAML
+YAML_VERSION             = yaml-cpp-0.5.3
+
+YAML_ARCH_linux_x86_64   = rhel6-x86_64
+YAML_ARCH_linuxRT_x86_64 = buildroot-2015.02-x86_64
+
+YAML_ARCH                = $(YAML_ARCH_$(TARNM))
+
+yaml_DIR                 = /afs/slac/g/lcls/package/yaml-cpp/$(YAML_VERSION)/$(YAML_ARCH)
+yaml_cppinc_DIR          = $(yaml_DIR)/include
+yaml_cpplib_DIR          = $(yaml_DIR)/lib
+
 # to the directory where boost headers are installed.
 # These aforementioned variables are tried in the listed
 # order and the first one which is defined is used.
