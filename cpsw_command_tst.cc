@@ -68,13 +68,12 @@ MMIODev  mmio( IMMIODev::create( "mmio", MEM_SIZE) );
 	mmio->addAtAddress( IIntField::create("val" , 32     ), REGBASE+REG_SCR_OFF );
 	mmio->addAtAddress( CMyCommandImpl::create("cmd"), 0 );
 
-	std::vector<std::string> c_names;
-	std::vector<uint64_t> c_values;
-	c_names.push_back( "usleep" );
-	c_values.push_back(1000);
-	c_names.push_back( "val" );
-	c_values.push_back( (uint64_t)0x1 );
-	mmio->addAtAddress( ISequenceCommand::create("seqCmd", c_names, c_values), 0 );
+        ISequenceCommand::commandSequence commandSeq;
+        ISequenceCommand::Cmd c1("usleep", 1000);
+        ISequenceCommand::Cmd c2("val", 0x1);
+	commandSeq.push_back( c1 );
+	commandSeq.push_back( c2 );
+	mmio->addAtAddress( ISequenceCommand::create("seqCmd", commandSeq), 0 );
 
 	root->addAtAddress( mmio, INetIODev::createPortBuilder() );
 

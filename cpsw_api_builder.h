@@ -273,23 +273,22 @@ typedef shared_ptr<ISequenceCommand> SequenceCommand;
 
 class ISequenceCommand: public virtual IField {
 public:
+	typedef std::pair< std::string, uint64_t> Cmd;
+        typedef std::vector< Cmd > commandSequence;
+public:
 	// Create a SequenceCommand
-	//   This object takes a vector of entryNames and a vector of values
+	//   This object takes a vector of ISequenceCommand::Cmd
 	//   When executed by the user it steps through and sets each entry to the
 	//   associated value.
 	//
-	//   entryPath vector of strings of paths to IntField/SequenceCommand or "usleep"
-	//   values is the associated value to put
-	//
 	//   Ex create a command that sleeps for 1 second and then puts 0xdeadbeef in val:
-	//       std::vector<std::string> names;
-	//       std::vector<uint64_t> values;
-	//       names.push_back( "usleep" );
-	//       values.push_back(1000000);
-	//       names.push_back( "val" );
-	//       values.push_back( (uint64_t)0xdeadbeef );
-	//       ISequenceCommand::create("cmd", c_names, c_values);
-	static SequenceCommand create(const char* name, std::vector<std::string> entryPath, std::vector<uint64_t> values);
+        //       ISequenceCommand::commandSequence commandSeq;
+        //       ISequenceCommand::Cmd c1("usleep", 10000);
+        //       ISequenceCommand::Cmd c2("val", 0xdeadbeef);
+	//       commandSeq.push_back( c1 );
+	//       commandSeq.push_back( c2 );
+	//       ISequenceCommand::create("cmd", commandSeq);
+	static SequenceCommand create(const char* name, commandSequence commandSeq);
 }; 
 
 #endif

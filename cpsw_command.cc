@@ -49,43 +49,42 @@ Command CCommand_Adapt::create(Path p)
 	return comm;
 }
 
-SequenceCommand ISequenceCommand::create(const char* name, std::vector<std::string> entryPath, std::vector<uint64_t> values)
+SequenceCommand ISequenceCommand::create(const char* name, commandSequence commandSeq)
 {
-	return CShObj::create<SequenceCommandImpl>( name, entryPath, values );
+	return CShObj::create<SequenceCommandImpl>( name, commandSeq );
 }
 
-CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, std::vector<std::string> names, std::vector<uint64_t> values):
+CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, commandSequence commandSeq):
 	CCommandImpl(k, name),
-	names_(names),
-	values_(values)
+	commandSequence_(commandSeq)
 {
 
 }
 
 CommandImplContext CSequenceCommandImpl::createContext(Path pParent) const
 {
-	return make_shared<CSequenceCommandContext>(pParent, names_, values_);
+	return make_shared<CSequenceCommandContext>(pParent, commandSequence_);
 }
 
 void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 {
 	shared_ptr<CSequenceCommandContext> myContext( static_pointer_cast<CSequenceCommandContext>(context) );
-	myContext->executeSequence(names_, values_);
+	myContext->executeSequence( commandSequence_ );
 }
 
 
-CSequenceCommandContext::CSequenceCommandContext(Path p, std::vector<std::string> names, std::vector<uint64_t> values):
+CSequenceCommandContext::CSequenceCommandContext(Path p, ISequenceCommand::commandSequence commandSeq):
 	CCommandImplContext( p )
 {
 	ScalVal s;
 	/* Check that we have a valid command set or throw an error */
 	try {
-		for( std::vector<std::string>::iterator it = names.begin(); it != names.end(); ++it )
+		for( ISequenceCommand::commandSequence::iterator it = commandSeq.begin(); it != commandSeq.end(); ++it )
 		{
-			if( (*it).compare(0, 6, "usleep") == 0 ) {
+			if( (*it).first.compare(0, 6, "usleep") == 0 ) {
 			}
 			else {
-				p->findByName( (*it).c_str() );
+				p->findByName( (*it).first.c_str() );
 			}
 		}
 	} catch( CPSWError &e ) {
@@ -94,7 +93,7 @@ CSequenceCommandContext::CSequenceCommandContext(Path p, std::vector<std::string
 	}
 }
 
-void CSequenceCommandContext::executeSequence(std::vector<std::string> names, std::vector<uint64_t> values)
+void CSequenceCommandContext::executeSequence(ISequenceCommand::commandSequence commandSeq)
 {
 	Path p;
 	Command c;
@@ -107,17 +106,17 @@ void CSequenceCommandContext::executeSequence(std::vector<std::string> names, st
 #endif
 	int j = 0;
 	try {
-		for( std::vector<std::string>::iterator it = names.begin(); it != names.end(); ++it, j++ )
+		for( ISequenceCommand::commandSequence::iterator it = commandSeq.begin(); it != commandSeq.end(); ++it, j++ )
 		{
-			if( (*it).compare(0, 6, "usleep") == 0 ) {
-				usleep( (useconds_t) values[j] );
+			if( (*it).first.compare(0, 6, "usleep") == 0 ) {
+				usleep( (useconds_t) (*it).second );
 			}
 			else {
 				try {
-					p = pParent_->findByName( (*it).c_str() );
+					p = pParent_->findByName( (*it).first.c_str() );
 				}
 				catch( CPSWError &e ) {
-					std::string str = "SequenceCommand invalid path: " + *(it);
+					std::string str = "SequenceCommand invalid path: " + (*it).first;
 					throw InvalidArgError(str.c_str());
 				}
 				try {
@@ -130,7 +129,7 @@ void CSequenceCommandContext::executeSequence(std::vector<std::string> names, st
 					s = IScalVal::create( p );
 #endif
 					//set all nelms to same value if addressing multiple
-					s->setVal( values[j] );
+					s->setVal( (*it).second );
 					continue;
 				} 
 				catch( CPSWError &e ) {

@@ -100,16 +100,15 @@ typedef shared_ptr<CSequenceCommandImpl> SequenceCommandImpl;
 class CSequenceCommandContext : public CCommandImplContext {
 private:
 public:
-	CSequenceCommandContext(Path p, std::vector<std::string> names, std::vector<uint64_t> values);
-	void executeSequence(std::vector<std::string> names, std::vector<uint64_t> values);
+	CSequenceCommandContext(Path p, ISequenceCommand::commandSequence commandSeq);
+	void executeSequence(ISequenceCommand::commandSequence commandSeq);
 };
 
 class CSequenceCommandImpl : public CCommandImpl, public virtual ISequenceCommand {
 private:
-	std::vector<std::string> names_;
-	std::vector<uint64_t> values_;
+	commandSequence commandSequence_;
 public:
-	CSequenceCommandImpl(Key &k, const char *name, std::vector<std::string> names, std::vector<uint64_t> values);
+	CSequenceCommandImpl(Key &k, const char *name, commandSequence commandSeq);
 	virtual CommandImplContext createContext(Path pParent) const;
 	virtual void executeCommand(CommandImplContext context) const;
 };

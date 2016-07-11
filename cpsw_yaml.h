@@ -125,6 +125,7 @@ struct convert<SequenceCommand> {
 //    }
 
     std::string name;
+    ISequenceCommand::commandSequence commandSeq;
     std::vector<std::string> fields;
     std::vector<uint64_t> values;
 
@@ -137,8 +138,7 @@ struct convert<SequenceCommand> {
         const YAML::Node& seq = node["sequence"];
         for( unsigned i = 0; i < seq.size(); i++ )
         {
-            fields.push_back( seq[i]["entry"].as<std::string>() );
-            values.push_back( seq[i]["value"].as<uint64_t>() );
+            commandSeq.push_back( ISequenceCommand::Cmd( seq[i]["entry"].as<std::string>(), seq[i]["value"].as<uint64_t>() ) );
         }
     }
     else {
@@ -146,7 +146,7 @@ struct convert<SequenceCommand> {
     }
 
 
-    rhs = ISequenceCommand::create( name.c_str(), fields, values );
+    rhs = ISequenceCommand::create( name.c_str(), commandSeq );
     return true;
   }
 };
