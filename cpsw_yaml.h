@@ -546,6 +546,17 @@ template <typename T> static void readNode(const YAML::Node &node, const char *f
 	}
 }
 
+// For adding YAML support to a subclass of EntryImpl (see also cpsw_entry.h):
+//
+//  - add a constructor that takes a YAML::Node & argument  (YAML -> c++ class)
+//  - add a virtual 'void dumpYamlPart(YAML::Node&)' member (c++ class -> YAML)
+//    This method MUST chain through the corresponding superclass member.
+//  - copy/paste virtual 'const char *getClassName()' method (from CEntryImpl)
+//  - add a 'static const char * const className_' member and set to a unique name
+//  - expand 'DECLARE_YAML_FACTORY( shared_pointer_type )' macro ONCE from code which
+//    is guaranteed to be linked by the application (can be tricky when using static
+//    linking). Built-in classes do this in 'cpsw_yaml.cc'.
+//
 
 #define DECLARE_YAML_FACTORY(FieldType) CYamlFieldFactory<FieldType> FieldType##factory_
 
