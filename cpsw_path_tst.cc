@@ -5,6 +5,7 @@
 #include <cpsw_obj_cnt.h>
 #include <sstream>
 #include <string>
+#include <iostream>
 
 #ifdef WITH_YAML
 #include <cpsw_yaml.h>
