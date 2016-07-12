@@ -372,11 +372,8 @@ YAML::Emitter& operator << (YAML::Emitter& out, const Path& p) {
           str.append( stm.str() );
           str.push_back( ']' );
          
-
-          std::cout << str << std::endl;
           try {
             p1 = p->findByName( str.c_str() );
-            std::cout << p1->toString() << std::endl;
             out << p1; 
           } catch(...){}
         }
