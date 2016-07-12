@@ -484,6 +484,56 @@ struct convert<NetIODev> {
 YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s);
 YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h);
 
+class CYamlSupportBase {
+	public:
+		// every subclass must implement a constructor from a YAML::Node
+		// which chains through the superclass constructor.
+		CYamlSupportBase(const YAML::Node &node);
+
+		// when constructing from non-YAML
+		CYamlSupportBase() {}
+
+		// every class implements this and MUST chain through its
+		// superclass first (thus, derived classes can overwrite fields)
+		// e.g.,
+		//
+		// void CYamlSupportSubclass::dumpYamlPart(YAML::Node &node)
+		// {
+		//    CYamlSupportBase::dumpYamlPart( node ); // chain
+		//
+		//    dump subclass fields into node here (may override superclass entries)
+		//    node["myField"] = myvalue;
+		// }
+		virtual void dumpYamlPart(YAML::Node &node) const;
+
+		// Every subclass MUST define a static _getClassName() member and
+		// let it return a unique value;
+		// Copy-paste this method and modify the name.
+		static const char  *_getClassName() { return "YamlSupportBase"; }
+
+		// Every subclass MUST implement the 'getClassName()' virtual
+		// method (for polymorphic access to the class name).
+		// Just copy-paste this one:
+		virtual const char *getClassName() const { return _getClassName(); }
+
+		// subclass MAY implement 'overrideNode()' which is executed
+		// by dispatchMakeField() before the new entity is created.
+		// Can be used to modify the YAML node before it is passed
+		// to the constructor (create a new node from 'orig', modify
+		// and return it).
+		static YAML::Node overrideNode(const YAML::Node &orig);
+
+		// used by CYamlSupportBase and DevImpl to append class name and iterate
+		// through children; subclass probably wants to leave this alone unless
+		// you know what you are doing...
+		virtual YAML::Node dumpYaml() const;
+};
+
+class ITypeRegistry {
+public:
+	
+};
+
 class CYamlFactoryBaseImpl {
 	protected:
 		class TypeRegistry;
@@ -514,7 +564,7 @@ class CYamlFactoryBaseImpl {
 template <typename T> class CYamlFieldFactory : public CYamlFactoryBaseImpl {
 public:
 	CYamlFieldFactory()
-	: CYamlFactoryBaseImpl(T::element_type::className_)
+	: CYamlFactoryBaseImpl(T::element_type::_getClassName())
 	{
 	}
 
@@ -546,13 +596,13 @@ template <typename T> static void readNode(const YAML::Node &node, const char *f
 	}
 }
 
-// For adding YAML support to a subclass of EntryImpl (see also cpsw_entry.h):
+// For adding YAML support to a subclass of CYamlSupportBase:
 //
 //  - add a constructor that takes a YAML::Node & argument  (YAML -> c++ class)
 //  - add a virtual 'void dumpYamlPart(YAML::Node&)' member (c++ class -> YAML)
 //    This method MUST chain through the corresponding superclass member.
 //  - copy/paste virtual 'const char *getClassName()' method (from CEntryImpl)
-//  - add a 'static const char * const className_' member and set to a unique name
+//  - add a 'static const char * _getClassName()' member and return a unique name
 //  - expand 'DECLARE_YAML_FACTORY( shared_pointer_type )' macro ONCE from code which
 //    is guaranteed to be linked by the application (can be tricky when using static
 //    linking). Built-in classes do this in 'cpsw_yaml.cc'.

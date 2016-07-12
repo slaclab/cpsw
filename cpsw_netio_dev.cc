@@ -583,8 +583,6 @@ CNetIODevImpl::dumpYamlPart(YAML::Node & node) const
 	CDevImpl::dumpYamlPart( node );
 	node["ipAddr"] = ip_str_;
 }
-
-const char * const CNetIODevImpl::className_ = "NetIODev";
 #endif
 
 void CSRPAddressImpl::setTimeoutUs(unsigned timeoutUs)

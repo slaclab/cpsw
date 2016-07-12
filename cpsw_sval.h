@@ -85,9 +85,8 @@ public:
 #ifdef WITH_YAML
 	CIntEntryImpl(Key &k, const YAML::Node &n);
 
-	static const char  *const className_;
-
-	virtual const char *getClassName() const { return className_; }
+	static  const char *_getClassName()       { return "IntField";      }
+	virtual const char * getClassName() const { return _getClassName(); }
 
 	virtual void dumpYamlPart(YAML::Node &n) const;
 #endif

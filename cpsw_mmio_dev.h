@@ -57,11 +57,10 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 		CMMIODevImpl(Key &k, const YAML::Node &n);
 		virtual void addAtAddress(Field child, const YAML::Node &node);
 
-		static const char  *const className_;
-
 		virtual void dumpYamlPart(YAML::Node &) const;
 
-		virtual const char *getClassName() const { return className_; }
+		static  const char *_getClassName()       { return "MMIODev";       }
+		virtual const char * getClassName() const { return _getClassName(); }
 #endif
 
 		virtual CMMIODevImpl *clone(Key &k) { return new CMMIODevImpl( *this, k ); }

@@ -71,6 +71,34 @@ const YAML::Node getNode(const YAML::Node &node, const char *key)
 }
 #endif
 
+YAML::Node CYamlSupportBase::overrideNode(const YAML::Node &node)
+{
+	return node;
+}
+
+
+YAML::Node 
+CYamlSupportBase::dumpYaml() const
+{
+YAML::Node node;
+
+	node["class"] = getClassName();
+
+	dumpYamlPart( node );
+
+	return node;
+}
+
+CYamlSupportBase::CYamlSupportBase(const YAML::Node &node)
+{
+}
+
+void
+CYamlSupportBase::dumpYamlPart(YAML::Node &node) const
+{
+}
+
+
 class CYamlFactoryBaseImpl::TypeRegistry {
 
 	struct StrCmp {

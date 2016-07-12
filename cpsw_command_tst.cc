@@ -67,9 +67,8 @@ public:
 	{
 	}
 
-	static const char *const className_;
-
-	virtual const char *getClassName() const { return className_; }
+	static  const char *_getClassName()       { return "MyCommand";     }
+	virtual const char *getClassName()  const { return _getClassName(); }
 #endif
 
 	static Field create(const char *name)
@@ -79,8 +78,6 @@ public:
 };
 
 #ifdef WITH_YAML
-const char * const CMyCommandImpl::className_("MyCommand");
-
 DECLARE_YAML_FACTORY(MyCommandImpl);
 #endif
 

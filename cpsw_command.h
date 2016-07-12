@@ -119,9 +119,8 @@ public:
 
 	virtual void dumpYamlPart(YAML::Node &) const;
 
-	static const char  *const className_;
-
-	virtual const char *getClassName() const { return className_; }
+	static  const char *_getClassName()       { return "SequenceCommand"; }
+	virtual const char * getClassName() const { return _getClassName();   }
 #endif
 };
 

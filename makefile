@@ -157,7 +157,20 @@ include $(CPSW_DIR)/rules.mak
 # run for V2 and V1 and over TDEST demuxer (v2)
 # NOTE: the t1 test will be slow as the packetized channel is scrambled
 #       by udpsrv (and this increases average roundtrip time)
-cpsw_netio_tst_run:     RUN_OPTS='' '-V1 -p8191' '-p8202 -r' '-p8203 -r -t1' '-p8190 -V3' '-p8189 -V3 -b'
+cpsw_netio_tst_RUN_OPTS = '-y cpsw_netio_tst_1.yaml'
+cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_2.yaml -V1 -p8191'
+cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_3.yaml -p8202 -r'
+cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_4.yaml -p8203 -r -t1'
+cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_5.yaml -p8190 -V3'
+cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_6.yaml -p8189 -V3 -b'
+cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_1.yaml'
+cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_2.yaml'
+cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_3.yaml'
+cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_4.yaml'
+cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_5.yaml'
+cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_6.yaml'
+
+cpsw_netio_tst_run:     RUN_OPTS=$(cpsw_netio_tst_RUN_OPTS)
 
 cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
 
@@ -165,9 +178,11 @@ cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 30'
 
 # error percentage should be >  value used for udpsrv (-L) times number
 # of fragments (-f)
-cpsw_stream_tst_run:    RUN_OPTS='-e 22' '-s8203 -R'
+cpsw_stream_tst_run:    RUN_OPTS='-e 22 -y cpsw_stream_tst_1.yaml' '-s8203 -R -y cpsw_stream_tst_2.yaml' '-Y cpsw_stream_tst_1.yaml' '-Y cpsw_stream_tst_2.yaml'
 
 cpsw_path_tst_run:      RUN_OPTS='' '-Y'
+
+cpsw_command_tst_run:   RUN_OPTS='-y cpsw_command_tst.yaml' '-Y cpsw_command_tst.yaml'
 
 rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
 

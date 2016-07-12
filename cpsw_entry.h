@@ -7,9 +7,9 @@
 #include <boost/weak_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-namespace YAML {
-	class Node;
-};
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
 
 using boost::weak_ptr;
 using boost::make_shared;
@@ -19,7 +19,7 @@ class   Visitor;
 class   CEntryImpl;
 typedef shared_ptr<CEntryImpl> EntryImpl;
 
-class CEntryImpl: public virtual IField, public CShObj {
+class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase {
 	private:
 		// WARNING -- when modifying fields you might need to
 		//            modify 'operator=' as well as the copy
@@ -47,41 +47,14 @@ class CEntryImpl: public virtual IField, public CShObj {
 		CEntryImpl(Key &k, const char *name, uint64_t size);
 
 #ifdef WITH_YAML
-		// every subclass must implement a constructor from a YAML::Node
-		// which chains through the superclass constructor.
 		CEntryImpl(Key &k, const YAML::Node &n);
 
-		// every class implements this and MUST chain through its
-		// superclass first (thus, derived classes can overwrite fields)
-		// e.g.,
-		//
-		// void CEntryImplSubclass::dumpYamlPart(YAML::Node &node)
-		// {
-		//    CEntryImpl::dumpYamlPart( node ); // chain
-		//
-		//    dump subclass fields into node here (may override superclass entries)
-		//    node["myField"] = myvalue;
-		// }
 		virtual void dumpYamlPart(YAML::Node &) const;
-
-		// Every subclass MUST define a static className_ member and
-		// assign it a unique value;
-		static const char  *const className_;
 
 		// Every subclass MUST implement the 'getClassName()' virtual
 		// method. Just copy-paste this one:
-		virtual const char *getClassName() const { return className_; }
-
-		// subclass MAY implement 'overrideNode()' which is executed
-		// by dispatchMakeField() before the new entity is created.
-		// Can be used to modify the YAML node before it is passed
-		// to the constructor (create a new node from 'orig', modify
-		// and return it).
-		static YAML::Node overrideNode(const YAML::Node &orig);
-
-		// used by EntryImpl and DevImpl to append class name and iterate
-		// through children; subclass probably wants to leave this alone
-		virtual YAML::Node dumpYaml() const;
+		static  const char *_getClassName()       { return "Field";         }
+		virtual const char * getClassName() const { return _getClassName(); }
 #endif
 
 		virtual CEntryImpl *clone(Key &k) { return new CEntryImpl( *this, k ); }

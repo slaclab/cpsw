@@ -151,6 +151,4 @@ CMMIODevImpl::dumpYamlPart(YAML::Node &node) const
 	CDevImpl::dumpYamlPart(node);
 	node["ByteOrder"] = byteOrder_;
 }
-
-const char * const CMMIODevImpl::className_ = "MMIODev";
 #endif

@@ -178,14 +178,12 @@ public:
 
 #ifdef WITH_YAML
 	CNetIODevImpl(Key &k, const YAML::Node &n);
+	virtual void dumpYamlPart(YAML::Node &) const;
 
 	virtual void addAtAddress(Field child, const YAML::Node &n);
 
-	static const char  *const className_;
-
-	virtual const char *getClassName() const { return className_; }
-
-	virtual void dumpYamlPart(YAML::Node &) const;
+	static  const char *_getClassName()       { return "NetIODev";      }
+	virtual const char * getClassName() const { return _getClassName(); }
 #endif
 
 	virtual const char *getIpAddressString() const { return ip_str_.c_str(); }

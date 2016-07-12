@@ -64,8 +64,6 @@ CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, const Items
 }
 
 #ifdef WITH_YAML
-const char * const CSequenceCommandImpl::className_ = "SequenceCommand";
-
 CSequenceCommandImpl::CSequenceCommandImpl(Key &key, const YAML::Node &node)
 : CCommandImpl(key, node)
 {

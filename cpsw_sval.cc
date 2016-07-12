@@ -116,8 +116,6 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 		}
 	}
 }
-
-const char * const CIntEntryImpl::className_ = "IntField";
 #endif
 
 IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)

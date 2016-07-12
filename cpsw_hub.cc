@@ -264,8 +264,6 @@ MyChildren::iterator it;
 
 	return node;
 }
-
-const char * const CDevImpl::className_ = "Dev";
 #endif
 
 Dev IDev::create(const char *name, uint64_t size)

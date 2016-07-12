@@ -50,13 +50,9 @@ CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
 }
 
 #ifdef WITH_YAML
-YAML::Node CEntryImpl::overrideNode(const YAML::Node &node)
-{
-	return node;
-}
-
 CEntryImpl::CEntryImpl(Key &key, const YAML::Node &node)
 : CShObj(key),
+  CYamlSupportBase(node),
   size_( DFLT_SIZE ),
   cacheable_( DFLT_CACHEABLE ),
   locked_( false )
@@ -90,6 +86,10 @@ CEntryImpl::CEntryImpl(Key &key, const YAML::Node &node)
 void CEntryImpl::dumpYamlPart(YAML::Node &node) const
 {
 const char *d = getDescription();
+
+	// chain through superclass
+	CYamlSupportBase::dumpYamlPart( node );
+
 	node["name"] = getName();
 
 	if ( d && strlen(d) > 0 ) {
@@ -102,19 +102,6 @@ const char *d = getDescription();
 	if ( getCacheable() != DFLT_CACHEABLE )
 		node["cacheable"] = getCacheable();
 }
-
-YAML::Node 
-CEntryImpl::dumpYaml() const
-{
-YAML::Node node;
-	dumpYamlPart( node );
-
-	node["class"] = getClassName();
-
-	return node;
-}
-
-const char * const CEntryImpl::className_ = "Field";
 #endif
 
 CEntryImpl::~CEntryImpl()
