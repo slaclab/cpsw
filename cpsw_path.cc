@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <iostream>
+#include <sstream>
 
 #undef PATH_DEBUG
 
@@ -253,6 +254,7 @@ bool PathImpl::hasParent(PathImpl::reverse_iterator &i)
 	return i->c_p_ != NULL;
 }
 
+/* something wrong when int i == 10
 static void appendNum(std::string *s, int i)
 {
 div_t d;
@@ -266,6 +268,14 @@ div_t d;
 		s->insert(here, d.rem + '0');
 		i = d.quot;
 	} while ( i );
+}
+*/
+
+static void appendNum(std::string *s, int i)
+{
+std::ostringstream stm;
+	stm << i;
+	s->append( stm.str() );	
 }
 
 std::string PathImpl::toString() const
