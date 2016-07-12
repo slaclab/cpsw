@@ -327,33 +327,28 @@ Path         rval = make_shared<PathImpl>( *this );
 PathImpl    *p    = _toPathImpl( rval );
 const char  *sl;
 
+shared_ptr<const EntryImpl::element_type> tailp;
+
 #ifdef PATH_DEBUG
 cout<<"checking: "<< s <<"\n";
 #endif
 
 	if ( empty() ) {
-		if ( (h = originAsDevImpl()) ) {
+		if ( (tailp = originAsDevImpl()) ) {
 #ifdef PATH_DEBUG
 cout<<"using origin\n";
 #endif
-			goto use_origin;
 		} else {
 			throw InternalError();
 		} 
 	} else {
-		found = back().c_p_;
+		tailp = back().c_p_->getEntryImpl();
 #ifdef PATH_DEBUG
 cout<<"starting at: "<<found->getName() << "\n";
 #endif
 	}
 
 	do {
-
-		if ( ! (h = dynamic_pointer_cast<const DevImpl::element_type, EntryImpl::element_type>( found->getEntryImpl() )) ) {
-			throw NotDevError( found->getName() );
-		}
-
-use_origin:
 
 		int      idxf  = -1;
 		int      idxt  = -1;
@@ -362,59 +357,80 @@ use_origin:
 		while ( '/' == *s )
 			s++;
 
-		const char *op = strchr(s,'[');
-		const char *cl = op ? strchr(op,']') : 0;
-		const char *mi = op ? strchr(op,'-') : 0;
-
 		sl = strchr(s,'/');
 
-		if ( sl ) {
-			if ( op && op > sl )
-				op = 0;
-			if ( cl && cl > sl )
-				cl = 0;
-			if ( mi && mi > sl )
-				mi = 0;
-		}
+		// Check for '..'
+		if ( s[0] == '.' && s[1] == '.' && ( 0 == s[2] || ( sl && 2 == sl - s ) ) ) {
 
-		if ( op ) {
-			if (   !cl
-					|| (  cl <= op + 1)
-					|| (  sl && (sl < cl || sl != cl+1))
-					|| ( !sl && *(cl+1) )
-					|| (  mi && (mi >= cl-1 || mi <= op + 1) ) 
-			   ) {
+			/* implies s[0] != 0 , s[1] != 0 */
+			if ( p->empty() ) {
+				throw InvalidPathError(s);
+			}
+			p->pop_back();
+			found = p->back().c_p_;
+
+		} else {
+
+			const char *op = strchr(s,'[');
+			const char *cl = op ? strchr(op,']') : 0;
+			const char *mi = op ? strchr(op,'-') : 0;
+
+			if ( ! (h = dynamic_pointer_cast<const DevImpl::element_type>( tailp )) ) {
+				throw NotDevError( found->getName() );
+			}
+
+
+			if ( sl ) {
+				if ( op && op > sl )
+					op = 0;
+				if ( cl && cl > sl )
+					cl = 0;
+				if ( mi && mi > sl )
+					mi = 0;
+			}
+
+			if ( op ) {
+				if (   !cl
+						|| (  cl <= op + 1)
+						|| (  sl && (sl < cl || sl != cl+1))
+						|| ( !sl && *(cl+1) )
+						|| (  mi && (mi >= cl-1 || mi <= op + 1) ) 
+				   ) {
+					throw InvalidPathError( s );
+				}
+
+				idxf = getnum( op+1, mi ? mi : cl );
+				if ( mi ) {
+					idxt = getnum( mi+1, cl );
+				}
+			}
+
+			std::string key(s, (op ? op - s : ( sl ? sl - s : strlen(s) ) ) );
+
+#ifdef PATH_DEBUG
+			cout<<"looking for: " << key << " in: " << h->getName() << "\n";
+#endif
+
+			found = h->getAddress( key.c_str() );
+
+			if ( ! found ) {
+				throw NotFoundError( key.c_str() );
+			}
+
+			if ( idxt < 0 )
+				idxt = idxf < 0 ? found->getNelms() - 1 : idxf;
+			if ( idxf < 0 )
+				idxf = 0;
+
+			if ( idxf > idxt || idxt >= (int)found->getNelms() ) {
 				throw InvalidPathError( s );
 			}
 
-			idxf = getnum( op+1, mi ? mi : cl );
-			if ( mi ) {
-				idxt = getnum( mi+1, cl );
-			}
+			p->push_back( PathEntry(found, idxf, idxt, p->getNelms()) );
+
 		}
 
-		std::string key(s, (op ? op - s : ( sl ? sl - s : strlen(s) ) ) );
-
-#ifdef PATH_DEBUG
-cout<<"looking for: " << key << " in: " << h->getName() << "\n";
-#endif
-
-		found = h->getAddress( key.c_str() );
-
-		if ( ! found ) {
-			throw NotFoundError( key.c_str() );
-		}
-
-		if ( idxt < 0 )
-			idxt = idxf < 0 ? found->getNelms() - 1 : idxf;
-		if ( idxf < 0 )
-			idxf = 0;
-
-		if ( idxf > idxt || idxt >= (int)found->getNelms() ) {
-			throw InvalidPathError( s );
-		}
-
-		p->push_back( PathEntry(found, idxf, idxt, p->getNelms()) );
+		tailp = found->getEntryImpl();
 
 	} while ( (s = sl) != NULL );
 
