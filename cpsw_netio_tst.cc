@@ -164,7 +164,7 @@ const char *dmp_yaml =  0;
 
 		if ( use_yaml ) {
 #ifdef WITH_YAML
-			root = CYamlFactoryBaseImpl::loadYamlFile( use_yaml, "root" );
+			root = CYamlFieldFactoryBase::loadYamlFile( use_yaml, "root" );
 #endif
 		} else {
 		NetIODev netio = INetIODev::create("fpga", ip_addr);
@@ -355,7 +355,7 @@ uint64_t xxx;
 
 #ifdef WITH_YAML
 		if ( dmp_yaml ) {
-			CYamlFactoryBaseImpl::dumpYamlFile( root, dmp_yaml, "root" );
+			CYamlFieldFactoryBase::dumpYamlFile( root, dmp_yaml, "root" );
 		}
 #endif
 

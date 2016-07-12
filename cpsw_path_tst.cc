@@ -31,7 +31,7 @@ Dev root;
 
 if ( use_yaml ) {
 #ifdef WITH_YAML
-	root = CYamlFactoryBaseImpl::loadYamlStream( yaml, 0 );
+	root = CYamlFieldFactoryBase::loadYamlStream( yaml, 0 );
 #endif
 } else {
 
@@ -106,7 +106,7 @@ const char *yaml=
 "      class: Field\n"
 "      size: 8\n"
 "      nelms: 4\n";
-	return CYamlFactoryBaseImpl::loadYamlStream( yaml, 0 );
+	return CYamlFieldFactoryBase::loadYamlStream( yaml, 0 );
 #else
 	return Dev();
 #endif

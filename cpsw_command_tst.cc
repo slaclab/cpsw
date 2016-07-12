@@ -78,7 +78,7 @@ public:
 };
 
 #ifdef WITH_YAML
-DECLARE_YAML_FACTORY(MyCommandImpl);
+DECLARE_YAML_FIELD_FACTORY(MyCommandImpl);
 #endif
 
 int
@@ -111,7 +111,7 @@ Dev root;
 
 	if ( use_yaml ) {
 #ifdef WITH_YAML
-		root = CYamlFactoryBaseImpl::loadYamlFile( use_yaml, "root" );
+		root = CYamlFieldFactoryBase::loadYamlFile( use_yaml, "root" );
 #endif
 	} else {
 
@@ -139,7 +139,7 @@ Dev root;
 
 	if ( dmp_yaml ) {
 #ifdef WITH_YAML
-		CYamlFactoryBaseImpl::dumpYamlFile( root, dmp_yaml, "root" );
+		CYamlFieldFactoryBase::dumpYamlFile( root, dmp_yaml, "root" );
 #endif
 	}
 

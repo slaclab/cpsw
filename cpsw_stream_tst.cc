@@ -126,7 +126,7 @@ Dev      root;
 
 	if ( use_yaml ) {
 #ifdef WITH_YAML
-		root = CYamlFactoryBaseImpl::loadYamlFile( use_yaml, "root" );
+		root = CYamlFieldFactoryBase::loadYamlFile( use_yaml, "root" );
 #endif
 	} else {
 	NetIODev netio = INetIODev::create("udp", "127.0.0.1");
@@ -248,7 +248,7 @@ Dev      root;
 
 #ifdef WITH_YAML
 	if ( dmp_yaml ) {
-		CYamlFactoryBaseImpl::dumpYamlFile( root, dmp_yaml, "root" );
+		CYamlFieldFactoryBase::dumpYamlFile( root, dmp_yaml, "root" );
 	}
 #endif
 

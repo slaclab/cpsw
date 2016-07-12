@@ -484,6 +484,9 @@ struct convert<NetIODev> {
 YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s);
 YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h);
 
+class CYamlSupportBase;
+typedef shared_ptr<CYamlSupportBase> YamlSupportBase;
+
 class CYamlSupportBase {
 	public:
 		// every subclass must implement a constructor from a YAML::Node
@@ -529,25 +532,53 @@ class CYamlSupportBase {
 		virtual YAML::Node dumpYaml() const;
 };
 
-class ITypeRegistry {
+template <typename T> class IYamlFactoryBase;
+
+template <typename T> class IYamlTypeRegistry {
 public:
-	
+
+	virtual T    makeItem(const YAML::Node &) = 0;
+
+	virtual void extractClassName(std::string *str_p, const YAML::Node &)  = 0;
+
+	virtual void addFactory(const char *className, IYamlFactoryBase<T> *f) = 0;
+	virtual void delFactory(const char *className)                         = 0;
+
+	virtual void dumpClasses()                                             = 0;
 };
 
-class CYamlFactoryBaseImpl {
+template <typename T> class IYamlFactoryBase {
+private:
+	IYamlTypeRegistry<T> *registry_	;
+	const char           *className_;
+public:
+	IYamlFactoryBase(const char *className, IYamlTypeRegistry<T> *r)
+	: registry_(r),
+	  className_(className)
+	{
+		r->addFactory( className, this );
+	}
+
+	virtual T makeItem(const YAML::Node &node, IYamlTypeRegistry<T> *) = 0;
+
+	virtual ~IYamlFactoryBase()
+	{
+		registry_->delFactory( className_ );
+	}
+};
+
+class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
+	public:
+		static IYamlTypeRegistry<Field> *getFieldRegistry();
 	protected:
-		class TypeRegistry;
+		CYamlFieldFactoryBase(const char *typeLabel)
+		: IYamlFactoryBase<Field>( typeLabel, getFieldRegistry() )
+		{
+		}
 
-		static TypeRegistry *getRegistry();
+		virtual void addChildren(CEntryImpl &, const YAML::Node &, IYamlTypeRegistry<Field> *);
+		virtual void addChildren(CDevImpl &,   const YAML::Node &, IYamlTypeRegistry<Field> *);
 
-		CYamlFactoryBaseImpl(const char *typeLabel);
-
-		virtual EntryImpl makeField(const YAML::Node &) = 0;
-
-		virtual void addChildren(CEntryImpl &, const YAML::Node &);
-		virtual void addChildren(CDevImpl &, const YAML::Node &);
-
-		static  Field dispatchMakeField(const YAML::Node &);
 		static  Dev   dispatchMakeField(const YAML::Node &node, const char *root_name);
 
 	public:
@@ -558,21 +589,22 @@ class CYamlFactoryBaseImpl {
 
 		static void dumpYamlFile(Entry top, const char *file_name, const char *root_name);
 
-		static void dumpTypes();
+		static void dumpClasses() { getFieldRegistry()->dumpClasses(); }
 };
 
-template <typename T> class CYamlFieldFactory : public CYamlFactoryBaseImpl {
+
+template <typename T> class CYamlFieldFactory : public CYamlFieldFactoryBase {
 public:
 	CYamlFieldFactory()
-	: CYamlFactoryBaseImpl(T::element_type::_getClassName())
+	: CYamlFieldFactoryBase(T::element_type::_getClassName())
 	{
 	}
 
-	virtual EntryImpl makeField(const YAML::Node & node)
+	virtual Field makeItem(const YAML::Node & node, IYamlTypeRegistry<Field> *registry)
 	{
 	const YAML::Node &n( T::element_type::overrideNode(node) );
 		T fld( CShObj::create<T>(n) );
-		addChildren( *fld, n );
+		addChildren( *fld, n, registry );
 		return fld;
 	}
 
@@ -603,11 +635,11 @@ template <typename T> static void readNode(const YAML::Node &node, const char *f
 //    This method MUST chain through the corresponding superclass member.
 //  - copy/paste virtual 'const char *getClassName()' method (from CEntryImpl)
 //  - add a 'static const char * _getClassName()' member and return a unique name
-//  - expand 'DECLARE_YAML_FACTORY( shared_pointer_type )' macro ONCE from code which
+//  - expand 'DECLARE_YAML_FIELD_FACTORY( shared_pointer_type )' macro ONCE from code which
 //    is guaranteed to be linked by the application (can be tricky when using static
 //    linking). Built-in classes do this in 'cpsw_yaml.cc'.
 //
 
-#define DECLARE_YAML_FACTORY(FieldType) CYamlFieldFactory<FieldType> FieldType##factory_
+#define DECLARE_YAML_FIELD_FACTORY(FieldType) CYamlFieldFactory<FieldType> FieldType##factory_
 
 #endif

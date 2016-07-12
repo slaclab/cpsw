@@ -98,41 +98,53 @@ CYamlSupportBase::dumpYamlPart(YAML::Node &node) const
 {
 }
 
-
-class CYamlFactoryBaseImpl::TypeRegistry {
-
+template <typename T> class CYamlTypeRegistry : public IYamlTypeRegistry<T> {
+public:
 	struct StrCmp {
 		bool operator () (const char *a, const char *b) const {
-			return strcmp(a,b) < 0 ? true : false;
+			return ::strcmp(a,b) < 0 ? true : false;
 		}
 	};
 
-	typedef std::map<const char *, CYamlFactoryBaseImpl *, StrCmp> Map;
+	typedef std::map<const char *, IYamlFactoryBase<T> *, StrCmp> Map;
+	typedef std::pair<const char *, IYamlFactoryBase<T> *>        Member;
 
-	typedef std::pair<const char *, CYamlFactoryBaseImpl *>        Member;
-
+private:
+	
 	Map map_;
 
 public:
-	virtual void add(const char *name, CYamlFactoryBaseImpl *f)
-	{
-	std::pair< Map::iterator, bool > ret = map_.insert( Member(name, f) );
 
+	virtual void addFactory(const char *className, IYamlFactoryBase<T> *f)
+	{
+	std::pair< typename Map::iterator, bool > ret = map_.insert( Member(className, f) );
 		if ( ! ret.second )
-			throw DuplicateNameError( name );
+			throw DuplicateNameError( className );
 	}
 
-	virtual CYamlFactoryBaseImpl *lkup(const char *name)
+	virtual void delFactory(const char *className)
 	{
-	CYamlFactoryBaseImpl *rval = map_[ name ];	
-		if ( ! rval )
-			throw NotFoundError(name);
-		return rval;
+		map_.erase( className );
 	}
 
-	virtual void dump()
+	virtual void extractClassName(std::string *str_p, const YAML::Node &n)
 	{
-		Map::iterator it( map_.begin() );
+		mustReadNode( n, "class", str_p );
+	}
+
+	virtual T makeItem(const YAML::Node &n)
+	{
+		std::string str;
+		extractClassName( &str, n );
+		IYamlFactoryBase<T> *fact = map_[ str.c_str() ];
+		if ( ! fact )
+			throw NotFoundError( str );
+		return fact->makeItem(n, this);
+	}
+
+	virtual void dumpClasses()
+	{
+		typename Map::iterator it( map_.begin() );
 		while ( it != map_.end() ) {
 			std::cout << it->first << "\n";
 			++it;
@@ -140,25 +152,13 @@ public:
 	}
 };
 
-CYamlFactoryBaseImpl::TypeRegistry * CYamlFactoryBaseImpl::getRegistry()
-{
-static TypeRegistry theRegistry_;
-	return &theRegistry_;
-}
-
-CYamlFactoryBaseImpl::CYamlFactoryBaseImpl(const char *typeLabel)
-{
-	std::cerr << "registering " << typeLabel << "\n";
-	getRegistry()->add(typeLabel, this);
-}
-
 void
-CYamlFactoryBaseImpl::addChildren(CEntryImpl &e, const YAML::Node &node)
+CYamlFieldFactoryBase::addChildren(CEntryImpl &e, const YAML::Node &node, IYamlTypeRegistry<Field> *registry)
 {
 }
 
 void
-CYamlFactoryBaseImpl::addChildren(CDevImpl &d, const YAML::Node &node)
+CYamlFieldFactoryBase::addChildren(CDevImpl &d, const YAML::Node &node, IYamlTypeRegistry<Field> *registry)
 {
 const YAML::Node & children( node["children"] );
 
@@ -175,47 +175,36 @@ const YAML::Node & children( node["children"] );
 	if ( children ) {
 		YAML::const_iterator it = children.begin();
 		while ( it != children.end() ) {
-			Field c = dispatchMakeField( *it );
+			Field c = registry->makeItem( *it );
 			d.addAtAddress( c, *it );
 			++it;
 		}
 	}
 }
 
-Field
-CYamlFactoryBaseImpl::dispatchMakeField(const YAML::Node & node)
-{
-std::string typeLabel;
-
-	mustReadNode(node, "class", &typeLabel);
-	std::cout<<"making " << typeLabel << "\n";
-
-	return getRegistry()->lkup( typeLabel.c_str() )->makeField( node );
-}
-
 Dev
-CYamlFactoryBaseImpl::dispatchMakeField(const YAML::Node &node, const char *root_name)
+CYamlFieldFactoryBase::dispatchMakeField(const YAML::Node &node, const char *root_name)
 {
 const YAML::Node &root( root_name ? node[root_name] : node );
 	/* Root node must be a Dev */
-	return dynamic_pointer_cast<Dev::element_type>( dispatchMakeField( root ) );
+	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry()->makeItem( root ) );
 }
 
 
 Dev
-CYamlFactoryBaseImpl::loadYamlFile(const char *file_name, const char *root_name)
+CYamlFieldFactoryBase::loadYamlFile(const char *file_name, const char *root_name)
 {
 	return dispatchMakeField( YAML::LoadFile( file_name ), root_name );
 }
 
 Dev
-CYamlFactoryBaseImpl::loadYamlStream(std::istream &in, const char *root_name)
+CYamlFieldFactoryBase::loadYamlStream(std::istream &in, const char *root_name)
 {
 	return dispatchMakeField( YAML::Load( in ), root_name );
 }
 
 Dev
-CYamlFactoryBaseImpl::loadYamlStream(const char *yaml, const char *root_name)
+CYamlFieldFactoryBase::loadYamlStream(const char *yaml, const char *root_name)
 {
 std::string  str( yaml );
 std::stringstream sstrm( str );
@@ -223,7 +212,7 @@ std::stringstream sstrm( str );
 }
 
 void
-CYamlFactoryBaseImpl::dumpYamlFile(Entry top, const char *file_name, const char *root_name)
+CYamlFieldFactoryBase::dumpYamlFile(Entry top, const char *file_name, const char *root_name)
 {
 shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const EntryImpl::element_type>(top) );
 
@@ -253,13 +242,6 @@ shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const Entry
 	}
 }
 
-void 
-CYamlFactoryBaseImpl::dumpTypes()
-{
-	getRegistry()->dump();
-}
-
-
 YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s) {
     uint64_t u64;
     s->getVal( &u64 );
@@ -279,10 +261,17 @@ YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h) {
     return out;
 }
 
-DECLARE_YAML_FACTORY(EntryImpl);
-DECLARE_YAML_FACTORY(DevImpl);
-DECLARE_YAML_FACTORY(IntEntryImpl);
-DECLARE_YAML_FACTORY(MemDevImpl);
-DECLARE_YAML_FACTORY(MMIODevImpl);
-DECLARE_YAML_FACTORY(NetIODevImpl);
-DECLARE_YAML_FACTORY(SequenceCommandImpl);
+IYamlTypeRegistry<Field> *
+CYamlFieldFactoryBase::getFieldRegistry()
+{
+static CYamlTypeRegistry<Field> the_registry_;
+	return &the_registry_;
+}
+
+DECLARE_YAML_FIELD_FACTORY(EntryImpl);
+DECLARE_YAML_FIELD_FACTORY(DevImpl);
+DECLARE_YAML_FIELD_FACTORY(IntEntryImpl);
+DECLARE_YAML_FIELD_FACTORY(MemDevImpl);
+DECLARE_YAML_FIELD_FACTORY(MMIODevImpl);
+DECLARE_YAML_FIELD_FACTORY(NetIODevImpl);
+DECLARE_YAML_FIELD_FACTORY(SequenceCommandImpl);
