@@ -85,7 +85,7 @@ YAML::Node parms;
 
 	parms["StripHeader"  ] = stripHeader_;
 	parms["outQueueDepth"] = getQueueDepth();
-	parms["TDSET"        ] = getDest();
+	parms["TDEST"        ] = getDest();
 
 	node["TDestMux"] = parms;
 }
