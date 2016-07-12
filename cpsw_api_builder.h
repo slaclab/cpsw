@@ -282,6 +282,10 @@ typedef shared_ptr<ISequenceCommand> SequenceCommand;
 
 class ISequenceCommand: public virtual IField {
 public:
+
+	typedef std::pair<std::string, uint64_t> Item;
+	typedef std::vector<Item>                Items;
+
 	// Create a SequenceCommand
 	//   This object takes a vector of entryNames and a vector of values
 	//   When executed by the user it steps through and sets each entry to the
@@ -291,14 +295,12 @@ public:
 	//   values is the associated value to put
 	//
 	//   Ex create a command that sleeps for 1 second and then puts 0xdeadbeef in val:
-	//       std::vector<std::string> names;
-	//       std::vector<uint64_t> values;
-	//       names.push_back( "usleep" );
-	//       values.push_back(1000000);
-	//       names.push_back( "val" );
-	//       values.push_back( (uint64_t)0xdeadbeef );
-	//       ISequenceCommand::create("cmd", c_names, c_values);
-	static SequenceCommand create(const char* name, std::vector<std::string> entryPath, std::vector<uint64_t> values);
-}; 
+	//       std::vector< ISequenceCommand::Item > items;
+	//       items.push_back( ISequenceCommand::Item("usleep", 1000000) );
+	//       items.push_back( ISequenceCommand::Item("val"   , (uint64_t)0xdeadbeef );
+	//       ISequenceCommand::create("cmd", &items);
+
+	static SequenceCommand create(const char* name, const Items *items_p);
+};
 
 #endif

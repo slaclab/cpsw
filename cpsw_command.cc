@@ -4,6 +4,8 @@
 #include <cpsw_command.h>
 #include <cpsw_address.h>
 
+#include <cpsw_error.h>
+
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
@@ -49,109 +51,99 @@ Command CCommand_Adapt::create(Path p)
 	return comm;
 }
 
-SequenceCommand ISequenceCommand::create(const char* name, std::vector<std::string> entryPath, std::vector<uint64_t> values)
+SequenceCommand ISequenceCommand::create(const char* name, const Items *items_p)
 {
-	return CShObj::create<SequenceCommandImpl>( name, entryPath, values );
+	return CShObj::create<SequenceCommandImpl>( name, items_p );
 }
 
-CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, std::vector<std::string> names, std::vector<uint64_t> values):
-	CCommandImpl(k, name),
-	names_(names),
-	values_(values)
+CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, const Items *items_p)
+: CCommandImpl(k, name),
+  items_( *items_p )
 {
 
 }
 
-CommandImplContext CSequenceCommandImpl::createContext(Path pParent) const
+#ifdef WITH_YAML
+const char * const CSequenceCommandImpl::className_ = "SequenceCommand";
+
+CSequenceCommandImpl::CSequenceCommandImpl(Key &key, const YAML::Node &node)
+: CCommandImpl(key, node)
 {
-	return make_shared<CSequenceCommandContext>(pParent, names_, values_);
+const YAML::Node &seq_node( node["sequence"] );
+	if ( ! node ) {
+		throw InvalidArgError(std::string(getName()) + " no sequence found");
+	} 
+	if ( ! seq_node.IsSequence() ) {
+		throw InvalidArgError(std::string(getName()) + " YAML node not a sequence");
+	}
+
+	for ( YAML::const_iterator it( seq_node.begin() ); it != seq_node.end(); ++it ) {
+		std::string entry;
+		uint64_t    value;
+
+		mustReadNode( *it, "entry", &entry );
+		mustReadNode( *it, "value", &value );
+		items_.push_back( Item( entry, value ) );
+	}
 }
+
+void
+CSequenceCommandImpl::dumpYamlPart(YAML::Node &node) const
+{
+	CCommandImpl::dumpYamlPart( node );
+
+	Items::const_iterator it( items_.begin() );
+
+	while ( it != items_.end() ) {
+		YAML::Node item_node;
+		item_node["entry"] = (*it).first;
+		item_node["value"] = (*it).second;
+		node["sequence"].push_back( item_node );
+		++it;
+	}
+}
+
+#endif
 
 void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 {
-	shared_ptr<CSequenceCommandContext> myContext( static_pointer_cast<CSequenceCommandContext>(context) );
-	myContext->executeSequence(names_, values_);
-}
+	const Path parent( context->getParent() );
 
-
-CSequenceCommandContext::CSequenceCommandContext(Path p, std::vector<std::string> names, std::vector<uint64_t> values):
-	CCommandImplContext( p )
-{
-	ScalVal s;
-	/* Check that we have a valid command set or throw an error */
-	try {
-		for( std::vector<std::string>::iterator it = names.begin(); it != names.end(); ++it )
-		{
-			if( (*it).compare(0, 6, "usleep") == 0 ) {
-			}
-			else {
-				p->findByName( (*it).c_str() );
-			}
-		}
-	} catch( CPSWError &e ) {
-		std::string str = "SequenceCommand invalid argument: " + e.getInfo();
-		throw InvalidArgError(str.c_str());
-	}
-}
-
-void CSequenceCommandContext::executeSequence(std::vector<std::string> names, std::vector<uint64_t> values)
-{
 	Path p;
-	Command c;
-#if 0
-// without caching and bit-level access at the SRP protocol level we cannot
-// support write-only yet.
-	ScalVal_WO s;
-#else
-	ScalVal s;
-#endif
-	int j = 0;
-	try {
-		for( std::vector<std::string>::iterator it = names.begin(); it != names.end(); ++it, j++ )
-		{
-			if( (*it).compare(0, 6, "usleep") == 0 ) {
-				usleep( (useconds_t) values[j] );
-			}
-			else {
-				try {
-					p = pParent_->findByName( (*it).c_str() );
-				}
-				catch( CPSWError &e ) {
-					std::string str = "SequenceCommand invalid path: " + *(it);
-					throw InvalidArgError(str.c_str());
-				}
+
+	for( Items::const_iterator it = items_.begin(); it != items_.end(); ++it )
+	{
+		if( (*it).first.compare(0, 6, "usleep") == 0 ) {
+			usleep( (useconds_t) (*it).second );
+		}
+		else {
+			try {
+				Path p( parent->findByName( (*it).first.c_str() ) );
+
 				try {
 					// if ScalVal
 #if 0
-// without caching and bit-level access at the SRP protocol level we cannot
-// support write-only yet.
-					s = IScalVal_WO::create( p );
+					// without caching and bit-level access at the SRP protocol level we cannot
+					// support write-only yet.
+					ScalVal_WO s( IScalVal_WO::create( p ) );
 #else
-					s = IScalVal::create( p );
+					ScalVal s( IScalVal::create( p ) );
 #endif
 					//set all nelms to same value if addressing multiple
-					s->setVal( values[j] );
-					continue;
-				} 
-				catch( CPSWError &e ) {
-				}
-				try {
+					s->setVal( (*it).second );
+
+				} catch (InterfaceNotImplementedError &e) {
 					// else if command
-					c = ICommand::create( p );
+					Command c( ICommand::create( p ) );
 					c->execute();
-					continue;
 				}
-				catch( CPSWError &e ) {
-					std::string str = "SequenceCommand invalid arg: " + p->toString();
-					throw InvalidArgError(str.c_str());
-				}
+			} catch (CPSWError &e) {
+				std::string str = "(SequenceCommand: " + p->toString() + ") ";
+				e.prepend( str );
+				throw;
 			}
 		}
-	} catch( CPSWError &e ) {
-		throw e;
 	}
-
-	return;
 }
 
 

@@ -297,6 +297,12 @@ Dev     r  = use_yaml ? build_yaml() : build();
 		nright*= els[i]->getNelms();
 	}
 
+	p1 = a->findByName("b/c/d/../../c/d/f/..");
+	if ( p1->getNelms() != 3*5*7 ) {
+		p1->dump(stdout);
+		throw TestFailed();
+	}
+
 	test_a53564754e5eaa9029ff(use_yaml);
 
 

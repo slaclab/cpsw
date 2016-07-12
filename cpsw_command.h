@@ -5,6 +5,10 @@
 #include <cpsw_entry_adapt.h>
 #include <cpsw_obj_cnt.h>
 
+#ifdef WITH_YAML
+#include <cpsw_yaml.h>
+#endif
+
 using boost::static_pointer_cast;
 using boost::weak_ptr;
 
@@ -74,6 +78,13 @@ public:
         virtual void executeCommand( CommandImplContext pContext ) const;
 
         CCommandImpl(Key &k, const char* name);
+
+#ifdef WITH_YAML
+		CCommandImpl(Key  &k, const YAML::Node &node)
+		: CEntryImpl(k, node)
+		{
+		}
+#endif
 };
 
 class CCommand_Adapt;
@@ -97,21 +108,21 @@ protected:
 class CSequenceCommandImpl;
 typedef shared_ptr<CSequenceCommandImpl> SequenceCommandImpl;
 
-class CSequenceCommandContext : public CCommandImplContext {
-private:
-public:
-	CSequenceCommandContext(Path p, std::vector<std::string> names, std::vector<uint64_t> values);
-	void executeSequence(std::vector<std::string> names, std::vector<uint64_t> values);
-};
-
 class CSequenceCommandImpl : public CCommandImpl, public virtual ISequenceCommand {
 private:
-	std::vector<std::string> names_;
-	std::vector<uint64_t> values_;
+	Items items_;
 public:
-	CSequenceCommandImpl(Key &k, const char *name, std::vector<std::string> names, std::vector<uint64_t> values);
-	virtual CommandImplContext createContext(Path pParent) const;
+	CSequenceCommandImpl(Key &k, const char *name, const Items *items_p);
 	virtual void executeCommand(CommandImplContext context) const;
+#ifdef WITH_YAML
+	CSequenceCommandImpl(Key &k, const YAML::Node &node);
+
+	virtual void dumpYamlPart(YAML::Node &) const;
+
+	static const char  *const className_;
+
+	virtual const char *getClassName() const { return className_; }
+#endif
 };
 
 #endif

@@ -17,6 +17,18 @@ public:
 	{
 	}
 
+	virtual void
+	prepend(const std::string &s)
+	{
+		name_.insert(0, s);
+	}
+
+	virtual void
+	append(const std::string &s)
+	{
+		name_.append(s);
+	}
+
 	virtual std::string &getInfo()
 	{
 		return name_;
@@ -76,6 +88,11 @@ public:
 class InvalidArgError: public CPSWError {
 public:
 	InvalidArgError(const char *n)
+	: CPSWError(n)
+	{
+	}
+
+	InvalidArgError(const std::string &n)
 	: CPSWError(n)
 	{
 	}
