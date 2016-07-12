@@ -3,7 +3,7 @@
 
 #include <yaml-cpp/yaml.h>
 #include <cpsw_api_builder.h>
-
+#include <iostream>
 /* Template specializations to convert YAML nodes to CPSW entries 
  * (ByteOrder, IIntField::Mode, Field, MMIODev, etc.)
  */
@@ -347,13 +347,63 @@ YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s) {
     return out;
 }
 
-YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h) {
-    Children ch = h->getChildren();
-    for( unsigned i = 0; i < ch->size(); i++ )
-    {
-//       out << ch[i]; 
+YAML::Emitter& operator << (YAML::Emitter& out, const Path& p) {
+    uint64_t u64;
+    Child c = p->tail();
+    std::string name = c->getName();
+    Hub h = c->isHub();
+    Children ch;
+    Path p1;
+   
+    if ( h ) {
+      out << YAML::BeginMap;
+      out << YAML::Key << name;
+      out << YAML::Value;
+      out << YAML::BeginSeq;
+
+      ch = h->getChildren();
+      for( unsigned i = 0; i < ch->size(); i++) {
+        std::string n = (*ch)[i]->getName();
+        for( unsigned j = 0; j < (*ch)[i]->getNelms(); j++) {
+          std::ostringstream stm;
+          stm << j;
+          std::string str = n;
+          str.push_back( '[' );
+          str.append( stm.str() );
+          str.push_back( ']' );
+         
+
+          std::cout << str << std::endl;
+          try {
+            p1 = p->findByName( str.c_str() );
+            std::cout << p1->toString() << std::endl;
+            out << p1; 
+          } catch(...){}
+        }
+      }  
+      out << YAML::EndSeq; 
+      out << YAML::EndMap;
+ 
+    } else {
+      try {
+        ScalVal s = IScalVal::create( p ); // for now only do RW IntFields
+        s->getVal( &u64 );
+	out << static_cast<ScalVal_RO>( s );
+      } catch(...) {}
     }
     return out;
 }
+
+/*
+loading yaml would be
+
+for(YAML::const_iterator it=doc.begin();it!=doc.end();++it) {
+  try {
+    p->findByName( it->first.as<std::string>().c_str );
+    s = IScalVal::create( p );
+    s->setVal( it->second.as<uint64_t>() );
+  } catch( ... ) {}
+}
+*/
 
 #endif
