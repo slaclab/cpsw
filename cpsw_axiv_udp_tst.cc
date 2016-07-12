@@ -10,7 +10,7 @@
 #include <getopt.h>
 
 #include <vector>
-
+#include <iostream>
 #include <pthread.h>
 
 #define VLEN 123
@@ -500,6 +500,9 @@ uint16_t u16;
 		YAML::Node doc = YAML::LoadFile( yaml_doc );
 		root = doc.as<NetIODev>();
 		pre = IPath::create( root );
+                YAML::Emitter out;
+                out << pre->findByName("mmio");
+                std::cout << out.c_str() << std::endl;
 	} catch (...) { 
 		//unable to load YAML doc
 		root.reset();
