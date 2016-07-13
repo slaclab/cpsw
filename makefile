@@ -177,8 +177,11 @@ cpsw_stream_tst_run:    RUN_OPTS='-e 22 -y cpsw_stream_tst_1.yaml' '-s8203 -R -y
 
 cpsw_path_tst_run:      RUN_OPTS='' '-Y'
 
+cpsw_enum_tst_run:      RUN_OPTS='-y cpsw_enum_tst.yaml' '-Y cpsw_enum_tst.yaml'
+
 cpsw_command_tst_run:   RUN_OPTS='-y cpsw_command_tst.yaml' '-Y cpsw_command_tst.yaml'
 
 rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
+
 
 cpsw_netio_tst: udpsrv

@@ -250,19 +250,19 @@ CDevImpl::dumpYamlPart(YAML::Node &node) const
 	CEntryImpl::dumpYamlPart(node);
 }
 
-YAML::Node
-CDevImpl::dumpYaml() const
+void
+CDevImpl::dumpYaml(YAML::Node &node) const
 {
-YAML::Node node( CEntryImpl::dumpYaml() );
 MyChildren::iterator it;
 
+	CEntryImpl::dumpYaml( node );
+
 	for ( it = children_.begin(); it != children_.end(); ++it ) {
-		YAML::Node child_node( it->second->getEntryImpl()->dumpYaml() );
+		YAML::Node child_node;
+		it->second->getEntryImpl()->dumpYaml( child_node );
 		it->second->dumpYamlPart( child_node );
 		node["children"].push_back( child_node ); 
 	}
-
-	return node;
 }
 #endif
 

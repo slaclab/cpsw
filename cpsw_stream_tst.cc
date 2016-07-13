@@ -15,6 +15,8 @@
 
 #undef  DEBUG
 
+class TestFailed {};
+
 static void usage(const char *nm)
 {
 	fprintf(stderr,"Usage: %s [-h] [-s <port>] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent] [-n n_frames] [-R] [-y dump-yaml] [-Y load-yaml]\n", nm);

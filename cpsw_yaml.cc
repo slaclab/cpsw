@@ -76,21 +76,19 @@ YAML::Node CYamlSupportBase::overrideNode(const YAML::Node &node)
 	return node;
 }
 
-
-YAML::Node 
-CYamlSupportBase::dumpYaml() const
+void
+CYamlSupportBase::setClassName(YAML::Node &node) const
 {
-YAML::Node node;
-
 	node["class"] = getClassName();
-
-	dumpYamlPart( node );
-
-	return node;
 }
 
-CYamlSupportBase::CYamlSupportBase(const YAML::Node &node)
+
+void
+CYamlSupportBase::dumpYaml(YAML::Node &node) const
 {
+	setClassName( node );
+
+	dumpYamlPart( node );
 }
 
 void
@@ -98,59 +96,62 @@ CYamlSupportBase::dumpYamlPart(YAML::Node &node) const
 {
 }
 
-template <typename T> class CYamlTypeRegistry : public IYamlTypeRegistry<T> {
-public:
+class RegistryImpl : public IRegistry {
+	public:
+
 	struct StrCmp {
 		bool operator () (const char *a, const char *b) const {
 			return ::strcmp(a,b) < 0 ? true : false;
 		}
 	};
 
-	typedef std::map<const char *, IYamlFactoryBase<T> *, StrCmp> Map;
-	typedef std::pair<const char *, IYamlFactoryBase<T> *>        Member;
+	typedef std::map <const char *, void *, StrCmp> Map;
+	typedef std::pair<const char *, void *>         Member;
 
 private:
-	
 	Map map_;
 
 public:
-
-	virtual void addFactory(const char *className, IYamlFactoryBase<T> *f)
+	virtual void  addItem(const char *name, void *item)
 	{
-	std::pair< typename Map::iterator, bool > ret = map_.insert( Member(className, f) );
-		if ( ! ret.second )
-			throw DuplicateNameError( className );
+	std::pair< Map::iterator, bool > ret = map_.insert( Member(name, item) );
+	if ( ! ret.second )
+		throw DuplicateNameError( name );
 	}
 
-	virtual void delFactory(const char *className)
+	virtual void  delItem(const char *name)
 	{
-		map_.erase( className );
+		map_.erase( name );
 	}
 
-	virtual void extractClassName(std::string *str_p, const YAML::Node &n)
+	virtual void *getItem(const char *name)
 	{
-		mustReadNode( n, "class", str_p );
+		return map_[name];
 	}
 
-	virtual T makeItem(const YAML::Node &n)
+	virtual void  dumpItems()
 	{
-		std::string str;
-		extractClassName( &str, n );
-		IYamlFactoryBase<T> *fact = map_[ str.c_str() ];
-		if ( ! fact )
-			throw NotFoundError( str );
-		return fact->makeItem(n, this);
-	}
-
-	virtual void dumpClasses()
-	{
-		typename Map::iterator it( map_.begin() );
-		while ( it != map_.end() ) {
+	Map::iterator it( map_.begin() );
+	Map::iterator ie( map_.end()   );
+		while ( it != ie ) {
 			std::cout << it->first << "\n";
 			++it;
 		}
 	}
+
 };
+
+IRegistry *
+IRegistry::create()
+{
+	return new RegistryImpl();
+}
+
+template <typename T> void
+CYamlTypeRegistry<T>::extractClassName(std::string *str_p, const YAML::Node &n)
+{
+	mustReadNode( n, "class", str_p );
+}
 
 void
 CYamlFieldFactoryBase::addChildren(CEntryImpl &e, const YAML::Node &node, IYamlTypeRegistry<Field> *registry)
@@ -221,7 +222,8 @@ shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const Entry
 		return;
 	}
 
-	const YAML::Node &top_node( topi->dumpYaml() );
+	YAML::Node top_node;
+	topi->dumpYaml( top_node );
 
 
 	YAML::Emitter emit;

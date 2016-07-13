@@ -30,9 +30,11 @@ const char *yaml=
 Dev root;
 
 if ( use_yaml ) {
+	do {
 #ifdef WITH_YAML
 	root = CYamlFieldFactoryBase::loadYamlStream( yaml, 0 );
 #endif
+	} while (0);
 } else {
 
 	root = IDev::create("root");
@@ -183,14 +185,11 @@ Dev     r  = use_yaml ? build_yaml() : build();
 
 	recurse( r, 0 );
 
+#ifdef WITH_YAML
 {
-	YAML::Node main_node( r->getSelf()->dumpYaml() );
-	YAML::Emitter out;
-
-	out << main_node;
-
-	std::cout << out.c_str() << "\n";
+	CYamlFieldFactoryBase::dumpYamlFile( r, 0, 0 );
 }
+#endif
 
 	r.reset();
 	p.reset();

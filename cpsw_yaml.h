@@ -1,9 +1,70 @@
 #ifndef CPSW_YAML_H
 #define CPSW_YAML_H
 
-#include <yaml-cpp/yaml.h>
 #include <cpsw_api_builder.h>
 #include <cpsw_shared_obj.h>
+
+#ifndef WITH_YAML
+
+class CYamlSupportBase {};
+
+#else
+
+#include <yaml-cpp/yaml.h>
+
+class CYamlSupportBase;
+typedef shared_ptr<CYamlSupportBase> YamlSupportBase;
+
+class CYamlSupportBase : public virtual IYamlSupportBase {
+	public:
+		// subclass may implement a constructor from a YAML::Node
+
+		// every class implements this and MUST chain through its
+		// superclass first (thus, derived classes can overwrite fields)
+		// e.g.,
+		//
+		// void CYamlSupportSubclass::dumpYamlPart(YAML::Node &node)
+		// {
+		//    CYamlSupportBase::dumpYamlPart( node ); // chain
+		//
+		//    dump subclass fields into node here (may override superclass entries)
+		//    node["myField"] = myvalue;
+		// }
+		virtual void dumpYamlPart(YAML::Node &node) const;
+
+		// When using the 'CYamlFieldFactory' then every subclass
+		// MUST define a static _getClassName() member and let it
+		// return a unique value;
+		// Other factories may use other ways to determine the
+		// name that is entered into the registry...
+		// Copy-paste this method and modify the name.
+		static const char  *_getClassName() { return "YamlSupportBase"; }
+
+		// Every subclass MUST implement the 'getClassName()' virtual
+		// method (for polymorphic access to the class name).
+		// Just copy-paste this one:
+		virtual const char *getClassName() const { return _getClassName(); }
+
+		// subclass MAY implement 'overrideNode()' which is executed
+		// by dispatchMakeField() before the new entity is created.
+		// Can be used to modify the YAML node before it is passed
+		// to the constructor (create a new node from 'orig', modify
+		// and return it).
+		static YAML::Node overrideNode(const YAML::Node &orig);
+
+		// insert the classname into a node;
+		// e.g.,:
+		//   node["class"] = getClassName();
+		// or
+		//   node.SetTag( getClassName() );
+		virtual void setClassName(YAML::Node &node) const;
+
+		// used by CYamlSupportBase and DevImpl to append class name and iterate
+		// through children; subclass probably wants to leave this alone unless
+		// you know what you are doing...
+		virtual void dumpYaml(YAML::Node &) const;
+};
+
 
 class CDevImpl;
 typedef shared_ptr<CDevImpl> DevImpl;
@@ -125,16 +186,8 @@ struct convert<MutableEnum> {
 			return false;
 		}
 
-		MutableEnum e = IMutableEnum::create();
+		MutableEnum e = IMutableEnum::create( node );
 
-		for ( YAML::const_iterator it(node.begin()); it != node.end(); ++it ) {
-			const YAML::Node &nam( getNode( *it, "name"  ) );
-			const YAML::Node &val( getNode( *it, "value" ) );
-			if ( ! nam || ! val ) {
-				return false;
-			}
-			e->add( nam.as<std::string>().c_str(), val.as<uint64_t>() );
-		}
 		rhs = e;
 		return true;
 	}
@@ -484,53 +537,6 @@ struct convert<NetIODev> {
 YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s);
 YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h);
 
-class CYamlSupportBase;
-typedef shared_ptr<CYamlSupportBase> YamlSupportBase;
-
-class CYamlSupportBase {
-	public:
-		// every subclass must implement a constructor from a YAML::Node
-		// which chains through the superclass constructor.
-		CYamlSupportBase(const YAML::Node &node);
-
-		// when constructing from non-YAML
-		CYamlSupportBase() {}
-
-		// every class implements this and MUST chain through its
-		// superclass first (thus, derived classes can overwrite fields)
-		// e.g.,
-		//
-		// void CYamlSupportSubclass::dumpYamlPart(YAML::Node &node)
-		// {
-		//    CYamlSupportBase::dumpYamlPart( node ); // chain
-		//
-		//    dump subclass fields into node here (may override superclass entries)
-		//    node["myField"] = myvalue;
-		// }
-		virtual void dumpYamlPart(YAML::Node &node) const;
-
-		// Every subclass MUST define a static _getClassName() member and
-		// let it return a unique value;
-		// Copy-paste this method and modify the name.
-		static const char  *_getClassName() { return "YamlSupportBase"; }
-
-		// Every subclass MUST implement the 'getClassName()' virtual
-		// method (for polymorphic access to the class name).
-		// Just copy-paste this one:
-		virtual const char *getClassName() const { return _getClassName(); }
-
-		// subclass MAY implement 'overrideNode()' which is executed
-		// by dispatchMakeField() before the new entity is created.
-		// Can be used to modify the YAML node before it is passed
-		// to the constructor (create a new node from 'orig', modify
-		// and return it).
-		static YAML::Node overrideNode(const YAML::Node &orig);
-
-		// used by CYamlSupportBase and DevImpl to append class name and iterate
-		// through children; subclass probably wants to leave this alone unless
-		// you know what you are doing...
-		virtual YAML::Node dumpYaml() const;
-};
 
 template <typename T> class IYamlFactoryBase;
 
@@ -545,6 +551,19 @@ public:
 	virtual void delFactory(const char *className)                         = 0;
 
 	virtual void dumpClasses()                                             = 0;
+};
+
+class IRegistry {
+public:
+	virtual void  addItem(const char *name, void *item) = 0;
+	virtual void  delItem(const char *name)             = 0;
+	virtual void *getItem(const char *name)             = 0;
+
+	virtual void  dumpItems()                           = 0;
+
+	virtual      ~IRegistry() {}
+
+	static IRegistry *create();
 };
 
 template <typename T> class IYamlFactoryBase {
@@ -564,6 +583,55 @@ public:
 	virtual ~IYamlFactoryBase()
 	{
 		registry_->delFactory( className_ );
+	}
+};
+
+template <typename T> class CYamlTypeRegistry : public IYamlTypeRegistry<T> {
+private:
+
+	IRegistry *registry_;
+
+	CYamlTypeRegistry(const CYamlTypeRegistry&);
+	CYamlTypeRegistry operator=(const CYamlTypeRegistry &);
+
+public:
+	CYamlTypeRegistry()
+	: registry_( IRegistry::create() )
+	{
+	}
+
+	virtual void addFactory(const char *className, IYamlFactoryBase<T> *f)
+	{
+		registry_->addItem(className, f);
+	}
+
+	virtual void delFactory(const char *className)
+	{
+		registry_->delItem(className);
+	}
+
+	virtual void extractClassName(std::string *str_p, const YAML::Node &n);
+
+	virtual T makeItem(const YAML::Node &n)
+	{
+	std::string str;
+		extractClassName( &str, n  );
+		if ( str.size() == 0 )
+			throw NotFoundError("CYamlTypeRegistry: node w/o class info");
+		IYamlFactoryBase<T> *factory = static_cast<IYamlFactoryBase<T> *>( registry_->getItem( str.c_str() ) );
+		if ( ! factory )
+			throw NotFoundError(std::string("No factory for '") + str + std::string("' found"));
+		return factory->makeItem( n, this );
+	}
+
+	virtual void dumpClasses()
+	{
+		registry_->dumpItems();
+	}
+
+	virtual ~CYamlTypeRegistry()
+	{
+		delete registry_;
 	}
 };
 
@@ -631,6 +699,9 @@ template <typename T> static void readNode(const YAML::Node &node, const char *f
 // For adding YAML support to a subclass of CYamlSupportBase:
 //
 //  - add a constructor that takes a YAML::Node & argument  (YAML -> c++ class)
+//    The factory's makeItem() then uses this constructor. Alternatively,
+//    makeItem() may use another constructor and build the item using
+//    information from the node.
 //  - add a virtual 'void dumpYamlPart(YAML::Node&)' member (c++ class -> YAML)
 //    This method MUST chain through the corresponding superclass member.
 //  - copy/paste virtual 'const char *getClassName()' method (from CEntryImpl)
@@ -641,5 +712,7 @@ template <typename T> static void readNode(const YAML::Node &node, const char *f
 //
 
 #define DECLARE_YAML_FIELD_FACTORY(FieldType) CYamlFieldFactory<FieldType> FieldType##factory_
+
+#endif
 
 #endif

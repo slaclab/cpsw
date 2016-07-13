@@ -7,9 +7,7 @@
 #include <boost/weak_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#ifdef WITH_YAML
 #include <cpsw_yaml.h>
-#endif
 
 using boost::weak_ptr;
 using boost::make_shared;

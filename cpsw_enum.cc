@@ -118,14 +118,110 @@ MutableEnum IMutableEnum::create()
 	return create( NULL, NULL );
 }
 
-static uint64_t boolConv(uint64_t in)
+#ifdef WITH_YAML
+template<> void
+CYamlTypeRegistry<MutableEnum>::extractClassName(std::string *str_p, const YAML::Node &node)
 {
-	return in ? 1 : 0;
+	*str_p = node.Tag();
+}
+
+static IYamlTypeRegistry<MutableEnum> *getRegistry()
+{
+static CYamlTypeRegistry<MutableEnum> the_registry_;
+	return &the_registry_;
+}
+
+MutableEnum IMutableEnum::create(const YAML::Node &node)
+{
+	return getRegistry()->makeItem( node );
+}
+
+#endif
+
+CEnumImpl::CTransformFuncImpl::CTransformFuncImpl(const Key &key)
+: CTransformFunc( key )
+#ifdef WITH_YAML
+  ,
+  IYamlFactoryBase( getName(), getRegistry())
+#endif
+{
+}
+
+MutableEnum
+CEnumImpl::CTransformFuncImpl::makeItem(const YAML::Node &node, IYamlTypeRegistry<MutableEnum> *r)
+{
+MutableEnum enm = IMutableEnum::create(this, 0);
+	for ( YAML::const_iterator it(node.begin()); it != node.end(); ++it ) {
+		const YAML::Node &nam( getNode( *it, "name"  ) );
+		const YAML::Node &val( getNode( *it, "value" ) );
+		if ( ! nam || ! val ) {
+			throw InvalidArgError("YAML enum 'name' or 'value' missing");
+		}
+		enm->add( nam.as<std::string>().c_str(), val.as<uint64_t>() );
+	}
+	return enm;
+}
+
+void
+CEnumImpl::dumpYamlPart(YAML::Node &node) const
+{
+	IEnum::iterator it( begin() );
+
+	while ( it != end() ) {
+		YAML::Node item;
+		item["name"]  = *(*it).first;
+		item["value"] = (*it).second; 
+   		node.push_back( item );
+		++it;
+	}
+}
+
+void
+CEnumImpl::setClassName(YAML::Node &node) const
+{
+	// don't set tag if this is the default function
+	if ( xfrm_ != CTransformFunc::get<CTransformFuncImpl>() ) {
+		// SetTag prepends a '!'
+		node.SetTag( getClassName() );
+	}
+}
+
+IMutableEnum::CTransformFunc::CTransformFunc(const Key &key)
+:name_( key.tag_ )
+{
+}
+
+IMutableEnum::CTransformFunc::~CTransformFunc()
+{
+}
+
+class CBoolTransformFunc : public CEnumImpl::CTransformFuncImpl {
+public:
+	static const char *getName_()
+	{
+		return "uint64ToBool";
+	}
+
+	CBoolTransformFunc(const Key &key)
+	: CEnumImpl::CTransformFuncImpl(key)
+	{
+	}
+
+	virtual uint64_t xfrm(uint64_t in)
+	{
+		return in ? 1 : 0;
+	}
+};
+
+IMutableEnum::TransformFunc
+CEnumImpl::uint64ToBool()
+{
+	return IMutableEnum::CTransformFunc::get<CBoolTransformFunc>();
 }
 
 CEnumImpl::CEnumImpl(TransformFunc xfrm)
 : nelms_(0),
-  xfrm_(xfrm)
+  xfrm_(xfrm ? xfrm : IMutableEnum::CTransformFunc::get<CTransformFuncImpl>())
 {
 	++ocnt();
 }
@@ -135,5 +231,7 @@ CEnumImpl::~CEnumImpl()
 	--ocnt();
 }
 
-Enum const enumBool  = IMutableEnum::create( boolConv, "False", 0, "True", 1, NULL );
-Enum const enumYesNo = IMutableEnum::create( boolConv, "No",    0, "Yes",  1, NULL );
+IMutableEnum::TransformFunc __defaultFunc = IMutableEnum::CTransformFunc::get<CEnumImpl::CTransformFuncImpl>();
+IMutableEnum::TransformFunc __boolFunc    = IMutableEnum::CTransformFunc::get<CBoolTransformFunc>();
+Enum const enumBool  = IMutableEnum::create( CEnumImpl::uint64ToBool(), "False", 0, "True", 1, NULL );
+Enum const enumYesNo = IMutableEnum::create( CEnumImpl::uint64ToBool(), "No",    0, "Yes",  1, NULL );

@@ -38,6 +38,16 @@ typedef shared_ptr< std::vector<Child> > Children;
 
 #include <cpsw_error.h>
 
+namespace YAML {
+	class Node;
+};
+
+class IYamlSupportBase {
+public:
+	virtual void dumpYaml(YAML::Node &n) const = 0;
+};
+
+
 // The hierarchy of things
 
 // An entity
@@ -122,7 +132,7 @@ public:
 };
 
 // Enum class
-class IEnum {
+class IEnum : public virtual IYamlSupportBase {
 public:
 	typedef std::pair< CString, uint64_t>                 Item;
 	typedef std::iterator<std::input_iterator_tag, Item>  IteratorBase;

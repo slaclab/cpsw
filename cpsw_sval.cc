@@ -104,16 +104,9 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 	node["wordSwap"] = wordSwap_;
 
 	if ( enum_ ) {
-		IEnum::iterator it( enum_->begin() );
-
-		while ( it != enum_->end() ) {
-			YAML::Node item;
-			item["name"]  = *(*it).first;
-			item["value"] = (*it).second; 
-    		node["enums"].push_back( item );
-
-			++it;
-		}
+		YAML::Node enums;
+		enum_->dumpYaml( enums );
+		node["enums"] = enums;
 	}
 }
 #endif

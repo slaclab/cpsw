@@ -19,6 +19,7 @@ public:
 	TestFailed(const char *msg):msg_(msg){}
 };
 
+
 #define SZ 128
 
 int
@@ -37,7 +38,7 @@ const char *dmp_yaml = 0;
 			case 'Y':
 			case 'y':
 				fprintf(stderr,"YAML support not compiled in\n");
-				throw TestFailed();
+				throw TestFailed("YAMLS support not compiled in");
 #endif
 		}
 	}

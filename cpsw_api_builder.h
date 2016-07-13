@@ -212,11 +212,50 @@ public:
 	//
 	// This can be used, e.g., to map any nonzero
 	// value to 1 for a boolean-style enum.
-	typedef uint64_t (*TransformFunc)(uint64_t in);
+
+	class CTransformFunc;
+	typedef CTransformFunc *TransformFunc;
+
+	class CTransformFunc {
+	private:
+		CTransformFunc(const CTransformFunc &);
+		CTransformFunc operator=(const CTransformFunc&);
+		const char *name_;
+	protected:
+		class Key {
+		private:
+			const char *tag_;
+			Key(const Key &);
+			Key operator=(const Key&);
+			Key(const char *tag) :tag_(tag){}
+		friend class CTransformFunc;
+		};
+	public:
+		// can only instantiate once
+		CTransformFunc(const Key &key);
+
+		virtual uint64_t xfrm(uint64_t in)
+		{
+			return in;
+		}
+
+		virtual const char *getName()
+		{
+			return name_;
+		}
+
+		virtual ~CTransformFunc();
+
+		template <typename T> static TransformFunc get()
+		{
+		static T the_instance_( Key( T::getName_() ) );
+			return &the_instance_;
+		}
+	};
 
 	virtual void add(const char *enum_string, uint64_t enum_num) = 0;
 
-	static MutableEnum create(TransformFunc f);
+	static MutableEnum create(TransformFunc);
 
 	// Create with variable argument list. The list are NULL-terminated
 	// pairs of { const char *, int }:
@@ -225,9 +264,11 @@ public:
 	//
 	// NOTE: the numerical values are **int**. If you need 64-bit
 	//       values then you must the 'add' method.
-	static MutableEnum create(TransformFunc f, ...);
+	static MutableEnum create(TransformFunc, ...);
 
 	static MutableEnum create();
+
+	static MutableEnum create(const YAML::Node &node);
 };
 
 extern Enum const enumBool;

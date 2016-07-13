@@ -52,7 +52,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		static  const char *_getClassName()       { return "Dev";           }
 		virtual const char * getClassName() const { return _getClassName(); }
 
-		virtual YAML::Node dumpYaml() const;
+		virtual void dumpYaml(YAML::Node &node) const;
 #endif
 		virtual ~CDevImpl();
 

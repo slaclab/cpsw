@@ -52,7 +52,6 @@ CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
 #ifdef WITH_YAML
 CEntryImpl::CEntryImpl(Key &key, const YAML::Node &node)
 : CShObj(key),
-  CYamlSupportBase(node),
   size_( DFLT_SIZE ),
   cacheable_( DFLT_CACHEABLE ),
   locked_( false )
