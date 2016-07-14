@@ -213,7 +213,7 @@ std::stringstream sstrm( str );
 }
 
 void
-CYamlFieldFactoryBase::dumpYamlFile(Entry top, const char *file_name, const char *root_name)
+IYamlSupport::dumpYamlFile(Entry top, const char *file_name, const char *root_name)
 {
 shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const EntryImpl::element_type>(top) );
 

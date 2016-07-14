@@ -6,11 +6,6 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
-#ifdef WITH_YAML
-#include <cpsw_yaml.h>
-#include <fstream>
-#endif
-
 #define NGOOD 200
 
 #undef  DEBUG
@@ -249,7 +244,7 @@ Hub      root;
 
 #ifdef WITH_YAML
 	if ( dmp_yaml ) {
-		CYamlFieldFactoryBase::dumpYamlFile( root, dmp_yaml, "root" );
+		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 	}
 #endif
 

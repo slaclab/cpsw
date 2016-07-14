@@ -344,4 +344,15 @@ public:
 	static SequenceCommand create(const char* name, const Items *items_p);
 };
 
+// dump existing hierarchy to YAML file (for testing & debugging)
+namespace IYamlSupport {
+	// if 'root_entry_name' is specified then the top node will receive this
+	// as a key:
+	//
+	// 'root_entry_name':
+	//     top
+	//
+	void dumpYamlFile(Entry top, const char *filename, const char *root_entry_name);
+};
+
 #endif

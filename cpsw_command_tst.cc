@@ -6,10 +6,6 @@
 
 #include <stdio.h>
 
-#ifdef WITH_YAML
-#include <cpsw_yaml.h>
-#endif
-
 class TestFailed {};
 
 class CMyCommandImpl;
@@ -139,7 +135,7 @@ Hub root;
 
 	if ( dmp_yaml ) {
 #ifdef WITH_YAML
-		CYamlFieldFactoryBase::dumpYamlFile( root, dmp_yaml, "root" );
+		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 #endif
 	}
 

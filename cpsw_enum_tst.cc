@@ -7,10 +7,6 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_obj_cnt.h>
 
-#ifdef WITH_YAML
-#include <cpsw_yaml.h>
-#endif
-
 using std::string;
 
 class TestFailed {
@@ -152,7 +148,7 @@ std::cout << "YYY\n";
 
 #ifdef WITH_YAML
 	if ( dmp_yaml ) {
-		CYamlFieldFactoryBase::dumpYamlFile( root, dmp_yaml, "root" );
+		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 	}
 #endif
 

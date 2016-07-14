@@ -651,8 +651,6 @@ class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 	public:
 		static Dev dispatchMakeField(const YAML::Node &node, const char *root_name);
 
-		static void dumpYamlFile(Entry top, const char *file_name, const char *root_name);
-
 		static void dumpClasses() { getFieldRegistry()->dumpClasses(); }
 };
 

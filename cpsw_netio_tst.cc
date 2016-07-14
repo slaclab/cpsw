@@ -1,5 +1,4 @@
 #include <cpsw_api_builder.h>
-#include <cpsw_mmio_dev.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -13,11 +12,6 @@
 
 #include <cpsw_obj_cnt.h>
 
-#ifdef WITH_YAML
-#include <cpsw_yaml.h>
-#include <fstream>
-#endif
-
 using boost::dynamic_pointer_cast;
 
 class TestFailed {};
@@ -30,10 +24,8 @@ public:
 	Clr(Path where, MMIODev h)
 	{
 	char  nam[100];
-	Entry te( static_pointer_cast<const CAddressImpl>( where->tail() )->getEntry() );
-	Entry he( h );
-		if ( he && te != he ) {
-			printf("Tail is %s (%p); expected %s (%p)\n", te->getName(), te.get(), he->getName(), he.get());
+		if ( h && ! where->verifyAtTail( IPath::create(h) ) ) {
+			printf("Tail is %s; expected %s\n", where->tail()->getName(), h->getName());
 			throw ConfigurationError("Clr: tail of 'where' path is not a Hub!");
 		}
 		sprintf(nam,"clr");
@@ -355,7 +347,7 @@ uint64_t xxx;
 
 #ifdef WITH_YAML
 		if ( dmp_yaml ) {
-			CYamlFieldFactoryBase::dumpYamlFile( root, dmp_yaml, "root" );
+			IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 		}
 #endif
 

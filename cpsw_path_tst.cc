@@ -1,15 +1,10 @@
 #include <cpsw_api_builder.h>
-#include <stdio.h>
-#include <cpsw_hub.h>
 #include <cpsw_path.h>
 #include <cpsw_obj_cnt.h>
 #include <sstream>
 #include <string>
 #include <iostream>
-
-#ifdef WITH_YAML
-#include <cpsw_yaml.h>
-#endif
+#include <stdio.h>
 
 static void test_a53564754e5eaa9029ff(bool use_yaml)
 {
@@ -190,7 +185,7 @@ Hub     r  = use_yaml ? build_yaml() : build();
 
 #ifdef WITH_YAML
 {
-	CYamlFieldFactoryBase::dumpYamlFile( r, 0, 0 );
+	IYamlSupport::dumpYamlFile( r, 0, 0 );
 }
 #endif
 

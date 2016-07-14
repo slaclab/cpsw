@@ -12,10 +12,6 @@
 
 #include <pthread.h>
 
-#ifdef WITH_YAML
-#include <cpsw_yaml.h>
-#endif
-
 #define VLEN 123
 #define ADCL 10
 
@@ -600,7 +596,7 @@ uint16_t  u16;
 
 #ifdef WITH_YAML
 	if ( dmp_yaml ) {
-		CYamlFieldFactoryBase::dumpYamlFile( root, dmp_yaml, "root" );
+		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 	}
 #endif
 
