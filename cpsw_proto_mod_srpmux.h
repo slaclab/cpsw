@@ -85,9 +85,7 @@ public:
 	{
 	}
 
-#ifdef WITH_YAML
 	virtual void dumpYaml(YAML::Node &) const;
-#endif
 
 	virtual INetIODev::ProtocolVersion getProtoVersion();
 };

@@ -85,14 +85,8 @@ const char *use_yaml = 0;
 			case 'n': i_p = &ngood;          break;
 			case 'R': useRssi = 1;           break;
 			case 't': i_p = &tDest;          break;
-#ifdef WITH_YAML
 			case 'Y': use_yaml    = optarg;   break;
 			case 'y': dmp_yaml    = optarg;   break;
-#else
-			case 'y':
-			case 'Y': fprintf(stderr,"YAML support not compiled in\n");
-				throw TestFailed();
-#endif
 			default:
 			case 'h': usage(argv[0]); return 1;
 		}
@@ -121,9 +115,7 @@ try {
 Hub      root;
 
 	if ( use_yaml ) {
-#ifdef WITH_YAML
 		root = IHub::loadYamlFile( use_yaml, "root" );
-#endif
 	} else {
 	NetIODev netio = INetIODev::create("udp", "127.0.0.1");
 	Field    data  = IField::create("data");
@@ -242,11 +234,9 @@ Hub      root;
 			goto bail;
 	}
 
-#ifdef WITH_YAML
 	if ( dmp_yaml ) {
 		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 	}
-#endif
 
 
 } catch ( CPSWError e ) {

@@ -427,15 +427,8 @@ const char *dmp_yaml  = 0;
 			case 'M': i_p     = &tDestMEM;  break;
 			case 'T': i_p     = &srpTo;     break;
 			case 'b': byteResHack = 0x10000;break;
-#ifdef WITH_YAML
 			case 'Y': use_yaml    = optarg; break;
 			case 'y': dmp_yaml    = optarg; break;
-#else
-			case 'y':
-			case 'Y':
-				fprintf(stderr,"YAML support not compiled in\n");
-				throw TestFailed();
-#endif
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -510,9 +503,7 @@ uint16_t  u16;
 		length = 0;
 
 	if ( use_yaml ) {
-#ifdef WITH_YAML
 		root = IHub::loadYamlFile( use_yaml, "root" );
-#endif
 	} else {
 		NetIODev  comm = INetIODev::create("fpga", ip_addr);
 		MMIODev   mmio = IMMIODev::create ("mmio",0x10000000);
@@ -594,11 +585,9 @@ uint16_t  u16;
 		}
 	}
 
-#ifdef WITH_YAML
 	if ( dmp_yaml ) {
 		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 	}
-#endif
 
 	// can use raw memory for testing instead of UDP
 	Path pre = IPath::create( root );

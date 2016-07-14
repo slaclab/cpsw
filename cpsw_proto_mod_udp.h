@@ -164,9 +164,7 @@ public:
 	virtual void modStartup();
 	virtual void modShutdown();
 
-#ifdef WITH_YAML
 	virtual void dumpYaml(YAML::Node &) const;
-#endif
 
 	virtual ~CProtoModUdp();
 

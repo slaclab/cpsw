@@ -12,9 +12,7 @@
 
 #include <vector>
 
-#ifdef WITH_YAML
 #include <cpsw_yaml.h>
-#endif
 
 using boost::dynamic_pointer_cast;
 
@@ -399,7 +397,6 @@ int                  nbits;
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
 }
 
-#ifdef WITH_YAML
 void
 CSRPAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
@@ -411,7 +408,6 @@ CSRPAddressImpl::dumpYamlPart(YAML::Node &node) const
 	srpParms["RetryCount"     ] = retryCnt_;
 	node["SRP"] = srpParms;
 }
-#endif
 
 CSRPAddressImpl::CSRPAddressImpl(AKey k, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 :CCommAddressImpl(k,ProtoPort()),
@@ -558,7 +554,6 @@ CNetIODevImpl::CNetIODevImpl(Key &k, const char *name, const char *ip)
 	}
 }
 
-#ifdef WITH_YAML
 CNetIODevImpl::CNetIODevImpl(Key &k, const YAML::Node &node)
 : CDevImpl(k, node),
   ip_str_( getNode(node, "ipAddr") ? getNode(node, "ipAddr").as<std::string>().c_str() : "ANY" )
@@ -583,7 +578,6 @@ CNetIODevImpl::dumpYamlPart(YAML::Node & node) const
 	CDevImpl::dumpYamlPart( node );
 	node["ipAddr"] = ip_str_;
 }
-#endif
 
 void CSRPAddressImpl::setTimeoutUs(unsigned timeoutUs)
 {
@@ -1366,14 +1360,12 @@ shared_ptr<CCommAddressImpl> addr;
 	addr->startProtoStack();
 }
 
-#ifdef WITH_YAML
 void CNetIODevImpl::addAtAddress(Field child, const YAML::Node &node)
 {
 PortBuilder bldr( node.as<INetIODev::PortBuilder>() );
 
 	addAtAddress(child, bldr);
 }
-#endif
 
 void CNetIODevImpl::addAtAddress(Field child, INetIODev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 {
@@ -1711,7 +1703,6 @@ unsigned             qDepth      = 5;
 		protoStack_ = tdm->createPort( tDest, stripHeader, qDepth );
 }
 
-#ifdef WITH_YAML
 void
 CCommAddressImpl::dumpYamlPart( YAML::Node &node) const
 {
@@ -1726,7 +1717,6 @@ ProtoPort port;
 		port->dumpYaml( node );
 	}
 }
-#endif
 
 uint64_t CCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {

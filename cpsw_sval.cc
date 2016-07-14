@@ -9,9 +9,7 @@
 
 #include <string>
 
-#ifdef WITH_YAML
 #include <cpsw_yaml.h>
-#endif
 
 using std::string;
 
@@ -66,7 +64,6 @@ CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool i
 }
 
 
-#ifdef WITH_YAML
 CIntEntryImpl::CIntEntryImpl(Key &key, const YAML::Node &node)
 :CEntryImpl(key, node),
  is_signed_(DFLT_IS_SIGNED),
@@ -109,7 +106,6 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 		node["enums"] = enums;
 	}
 }
-#endif
 
 IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
 {

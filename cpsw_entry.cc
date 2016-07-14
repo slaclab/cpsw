@@ -8,9 +8,7 @@
 
 #include <stdint.h>
 
-#ifdef WITH_YAML
 #include <cpsw_yaml.h>
-#endif
 
 using boost::dynamic_pointer_cast;
 
@@ -49,7 +47,6 @@ CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
 	++ocnt();
 }
 
-#ifdef WITH_YAML
 CEntryImpl::CEntryImpl(Key &key, const YAML::Node &node)
 : CShObj(key),
   size_( DFLT_SIZE ),
@@ -101,7 +98,6 @@ const char *d = getDescription();
 	if ( getCacheable() != DFLT_CACHEABLE )
 		node["cacheable"] = getCacheable();
 }
-#endif
 
 CEntryImpl::~CEntryImpl()
 {

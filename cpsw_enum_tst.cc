@@ -27,15 +27,8 @@ const char *dmp_yaml = 0;
 
 	while ( (opt = getopt(argc, argv, "y:Y:")) > 0 ) {
 		switch (opt) {
-#ifdef WITH_YAML
 			case 'Y': use_yaml = optarg; break;
 			case 'y': dmp_yaml = optarg; break;
-#else
-			case 'Y':
-			case 'y':
-				fprintf(stderr,"YAML support not compiled in\n");
-				throw TestFailed("YAMLS support not compiled in");
-#endif
 		}
 	}
 try {
@@ -44,9 +37,7 @@ try {
 	Hub root;
 
 	if ( use_yaml ) {
-#ifdef WITH_YAML
 		root = IHub::loadYamlFile( use_yaml, "root" );
-#endif
 	} else {
 		MemDev  memio = IMemDev::create("mem", SZ);
 		MMIODev mmio  = IMMIODev::create("mmio", SZ, LE);
@@ -146,11 +137,9 @@ std::cout << "YYY\n";
 		throw TestFailed("Unexpected number of enum entries");
 	}
 
-#ifdef WITH_YAML
 	if ( dmp_yaml ) {
 		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 	}
-#endif
 
 }
 

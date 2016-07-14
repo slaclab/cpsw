@@ -6,9 +6,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#ifdef WITH_YAML
 #include <cpsw_yaml.h>
-#endif
 
 //#define DEPACK_DEBUG
 
@@ -145,7 +143,6 @@ CProtoModDepack::CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameW
 {
 }
 
-#ifdef WITH_YAML
 static unsigned ld(unsigned v)
 {
 unsigned rval = 0;
@@ -171,7 +168,6 @@ YAML::Node parms;
 	parms["ldFragWinSize" ] = ld( fragWinSize_ );
 	node["depack"] = parms;
 }
-#endif
 
 void CProtoModDepack::modStartup()
 {

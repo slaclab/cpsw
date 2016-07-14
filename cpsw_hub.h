@@ -44,7 +44,6 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 	public:
 		CDevImpl(Key &k, const char *name, uint64_t size= 0);
 
-#ifdef WITH_YAML
 		CDevImpl(Key &k, const YAML::Node &n);
 
 		virtual void dumpYamlPart(YAML::Node &node) const;
@@ -53,7 +52,6 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual const char * getClassName() const { return _getClassName(); }
 
 		virtual void dumpYaml(YAML::Node &node) const;
-#endif
 		virtual ~CDevImpl();
 
 		virtual CDevImpl *clone(Key &k) { return new CDevImpl( *this, k ); }
@@ -66,9 +64,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 			add( make_shared<CAddressImpl>(k, nelms), child->getSelf() );
 		}
 
-#ifdef WITH_YAML
 		virtual void addAtAddress(Field child, const YAML::Node &n);
-#endif
 
 		virtual Path findByName(const char *s) const;
 

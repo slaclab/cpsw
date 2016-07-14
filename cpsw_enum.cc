@@ -118,7 +118,6 @@ MutableEnum IMutableEnum::create()
 	return create( NULL, NULL );
 }
 
-#ifdef WITH_YAML
 template<> void
 CYamlTypeRegistry<MutableEnum>::extractClassName(std::string *str_p, const YAML::Node &node)
 {
@@ -136,14 +135,11 @@ MutableEnum IMutableEnum::create(const YAML::Node &node)
 	return getRegistry()->makeItem( node );
 }
 
-#endif
 
 CEnumImpl::CTransformFuncImpl::CTransformFuncImpl(const Key &key)
 : CTransformFunc( key )
-#ifdef WITH_YAML
   ,
   IYamlFactoryBase( getName(), getRegistry())
-#endif
 {
 }
 

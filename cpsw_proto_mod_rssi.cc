@@ -1,8 +1,6 @@
 #include <cpsw_proto_mod_rssi.h>
 
-#ifdef WITH_YAML
 #include <cpsw_yaml.h>
-#endif
 
 BufChain
 CProtoModRssi::pop(const CTimeout *timeout, bool abs_timeout)
@@ -47,13 +45,11 @@ CProtoModRssi::pushDown(BufChain bc, const CTimeout *rel_timeout)
 	}	
 }
 
-#ifdef WITH_YAML
 void
 CProtoModRssi::dumpYaml(YAML::Node &node) const
 {
 	node["RSSI"] = "TRUE";
 }
-#endif
 
 BufChain
 CProtoModRssi::tryPop()

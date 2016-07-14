@@ -122,14 +122,8 @@ const char *dmp_yaml =  0;
 			case 'r': useRssi     = 1;        break;
 			case 't': i_p         = &tDest;   break;
 			case 'b': byteResHack = 0x10000;  break;
-#ifdef WITH_YAML
 			case 'Y': use_yaml    = optarg;   break;
 			case 'y': dmp_yaml    = optarg;   break;
-#else
-			case 'y':
-			case 'Y': fprintf(stderr,"YAML support not compiled in\n");
-				throw TestFailed();
-#endif
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				throw TestFailed();
@@ -155,9 +149,7 @@ const char *dmp_yaml =  0;
 		MMIODev  srvm;
 
 		if ( use_yaml ) {
-#ifdef WITH_YAML
 			root = IHub::loadYamlFile( use_yaml, "root" );
-#endif
 		} else {
 		NetIODev netio = INetIODev::create("fpga", ip_addr);
 		MMIODev   mmio = IMMIODev::create ("mmio",0x100000);
@@ -345,11 +337,9 @@ uint64_t xxx;
 
 		root->findByName("mmio")->tail()->dump( stdout );
 
-#ifdef WITH_YAML
 		if ( dmp_yaml ) {
 			IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 		}
-#endif
 
 	} catch (IOError &e) {
 		if ( root )

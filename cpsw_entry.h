@@ -44,7 +44,6 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 	public:
 		CEntryImpl(Key &k, const char *name, uint64_t size);
 
-#ifdef WITH_YAML
 		CEntryImpl(Key &k, const YAML::Node &n);
 
 		virtual void dumpYamlPart(YAML::Node &) const;
@@ -53,7 +52,6 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		// method. Just copy-paste this one:
 		static  const char *_getClassName()       { return "Field";         }
 		virtual const char * getClassName() const { return _getClassName(); }
-#endif
 
 		virtual CEntryImpl *clone(Key &k) { return new CEntryImpl( *this, k ); }
 

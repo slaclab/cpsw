@@ -2,9 +2,7 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
-#ifdef WITH_YAML
 #include <cpsw_yaml.h>
-#endif
 
 CMMIOAddressImpl::CMMIOAddressImpl(
 			AKey      key,
@@ -109,7 +107,6 @@ void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, ui
 	   );
 }
 
-#ifdef WITH_YAML
 void
 CMMIODevImpl::addAtAddress(Field child, const YAML::Node &node)
 {
@@ -151,4 +148,3 @@ CMMIODevImpl::dumpYamlPart(YAML::Node &node) const
 	CDevImpl::dumpYamlPart(node);
 	node["ByteOrder"] = byteOrder_;
 }
-#endif

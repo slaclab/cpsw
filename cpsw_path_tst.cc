@@ -26,9 +26,7 @@ Hub root;
 
 if ( use_yaml ) {
 	do {
-#ifdef WITH_YAML
 	root = IHub::loadYamlStream( yaml, 0 );
-#endif
 	} while (0);
 } else {
 
@@ -83,7 +81,6 @@ Hub      hh;
 
 static Hub build_yaml()
 {
-#ifdef WITH_YAML
 const char *yaml=
 "name: root\n"
 "class: Dev\n"
@@ -105,9 +102,6 @@ const char *yaml=
 "      size: 8\n"
 "      nelms: 4\n";
 	return IHub::loadYamlStream( yaml, 0 );
-#else
-	return Dev();
-#endif
 }
 
 static Dev build()
@@ -147,13 +141,8 @@ while ( (opt = getopt(argc, argv, "Y")) > 0 ) {
 			fprintf(stderr,"Unknown option -%c\n", opt);
 			exit(1);
 		case 'Y':
-#ifdef WITH_YAML
 			use_yaml = true;
 		break;
-#else
-		fprintf(stderr,"YAML support not compiled in\n");
-		throw TestFailed();
-#endif
 	}
 }
 
@@ -183,11 +172,9 @@ Hub     r  = use_yaml ? build_yaml() : build();
 
 	recurse( r, 0 );
 
-#ifdef WITH_YAML
 {
 	IYamlSupport::dumpYamlFile( r, 0, 0 );
 }
-#endif
 
 	r.reset();
 	p.reset();

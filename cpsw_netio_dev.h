@@ -94,9 +94,7 @@ public:
 
 	virtual void startProtoStack();
 	virtual void shutdownProtoStack();
-#ifdef WITH_YAML
 	virtual void dumpYamlPart(YAML::Node &) const;
-#endif
 };
 
 class CSRPAddressImpl : public CCommAddressImpl {
@@ -151,9 +149,7 @@ public:
 	virtual INetIODev::ProtocolVersion getProtoVersion() const { return protoVersion_; }
 	virtual uint8_t  getVC()                             const { return vc_; }
 	virtual uint32_t getTid()                            const { return tid_ = (tid_ + tidLsb_) & tidMsk_; }
-#ifdef WITH_YAML
 	virtual void dumpYamlPart(YAML::Node &) const;
-#endif
 };
 
 class CNetIODevImpl : public CDevImpl, public virtual INetIODev {
@@ -176,7 +172,6 @@ protected:
 public:
 	CNetIODevImpl(Key &key, const char *name, const char *ip);
 
-#ifdef WITH_YAML
 	CNetIODevImpl(Key &k, const YAML::Node &n);
 	virtual void dumpYamlPart(YAML::Node &) const;
 
@@ -184,7 +179,6 @@ public:
 
 	static  const char *_getClassName()       { return "NetIODev";      }
 	virtual const char * getClassName() const { return _getClassName(); }
-#endif
 
 	virtual const char *getIpAddressString() const { return ip_str_.c_str(); }
 	virtual in_addr_t   getIpAddress()       const { return d_ip_; }

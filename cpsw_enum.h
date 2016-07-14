@@ -6,13 +6,7 @@
 
 #include <vector>
 
-#ifdef WITH_YAML
 #include <cpsw_yaml.h>
-#else
-template <typename T> class IYamlFactoryBase  {};
-template <typename T> class IYamlTypeRegistry {};
-namespace YAML      { class Node {}; };
-#endif
 
 using std::vector;
 

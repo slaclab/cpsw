@@ -6,9 +6,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#ifdef WITH_YAML
 #include <cpsw_yaml.h>
-#endif
 
 using boost::static_pointer_cast;
 using boost::make_shared;
@@ -220,7 +218,6 @@ CDevImpl::CDevImpl(Key &k, const char *name, uint64_t size)
 	setCacheable( WT_CACHEABLE );
 }
 
-#ifdef WITH_YAML
 CDevImpl::CDevImpl(Key &key, const YAML::Node &node)
 : CEntryImpl(key, node)
 {
@@ -264,7 +261,6 @@ MyChildren::iterator it;
 		node["children"].push_back( child_node ); 
 	}
 }
-#endif
 
 Dev IDev::create(const char *name, uint64_t size)
 {

@@ -23,11 +23,9 @@ typedef shared_ptr<CPortImpl> ProtoPortImpl;
 
 class ProtoPortMatchParams;
 
-#ifdef WITH_YAML
 namespace YAML {
 	class Node;
 }
-#endif
 
 class IProtoPort {
 public:
@@ -52,9 +50,7 @@ public:
 	virtual CTimeout  getAbsTimeoutPop (const CTimeout *) = 0;
 	virtual CTimeout  getAbsTimeoutPush(const CTimeout *) = 0;
 
-#ifdef WITH_YAML
 	virtual void      dumpYaml(YAML::Node &)     const    = 0;
-#endif
 
 	virtual int       match(ProtoPortMatchParams*)        = 0;
 };

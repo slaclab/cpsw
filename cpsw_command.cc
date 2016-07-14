@@ -63,7 +63,6 @@ CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, const Items
 
 }
 
-#ifdef WITH_YAML
 CSequenceCommandImpl::CSequenceCommandImpl(Key &key, const YAML::Node &node)
 : CCommandImpl(key, node)
 {
@@ -101,7 +100,6 @@ CSequenceCommandImpl::dumpYamlPart(YAML::Node &node) const
 	}
 }
 
-#endif
 
 void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 {

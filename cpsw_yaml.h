@@ -4,11 +4,6 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_shared_obj.h>
 
-#ifndef WITH_YAML
-
-class CYamlSupportBase {};
-
-#else
 
 #include <yaml-cpp/yaml.h>
 
@@ -707,6 +702,5 @@ template <typename T> static void readNode(const YAML::Node &node, const char *f
 
 #define DECLARE_YAML_FIELD_FACTORY(FieldType) CYamlFieldFactory<FieldType> FieldType##factory_
 
-#endif
 
 #endif

@@ -28,12 +28,10 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	public:
 		CMemDevImpl(Key &k, const char *name, uint64_t size);
 
-#ifdef WITH_YAML
 		CMemDevImpl(Key &k, const YAML::Node &n);
 
 		static  const char *_getClassName()       { return "MemDev";        }
 		virtual const char * getClassName() const { return _getClassName(); }
-#endif
 
 		CMemDevImpl & operator=(CMemDevImpl &orig);
 

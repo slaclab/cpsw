@@ -323,9 +323,7 @@ public:
 
 	virtual const char *getName() const { return "AXIS Depack"; }
 
-#ifdef WITH_YAML
 	virtual void dumpYaml(YAML::Node &node) const;
-#endif
 };
 
 #endif

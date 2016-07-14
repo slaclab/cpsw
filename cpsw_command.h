@@ -5,9 +5,7 @@
 #include <cpsw_entry_adapt.h>
 #include <cpsw_obj_cnt.h>
 
-#ifdef WITH_YAML
 #include <cpsw_yaml.h>
-#endif
 
 using boost::static_pointer_cast;
 using boost::weak_ptr;
@@ -79,12 +77,10 @@ public:
 
         CCommandImpl(Key &k, const char* name);
 
-#ifdef WITH_YAML
 		CCommandImpl(Key  &k, const YAML::Node &node)
 		: CEntryImpl(k, node)
 		{
 		}
-#endif
 };
 
 class CCommand_Adapt;
@@ -114,14 +110,12 @@ private:
 public:
 	CSequenceCommandImpl(Key &k, const char *name, const Items *items_p);
 	virtual void executeCommand(CommandImplContext context) const;
-#ifdef WITH_YAML
 	CSequenceCommandImpl(Key &k, const YAML::Node &node);
 
 	virtual void dumpYamlPart(YAML::Node &) const;
 
 	static  const char *_getClassName()       { return "SequenceCommand"; }
 	virtual const char * getClassName() const { return _getClassName();   }
-#endif
 };
 
 #endif

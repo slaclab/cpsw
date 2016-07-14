@@ -57,7 +57,6 @@ public:
 	{
 	}
 
-#ifdef WITH_YAML
 	CMyCommandImpl(Key &k, const YAML::Node &node)
 	: CCommandImpl(k, node)
 	{
@@ -65,7 +64,6 @@ public:
 
 	static  const char *_getClassName()       { return "MyCommand";     }
 	virtual const char *getClassName()  const { return _getClassName(); }
-#endif
 
 	static Field create(const char *name)
 	{
@@ -73,9 +71,7 @@ public:
 	}
 };
 
-#ifdef WITH_YAML
 DECLARE_YAML_FIELD_FACTORY(MyCommandImpl);
-#endif
 
 int
 main(int argc, char **argv)
@@ -90,14 +86,8 @@ const char *dmp_yaml = 0;
 			default:
 				fprintf(stderr,"Unknown option -'%c'\n", opt);
 				throw TestFailed();
-#ifdef WITH_YAML
 			case 'Y': use_yaml    = optarg;   break;
 			case 'y': dmp_yaml    = optarg;   break;
-#else
-			case 'y':
-			case 'Y': fprintf(stderr,"YAML support not compiled in\n");
-				throw TestFailed();
-#endif
 		}
 	}
 
@@ -106,9 +96,7 @@ try {
 Hub root;
 
 	if ( use_yaml ) {
-#ifdef WITH_YAML
 		root = IHub::loadYamlFile( use_yaml, "root" );
-#endif
 	} else {
 
 	NetIODev netio( INetIODev::create("root", ip_addr ) );
@@ -134,9 +122,7 @@ Hub root;
 	}
 
 	if ( dmp_yaml ) {
-#ifdef WITH_YAML
 		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
-#endif
 	}
 
 	ScalVal val( IScalVal::create( root->findByName("mmio/val") ) );
