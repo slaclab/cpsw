@@ -124,7 +124,7 @@ public:
 class IHub : public virtual IEntry {
 public:
 	// find all entries matching 'path' in or underneath this hub
-	virtual Path       findByName(const char *path)      = 0;
+	virtual Path       findByName(const char *path) const = 0;
 
 	virtual Child      getChild(const char *name)  const = 0;
 

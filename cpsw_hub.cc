@@ -271,9 +271,9 @@ Dev IDev::create(const char *name, uint64_t size)
 	return CShObj::create<DevImpl>(name, size);
 }
 
-Path CDevImpl::findByName(const char *s)
+Path CDevImpl::findByName(const char *s) const
 {
-	Hub  h( getSelfAs<DevImpl>() );
+	Hub  h( getSelfAsConst<DevImpl>() );
 	Path p = IPath::create( h );
 	return p->findByName( s );
 }

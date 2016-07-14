@@ -70,7 +70,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual void addAtAddress(Field child, const YAML::Node &n);
 #endif
 
-		virtual Path findByName(const char *s);
+		virtual Path findByName(const char *s) const;
 
 		virtual Child getChild(const char *name) const { return getAddress( name ); }
 		virtual Address getAddress(const char *name) const;
