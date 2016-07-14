@@ -40,9 +40,8 @@ void swp(uint8_t* b, unsigned sz, ByteOrder nat)
 	}
 }
 
-template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL got, EL exp, int elsz, MemDev m, int wlen, int writeback)
+template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL got, EL exp, int elsz, uint8_t *buf, int wlen, int writeback)
 {
-uint8_t *buf = m->getBufp();
 	swp( (uint8_t*)&got, sizeof(got), nat);
 	printf("Mismatch (width %li, swap len %i, mem: %sE, host: %s, %ssigned, %s-writeback) @%i, got 0x%04"PRIx64", exp 0x%04"PRIx64"\n",
 			(long int)sizeof(EL),
@@ -58,9 +57,8 @@ uint8_t *buf = m->getBufp();
 }
 
 
-template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int shft, int wlen)
+template <typename EL> void tst(uint8_t *buf, unsigned bufsz, ScalVal_RO val, ByteOrder mbo, int shft, int wlen)
 {
-	uint8_t *buf = mmp->getBufp();
 	int bo;
 	ByteOrder native = hostByteOrder();
 	unsigned int i;
@@ -74,7 +72,7 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 
 	for ( bo = 0; bo < 2; bo++ ) {
 
-		for ( i=0; i<mmp->getSize(); i++ )
+		for ( i=0; i<bufsz; i++ )
 			buf[i] = rrr();
 
 		unsigned sizeBits = val->getSizeBits();
@@ -129,7 +127,7 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 					v &= msk;
 				swp((uint8_t*)&ui[i], sizeof(ui[0]), native);
 				if ( v != ui[i] ) {
-					perr<EL>(mbo, native, val->isSigned(), i, ui[i], v, val->getSize(), mmp, wlen, writeback);
+					perr<EL>(mbo, native, val->isSigned(), i, ui[i], v, val->getSize(), buf, wlen, writeback);
 					throw TestFailed("mismatch (le, signed)");
 				}
 			}
@@ -137,7 +135,7 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 	if ( writeback >= (val_w ? 1 : 0) )
 		break;
 
-			for ( i=0; i<mmp->getSize(); i++ )
+			for ( i=0; i<bufsz; i++ )
 				buf[i] = rrr();
 
 			for ( i=0; i<NELMS; i++ ) {
@@ -164,31 +162,70 @@ template <typename EL> void tst(MemDev mmp, ScalVal_RO val, ByteOrder mbo, int s
 
 using boost::dynamic_pointer_cast;
 
+typedef shared_ptr<const MemDev::element_type> ConstMemDev;
+
 int
-main()
+main(int argc, char **argv)
 {
+const char *use_yaml = 0;
+const char *dmp_yaml = 0;
+
+int opt;
+
+	while ( (opt = getopt(argc, argv, "y:Y:")) > 0 ) {
+		switch (opt) {
+			default:
+			throw TestFailed("unknown commandline option");
+
+			case 'y': dmp_yaml = optarg; break;
+			case 'Y': use_yaml = optarg; break;
+		}
+	}
 
 try {
 
 {
-MemDev  mm      = IMemDev::create("mem",2048);
-MMIODev mmio    = IMMIODev::create("mmio",2048, UNKNOWN);
-MMIODev mmio_le = IMMIODev::create("le", 1024, LE);
-MMIODev mmio_be = IMMIODev::create("be", 1024, BE);
-Path p_be, p_le;
+Hub       root;
+uint8_t  *membuf;
+unsigned  membufsz;
+
+MMIODev mmio_le;
+MMIODev mmio_be;
+
+ConstMemDev cmm;
 
 int  bits[] = { 4, 13, 16, 22, 32, 44, 64 };
 int  shft[] = { 0, 3, 4, 7 };
 bool sign[] = { true, false };
-
 unsigned bits_idx, shft_idx, sign_idx;
 
-	mm->addAtAddress( mmio );
-	mmio->addAtAddress( mmio_le,    0);
-	mmio->addAtAddress( mmio_be,    0);
+	if ( use_yaml ) {
+		root = IHub::loadYamlFile(use_yaml, "root");
 
-	p_be = mm->findByName("mmio/be");
-	p_le = mm->findByName("mmio/le");
+		cmm = dynamic_pointer_cast<ConstMemDev::element_type>( root );
+
+		if ( ! cmm ) {
+			throw TestFailed("MemDev not found after loading YAML");
+		}
+
+	} else {
+	MemDev  mm      = IMemDev::create("mem",2048);
+	MMIODev mmio    = IMMIODev::create("mmio",2048, UNKNOWN);
+			mmio_le = IMMIODev::create("le", 1024, LE);
+			mmio_be = IMMIODev::create("be", 1024, BE);
+
+		mm->addAtAddress( mmio );
+		mmio->addAtAddress( mmio_le,    0);
+		mmio->addAtAddress( mmio_be,    0);
+
+		root     = cmm = mm;
+	}
+
+	membuf   = cmm->getBufp();
+	membufsz = cmm->getSize();
+
+	Path p_be( root->findByName("mmio/be") );
+	Path p_le( root->findByName("mmio/le") );
 
 	try {
 
@@ -228,8 +265,10 @@ unsigned bits_idx, shft_idx, sign_idx;
 
 						IntField e = bldr->build( nm );
 
-						mmio_le->addAtAddress( e, 0, NELMS, STRIDE );
-						mmio_be->addAtAddress( e, 0, NELMS, STRIDE );
+						if ( ! use_yaml ) {
+							mmio_le->addAtAddress( e, 0, NELMS, STRIDE );
+							mmio_be->addAtAddress( e, 0, NELMS, STRIDE );
+						}
 printf("%s\n", e->getName());
 
 						ScalVal_RO v_le, v_be;
@@ -248,19 +287,19 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 						}
 
 						try {
-							tst<uint8_t>( mm, v_le, LE, shft[shft_idx], wswap);
-							tst<uint8_t>( mm, v_be, BE, shft[shft_idx], wswap);
+							tst<uint8_t>( membuf, membufsz, v_le, LE, shft[shft_idx], wswap);
+							tst<uint8_t>( membuf, membufsz, v_be, BE, shft[shft_idx], wswap);
 
-							tst<uint16_t>( mm, v_le, LE, shft[shft_idx], wswap);
-							tst<uint16_t>( mm, v_be, BE, shft[shft_idx], wswap);
+							tst<uint16_t>( membuf, membufsz, v_le, LE, shft[shft_idx], wswap);
+							tst<uint16_t>( membuf, membufsz, v_be, BE, shft[shft_idx], wswap);
 
-							tst<uint32_t>( mm, v_le, LE, shft[shft_idx], wswap);
-							tst<uint32_t>( mm, v_be, BE, shft[shft_idx], wswap);
+							tst<uint32_t>( membuf, membufsz, v_le, LE, shft[shft_idx], wswap);
+							tst<uint32_t>( membuf, membufsz, v_be, BE, shft[shft_idx], wswap);
 
 							if ( bits[bits_idx] < 64 || shft[shft_idx] == 0 ) {
 								/* test code uses int64 internally and shift overflows */
-								tst<uint64_t>( mm, v_le, LE, shft[shft_idx], wswap);
-								tst<uint64_t>( mm, v_be, BE, shft[shft_idx], wswap);
+								tst<uint64_t>( membuf, membufsz, v_le, LE, shft[shft_idx], wswap);
+								tst<uint64_t>( membuf, membufsz, v_be, BE, shft[shft_idx], wswap);
 							}
 						} catch ( CPSWError &e ) {
 							printf("Error at %s\n", nm);
@@ -272,6 +311,10 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 					}
 				}
 			}
+		}
+
+		if ( dmp_yaml ) {
+			IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 		}
 
 	} catch ( CPSWError &e ) {
@@ -286,7 +329,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 	ScalVal v_le = IScalVal::create( p_le->findByName( "i32-4-s-2[0]" ) );
 	ScalVal v_be = IScalVal::create( p_be->findByName( "i32-4-s-2[0]" ) );
 
-	for (int i=0; i<9; i++ ) *(mm->getBufp()+i)=0xaa;
+	for (int i=0; i<9; i++ ) *(membuf+i)=0xaa;
 	v_le->setVal( &vs, 1 );
 	v_le->getVal( &vl, 1 );
 	vle = (int64_t)(int16_t)vs;
@@ -296,10 +339,10 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 	}
 
 	for (int i=0; i<9; i++ )
-		printf("%02x ", *(mm->getBufp()+i));
+		printf("%02x ", *(membuf+i));
 	printf("\n***\n");
 
-	for (int i=0; i<9; i++ ) *(mm->getBufp()+i)=0xaa;
+	for (int i=0; i<9; i++ ) *(membuf+i)=0xaa;
 	v_be->setVal( &vs, 1 );
 	v_be->getVal( &vl, 1 );
 	vle = (int64_t)(int16_t)vs;
@@ -309,7 +352,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 	}
 
 	for (int i=0; i<9; i++ )
-		printf("%02x ", *(mm->getBufp()+i));
+		printf("%02x ", *(membuf+i));
 	printf("\n");
 
 	// test array slicing
