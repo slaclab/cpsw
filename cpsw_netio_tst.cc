@@ -157,14 +157,14 @@ const char *dmp_yaml =  0;
 		byteResHack = 0;
 
 	{
-	Dev root;
+	Hub root;
 
 	try {
 		MMIODev  srvm;
 
 		if ( use_yaml ) {
 #ifdef WITH_YAML
-			root = CYamlFieldFactoryBase::loadYamlFile( use_yaml, "root" );
+			root = IHub::loadYamlFile( use_yaml, "root" );
 #endif
 		} else {
 		NetIODev netio = INetIODev::create("fpga", ip_addr);

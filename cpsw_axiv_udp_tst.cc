@@ -138,11 +138,11 @@ private:
 	int         shots_;
 	bool        cont_;
 	ScalVal     trig_;
-	Dev         root_;
+	Hub         root_;
 public:
 	CTimeout trigTime;
 
-	ThreadArg(uint64_t size, int shots, ScalVal trig, Dev root)
+	ThreadArg(uint64_t size, int shots, ScalVal trig, Hub root)
 	:firstFrame_(-1),
 	 nFrames_(0),
 	 size_(size),
@@ -189,7 +189,7 @@ public:
 		trig_->setVal( (uint64_t)0 );
 	}
 
-	Dev getRoot()
+	Hub getRoot()
 	{
 		return root_;
 	}
@@ -503,7 +503,7 @@ const char *dmp_yaml  = 0;
 
 try {
 
-Dev       root;
+Hub       root;
 uint8_t   str[VLEN];
 int16_t   adcv[ADCL];
 uint64_t  u64;
@@ -515,7 +515,7 @@ uint16_t  u16;
 
 	if ( use_yaml ) {
 #ifdef WITH_YAML
-		root = CYamlFieldFactoryBase::loadYamlFile( use_yaml, "root" );
+		root = IHub::loadYamlFile( use_yaml, "root" );
 #endif
 	} else {
 		NetIODev  comm = INetIODev::create("fpga", ip_addr);

@@ -107,11 +107,11 @@ const char *dmp_yaml = 0;
 
 try {
 
-Dev root;
+Hub root;
 
 	if ( use_yaml ) {
 #ifdef WITH_YAML
-		root = CYamlFieldFactoryBase::loadYamlFile( use_yaml, "root" );
+		root = IHub::loadYamlFile( use_yaml, "root" );
 #endif
 	} else {
 

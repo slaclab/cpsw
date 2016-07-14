@@ -647,13 +647,9 @@ class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 		virtual void addChildren(CEntryImpl &, const YAML::Node &, IYamlTypeRegistry<Field> *);
 		virtual void addChildren(CDevImpl &,   const YAML::Node &, IYamlTypeRegistry<Field> *);
 
-		static  Dev   dispatchMakeField(const YAML::Node &node, const char *root_name);
 
 	public:
-		static Dev loadYamlFile(const char *file_name, const char *root_name);
-		static Dev loadYamlStream(std::istream &yaml,  const char *root_name);
-		// convenience wrapper
-		static Dev loadYamlStream(const char *yaml,    const char *root_name);
+		static Dev dispatchMakeField(const YAML::Node &node, const char *root_name);
 
 		static void dumpYamlFile(Entry top, const char *file_name, const char *root_name);
 

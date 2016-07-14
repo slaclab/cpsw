@@ -129,6 +129,11 @@ public:
 	virtual Child      getChild(const char *name)  const = 0;
 
 	virtual Children   getChildren()               const = 0;
+
+	static Hub loadYamlFile(const char *file_name, const char *root_name);
+	static Hub loadYamlStream(std::istream &yaml,  const char *root_name);
+	// convenience wrapper
+	static Hub loadYamlStream(const char *yaml,    const char *root_name);
 };
 
 // Enum class

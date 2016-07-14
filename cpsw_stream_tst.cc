@@ -123,12 +123,11 @@ const char *use_yaml = 0;
 	}
 
 try {
-//NetIODev root = INetIODev::create("udp", "192.168.2.10");
-Dev      root;
+Hub      root;
 
 	if ( use_yaml ) {
 #ifdef WITH_YAML
-		root = CYamlFieldFactoryBase::loadYamlFile( use_yaml, "root" );
+		root = IHub::loadYamlFile( use_yaml, "root" );
 #endif
 	} else {
 	NetIODev netio = INetIODev::create("udp", "127.0.0.1");

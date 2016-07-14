@@ -27,21 +27,22 @@ const char *yaml=
 "    size: 1\n"
 "    nelms: 16\n";
 
-Dev root;
+Hub root;
 
 if ( use_yaml ) {
 	do {
 #ifdef WITH_YAML
-	root = CYamlFieldFactoryBase::loadYamlStream( yaml, 0 );
+	root = IHub::loadYamlStream( yaml, 0 );
 #endif
 	} while (0);
 } else {
 
-	root = IDev::create("root");
+	Dev rdev = IDev::create("root");
 	Dev dev  = IDev::create("device", 100);
 	Field f  = IField::create("reg", 1);
 	dev->addAtAddress( f, 16 );
-	root->addAtAddress( dev, 4 );
+	rdev->addAtAddress( dev, 4 );
+	root = rdev;
 }
 
 Path p1 = root->findByName("device/reg");
@@ -85,7 +86,7 @@ Hub      hh;
 	}
 }
 
-static Dev build_yaml()
+static Hub build_yaml()
 {
 #ifdef WITH_YAML
 const char *yaml=
@@ -108,7 +109,7 @@ const char *yaml=
 "      class: Field\n"
 "      size: 8\n"
 "      nelms: 4\n";
-	return CYamlFieldFactoryBase::loadYamlStream( yaml, 0 );
+	return IHub::loadYamlStream( yaml, 0 );
 #else
 	return Dev();
 #endif
@@ -163,14 +164,16 @@ while ( (opt = getopt(argc, argv, "Y")) > 0 ) {
 
 try {
 Path    p  = IPath::create();
-Dev     r  = use_yaml ? build_yaml() : build();
+Hub     r  = use_yaml ? build_yaml() : build();
 
 	printf("root  use-count: %li\n", r.use_count());
+#if 0
 	{
 	DumpNameVisitor v;
 	r->accept( &v, IVisitable::RECURSE_DEPTH_FIRST );
 	r->accept( &v, IVisitable::RECURSE_DEPTH_AFTER );
 	}
+#endif
 
 	p = r->findByName("outer/inner/leaf");
 	printf("root  use-count: %li, origin %s\n", r.use_count(), p->origin()->getName());
