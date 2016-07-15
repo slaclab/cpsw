@@ -587,6 +587,7 @@ uint16_t  u16;
 
 	if ( dmp_yaml ) {
 		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
+		IYamlSupport::dumpYamlConfig( pre->findByName("mmio/vers"), NULL );
 	}
 
 	// can use raw memory for testing instead of UDP
