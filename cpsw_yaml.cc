@@ -159,9 +159,11 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, const Y
 			for ( YAML::const_iterator it=node.begin(); it != node.end(); ++it ) {
 				svec_p->push_back( it->as<std::string>() );
 			}
-		} else {
+		} else if (node.IsScalar() ) {
 			svec_p->push_back( node.as<std::string>() );
-		}	
+		} else {
+			throw  InvalidArgError( std::string("property '") + std::string("class") + std::string("'") );
+		}
 	}
 }
 
