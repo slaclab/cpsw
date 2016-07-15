@@ -137,9 +137,8 @@ MutableEnum IMutableEnum::create(const YAML::Node &node)
 
 
 CEnumImpl::CTransformFuncImpl::CTransformFuncImpl(const Key &key)
-: CTransformFunc( key )
-  ,
-  IYamlFactoryBase( getName(), getRegistry())
+: CTransformFunc( key ),
+  IYamlFactoryBase<MutableEnum>( getName(), getRegistry())
 {
 }
 
