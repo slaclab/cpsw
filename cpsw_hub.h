@@ -47,6 +47,10 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		CDevImpl(Key &k, const YAML::Node &n);
 
 		virtual void dumpYamlPart(YAML::Node &node) const;
+		
+		virtual void dumpYamlConfig(YAML::Node &node, Path p) const;
+
+		virtual void loadYamlConfig(const YAML::Node &node, Path p) const;
 
 		static  const char *_getClassName()       { return "Dev";           }
 		virtual const char * getClassName() const { return _getClassName(); }

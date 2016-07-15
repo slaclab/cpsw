@@ -26,6 +26,23 @@ class CYamlSupportBase : public virtual IYamlSupportBase {
 		//    node["myField"] = myvalue;
 		// }
 		virtual void dumpYamlPart(YAML::Node &node) const;
+		
+		// subclass may implement a constructor from a YAML::Node
+
+		// every class implements this and MUST chain through its
+		// superclass first (thus, derived classes can overwrite fields)
+		// e.g.,
+		//
+		// void CYamlSupportSubclass::dumpYamlPart(YAML::Node &node)
+		// {
+		//    CYamlSupportBase::dumpYamlPart( node ); // chain
+		//
+		//    dump subclass fields into node here (may override superclass entries)
+		//    node["myField"] = myvalue;
+		// }
+		virtual void dumpYamlConfig(YAML::Node &node, Path p) const;
+
+		virtual void loadYamlConfig(const YAML::Node &node, Path p) const;
 
 		// When using the 'CYamlFieldFactory' then every subclass
 		// MUST define a static _getClassName() member and let it

@@ -5,7 +5,7 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <stdio.h>
-
+#include <iostream>
 #include <cpsw_yaml.h>
 
 using boost::static_pointer_cast;
@@ -259,6 +259,57 @@ MyChildren::iterator it;
 		it->second->getEntryImpl()->dumpYaml( child_node );
 		it->second->dumpYamlPart( child_node );
 		node["children"].push_back( child_node ); 
+	}
+}
+
+void
+CDevImpl::dumpYamlConfig(YAML::Node &node, Path p) const
+{
+MyChildren::iterator it;
+Path p_ch;
+	CEntryImpl::dumpYamlConfig( node, p );
+
+	for ( it = children_.begin(); it != children_.end(); ++it ) {
+		p_ch = p->findByName( it->first );
+		CompositePathIterator cpi( &p_ch );
+		int idxf = cpi->idxt_;
+		std::cout << "idxf: " << idxf << std::endl; 
+		for ( unsigned i = 0; i < p_ch->getNelms(); i++ ) {
+			YAML::Node child_node;
+			std::stringstream stm;
+			stm << it->first << "[" << i << "]";  //<child_name>[<index>]
+			it->second->getEntryImpl()->dumpYamlConfig( child_node, p->findByName( stm.str().c_str() ) );
+			if ( !child_node.IsNull() ) {  // the child has a config
+				node[it->first].push_back( child_node );
+			}
+		}	
+	}
+}
+
+void
+CDevImpl::loadYamlConfig(const YAML::Node &node, Path p) const
+{
+	// node is a map
+	//	key = child name
+	//      value = yaml sequence node of values          
+
+	// iterate through map for children nodes
+	for( YAML::const_iterator map_it = node.begin(); map_it != node.end(); ++map_it ) {
+		std::string key = map_it->first.as<std::string>();
+		YAML::Node seq = map_it->second; 
+		Address a = getAddress( key.c_str() );
+		// iterate through child node values
+		int i = 0;
+		for( YAML::const_iterator seq_it = seq.begin(); seq_it != seq.end(); ++seq_it, i++ ) {
+			try {
+				std::stringstream stm;
+				stm << key << "[" << i << "]";  //<child_name>[<index>]
+				Path p_ch = p->findByName( stm.str().c_str() );
+				a->getEntryImpl()->loadYamlConfig( (*seq_it), p_ch );
+			} catch ( NotFoundError &e ) {
+
+			} 
+		}
 	}
 }
 

@@ -88,6 +88,10 @@ public:
 	virtual const char * getClassName() const { return _getClassName(); }
 
 	virtual void dumpYamlPart(YAML::Node &n) const;
+	
+	virtual void dumpYamlConfig(YAML::Node &, Path p) const;
+
+	virtual void loadYamlConfig(const YAML::Node &, Path p) const;
 
 	CIntEntryImpl(CIntEntryImpl &orig, Key &k)
 	:CEntryImpl(orig, k),

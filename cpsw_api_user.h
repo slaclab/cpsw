@@ -327,5 +327,12 @@ public:
         static Command create(Path p);
 };
 
+namespace IYamlSupport {
+
+	void dumpYamlConfig(Path p, const char *file_name);
+
+	void loadYamlConfig(Path p, const char *file_name);
+	void loadYamlConfig(Path p, const YAML::Node &node);
+};
 
 #endif

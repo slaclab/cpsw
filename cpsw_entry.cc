@@ -99,6 +99,18 @@ const char *d = getDescription();
 		node["cacheable"] = getCacheable();
 }
 
+void CEntryImpl::dumpYamlConfig(YAML::Node &node, Path p) const
+{
+	// chain through superclass
+	CYamlSupportBase::dumpYamlConfig( node, p );
+}
+
+void CEntryImpl::loadYamlConfig(const YAML::Node &node, Path p) const
+{
+	// chain through superclass
+	CYamlSupportBase::loadYamlConfig( node, p );
+}
+
 CEntryImpl::~CEntryImpl()
 {
 	--ocnt();

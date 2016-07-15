@@ -97,6 +97,16 @@ CYamlSupportBase::dumpYamlPart(YAML::Node &node) const
 {
 }
 
+void
+CYamlSupportBase::dumpYamlConfig(YAML::Node &node, Path p) const
+{
+}
+
+void
+CYamlSupportBase::loadYamlConfig(const YAML::Node &node, Path p) const
+{
+}
+
 class RegistryImpl : public IRegistry {
 	public:
 
@@ -298,6 +308,62 @@ shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const Entry
 		os        << emit.c_str() << "\n";
 	} else {
 		std::cout << emit.c_str() << "\n";
+	}
+}
+
+void
+IYamlSupport::dumpYamlConfig( Path p, const char *file_name )
+{
+
+Address a = CompositePathIterator( &p )->c_p_;
+shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const EntryImpl::element_type>( a->getEntryImpl() ) );
+
+	if ( ! topi ) {
+		std::cerr << "WARNING: 'top' not an EntryImpl?\n";
+		return;
+	}
+	YAML::Node top_node;
+	top_node["path"] = p->toString();
+	topi->dumpYamlConfig( top_node, p );
+
+
+	YAML::Emitter emit;
+
+
+	emit << top_node;
+
+        if ( file_name ) {
+                std::ofstream os( file_name );
+                os        << emit.c_str() << "\n";
+        } else {
+                std::cout << emit.c_str() << "\n";
+        }
+}
+
+void
+IYamlSupport::loadYamlConfig( Path p, const char *file_name)
+{
+	YAML::Node node = YAML::Load( file_name );
+	loadYamlConfig( p, node );
+}
+
+void
+IYamlSupport::loadYamlConfig( Path p, const YAML::Node &node )
+{
+	std::string yaml_path = node["path"].as<std::string>();
+	try {
+		Path load_path = p->findByName( yaml_path.c_str() );
+		Address a = CompositePathIterator( &load_path )->c_p_;
+		shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const EntryImpl::element_type>( a->getEntryImpl() ) );
+	
+		if ( ! topi ) {
+			std::cerr << "WARNING: 'top' not an EntryImpl?\n";
+			return;
+		}
+
+		topi->loadYamlConfig( node, load_path );
+	} catch (...) {
+
 	}
 }
 

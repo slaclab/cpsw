@@ -11,6 +11,8 @@
 
 #include <cpsw_yaml.h>
 
+#include <iostream>
+
 using std::string;
 
 class CStreamAdapt;
@@ -106,6 +108,41 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 		node["enums"] = enums;
 	}
 }
+
+void
+CIntEntryImpl::dumpYamlConfig(YAML::Node &node, Path p) const
+{
+	uint64_t u64;
+	try {
+		ScalVal_RO s = IScalVal_RO::create( p );
+		IndexRange rng(0);
+		
+		CEntryImpl::dumpYamlConfig(node, p);
+		for ( unsigned i = 0; i < s->getNelms(); i++, ++rng ) {
+		  s->getVal( &u64, 1, &rng );
+		  node = u64;
+		}
+
+
+	} catch (InterfaceNotImplementedError &e) {} // doesn't implement ScalVal_RO
+//	} catch (CPSWError &e) {
+//		std::cout << e.getInfo().c_str() << std::endl;
+//	} // doesn't implement ScalVal_RO
+}
+
+void
+CIntEntryImpl::loadYamlConfig(const YAML::Node &node, Path p) const
+{
+	uint64_t u64;
+	try {
+		u64 = node.as<uint64_t>();
+		ScalVal s = IScalVal::create( p );
+		s->setVal( &u64, 1 );
+	} catch (...) {
+
+	}
+}
+
 
 IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
 {
