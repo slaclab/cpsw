@@ -540,7 +540,7 @@ public:
 
 	virtual T    makeItem(const YAML::Node &) = 0;
 
-	virtual void extractClassName(std::string *str_p, const YAML::Node &)  = 0;
+	virtual void extractClassName(std::vector<std::string> *svec_p, const YAML::Node &)  = 0;
 
 	virtual void addFactory(const char *className, IYamlFactoryBase<T> *f) = 0;
 	virtual void delFactory(const char *className)                         = 0;
@@ -605,18 +605,24 @@ public:
 		registry_->delItem(className);
 	}
 
-	virtual void extractClassName(std::string *str_p, const YAML::Node &n);
+	virtual void extractClassName(std::vector<std::string> *svec_p, const YAML::Node &n);
 
 	virtual T makeItem(const YAML::Node &n)
 	{
-	std::string str;
-		extractClassName( &str, n  );
-		if ( str.size() == 0 )
+	std::vector<std::string> str_vec;
+	std::string str_no_factory = "";
+		extractClassName( &str_vec, n  );
+		if ( str_vec.size() == 0 )
 			throw NotFoundError("CYamlTypeRegistry: node w/o class info");
-		IYamlFactoryBase<T> *factory = static_cast<IYamlFactoryBase<T> *>( registry_->getItem( str.c_str() ) );
-		if ( ! factory )
-			throw NotFoundError(std::string("No factory for '") + str + std::string("' found"));
-		return factory->makeItem( n, this );
+
+		for( std::vector<std::string>::iterator it = str_vec.begin(); it != str_vec.end(); ++it ) {
+			IYamlFactoryBase<T> *factory = static_cast<IYamlFactoryBase<T> *>( registry_->getItem( it->c_str() ) );
+			if ( factory )
+				return factory->makeItem( n, this );
+			str_no_factory = str_no_factory + (*it) + ", ";
+		}
+
+		throw NotFoundError(std::string("No factory for '") + str_no_factory + std::string("' found"));
 	}
 
 	virtual void dumpClasses()

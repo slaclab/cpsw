@@ -32,7 +32,10 @@ const char *incyaml =
 "leaf:   &anchor\n"
 "  name:  origname\n"
 "  nelms: 5\n"
-"  class: Field\n";
+"  class:\n"          // Ordered list of class hierarchy
+"    - MyField1\n"    
+"    - MyField2\n"
+"    - Field\n";
 
 const char *noincincyaml =
 "#\n"
@@ -42,7 +45,9 @@ const char *noincincyaml =
 "leaf:   &anchor\n"
 "  name:  origname\n"
 "  nelms: 5\n"
-"  class: Field\n";
+"  class:\n"          // Ordered list of class hierarchy
+"    - MyField\n"    
+"    - Field\n";
 
 
 class TestFailed{};

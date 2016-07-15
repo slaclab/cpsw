@@ -119,9 +119,9 @@ MutableEnum IMutableEnum::create()
 }
 
 template<> void
-CYamlTypeRegistry<MutableEnum>::extractClassName(std::string *str_p, const YAML::Node &node)
+CYamlTypeRegistry<MutableEnum>::extractClassName(std::vector<std::string> *svec_p, const YAML::Node &node)
 {
-	*str_p = node.Tag();
+	svec_p->push_back( node.Tag() );
 }
 
 static IYamlTypeRegistry<MutableEnum> *getRegistry()

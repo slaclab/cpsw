@@ -149,9 +149,20 @@ IRegistry::create()
 }
 
 template <typename T> void
-CYamlTypeRegistry<T>::extractClassName(std::string *str_p, const YAML::Node &n)
+CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, const YAML::Node &n)
 {
-	mustReadNode( n, "class", str_p );
+	const YAML::Node &node( getNode(n, "class") );
+	if ( ! node ) {
+		throw NotFoundError( std::string("property '") + std::string("class") + std::string("'") );
+	} else {
+		if( node.IsSequence() ) {
+			for ( YAML::const_iterator it=node.begin(); it != node.end(); ++it ) {
+				svec_p->push_back( it->as<std::string>() );
+			}
+		} else {
+			svec_p->push_back( node.as<std::string>() );
+		}	
+	}
 }
 
 void
