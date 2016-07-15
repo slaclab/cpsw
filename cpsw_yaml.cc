@@ -7,6 +7,7 @@
 #include <cpsw_mmio_dev.h>
 #include <cpsw_netio_dev.h>
 #include <cpsw_command.h>
+#include <cpsw_preproc.h>
 
 #include <sstream>
 #include <fstream>
@@ -191,17 +192,60 @@ const YAML::Node &root( root_name ? node[root_name] : node );
 	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry()->makeItem( root ) );
 }
 
+class NoOpDeletor {
+public:
+	void operator()(StreamMuxBuf::Stream::element_type *obj)
+	{
+	}
+};
+
+static YAML::Node
+loadPreprocessedYamlStream(StreamMuxBuf::Stream top_stream)
+{
+StreamMuxBuf         muxer;
+
+YamlPreprocessor     preprocessor( top_stream, &muxer );
+
+		preprocessor.process();
+
+		std::istream top_preprocessed_stream( &muxer );
+
+		return YAML::Load( top_preprocessed_stream );
+}
+
+YAML::Node
+CYamlFieldFactoryBase::loadPreprocessedYaml(std::istream &top)
+{
+StreamMuxBuf         muxer;
+StreamMuxBuf::Stream top_stream( &top, NoOpDeletor() );
+	return loadPreprocessedYamlStream( top_stream );
+}
+
+YAML::Node
+CYamlFieldFactoryBase::loadPreprocessedYaml(const char *yaml)
+{
+std::string       str( yaml );
+std::stringstream sstrm( str );
+
+	return loadPreprocessedYaml( sstrm );
+}
+
+YAML::Node
+CYamlFieldFactoryBase::loadPreprocessedYamlFile(const char *file_name)
+{
+	return loadPreprocessedYamlStream( StreamMuxBuf::mkstrm( file_name ) );
+}
 
 Hub
 IHub::loadYamlFile(const char *file_name, const char *root_name)
 {
-	return CYamlFieldFactoryBase::dispatchMakeField( YAML::LoadFile( file_name ), root_name );
+	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name ), root_name );
 }
 
 Hub
 IHub::loadYamlStream(std::istream &in, const char *root_name)
 {
-	return CYamlFieldFactoryBase::dispatchMakeField( YAML::Load( in ), root_name );
+	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYaml( in ), root_name );
 }
 
 Hub

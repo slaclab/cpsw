@@ -216,4 +216,47 @@ public:
 	}
 };
 
+class StreamDoneError : public CPSWError {
+public:
+	StreamDoneError(const char *s)
+	: CPSWError(s)
+	{
+	}
+
+	StreamDoneError(const std::string &s)
+	: CPSWError(s)
+	{
+	}
+};
+
+class FailedStreamError : public CPSWError {
+public:
+	FailedStreamError(const char* s)
+	: CPSWError(s)
+	{
+	}
+
+	FailedStreamError(const std::string &s)
+	: CPSWError(s)
+	{
+	}
+};
+
+class MissingOnceTagError : public CPSWError {
+public:
+	MissingOnceTagError(const char *s)
+	: CPSWError(s)
+	{
+	}
+};
+
+class MissingIncludeFileNameError : public CPSWError {
+public:
+	MissingIncludeFileNameError(const char *s)
+	: CPSWError(s)
+	{
+	}
+};
+
+
 #endif

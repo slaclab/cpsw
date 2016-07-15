@@ -646,6 +646,10 @@ class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 	public:
 		static Dev dispatchMakeField(const YAML::Node &node, const char *root_name);
 
+		static YAML::Node loadPreprocessedYaml(std::istream &);
+		static YAML::Node loadPreprocessedYaml(const char *char_stream);
+		static YAML::Node loadPreprocessedYamlFile(const char *file_name);
+
 		static void dumpClasses() { getFieldRegistry()->dumpClasses(); }
 };
 

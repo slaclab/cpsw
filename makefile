@@ -28,6 +28,7 @@ cpsw_SRCS+= cpsw_proto_mod_tdestmux.cc
 cpsw_SRCS+= cpsw_proto_mod_rssi.cc
 cpsw_SRCS+= cpsw_thread.cc
 cpsw_SRCS+= cpsw_yaml.cc
+cpsw_SRCS+= cpsw_preproc.cc
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h
@@ -59,6 +60,7 @@ DEP_HEADERS += cpsw_thread.h
 DEP_HEADERS += cpsw_mutex.h
 DEP_HEADERS += cpsw_command.h
 DEP_HEADERS += cpsw_yaml.h
+DEP_HEADERS += cpsw_preproc.h
 DEP_HEADERS += crc32-le-tbl-4.h
 DEP_HEADERS += udpsrv_regdefs.h
 DEP_HEADERS += udpsrv_port.h
@@ -132,9 +134,13 @@ cpsw_srpv3_large_tst_SRCS += cpsw_srpv3_large_tst.cc
 cpsw_srpv3_large_tst_LIBS += $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_srpv3_large_tst
 
-cpsw_command_tst_SRCS    = cpsw_command_tst.cc
-cpsw_command_tst_LIBS    = $(CPSW_LIBS)
-TESTPROGRAMS            += cpsw_command_tst
+cpsw_command_tst_SRCS      = cpsw_command_tst.cc
+cpsw_command_tst_LIBS      = $(CPSW_LIBS)
+TESTPROGRAMS              += cpsw_command_tst
+
+cpsw_yaml_preproc_tst_SRCS = cpsw_yaml_preproc_tst.cc
+cpsw_yaml_preproc_tst_LIBS = $(CPSW_LIBS)
+TESTPROGRAMS              += cpsw_yaml_preproc_tst
 
 TEST_AXIV_YES=
 TEST_AXIV_NO=cpsw_axiv_udp_tst
