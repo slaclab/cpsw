@@ -315,14 +315,25 @@ void
 IYamlSupport::dumpYamlConfig( Path p, const char *file_name )
 {
 
-Address a = CompositePathIterator( &p )->c_p_;
-shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const EntryImpl::element_type>( a->getEntryImpl() ) );
+shared_ptr<const EntryImpl::element_type> topi;
+
+	if ( p->empty() ) {  // start from root
+		Hub h = p->origin();
+		topi = dynamic_pointer_cast<const EntryImpl::element_type>( h );
+	} else {            // start from path relative to root
+		Address a = CompositePathIterator( &p )->c_p_;
+		topi = dynamic_pointer_cast<const EntryImpl::element_type>( a->getEntryImpl() ); 
+	}
 
 	if ( ! topi ) {
 		std::cerr << "WARNING: 'top' not an EntryImpl?\n";
 		return;
 	}
+
+
+
 	YAML::Node top_node;
+	top_node["root"] = p->origin()->getName();
 	top_node["path"] = p->toString();
 	topi->dumpYamlConfig( top_node, p );
 
