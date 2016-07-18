@@ -42,13 +42,13 @@
 #define READ_NONVOLATILE_CONFIG  (0xB5 << CMD_OFFSET)
 #define READ_VOLATILE_CONFIG     (0x85 << CMD_OFFSET)
 
-#define PGSIZE 64
+#define PGSIZE (64*4)
 
 static uint32_t modereg = 0;
 static uint32_t addrreg = 0;
 static uint32_t cmndreg = 0;
 
-static uint8_t  datareg[PGSIZE*4] = {0};
+static uint8_t  datareg[PGSIZE] = {0};
 
 static uint8_t  promdat[PROMSIZE] = {0};
 
@@ -66,18 +66,18 @@ static void reset()
 	resetEn = false;
 }
 
-static int readreg(uint32_t *data, uint32_t nwrds, uint32_t off, int debug)
+static int readreg(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
-	memset(data, 0, nwrds*4);
+	memset(data, 0, nbytes);
 
 	switch ( off ) {
-		case AXI_SPI_EEPROM_32BIT_MODE_OFF: *data = modereg; break;
-		case AXI_SPI_EEPROM_ADDR_OFF      : *data = addrreg; break;
-		case AXI_SPI_EEPROM_CMD_OFF       : *data = cmndreg; break;
+		case AXI_SPI_EEPROM_32BIT_MODE_OFF: memcpy(data, &modereg, sizeof(modereg)); break;
+		case AXI_SPI_EEPROM_ADDR_OFF      : memcpy(data, &addrreg, sizeof(addrreg)); break;
+		case AXI_SPI_EEPROM_CMD_OFF       : memcpy(data, &cmndreg, sizeof(cmndreg)); break;
 		case AXI_SPI_EEPROM_DATA_OFF      :
-			if ( nwrds > PGSIZE )
-				nwrds = PGSIZE;
-			memcpy(data, datareg, nwrds*4);
+			if ( nbytes > PGSIZE )
+				nbytes = PGSIZE;
+			memcpy(data, datareg, nbytes);
 			break;
 		default:
 			return -1;
@@ -99,7 +99,7 @@ int sz = ERASE_SIZE;
 
 static void prog()
 {
-int sz = PGSIZE*4;
+int sz = PGSIZE;
 int i;
 	if ( addrreg < PROMSIZE && writeEn ) {
 		if ( addrreg + sz > PROMSIZE )
@@ -113,7 +113,7 @@ int i;
 
 static void rdout()
 {
-int sz = PGSIZE*4;
+int sz = PGSIZE;
 int i;
 	if ( addrreg < PROMSIZE ) {
 		if ( addrreg + sz > PROMSIZE )
@@ -137,23 +137,24 @@ static int mcheck(bool is32, void (*proc)())
 	return -1;
 }
 
-static int writereg(uint32_t *data, uint32_t nwrds, uint32_t off, int debug)
+static int writereg(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 uint32_t msk = (modereg & MODE_32) ? 0xffffffff : 0x00ffffff;
 uint32_t ncmd;
 
-	if ( nwrds < 1 )
+	if ( nbytes < 4 )
 		return -1;
 
 	switch (off) {
-		case AXI_SPI_EEPROM_32BIT_MODE_OFF: modereg = *data;         break;
-		case AXI_SPI_EEPROM_ADDR_OFF      : addrreg = (*data & msk); break;
+		case AXI_SPI_EEPROM_32BIT_MODE_OFF: memcpy(&modereg, data, sizeof(modereg));                 break;
+		case AXI_SPI_EEPROM_ADDR_OFF      : memcpy(&addrreg, data, sizeof(addrreg)); addrreg &= msk; break;
 		case AXI_SPI_EEPROM_CMD_OFF       :
 #ifdef DEBUG
 			if ( debug )
 				printf("AXIPROM: set cmd: 0x%08"PRIx32"\n", *data);
 #endif
-			switch ( ncmd = *data ) {
+			memcpy( &ncmd, data, sizeof(ncmd));
+			switch ( ncmd ) {
 				case READ_MASK | FLAG_STATUS_REG | 0x1:
 					ncmd &= ~0xff;
 					ncmd |= FLAG_STATUS_RDY;
@@ -218,12 +219,12 @@ uint32_t ncmd;
 		break;
 
 		case AXI_SPI_EEPROM_DATA_OFF      :
-			if ( nwrds > PGSIZE )
-				nwrds = PGSIZE;
-			memcpy(datareg, data, nwrds*4);
+			if ( nbytes > PGSIZE )
+				nbytes = PGSIZE;
+			memcpy(datareg, data, nbytes);
 			break;
 		default:
-			fprintf(stderr,"AXIPROM: Unrecognized offset 0x%08"PRIx32"\n", off);
+			fprintf(stderr,"AXIPROM: Unrecognized offset 0x%08"PRIx64"\n", off);
 			return -1;
 	}
 	return 0;

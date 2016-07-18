@@ -4,10 +4,11 @@
 #include <string>
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
 #include <iostream>
 
 #undef PATH_DEBUG
-
 using boost::dynamic_pointer_cast;
 using boost::static_pointer_cast;
 using std::cout;
@@ -306,13 +307,15 @@ Path IPath::create(Hub h)
 // ASSUMPTIONS: from < to on entry
 static inline int getnum(const char *from, const char *to)
 {
-int rval;
-	for ( rval = 0; from < to; from++ ) {
-			if ( '0' > *from || '9' < *from )
-				throw InvalidPathError( from );
-			rval = 10*rval + (*from-'0');
-	}
-	return rval;
+unsigned long rval;
+char         *endp;
+
+	rval = strtoul(from, &endp, 0);
+
+	if ( endp != to || rval > (unsigned long)INT_MAX )
+		throw InvalidPathError( from );
+
+	return (int)rval;
 }
 
 Path PathImpl::findByName(const char *s) const
@@ -444,7 +447,7 @@ bool PathImpl::verifyAtTail(ConstDevImpl h)
 static void append2(PathImpl *h, PathImpl *t)
 {
 	if ( ! h->verifyAtTail( t->originAsDevImpl() ) )
-		throw InvalidPathError(Path(t));
+		throw InvalidPathError( Path(t)->toString() );
 
 	PathImpl::iterator it = t->begin();
 
@@ -484,7 +487,7 @@ void PathImpl::append(Path p)
 void PathImpl::append(Address a, int f, int t)
 {
 	if ( ! verifyAtTail( a->getOwnerAsDevImpl() ) ) {
-		throw InvalidPathError( Path( this ) );
+		throw InvalidPathError( Path( this )->toString() );
 	}
 	push_back( PathEntry(a, f, t, getNelms()) );
 }
@@ -516,7 +519,7 @@ void CompositePathIterator::append(Path p)
 	if ( p->empty() )
 		return;
 	if ( ! validConcatenation( p ) ) {
-		throw InvalidPathError(p);
+		throw InvalidPathError( p->toString() );
 	}
 	if ( ! atEnd() ) {
 		l_.push_back( *this );

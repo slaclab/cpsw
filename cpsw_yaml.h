@@ -19,7 +19,7 @@ struct convert<ByteOrder> {
 
     if( str.compare( "LE" ) == 0 )
       rhs = LE;
-    else if (str.compare( "SRP_UDP_V2" ) == 0 ) 
+    else if (str.compare( "BE" ) == 0 ) 
       rhs = BE;
     else
       rhs = UNKNOWN;
@@ -50,25 +50,6 @@ struct convert<IField::Cacheable> {
 };
 
 template<>
-struct convert<INoSsiDev::ProtocolVersion> {
-  static bool decode(const Node& node, INoSsiDev::ProtocolVersion& rhs) {
-    if (!node.IsScalar())
-      return false;
-
-    std::string str = node.Scalar();
-
-    if( str.compare( "SRP_UDP_V1" ) == 0 )
-      rhs = INoSsiDev::SRP_UDP_V1;
-    else if (str.compare( "SRP_UDP_V2" ) == 0 ) 
-      rhs = INoSsiDev::SRP_UDP_V2;
-    else
-      return false;
-
-    return true;
-  }
-};
-
-template<>
 struct convert<IIntField::Mode> {
   static bool decode(const Node& node, IIntField::Mode& rhs) {
     if (!node.IsScalar())
@@ -79,7 +60,13 @@ struct convert<IIntField::Mode> {
     if( str.compare( "RO" ) == 0 )
       rhs = IIntField::RO;
     else if (str.compare( "WO" ) == 0 ) 
+#if 0
+// without caching and bit-level access at the SRP protocol level we cannot
+// support write-only yet.
       rhs = IIntField::WO;
+#else
+      rhs = IIntField::RW;
+#endif
     else if (str.compare( "RW" ) == 0 ) 
       rhs = IIntField::RW;
     else
@@ -97,36 +84,74 @@ struct convert<IntField> {
 //    }
     IIntField::Builder bldr = IIntField::IBuilder::create();
 
+    std::string name = node["name"].as<std::string>();
+
+    try {
+      bldr->name( node["name"].as<std::string>().c_str() );
+      if( node["sizeBits"] ) {
+          bldr->sizeBits( node["sizeBits"].as<uint64_t>() );
+      }
+      if( node["isSigned"] ) {
+          bldr->isSigned( node["isSigned"].as<bool>() );
+      }
+      if( node["lsBit"] ) {
+          bldr->lsBit( node["lsBit"].as<int>() );
+      }
+      if( node["mode"] ) {
+          bldr->mode( node["mode"].as<IIntField::Mode>() );
+      }
+      if( node["wordSwap"] ) {
+          bldr->wordSwap( node["wordSwap"].as<unsigned>() );
+      }
+      if( node["enums"] ) {
+        const YAML::Node& enums = node["enums"];
+        MutableEnum e = IMutableEnum::create();
+        for( unsigned i = 0; i < enums.size(); i++ )
+        {
+          e->add( enums[i]["name"].as<std::string>().c_str(), enums[i]["value"].as<uint64_t>() );
+        }
+        bldr->setEnum( e );
+      }
+  
+      rhs = bldr->build();
+    } catch (...) {
+      printf("IntField: %s\n", name.c_str());
+    }
+
+    return true;
+  }
+};
+
+template<>
+struct convert<SequenceCommand> {
+  static bool decode(const Node& node, SequenceCommand& rhs) {
+//    if(!node.IsMap() || node.size() >= 3) {
+//      return false;
+//    }
+
     std::string name;
-    int val;
-    IIntField::Mode mode;
-    
+    std::vector<std::string> fields;
+    std::vector<uint64_t> values;
+
+
+    //name = "C_";
+    //name = name + node["name"].as<std::string>();
     name = node["name"].as<std::string>();
-    bldr->name( name.c_str() );
 
-    if( node["size"] ) {
-        val = node["size"].as<int>();
-        bldr->sizeBits( val );
+    if( node["sequence"] ) {
+        const YAML::Node& seq = node["sequence"];
+        for( unsigned i = 0; i < seq.size(); i++ )
+        {
+            fields.push_back( seq[i]["entry"].as<std::string>() );
+            values.push_back( seq[i]["value"].as<uint64_t>() );
+        }
     }
-    if( node["isSigned"] ) {
-        val = node["isSigned"].as<int>();
-        bldr->isSigned( (bool) val );
-    }
-    if( node["lsBit"] ) {
-        val = node["lsBit"].as<int>();
-        bldr->lsBit( val );
-    }
-    if( node["mode"] ) {
-        mode = node["mode"].as<IIntField::Mode>();
-        bldr->mode( mode );
-    }
-    if( node["wordSwap"] ) {
-        val = node["wordSwap"].as<int>();
-        bldr->wordSwap( val );
+    else {
+        return false;
     }
 
-    rhs = bldr->build();
 
+    rhs = ISequenceCommand::create( name.c_str(), fields, values );
     return true;
   }
 };
@@ -139,47 +164,208 @@ struct convert<MMIODev> {
     uint64_t size = node["size"].as<uint64_t>();
     rhs = IMMIODev::create( name.c_str(), size );
     Field f;
-
-    // This device contains registers
-    if ( node["registers"] )
-    {
-      const YAML::Node& registers = node["registers"];
-      for( unsigned i = 0; i < registers.size(); i++ )
+    try {
+      if ( node["MMIODev"] )
       {
-        uint64_t address = registers[i]["address"].as<uint64_t>();
-        int nelms   = registers[i]["nelms"] ? \
-                        registers[i]["nelms"].as<int>() : \
-                        1;
-        uint64_t stride =registers[i]["stride"] ? 
-                       registers[i]["stride"].as<uint64_t>() : 
-                       IMMIODev::STRIDE_AUTO;
-        ByteOrder byteOrder = registers[i]["ByteOrder"] ? registers[i]["ByteOrder"].as<ByteOrder>() : UNKNOWN;
-        std::string desc = registers[i]["description"].as<std::string>();
-        IField::Cacheable cacheable = registers[i]["cacheable"] ? \
-                       registers[i]["cacheable"].as<IField::Cacheable>() : \
-                       IField::UNKNOWN_CACHEABLE;
-        f = registers[i].as<IntField>();
-        f->setDescription( desc );
-        rhs->addAtAddress( f, address, nelms, stride, byteOrder );
+        const YAML::Node& mmio = node["MMIODev"];
+          for( unsigned i = 0; i < mmio.size(); i++ )
+          {
+            bool instantiate = mmio[i]["instantiate"] ? mmio[i]["instantiate"].as<bool>() : true;
+            if ( instantiate ) {
+              uint64_t offset = mmio[i]["offset"].as<uint64_t>();
+              unsigned nelms  = mmio[i]["nelms"] ? mmio[i]["nelms"].as<unsigned>() : 1;
+              uint64_t stride = mmio[i]["stride"] ? 
+                                mmio[i]["stride"].as<uint64_t>() : IMMIODev::STRIDE_AUTO;
+              ByteOrder byteOrder = mmio[i]["ByteOrder"] ? mmio[i]["ByteOrder"].as<ByteOrder>() : UNKNOWN;
+              f = mmio[i].as<MMIODev>();
+              rhs->addAtAddress( f, offset, nelms, stride, byteOrder );
+           }
+          }
       }
-    }
 
-    // This device contains other peripherals
-    if ( node["peripherals"] )
-    {
-      const YAML::Node& peripherals = node["peripherals"];
-      for( unsigned i = 0; i < peripherals.size(); i++ )
+      // This device contains iField
+      if ( node["IntField"] )
       {
-        int address = peripherals[i]["address"].as<int>();
-        int nelms   = peripherals[i]["nelms"] ? peripherals[i]["nelms"].as<int>() : 1;
-        f = peripherals[i].as<MMIODev>();
-        rhs->addAtAddress( f, address, nelms );
+        const YAML::Node& iField = node["IntField"];
+          for( unsigned i = 0; i < iField.size(); i++ )
+          {
+            bool instantiate = iField[i]["instantiate"] ? iField[i]["instantiate"].as<bool>() : true;
+            if ( instantiate ) {
+              uint64_t offset = iField[i]["offset"].as<uint64_t>();
+              unsigned nelms  = iField[i]["nelms"] ? iField[i]["nelms"].as<unsigned>() : 1;
+              uint64_t stride = iField[i]["stride"] ? iField[i]["stride"].as<uint64_t>() : IMMIODev::STRIDE_AUTO;
+              ByteOrder byteOrder = iField[i]["ByteOrder"] ? iField[i]["ByteOrder"].as<ByteOrder>() : UNKNOWN;
+              std::string desc = iField[i]["description"].as<std::string>();
+              IField::Cacheable cacheable = iField[i]["cacheable"] ? \
+                             iField[i]["cacheable"].as<IField::Cacheable>() : \
+                             IField::UNKNOWN_CACHEABLE;
+              f = iField[i].as<IntField>();
+              f->setDescription( desc );
+              rhs->addAtAddress( f, offset, nelms, stride, byteOrder );
+            }
+          }
+        }
+
+      if ( node["Commands"] )
+      {
+        const YAML::Node& commands = node["Commands"];
+          for( unsigned i = 0; i < commands.size(); i++ )
+          {
+            bool instantiate = commands[i]["instantiate"] ? commands[i]["instantiate"].as<bool>() : true;
+            if ( instantiate ) {
+              f = commands[i].as<SequenceCommand>();
+              rhs->addAtAddress( f, 0 );
+            } 
+         }
       }
+    } catch (...) {
+      printf("MMIODev: %s\n", name.c_str());
+      throw;
     }
+    // This device contains other mmio
     return true;
   }
 };
 
-}
+template<>
+struct convert<INetIODev::ProtocolVersion> {
+  static bool decode(const Node& node, INetIODev::ProtocolVersion& rhs) {
+    if (!node.IsScalar())
+      return false;
 
+    std::string str = node.Scalar();
+
+    if ( str.compare( "SRP_UDP_V1" ) == 0 )
+      rhs = INetIODev::SRP_UDP_V1;
+    else if (str.compare( "SRP_UDP_V2" ) == 0 ) 
+      rhs = INetIODev::SRP_UDP_V2;
+    else if (str.compare( "SRP_UDP_V3" ) == 0 ) 
+      rhs = INetIODev::SRP_UDP_V3;
+    else if (str.compare( "SRP_UDP_NONE" ) == 0 ) 
+      rhs = INetIODev::SRP_UDP_NONE;
+    else
+      return false;
+
+    return true;
+  }
+};
+
+template<>
+struct convert<INetIODev::PortBuilder> {
+  static bool decode(const Node& node, INetIODev::PortBuilder& rhs) {
+    rhs = INetIODev::createPortBuilder(); 
+    if( node["SRP"] )
+    {
+      const YAML::Node& SRP = node["SRP"];
+      if( SRP["ProtocolVersion"] )
+          rhs->setSRPVersion( SRP["ProtocolVersion"].as<INetIODev::ProtocolVersion>() ); 
+      if( SRP["TimeoutUS"] )
+          rhs->setSRPTimeoutUS( SRP["TimeoutUS"].as<uint64_t>() ); 
+      if( SRP["DynTimeout"] )
+          rhs->useSRPDynTimeout( SRP["DynTimeout"].as<bool>() ); 
+      if( SRP["RetryCount"] )
+          rhs->setSRPRetryCount( SRP["RetryCount"].as<unsigned>() ); 
+    }
+    if ( node["udp"] )
+    {
+      const YAML::Node& udp = node["udp"];
+      if ( udp["port"] )
+          rhs->setUdpPort( udp["port"].as<unsigned>() );
+      if ( udp["outQueueDepth"] )
+          rhs->setUdpOutQueueDepth( udp["outQueueDepth"].as<unsigned>() );
+      if ( udp["numRxThreads"]  )
+          rhs->setUdpNumRxThreads( udp["numRxThreads"].as<unsigned>() );
+      if( udp["pollSecs"] )
+          rhs->setUdpPollSecs( udp["pollSecs"].as<int>() ); 
+    }
+    if ( node["RSSI"] )
+      rhs->useRssi( node["RSSI"].as<bool>() );
+    if ( node["depack"] )
+    {
+      const YAML::Node& depack = node["depack"];
+      rhs->useDepack( true );
+      if ( depack["outQueueDepth"] )
+         rhs->setDepackOutQueueDepth( depack["outQueueDepth"].as<unsigned>() );
+      if ( depack["ldFrameWinSize"] )
+         rhs->setDepackLdFrameWinSize( depack["ldFrameWinSize"].as<unsigned>() );
+      if ( depack["ldFragWinSize"] )
+         rhs->setDepackLdFragWinSize( depack["ldFragWinSize"].as<unsigned>() );
+    }
+    if ( node["SRPMux"] )
+    {
+      const YAML::Node& SRPMux = node["SRPMux"];
+      rhs->useSRPMux( true );
+      if ( SRPMux["VirtualChannel"] )
+        rhs->setSRPMuxVirtualChannel( SRPMux["VirtualChannel"].as<unsigned>() );
+    }
+    if ( node["TDestMux"] )
+    {
+      const YAML::Node& TDestMux = node["TDestMux"];
+      rhs->useTDestMux( true );
+      if ( TDestMux["TDEST"] )
+        rhs->setTDestMuxTDEST( TDestMux["TDEST"].as<unsigned>() );
+      if ( TDestMux["StripHeader"] )
+        rhs->setTDestMuxStripHeader( TDestMux["StripHeader"].as<bool>() );
+      if ( TDestMux["outQueueDepth"] )
+        rhs->setTDestMuxOutQueueDepth( TDestMux["outQueueDepth"].as<unsigned>() );
+    }
+
+    return true;
+  }
+};
+
+template<>
+struct convert<NetIODev> {
+  static bool decode(const Node& node, NetIODev& rhs) {
+    std::string name = node["name"].as<std::string>();
+    std::string ipAddr = node["ipAddr"].as<std::string>();
+    rhs = INetIODev::create( name.c_str(), ipAddr.c_str() );
+    INetIODev::PortBuilder bldr; 
+    Field f;
+    try {
+      if ( node["MMIODev"] )
+      {
+        const YAML::Node& mmio = node["MMIODev"];
+          for( unsigned i = 0; i < mmio.size(); i++ )
+          {
+            bool instantiate = mmio[i]["instantiate"] ? mmio[i]["instantiate"].as<bool>() : true;
+            if ( instantiate ) {
+              f    = mmio[i].as<MMIODev>();
+              try {
+                bldr = mmio[i].as<INetIODev::PortBuilder>();
+                rhs->addAtAddress( f, bldr );
+              } catch (...) {
+                printf("MMIODev: PortBuilder\n");
+                throw;
+              }
+            }
+          }
+      }
+      if ( node["StreamDev"] )
+      {
+        const YAML::Node& stream = node["StreamDev"];
+          for( unsigned i = 0; i < stream.size(); i++ )
+          {
+            bool instantiate = stream[i]["instantiate"] ? stream[i]["instantiate"].as<bool>() : true;
+            if ( instantiate ) {
+              f    = IField::create( stream[i]["name"].as<std::string>().c_str() );
+              try {
+                bldr = stream[i].as<INetIODev::PortBuilder>();
+                rhs->addAtAddress( f, bldr );
+              } catch (...) {
+                printf("StreamDev: PortBuilder: %s\n", stream[i]["name"].as<std::string>().c_str() );
+                throw;
+              }
+            }
+          }
+      }
+    } catch (...) {
+      printf("NetIODev: %s\n", name.c_str());
+      throw;
+    }
+
+    return true;
+  }
+};
+}
 #endif

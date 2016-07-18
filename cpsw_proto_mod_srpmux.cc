@@ -1,84 +1,88 @@
 #include <cpsw_proto_mod_srpmux.h>
+#include <cpsw_error.h>
+#include <cpsw_thread.h>
 
+#define VC_OFF_V3 7 // v3 is little endian and has an extra word upfront
 #define VC_OFF_V2 3 // v2 is little endian
 #define VC_OFF_V1 4 // v1 is big endian
-
-
-SRPPort CProtoModSRPMux::createPort(int vc)
-{
-
-	if ( vc < VC_MIN || vc > VC_MAX )
-		throw InvalidArgError("Virtual channel number out of range");
-	if ( ! downstream_[vc].expired() ) {
-		throw ConfigurationError("Virtual channel already in use");
-	}
-
-	SRPPort port = CShObj::create<SRPPort>( getSelfAs<ProtoModSRPMux>(), vc );
-
-	downstream_[vc - VC_MIN] = port;
-
-	return port;
-}
 
 BufChain CSRPPort::processOutput(BufChain bc)
 {
 unsigned off = VC_OFF_V2;
 
-	if ( bc->getSize() > 1500/*mtu*/ - 14 /*eth*/ - 20 /*ip*/ - 8/*udp*/ - 40 /* safeguard */ ) {
-		throw InternalError("CSRPPort::processOutput -- expect only 1 buffer");
+	switch ( getProtoVersion() ) {
+		case INetIODev::SRP_UDP_V1: off = VC_OFF_V1; break;
+		case INetIODev::SRP_UDP_V2: off = VC_OFF_V2; break;
+		case INetIODev::SRP_UDP_V3: off = VC_OFF_V3; break;
+
+		default:
+		throw InternalError("CSRPPort::processOutput -- unknown protocol version");
 	}
 
-	if ( INoSsiDev::SRP_UDP_V1 == getProtoVersion() )
-		off = VC_OFF_V1;
-
-	Buf b = bc->getHead();
-	if ( b->getSize() <= off ) {
+	if ( bc->getSize() <= off ) {
 		throw InternalError("CSRPPort::processOutput -- message too small");
 	}
 
+	Buf b = bc->getHead();
+
+	while ( b->getSize() <= off ) {
+		off -= b->getSize();
+		b    = b->getNext();
+	}
+
 	// insert virtual channel number;
-	*(b->getPayload() + off) = getVC();
+	*(b->getPayload() + off) = getDest();
 	
 	return bc;
 }
 
-bool CProtoModSRPMux::pushDown(BufChain bc, const CTimeout *rel_timeout)
+INetIODev::ProtocolVersion CSRPPort::getProtoVersion()
 {
-int      vc;
+	return boost::static_pointer_cast<ProtoModSRPMux::element_type>( getProtoMod() )->getProtoVersion();
+}
+
+SRPPort CProtoModSRPMux::newPort(int dest)
+{
+	return CShObj::create<SRPPort>( getSelfAs<ProtoModSRPMux>(), dest );
+}
+
+int CProtoModSRPMux::extractDest(BufChain bc)
+{
+uint8_t  vc;
 unsigned off = VC_OFF_V2;
 
-	if ( bc->getSize() > 1500/*mtu*/ - 14 /*eth*/ - 20 /*ip*/ - 8/*udp*/ - 40 /* safeguard */ ) {
-		return false;
+	switch ( getProtoVersion() ) {
+		case INetIODev::SRP_UDP_V1: off = VC_OFF_V1; break;
+		case INetIODev::SRP_UDP_V2: off = VC_OFF_V2; break;
+		case INetIODev::SRP_UDP_V3: off = VC_OFF_V3; break;
+
+		default:
+		throw InternalError("CSRPPort::processOutput -- unknown protocol version");
 	}
 
-	if ( INoSsiDev::SRP_UDP_V1 == getProtoVersion() )
-		off = VC_OFF_V1;
-
-	Buf b = bc->getHead();
-	if ( b->getSize() <= off ) {
-		return false;
+	if ( bc->getSize() <= off ) {
+		return DEST_MIN-1;
 	}
 
-	vc = *(b->getPayload() + off);
+	bc->extract(&vc, off, sizeof(vc));
 
-	if ( vc > VC_MAX || vc < VC_MIN ) {
-		return false;
+	if ( vc > DEST_MAX ) {
+		return DEST_MIN - 1;
 	}
 
-	if ( downstream_[vc].expired() )
-		return false; // nothing attached to this port; drop
-
-	return SRPPort( downstream_[vc] )->pushDownstream(bc, rel_timeout);
+	return vc;
 }
 
 int CSRPPort::iMatch(ProtoPortMatchParams *cmp)
 {
 int rval = 0;
-	if ( cmp->srpVersion_.doMatch_ && static_cast<INoSsiDev::ProtocolVersion>(cmp->srpVersion_.val_) == getProtoVersion() ) {
+	cmp->srpVersion_.handledBy_ = getProtoMod();
+	if ( cmp->srpVersion_ == getProtoVersion() ) {
 		cmp->srpVersion_.matchedBy_ = getSelfAsProtoPort();
 		rval++;
 	}
-	if ( cmp->srpVC_.doMatch_ && static_cast<int>(cmp->srpVC_.val_) == getVC() ) {
+	cmp->srpVC_.handledBy_ = getProtoMod();
+	if ( cmp->srpVC_ == getDest() ) {
 		cmp->srpVC_.matchedBy_ = getSelfAsProtoPort();
 		rval++;
 	}

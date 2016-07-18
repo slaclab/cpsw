@@ -12,8 +12,34 @@
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-h] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent] [-n n_frames]\n", nm);
+	fprintf(stderr,"Usage: %s [-h] [-s <port>] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent] [-n n_frames] [-R]\n", nm);
 }
+
+extern int rssi_debug;
+
+static void sendMsg(Stream strm, uint8_t m)
+{
+CAxisFrameHeader hdr;
+uint8_t          buf[1500];
+uint32_t         crc;
+unsigned         i, endi;
+
+	hdr.insert(buf, sizeof(buf));
+	buf[ (endi = hdr.getSize()) ] = m;
+	crc = crc32_le_t4( -1, buf+endi, 100 ) ^ -1;
+	endi += 100;
+	for ( i=0; i<sizeof(crc); i++ ) {
+		buf[endi+i] = crc & 0xff;
+		crc >>= 8;
+	}
+	endi += i;
+	hdr.iniTail( buf + endi );
+	endi += hdr.getTailSize();
+	strm->write( buf, endi );
+}
+
+class StrmRxFailed {};
+
 int
 main(int argc, char **argv)
 {
@@ -27,17 +53,22 @@ int      fram, lfram;
 unsigned errs, goodf;
 unsigned attempts;
 unsigned*i_p;
-uint32_t crc;
 unsigned ngood = NGOOD;
+unsigned nUdpThreads = 4;
+unsigned useRssi     = 0;
+unsigned tDest       = -1;
+unsigned sport       = 8193;
 
 	unsigned iQDepth = 40;
 	unsigned oQDepth =  5;
 	unsigned ldFrameWinSize = 5;
 	unsigned ldFragWinSize  = 5;
-	unsigned timeoutUs = 10000000;
+	unsigned timeoutUs = 8000000;
 	unsigned err_percent = 0;
 
-	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:")) > 0 ) {
+	rssi_debug=0;
+
+	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:Rs:t:")) > 0 ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'q': i_p = &iQDepth;        break;
@@ -46,7 +77,10 @@ unsigned ngood = NGOOD;
 			case 'l': i_p = &ldFragWinSize;  break;
 			case 'T': i_p = &timeoutUs;      break;
 			case 'e': i_p = &err_percent;    break;
+			case 's': i_p = &sport;          break;
 			case 'n': i_p = &ngood;          break;
+			case 'R': useRssi = 1;           break;
+			case 't': i_p = &tDest;          break;
 			default:
 			case 'h': usage(argv[0]); return 1;
 		}
@@ -72,11 +106,24 @@ unsigned ngood = NGOOD;
 	}
 
 try {
-//NoSsiDev root = INoSsiDev::create("udp", "192.168.2.10");
-NoSsiDev root = INoSsiDev::create("udp", "127.0.0.1");
+//NetIODev root = INetIODev::create("udp", "192.168.2.10");
+NetIODev root = INetIODev::create("udp", "127.0.0.1");
 Field    data = IField::create("data");
 
-	root->addAtStream( data, 8193, timeoutUs, iQDepth, oQDepth, ldFrameWinSize, ldFragWinSize );
+INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
+
+	bldr->setSRPVersion          ( INetIODev::SRP_UDP_NONE );
+	bldr->setUdpPort             (                   sport );
+	bldr->setUdpOutQueueDepth    (                 iQDepth );
+	bldr->setUdpNumRxThreads     (             nUdpThreads );
+	bldr->setDepackOutQueueDepth (                 oQDepth );
+	bldr->setDepackLdFrameWinSize(          ldFrameWinSize );
+	bldr->setDepackLdFragWinSize (           ldFragWinSize );
+	bldr->useRssi                (                 useRssi );
+	if ( tDest < 256 )
+		bldr->setTDestMuxTDEST   (                   tDest );
+
+	root->addAtAddress( data, bldr );
 
 	Path   strmPath = root->findByName("data");
 
@@ -86,39 +133,46 @@ Field    data = IField::create("data");
 	errs     = 0;
 	goodf    = 0;
 	attempts = 0;
+
+	sendMsg( strm, 1 );
+	sendMsg( strm, 1 );
+
+	try {
+
 	while ( goodf < ngood ) {
 
 		if ( ++attempts > goodf + (goodf*err_percent)/100 + 10 ) {
 			fprintf(stderr,"Too many attempts\n");
-			goto bail;
+			throw StrmRxFailed();
 		}
 
 		if ( (attempts & 31) == 0 ) {
 			// once in a while try to write something...
 			// udpsrv will jam the CRC if they receive
 			// corrupted data;	
-			crc = crc32_le_t4( -1, buf, 100 ) ^ -1;
-			for ( i=0; i<sizeof(crc); i++ ) {
-				buf[100+i] = crc & 0xff;
-				crc >>= 8;
-			}
-			got = strm->write( buf, 100 + i );
+			sendMsg( strm, 1 );
 		}
 
-		got = strm->read( buf, sizeof(buf), CTimeout(8000000), 0 );
+		got = strm->read( buf, sizeof(buf), CTimeout(timeoutUs), 0 );
 
 #ifdef DEBUG
 		printf("Read %"PRIu64" octets\n", got);
 #endif
 		if ( 0 == got ) {
 			fprintf(stderr,"Read -- timeout. Is udpsrv running?\n");
-			goto bail;
+			throw StrmRxFailed();
 		}
 
 		// udpsrv computes CRC over payload only (excluding stream header + tail byte)
 		if ( CRC32_LE_POSTINVERT_GOOD ^ -1 ^ crc32_le_t4(-1, buf + 8, got - 9) ) {
 			fprintf(stderr,"Read -- frame with bad CRC (jammed write message?)\n");
-			goto bail;
+			throw StrmRxFailed();
+		}
+
+		// udpsrv computes CRC over payload only (excluding stream header + tail byte)
+		if ( CRC32_LE_POSTINVERT_GOOD ^ -1 ^ crc32_le_t4(-1, buf + 8, got - 9) ) {
+			fprintf(stderr,"Read -- frame with bad CRC (jammed write message?)\n");
+			throw StrmRxFailed();
 		}
 
 		if ( ! hdr.parse(buf, sizeof(buf)) ) {
@@ -150,6 +204,14 @@ Field    data = IField::create("data");
 		goodf++;
 		lfram = fram;
 	}
+
+	} catch ( StrmRxFailed ) {
+		sendMsg( strm, 0 );
+		sendMsg( strm, 0 );
+		goto bail;
+	}
+	sendMsg( strm, 0 );
+	sendMsg( strm, 0 );
 
 	strmPath->tail()->dump();
 

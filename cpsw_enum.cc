@@ -4,6 +4,9 @@
 #include <stdio.h>
 
 #include <stdarg.h>
+#include <string>
+
+using std::string;
 
 static DECLARE_OBJ_COUNTER( ocnt, "Enum", 2 ) // bool + yesno
 

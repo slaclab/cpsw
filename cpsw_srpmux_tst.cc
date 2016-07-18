@@ -1,4 +1,5 @@
 #include <cpsw_api_builder.h>
+#include <cpsw_mutex.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -9,11 +10,6 @@
 
 #include <udpsrv_regdefs.h>
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/locks.hpp>
-
-using boost::mutex;
-using boost::lock_guard;
 
 class TestFailed {};
 
@@ -23,7 +19,7 @@ private:
 	unsigned nelms_;
 public:
 
-static mutex mtx_;
+static CMtx mtx_;
 
 	typedef uint32_t   ELT;
 #define xFMT        "%"PRIx32
@@ -53,7 +49,7 @@ static mutex mtx_;
 	void fill()
 	{
 	unsigned i,j;
-		lock_guard<mutex> GUARD( mtx_ );
+		CMtx::lg GUARD( &mtx_ );
 		for ( i=0; i<sizeof(mem_)/sizeof(mem_[0]); i++ ) {
 			for (j=0; j<getNelms(); j++ )
 				mem_[i][j]=mrand48();
@@ -68,7 +64,7 @@ static mutex mtx_;
 	}
 };
 
-mutex M::mtx_;
+CMtx M::mtx_;
 
 static void* test_thread(void* arg)
 {
@@ -100,7 +96,7 @@ void *rval = (void*)-1;
 			}
 			if ( memcmp( myData.mem_[loops&1], myData.mem_[2], myData.getNelms() * sizeof(M::ELT) ) ) {
 
-				lock_guard<mutex> GUARD(M::mtx_);
+				CMtx::lg GUARD( &M::mtx_ );
 
 				fprintf(stderr,"Memory comparison mismatch (%s @loop %d)\n", nm, loops);
 				for ( unsigned i=0; i<myData.getNelms(); i++ ) {
@@ -136,7 +132,7 @@ bail:
 int
 main(int argc, char **argv)
 {
-INoSsiDev::ProtocolVersion vers = INoSsiDev::SRP_UDP_V2;
+INetIODev::ProtocolVersion vers = INetIODev::SRP_UDP_V2;
 int port = 0;
 int vc1  = 81;
 int vc2  = 17;
@@ -148,18 +144,21 @@ int  ivers = 2;
 int *i_p;
 int  opt;
 int  rval  = 1;
+int  useRssi = 0;
+int  tDest   = -1;
 
-	while ( (opt = getopt(argc, argv, "hV:p:")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "hV:p:r")) > 0 ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'V': i_p = &ivers; break;
 			case 'p': i_p = &port;  break;
+			case 'r': useRssi = 1;  break;
 			case 'h':
 				rval = 0;
 				/* fall thru */
 			default:
 				fprintf(stderr,"Unknown option '-%c'\n", opt);
-				fprintf(stderr,"usage: %s [-V <proto_vers>] [-p <dest_port>] [-h]\n", argv[0]);
+				fprintf(stderr,"usage: %s [-V <proto_vers>] [-p <dest_port>] [-r] [-h]\n", argv[0]);
 				return rval;
 		}
 		if ( i_p && 1 != sscanf(optarg,"%i",i_p) ) {
@@ -169,24 +168,36 @@ int  rval  = 1;
 	}
 
 	switch ( ivers ) {
-		case 2: vers = INoSsiDev::SRP_UDP_V2; break;
-		case 1: vers = INoSsiDev::SRP_UDP_V1; break;
+		case 2: vers = INetIODev::SRP_UDP_V2; break;
+		case 1: vers = INetIODev::SRP_UDP_V1; break;
 		default:
 			fprintf(stderr,"Invalid protocol version '%i'\n", ivers);
 			return 1;
 	}
 
 	if ( port <= 0 ) {
-		port = INoSsiDev::SRP_UDP_V2 == vers ? 8192 : 8191;
+		port = INetIODev::SRP_UDP_V2 == vers ? 8192 : 8191;
 	}
 
 	try {
-		NoSsiDev comm = INoSsiDev::create("comm", 0);
+		NetIODev comm = INetIODev::create("comm", 0);
 		MMIODev  mmio_vc_1 = IMMIODev::create("mmio_vc_1",0x10000,BE);
 		MMIODev  mmio_vc_2 = IMMIODev::create("mmio_vc_2",0x10000,BE);
 
-		comm->addAtAddress( mmio_vc_1, vers, port, 100000, 5, vc1 );
-		comm->addAtAddress( mmio_vc_2, vers, port, 100000, 5, vc2 );
+		INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
+
+		bldr->setSRPVersion       (    vers );
+		bldr->setUdpPort          (    port );
+		bldr->useRssi             ( useRssi );
+		if ( tDest >= 0 )
+			bldr->setTDestMuxTDEST(   tDest );
+
+		bldr->setSRPMuxVirtualChannel( vc1 );
+
+		comm->addAtAddress( mmio_vc_1, bldr );
+
+		bldr->setSRPMuxVirtualChannel( vc2 );
+		comm->addAtAddress( mmio_vc_2, bldr );
 
 		IDev::getRootDev()->addAtAddress( comm );
 

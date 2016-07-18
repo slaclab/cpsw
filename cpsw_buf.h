@@ -1,17 +1,21 @@
 #ifndef CPSW_BUF_H
 #define CPSW_BUF_H
 
-#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <stdint.h>
 #include <time.h>
+
+#include <cpsw_event.h>
 
 using boost::shared_ptr;
 
 class IBuf;
 class IBufChain;
+class IBufQueue;
 
 typedef shared_ptr<IBuf> Buf;
 typedef shared_ptr<IBufChain> BufChain;
+typedef shared_ptr<IBufQueue> BufQueue;
 
 // NOTE: Buffer chains are NOT THREAD SAFE. It is the user's responsibility
 //       to properly synchronize.
@@ -48,15 +52,26 @@ public:
 	virtual uint8_t *getPayload()         = 0;
 	// used portion (payload_end - payload_start + 1)
 	virtual size_t   getSize()            = 0;
-	// available portion (capacity - payload_end)
+	// available portion at tail (capacity - payload_end)
 	virtual size_t   getAvail()           = 0;
+	// available portion at head (payload_start - buffer_start)
+	virtual size_t   getHeadroom()        = 0;
+	//***************************************************************
+	// I.e., getHeadroom() + getSize() + getAvail() == getCapacity()
+	//***************************************************************
 
 	virtual void     setSize(size_t)      = 0;
-	// setting payload ptr to 0 resets to start
+	// setting payload ptr to 0 sets to start
 	// of buffer
 	virtual void     setPayload(uint8_t*) = 0;
+	// move payload pointer (adjusting the size)
+	// Returns 'true' on success and 'false' if
+	// there would not be space (payload + size
+	// left unmodified)
+	virtual bool     adjPayload(ssize_t)  = 0;
 	// reset payload ptr to start and size to capacity
 	virtual void     reinit()             = 0;
+
 
 	virtual Buf      getNext()            = 0;
 	virtual Buf      getPrev()            = 0;
@@ -77,7 +92,14 @@ public:
 
 	virtual         ~IBuf() {}
 
-	static Buf       getBuf(size_t capa = 1500 - 14 - 20 - 8);
+	const static size_t CAPA_ETH_BIG = 1500 - 20 - 8;
+	const static size_t CAPA_ETH_HDR = 128;
+	const static size_t CAPA_MAX     = 65535; // only 64k afaik - but this is enough
+
+	// 'clip' == false throws if  request for 'capa' cannot
+	// be satisfied. 'clip' == true clips to max. available
+	// (caller can check via 'getCapacity()').
+	static Buf       getBuf(size_t capa, bool clip = false);
 
 	// if no buffers are available on the free-list then
 	// they are allocated from the heap. After use they go
@@ -89,7 +111,7 @@ public:
 
 
 class IBufChain {
-protected:
+public:
 	// The 'ownership' members are needed because lockfree::queue
 	// cannot hold smart pointers. Therefore, before pushing a
 	// smart pointer onto a lockfree queue we 'transfer' the
@@ -97,12 +119,8 @@ protected:
 	// pointer inside the lockfree::queue.
 	// When taking elements off the queue the smart pointer
 	// is transferred back out of this object.
-	static  void     take_ownership( BufChain *p_owner );
+	static  void     take_ownership( BufChain p_owner );
 	virtual BufChain yield_ownership() = 0;
-
-	friend class CBufQueue;
-
-public:
 
 	virtual Buf getHead()       = 0;
 	virtual Buf getTail()       = 0;
@@ -110,8 +128,8 @@ public:
 	virtual unsigned getLen()   = 0;  // # of buffers in chain
 	virtual size_t   getSize()  = 0; // in bytes
 
-	virtual Buf createAtHead()  = 0;
-	virtual Buf createAtTail()  = 0;
+	virtual Buf createAtHead(size_t size, bool clip = false)  = 0;
+	virtual Buf createAtTail(size_t size, bool clip = false)  = 0;
 
 	virtual void addAtHead(Buf b) = 0;
 	virtual void addAtTail(Buf b) = 0;
@@ -128,6 +146,32 @@ public:
 	virtual ~IBufChain(){}
 
 	static BufChain create();
+};
+
+class IBufQueue {
+public:
+	virtual BufChain pop(const CTimeout *abs_timeout)                   = 0;
+	virtual BufChain tryPop()                                           = 0;
+
+	virtual bool     push(BufChain b, const CTimeout *abs_timeout)      = 0;
+	virtual bool     tryPush(BufChain b)                                = 0;
+
+	virtual CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout)      = 0;
+	virtual CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout)     = 0;
+
+	virtual IEventSource *getReadEventSource()                          = 0;
+	virtual IEventSource *getWriteEventSource()                         = 0;
+
+	virtual bool isFull()                                               = 0;
+	virtual bool isEmpty()                                              = 0;
+
+	virtual void shutdown()                                             = 0;
+	virtual void startup()                                              = 0;
+
+	virtual ~IBufQueue() {}
+
+
+	static BufQueue create(unsigned size);
 };
 
 #endif

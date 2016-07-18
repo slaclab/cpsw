@@ -2,9 +2,12 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
 
 #include <cpsw_api_builder.h>
 #include <cpsw_obj_cnt.h>
+
+using std::string;
 
 class TestFailed {
 public:

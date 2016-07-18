@@ -1,6 +1,5 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_mmio_dev.h>
-#include <cpsw_command.h>
 #include <boost/atomic.hpp>
 
 #include <string.h>
@@ -12,10 +11,6 @@
 #include <vector>
 
 #include <pthread.h>
-
-#include <yaml-cpp/yaml.h>
-
-#include "cpsw_yaml.h"
 
 #define VLEN 123
 #define ADCL 10
@@ -46,55 +41,15 @@ public:
 	CAXIVersImpl(Key &k, const char *name);
 };
 
-class CMasterResetImpl;
-typedef shared_ptr<CMasterResetImpl> MasterResetImpl;
-
-class CMasterResetImpl: public CCommandImpl {
-public:
-        CMasterResetImpl(Key &k, const char* name):
-        CCommandImpl(k, name) {}
-
-        virtual void executeCommand(Path pParent) const 
-        {
-//		AxiVersion axiv = IAxiVersion::create( IPath::create( pParent ) );
-//		axiv->MasterReset();
-        }
-};
-
-class CCounterResetImpl;
-typedef shared_ptr<CCounterResetImpl> CounterResetImpl;
-
-class CCounterResetImpl: public CCommandImpl {
-public:
-        CCounterResetImpl(Key &k, const char* name):
-        CCommandImpl(k, name) {}
-
-        virtual void executeCommand(Path pParent) const 
-        {
-		printf("Counter reset\n");
-		uint64_t u64 = 0;
-		ScalVal c = IScalVal::create( pParent->findByName( "counter" ) );
-		c->setVal( &u64, 1 );
-//		AxiVersion axiv = IAxiVersion::create( IPath::create( pParent ) ) );
-//		axiv->CounterReset();
-        }
-};
-
-
 AXIVers IAXIVers::create(const char *name)
 {
 AXIVersImpl v = CShObj::create<AXIVersImpl>(name);
 Field f;
-	f = CShObj::create<MasterResetImpl>("Command");
-	v->CDevImpl::addAtAddress( f , 1 );
-	f = CShObj::create<CounterResetImpl>("CounterReset");
-	v->CDevImpl::addAtAddress( f , 1 );
-
 	f = IIntField::create("dnaValue", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f , 0x08 );
 	f = IIntField::create("fdSerial", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f, 0x10 );
-	f = IIntField::create("counter",  32, false, 0, IIntField::RW);
+	f = IIntField::create("counter",  32, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f, 0x24 );
 	f = IIntField::create("bldStamp",  8, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f, 0x800, VLEN  );
@@ -139,7 +94,7 @@ Field f;
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
 	f = IIntField::create("oneShot",      1, false, 4);
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
-	f = IIntField::create("packetLength",32, false, 4);
+	f = IIntField::create("packetLength",32, false, 0);
 	v->CMMIODevImpl::addAtAddress( f , 0x04 );
 	f = IIntField::create("tDest",        8, false, 0);
 	v->CMMIODevImpl::addAtAddress( f , 0x08 );
@@ -175,10 +130,21 @@ class ThreadArg {
 private:
 	atomic<int> firstFrame_;
 	atomic<int> nFrames_;
+	uint64_t    size_;
+	int         shots_;
+	bool        cont_;
+	ScalVal     trig_;
+	Dev         root_;
 public:
-	ThreadArg()
+	CTimeout trigTime;
+
+	ThreadArg(uint64_t size, int shots, ScalVal trig, Dev root)
 	:firstFrame_(-1),
-	 nFrames_(0)
+	 nFrames_(0),
+	 size_(size),
+	 shots_(shots),
+	 trig_(trig),
+	 root_(root)
 	{
 	}
 
@@ -198,43 +164,200 @@ public:
 	{
 		return nFrames_.load( memory_order_acquire );
 	}
+
+	uint64_t getSize()
+	{
+		return size_;
+	}
+
+	int getShots()
+	{
+		return shots_;
+	}
+
+	bool isCont()
+	{
+		return !!trig_;
+	}
+
+	void trigOff()
+	{
+		trig_->setVal( (uint64_t)0 );
+	}
+
+	Dev getRoot()
+	{
+		return root_;
+	}
 };
 
 
 static void *rxThread(void *arg)
 {
-Stream strm = IStream::create( IPath::create("/fpga/dataSource") );
-
 uint8_t  buf[16];
 int64_t  got;
 ThreadArg *stats = static_cast<ThreadArg*>(arg);
+CTimeout now;
+Stream strm = IStream::create( stats->getRoot()->findByName("dataSource") );
 
-	while ( 1 ) {
+
+	while ( stats->nFrames() < stats->getShots() ) {
 		got = strm->read( buf, sizeof(buf), CTimeout(20000000) );
 		if ( ! got ) {
 			fprintf(stderr,"RX thread timed out\n");
 			exit (1);
 		}
+		clock_gettime( CLOCK_MONOTONIC, &now.tv_ );
 		unsigned frameNo;
 		if ( got > 2 ) {
 			frameNo = (buf[1]<<4) | (buf[0] >> 4);
 			stats->gotFrame( frameNo );
-			printf("Received frame # %d\n", frameNo);
+			if ( ! stats->isCont() ) {
+				now -= stats->trigTime;
+				printf("Received frame # %d Data rate: %g MB/s\n", frameNo, (double)stats->getSize() / (double)now.getUs()  );
+			}
 		} else {
 			fprintf(stderr,"Received frame too small!\n");
+		}
+	}
+	if ( stats->isCont() ) {
+		now -= stats->trigTime;
+		double sz = stats->getSize();
+		printf("Received %d frames (size %gMB) Data rate: %g MB/s\n", stats->getShots(), sz/1000000.,  sz * stats->getShots() / (double)now.getUs()  );
+		uint64_t to = (uint64_t)stats->getSize() / 10 /*MB/s*/ ;
+		if ( to < 10000 )
+			to = 10000;
+		while ( strm->read(buf, sizeof(buf), CTimeout(to) ) > 0 ) {
+			printf("Dumped frame # %d\n", (buf[1]<<4) | (buf[0] << 4));
 		}
 	}
 
 	return 0;
 }
 
+#if 0
+static void testNUL(NetIODev root)
+{
+INetIODev::PortBuilder bldr( root->createPortBuilder() );
+	bldr->setSRPVersion( INetIODev::SRP_UDP_NONE );
+	bldr->setUdpPort( 8193 );
+	bldr->setTDestMuxTDEST( 3 );
+	bldr->setTDestMuxStripHeader( true );
+
+	root->addAtAddress( IField::create("EP"), bldr );
+
+Stream strm( IStream::create( root->findByName("EP") ) );
+
+uint8_t obuf[20];
+uint8_t ibuf[20];
+int64_t got;
+
+	memset(obuf,0,sizeof(obuf));
+	obuf[0] = 3;
+	obuf[1] = 3;
+
+	strm->write( obuf, sizeof(obuf) );
+	got = strm->read( ibuf, sizeof(ibuf) );
+	printf("Got %"PRId64" bytes in reply to SRPV3 NUL\n", got);
+
+	for ( int i=0; i<got; i++ )
+		printf("0x%02x ", ibuf[i]);
+	printf("\n");
+
+}
+#endif
+
+static void testBram(ScalVal bram)
+{
+unsigned nelms = bram->getNelms();
+uint8_t oval[nelms];
+uint8_t ival[nelms];
+uint64_t offs[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+uint64_t lens[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+unsigned o,l,i;
+
+	memset(oval, 0xaa, sizeof(oval[0])*nelms );
+	memset(ival, 0x00, sizeof(ival[0])*nelms );
+	bram->setVal( oval, nelms );
+	bram->getVal( ival, nelms );
+	if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
+		fprintf(stderr,"Readback of BRAM (0xaa) FAILED\n");
+		throw TestFailed();
+	}
+
+	for ( i=0; i<nelms; i++ ) {
+		oval[i] = (uint8_t)(rand()>>16);
+	}
+	memset(ival, 0x00, sizeof(ival[0])*nelms );
+	bram->setVal( oval, nelms );
+	bram->getVal( ival, nelms );
+	if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
+		fprintf(stderr,"Readback of BRAM (random-data) FAILED\n");
+		throw TestFailed();
+	}
+
+
+
+	for ( o=0; o<sizeof(offs)/sizeof(offs[0]); o++ ) {
+		for ( l=0; l<sizeof(lens)/sizeof(lens[0]); l++ ) {
+			IndexRange r(offs[o], offs[o]+lens[l] - 1);
+			// fill target 
+			bram->setVal( 0xaa );
+			// fill 'expected' array
+			memset(oval, 0xaa, sizeof(oval[0])*nelms );
+			// zero readback array
+			memset(ival, 0x00, sizeof(ival[0])*nelms );
+
+			// merge random data into 'expected' at offset/len
+			for (i=0; i<lens[l]; i++ )
+				oval[ offs[o] + i ] = (uint8_t)(rand()>>16); 
+
+			// merge on target
+			bram->setVal(oval + offs[o], lens[l], &r);
+
+			// read everything back
+			bram->getVal(ival, nelms);
+
+			// compare
+			if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
+				fprintf(stderr,"BRAM write-test: Readback (offset %"PRId64", len %"PRId64") FAILED\n", offs[o], lens[l]);
+				throw TestFailed();
+#ifdef DEBUG
+			} else {
+				printf("BRAM write-test (offset %"PRId64", len %"PRId64") PASSED\n", offs[o], lens[l]);
+#endif
+			}
+
+			// clear
+			memset(ival, 0xaa, nelms);
+
+			// readback subset only
+			bram->getVal(ival+offs[o], lens[l], &r);
+
+			// compare
+			if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
+				fprintf(stderr,"BRAM read-test: (offset %"PRId64", len %"PRId64") FAILED\n", offs[o], lens[l]);
+				throw TestFailed();
+#ifdef DEBUG
+			} else {
+				printf("BRAM read-test (offset %"PRId64", len %"PRId64") PASSED\n", offs[o], lens[l]);
+#endif
+			}
+
+		}
+	}
+
+	printf("BRAM Test PASSED\n");
+}
+
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-a <ip_addr>] [-mh] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-f <file>]\n", nm);
+	fprintf(stderr,"Usage: %s [-a <ip_addr>[:<port>[:<stream_port>]]] [-mhRrs] [-V <version>] [-S <length>] [-n <shots>] [-p <period>] [-d tdest] [-D tdest] [-M tdest] [-T timeout]\n", nm);
 	fprintf(stderr,"       -a <ip_addr>:  destination IP\n");
-	fprintf(stderr,"       -V <version>:  SRP version (1 or 2)\n");
+	fprintf(stderr,"       -V <version>:  SRP version (1..3)\n");
 	fprintf(stderr,"       -m          :  use 'fake' memory image instead\n");
 	fprintf(stderr,"                      of real device and UDP\n");
+	fprintf(stderr,"       -s          :  test system monitor ADCs\n");
 	fprintf(stderr,"       -S <length> :  test streaming interface\n");
 	fprintf(stderr,"                      with frames of 'length'.\n");
 	fprintf(stderr,"                      'length' must be > 0 to enable streaming\n");
@@ -242,35 +365,65 @@ static void usage(const char *nm)
 	fprintf(stderr,"                      (defaults to 10).\n");
 	fprintf(stderr,"       -p <period> :  trigger a fragment every <period> ms\n");
 	fprintf(stderr,"                      (defaults to 1000).\n");
-	fprintf(stderr,"       -f <file>   :  yaml file describing axiv object\n");
-	fprintf(stderr,"       -h          :  print this message\n");
+	fprintf(stderr,"       -R          :  use RSSI (SRP)\n");
+	fprintf(stderr,"       -r          :  use RSSI (stream)\n");
+	fprintf(stderr,"       -D <tdest>  :  use tdest demuxer (SRP)\n");
+	fprintf(stderr,"       -d <tdest>  :  use tdest demuxer (stream)\n");
+	fprintf(stderr,"       -M <tdest>  :  use tdest demuxer (AXI4 memory)\n");
+	fprintf(stderr,"       -T <us>     :  set SRP timeout\n");
+	fprintf(stderr,"       -h          :  print this message\n\n\n");
+	fprintf(stderr,"Base addresses of AxiVersion, Sysmon and PRBS\n");
+	fprintf(stderr,"may be changed by defining VERS_BASE, SYSM_BASE\n");
+	fprintf(stderr,"and PRBS_BASE env-vars, respectively\n");
 }
 
 int
 main(int argc, char **argv)
 {
 int         rval    = 0;
-const char *ip_addr = "192.168.2.20";
+const char *ip_addr = "192.168.2.10";
 bool        use_mem = false;
 int        *i_p;
 int         vers    = 2;
+int         srpTo   = 0;
 int         length  = 0;
 int         shots   = 10;
 int         period  = 1000; // ms
-YAML::Node doc;
+unsigned    port    = 8192;
+unsigned    sport   = 8193;
+char        cbuf[100];
+const char *col1    = NULL;
+bool        srpRssi = false;
+bool        strRssi = false;
+int         tDestSRP  = -1;
+int         tDestSTRM = -1;
+int         tDestMEM  = -1;
+bool        sysmon    = false;
+uint32_t    vers_base = 0x00000000;
+uint32_t    sysm_base = 0x00010000;
+uint32_t    prbs_base = 0x00030000;
+unsigned    byteResHack = 0x00000;
+const char *str;
 
-
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:f:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:sT:M:b")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
-			case 'a': ip_addr = optarg;  break;
-			case 'm': use_mem = true;    break;
-			case 'V': i_p     = &vers;   break;
-			case 'S': i_p     = &length; break;
-			case 'n': i_p     = &shots;  break;
-			case 'p': i_p     = &period; break;
-			case 'f': doc = YAML::LoadFile(optarg); break;
-			case 'h': usage(argv[0]); return 0;
+			case 'a': ip_addr = optarg;     break;
+			case 'm': use_mem = true;       break;
+			case 's': sysmon  = true;       break;
+			case 'V': i_p     = &vers;      break;
+			case 'S': i_p     = &length;    break;
+			case 'n': i_p     = &shots;     break;
+			case 'p': i_p     = &period;    break;
+			case 'h': usage(argv[0]);      
+				return 0;
+			case 'r': strRssi = true;       break;
+			case 'R': srpRssi = true;       break;
+			case 'd': i_p     = &tDestSTRM; break;
+			case 'D': i_p     = &tDestSRP;  break;
+			case 'M': i_p     = &tDestMEM;  break;
+			case 'T': i_p     = &srpTo;     break;
+			case 'b': byteResHack = 0x10000;break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -282,33 +435,65 @@ YAML::Node doc;
 		}
 	}
 
-	if ( vers != 1 && vers != 2 ) {
-		fprintf(stderr,"Invalid protocol version '%i' -- must be 1 or 2\n", vers);
+	if ( (str = getenv("VERS_BASE")) && 1 != sscanf(str,"%"SCNi32, &vers_base) ) {
+		fprintf(stderr,"Unable to scan VERS_BASE envvar\n");
 		throw TestFailed();
+	}
+	if ( (str = getenv("SYSM_BASE")) && 1 != sscanf(str,"%"SCNi32, &sysm_base) ) {
+		fprintf(stderr,"Unable to scan SYSM_BASE envvar\n");
+		throw TestFailed();
+	}
+	if ( (str = getenv("PRBS_BASE")) && 1 != sscanf(str,"%"SCNi32, &prbs_base) ) {
+		fprintf(stderr,"Unable to scan PRBS_BASE envvar\n");
+		throw TestFailed();
+	}
+	
+
+	if ( vers != 1 && vers != 2 && vers != 3 ) {
+		fprintf(stderr,"Invalid protocol version '%i' -- must be 1..3\n", vers);
+		throw TestFailed();
+	}
+
+#if 0
+	if ( length > 0 && (port == sport) ) {
+		if ( tDestSRP < 0 || tDestSTRM < 0 ) {
+			fprintf(stderr,"When running STREAM and SRP on the same port both must use (different) TDEST (-d/-D)\n");
+			throw TestFailed();
+		}
+	}
+#endif
+
+	if ( (col1 = strchr(ip_addr,':')) ) {
+		unsigned len = col1 - ip_addr;
+		if ( len >= sizeof(cbuf) ) {
+			fprintf(stderr,"IP-address string too long\n");
+			throw TestFailed();
+		}
+		strncpy(cbuf, ip_addr, len);
+		cbuf[len]=0;
+		if ( strchr(col1+1,':') ) {
+			if ( 2 != sscanf(col1+1,"%d:%d", &port, &sport) ) {
+				fprintf(stderr,"Unable to scan ip-address (+ 2 ports)\n");
+				throw TestFailed();
+			}
+		} else {
+			if ( 1 != sscanf(col1+1,"%d", &port) ) {
+				fprintf(stderr,"Unable to scan ip-address (+ 1 port)\n");
+				throw TestFailed();
+			}
+		}
+		ip_addr = cbuf;
 	}
 
 try {
 
-NoSsiDev  root = INoSsiDev::create("fpga", ip_addr);
-MemDev    rmem = IMemDev::create  ("rmem", 0x100000);
-MMIODev mmio; /* can be generated if file name is passed in */
-
-if( !doc.IsNull() ) {
-	mmio = doc.as<MMIODev>();
-}
-else {
-	mmio = IMMIODev::create ("mmio",0x100000);
-
-	AXIVers   axiv = IAXIVers::create ("vers");
-	MMIODev   sysm = IMMIODev::create ("sysm",0x1000, LE);
-	PRBS      prbs = IPRBS::create    ("prbs");
-
-	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
-
-	mmio->addAtAddress( axiv, 0x00000 );
-	mmio->addAtAddress( sysm, 0x10000 );
-	mmio->addAtAddress( prbs, 0x30000 );
-}
+NetIODev  root = INetIODev::create("fpga", ip_addr);
+MMIODev   mmio = IMMIODev::create ("mmio",0x10000000);
+AXIVers   axiv = IAXIVers::create ("vers");
+MMIODev   sysm = IMMIODev::create ("sysm",    0x1000, LE);
+MMIODev   axi4 = IMMIODev::create ("axi4",   0x10000, LE);
+MemDev    rmem = IMemDev::create  ("rmem",  0x100000);
+PRBS      prbs = IPRBS::create    ("prbs");
 
 uint8_t str[VLEN];
 int16_t adcv[ADCL];
@@ -325,21 +510,70 @@ uint16_t u16;
 	if ( use_mem )
 		length = 0;
 
-	root->addAtAddress( mmio, 1 == vers ? INoSsiDev::SRP_UDP_V1 : INoSsiDev::SRP_UDP_V2, 8192, 500 /*us*/ );
 
-	if ( length > 0 )
-		root->addAtStream( IField::create("dataSource"), 8193, 10000000 /* us */ );
+	sysm->addAtAddress( IIntField::create("adcs", 16, true, 0), 0x400, ADCL, 4 );
 
-	IDev::getRootDev()->addAtAddress( root );
+	//mmio->addAtAddress( axiv, vers_base );
+	mmio->addAtAddress( axiv, 0x09010800 );
+	mmio->addAtAddress( sysm, sysm_base );
+	mmio->addAtAddress( prbs, prbs_base );
+
+	{
+	INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
+	INetIODev::ProtocolVersion protoVers;
+		switch ( vers ) {
+			default: throw TestFailed();
+			case 1: protoVers = INetIODev::SRP_UDP_V1; break;
+			case 2: protoVers = INetIODev::SRP_UDP_V2; break;
+			case 3: protoVers = INetIODev::SRP_UDP_V3; break;
+		}
+		bldr->setSRPVersion              (             protoVers );
+		bldr->setUdpPort                 (                  port );
+		if ( srpTo > 0 ) {
+			u64 = srpTo;
+		} else {
+			u64 = length;
+			u64/= 10; /* MB/s */
+			if ( u64 < 90000 )
+				u64 = 90000;
+		}
+		bldr->setSRPTimeoutUS            (                   u64 );
+		bldr->setSRPRetryCount           (                     5 );
+		bldr->setSRPMuxVirtualChannel    (                     0 );
+		bldr->useRssi                    (               srpRssi );
+		if ( tDestSRP >= 0 ) {
+			bldr->setTDestMuxTDEST       (              tDestSRP );
+		}
+
+		root->addAtAddress( mmio, bldr );
+
+		if ( vers >= 3 && tDestMEM >= 0 ) {
+			bldr->setTDestMuxTDEST       (              tDestMEM );
+			bldr->setSRPRetryCount       (       byteResHack | 4 ); // enable byte-resolution access
+			axi4->addAtAddress( IIntField::create("bram", 8, false, 0), 0x00000000, 0x10000 );
+			root->addAtAddress( axi4, bldr );
+		}
+
+	}
+
+	if ( length > 0 ) {
+		INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
+		bldr->setSRPVersion          ( INetIODev::SRP_UDP_NONE );
+		bldr->setUdpPort             ( sport                   );
+		bldr->setUdpOutQueueDepth    (                      32 );
+		bldr->setUdpNumRxThreads     (                       2 );
+		bldr->setDepackOutQueueDepth (                      16 );
+		bldr->setDepackLdFrameWinSize(                       4 );
+		bldr->setDepackLdFragWinSize (                       4 );
+		bldr->useRssi                (                 strRssi );
+		if ( tDestSTRM >= 0 )
+			bldr->setTDestMuxTDEST   (               tDestSTRM );
+		root->addAtAddress( IField::create("dataSource"), bldr );
+	}
 
 	// can use raw memory for testing instead of UDP
 	Path pre = use_mem ? IPath::create( rmem ) : IPath::create( root );
-	/*
-        *Command cmd = ICommand::create( pre->findByName("mmio/vers/Command") );
-        *cmd->execute();
-        *Command counterRst = ICommand::create( pre->findByName("mmio/vers/CounterReset") );
-        *counterRst->execute();
-	*/
+
 	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
 	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
 	ScalVal_RO dnaValue = IScalVal_RO::create( pre->findByName("mmio/vers/dnaValue") );
@@ -355,7 +589,10 @@ uint16_t u16;
 	ScalVal_RO overflow     = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/overflow") ));
 	ScalVal    oneShot      = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/oneShot") ));
 	ScalVal    packetLength = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/packetLength") ));
+	if ( tDestSTRM < 0 ) {
+	// tDest from this register is unused if there is a tdest demuxer in FW
 	ScalVal    tDest        = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/tDest") ));
+	}
 	ScalVal    tId          = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/tId") ));
 	ScalVal_RO dataCnt      = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/dataCnt") ));
 	ScalVal_RO eventCnt     = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/eventCnt") ));
@@ -364,9 +601,10 @@ uint16_t u16;
 
 	ScalVal_RO adcs = IScalVal_RO::create( pre->findByName("mmio/sysm/adcs") );
 
+	printf("AxiVersion:\n");
 	bldStamp->getVal( str, sizeof(str)/sizeof(str[0]) );
-
 	printf("Build String:\n%s\n", (char*)str);
+
 	fdSerial->getVal( &u64, 1 );
 	printf("Serial #: 0x%"PRIx64"\n", u64);
 	dnaValue->getVal( &u64, 1 );
@@ -375,12 +613,6 @@ uint16_t u16;
 	printf("Counter : 0x%"PRIx32"\n", u32);
 	counter->getVal( &u32, 1 );
 	printf("Counter : 0x%"PRIx32"\n", u32);
-
-	adcs->getVal( (uint16_t*)adcv, sizeof(adcv)/sizeof(adcv[0]) );
-	printf("\n\nADC Values:\n");
-	for ( int i=0; i<ADCL; i++ ) {
-		printf("  %6hd\n", adcv[i]);
-	}
 
 	u16=0x6765;
 	u32=0xffffffff;
@@ -396,47 +628,94 @@ uint16_t u16;
 		throw TestFailed();	
 	}
 
-	if ( length > 0 ) {
-		printf("PRBS Regs:\n");
-		uint32_t v;
-		for (unsigned i=0; i<vals.size(); i++ ) {
-			vals[i]->getVal( &v, 1 );
-			printf("%14s: %d\n", vals[i]->getName(), v );
+	if ( sysmon ) {
+		adcs->getVal( (uint16_t*)adcv, sizeof(adcv)/sizeof(adcv[0]) );
+		printf("\n\nADC Values:\n");
+		for ( int i=0; i<ADCL; i++ ) {
+			printf("  %6hd\n", adcv[i]);
 		}
+	}
+
+	if ( length > 0 ) {
+		uint32_t v;
 		v = 1;
 		axiEn->setVal( &v, 1 );
 		v = length;
 		packetLength->setVal( &v, 1 );
-		v = 1;
-		oneShot->setVal( &v, 1 );
+
+		trig->setVal( (uint64_t)0 );
+		oneShot->setVal( (uint64_t)0 );
+
+		printf("PRBS Regs:\n");
+		for (unsigned i=0; i<vals.size(); i++ ) {
+			vals[i]->getVal( &v, 1 );
+			printf("%14s: %d\n", vals[i]->getName(), v );
+		}
 
 		pthread_t tid;
 		void     *ign;
-		struct timespec p;
-		ThreadArg arg;
-		p.tv_sec  = period/1000;
-		p.tv_nsec = (period % 1000) * 1000000;
+		struct timespec p, dly;
+		ThreadArg arg( (uint64_t)4*(uint64_t)length, shots, period == 0 ? trig : ScalVal(), root );
 		if ( pthread_create( &tid, 0, rxThread, &arg ) ) {
 			perror("pthread_create");
 		}
-		for (int i = 0; i<shots; i++) {
-			struct timespec dly = p;
+		if ( period > 0 ) {
+			p.tv_sec  = period/1000;
+			p.tv_nsec = (period % 1000) * 1000000;
+			// wait for the thread to come up (hack!)
+			dly = p;
 			nanosleep( &dly, 0 );
-			oneShot->setVal( 1 );
-			// not truly thread safe but
-			// a correct algorithm would
-			// be much more complex.
-			if ( arg.firstFrame() < 0 ) {
-				//not yet synchronized
-				if ( i > SYNC_LIMIT ) {
-					fprintf(stderr,"Stream unable to synchronize: FAILED\n");
-					rval = 1;
-					break;
+			for (int i = 0; i<shots; i++) {
+				dly = p;
+				clock_gettime( CLOCK_MONOTONIC, &arg.trigTime.tv_ );
+				oneShot->setVal( 1 );
+				nanosleep( &dly, 0 );
+				// not truly thread safe but
+				// a correct algorithm would
+				// be much more complex.
+				if ( arg.firstFrame() < 0 ) {
+					//not yet synchronized
+					if ( i > SYNC_LIMIT ) {
+						fprintf(stderr,"Stream unable to synchronize: FAILED\n");
+						rval = 1;
+						pthread_cancel( tid );
+						break;
+					}
+					shots++;
 				}
-				shots++;
 			}
+		} else {
+			// if we assume a (conservative) data rate of 40MB/s
+			// and give 10 attempts to synchronize then this translates
+			// to 10*length/(40B/us) = 10 * length/B * 1000/40 ns
+			uint64_t p_ns = (uint64_t)length * (uint64_t) 25;
+			p.tv_sec  = p_ns/1000000000;
+			p.tv_nsec = p_ns%1000000000;
+			int lfrm  = -1;
+			int     i = 0;
+			int  frm;
+
+			clock_gettime( CLOCK_MONOTONIC, &arg.trigTime.tv_ );
+			trig->setVal( 1 );
+
+			while ( arg.nFrames() < shots ) {
+				dly = p;
+				nanosleep( &dly, 0 );
+				frm  = arg.firstFrame();
+				if ( 0 == (frm - lfrm) ) {
+					if ( ++i > SYNC_LIMIT ) {
+						fprintf(stderr,"Stream unable to synchronize: FAILED\n");
+						rval = 1;
+						pthread_cancel( tid );
+						break;
+					}
+				} else {
+					lfrm = frm;
+					i    = 0;
+				}
+			}
+			trig->setVal( (uint64_t)0 );
 		}
-		pthread_cancel( tid );
 		pthread_join( tid, &ign );
 		printf("%d shots were fired; %d frames received\n", shots, arg.nFrames());
 		printf("(Difference to requested shots are due to synchronization)\n");
@@ -446,7 +725,14 @@ uint16_t u16;
 	for (int i=0; i<1000; i++ )
 		counter->getVal( &u32, 1 );
 
+
 	root->findByName("mmio")->tail()->dump(stdout);
+
+	if ( tDestMEM >= 0 ) {
+		ScalVal bram( IScalVal::create( root->findByName("axi4/bram") ) );
+		testBram( bram );
+	}
+
 
 } catch (CPSWError &e) {
 	printf("CPSW Error: %s\n", e.getInfo().c_str());

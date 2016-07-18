@@ -1,3 +1,6 @@
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
 
@@ -42,18 +45,6 @@ CSockSd::~CSockSd()
 	close( sd_ );
 }
 
-void * CUdpHandlerThread::threadBody(void *arg)
-{
-	CUdpHandlerThread *obj = static_cast<CUdpHandlerThread *>(arg);
-	try {
-		obj->threadBody();
-	} catch ( CPSWError e ) {
-		fprintf(stderr,"CPSW Error (CUdpHandlerThread): %s\n", e.getInfo().c_str());
-		throw;
-	}
-	return 0;
-}
-
 static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
 {
 	int    optval = 1;
@@ -87,43 +78,22 @@ static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p, 
 		throw IOError("connect failed ", errno);
 }
 
-CUdpHandlerThread::CUdpHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me_p)
-: running_(false)
+CUdpHandlerThread::CUdpHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me_p)
+: CRunnable(name)
 {
 	sockIni( sd_.getSd(), dest, me_p, false );
 }
 
 CUdpHandlerThread::CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me_p)
-: running_(false)
+: CRunnable(orig)
 {
 	sockIni( sd_.getSd(), dest, me_p, false );
 }
 
-// only start after object is fully constructed
-void CUdpHandlerThread::start()
-{
-	if ( pthread_create( &tid_, NULL, threadBody, this ) )
-		throw IOError("unable to create thread ", errno);
-	running_ = true;
-}
-
-CUdpHandlerThread::~CUdpHandlerThread()
-{
-	void *rval;
-	if ( running_ ) {
-		if ( pthread_cancel( tid_ ) ) {
-			throw IOError("pthread_cancel: ", errno);
-		}
-		if ( pthread_join( tid_, &rval  ) ) {
-			throw IOError("pthread_join: ", errno);
-		}
-	}
-}
-
-void CProtoModUdp::CUdpRxHandlerThread::threadBody()
+void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 {
 	ssize_t got;
-	Buf     buf = IBuf::getBuf();
+	Buf     buf = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 
 	while ( 1 ) {
 
@@ -136,6 +106,8 @@ void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 			sleep(10);
 			continue;
 		}
+		nDgrams_.fetch_add(1,   boost::memory_order_relaxed);
+		nOctets_.fetch_add(got, boost::memory_order_relaxed);
 		buf->setSize( got );
 		if ( got > 0 ) {
 
@@ -177,7 +149,7 @@ void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 #endif
 
 			// get new buffer
-			buf = IBuf::getBuf();
+			buf = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 		}
 #ifdef UDP_DEBUG
 		else {
@@ -185,21 +157,26 @@ void CProtoModUdp::CUdpRxHandlerThread::threadBody()
 		}
 #endif
 	}
+	return NULL;
 }
 
-CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
-: CUdpHandlerThread(dest, me),
-  owner_( owner )
+CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
+: CUdpHandlerThread(name, dest, me),
+  nOctets_(0),
+  nDgrams_(0),
+  owner_(owner)
 {
 }
 
 CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
-: CUdpHandlerThread( orig, dest, me),
-  owner_( owner )
+: CUdpHandlerThread( orig, dest, me ),
+  nOctets_(0),
+  nDgrams_(0),
+  owner_(owner)
 {
 }
 
-void CUdpPeerPollerThread::threadBody()
+void * CUdpPeerPollerThread::threadBody()
 {
 	uint8_t buf[4];
 	memset( buf, 0, sizeof(buf) );
@@ -211,10 +188,11 @@ void CUdpPeerPollerThread::threadBody()
 		if ( sleep( pollSecs_ ) )
 			continue; // interrupted by signal
 	}
+	return NULL;
 }
 
-CUdpPeerPollerThread::CUdpPeerPollerThread(struct sockaddr_in *dest, struct sockaddr_in *me, unsigned pollSecs)
-: CUdpHandlerThread(dest, me),
+CUdpPeerPollerThread::CUdpPeerPollerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me, unsigned pollSecs)
+: CUdpHandlerThread(name, dest, me),
   pollSecs_(pollSecs)
 {
 }
@@ -225,7 +203,7 @@ CUdpPeerPollerThread::CUdpPeerPollerThread(CUdpPeerPollerThread &orig, struct so
 {
 }
 
-void CProtoModUdp::spawnThreads(unsigned nRxThreads, int pollSeconds)
+void CProtoModUdp::createThreads(unsigned nRxThreads, int pollSeconds)
 {
 	unsigned i;
 	struct sockaddr_in me;
@@ -234,41 +212,80 @@ void CProtoModUdp::spawnThreads(unsigned nRxThreads, int pollSeconds)
 
 	if ( poller_ ) {
 		// called from copy constructor
-		poller_ = new CUdpPeerPollerThread( *poller_, &dest_, &me);
+		poller_ = new CUdpPeerPollerThread(*poller_, &dest_, &me);
 	} else if ( pollSeconds > 0 ) {
-		poller_ = new CUdpPeerPollerThread( &dest_, &me, pollSeconds );
+		poller_ = new CUdpPeerPollerThread("UDP Poller (UDP protocol module)", &dest_, &me, pollSeconds );
 	}
 
 	// might be called by the copy constructor
 	rxHandlers_.clear();
 
 	for ( i=0; i<nRxThreads; i++ ) {
-		rxHandlers_.push_back( new CUdpRxHandlerThread( &dest_, &me, this ) );
-	}
-
-	if ( poller_ )
-		poller_->start();
-	for ( i=0; i<rxHandlers_.size(); i++ ) {
-		rxHandlers_[i]->start();
+		rxHandlers_.push_back( new CUdpRxHandlerThread("UDP RX Handler (UDP protocol module)", &dest_, &me, this ) );
 	}
 }
 
-CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, CBufQueueBase::size_type depth, unsigned nRxThreads, int pollSecs)
+void CProtoModUdp::modStartup()
+{
+unsigned i;
+	if ( poller_ )
+		poller_->threadStart();
+	for ( i=0; i<rxHandlers_.size(); i++ ) {
+		rxHandlers_[i]->threadStart();
+	}
+}
+
+void CProtoModUdp::modShutdown()
+{
+unsigned i;
+	if ( poller_ )
+		poller_->threadStop();
+
+	for ( i=0; i<rxHandlers_.size(); i++ ) {
+		rxHandlers_[i]->threadStop();
+	}
+}
+
+CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, unsigned nRxThreads, int pollSecs)
 :CProtoMod(k, depth),
  dest_(*dest),
+ nTxOctets_(0),
+ nTxDgrams_(0),
  poller_( NULL )
 {
 	sockIni( tx_.getSd(), dest, 0, true );
-	spawnThreads( nRxThreads, pollSecs );
+	createThreads( nRxThreads, pollSecs );
 }
 
 CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)
 :CProtoMod(orig, k),
  dest_(orig.dest_),
+ nTxOctets_(0),
+ nTxDgrams_(0),
  poller_(orig.poller_)
 {
 	sockIni( tx_.getSd(), &dest_, 0, true );
-	spawnThreads( orig.rxHandlers_.size(), -1 );
+	createThreads( orig.rxHandlers_.size(), -1 );
+}
+
+uint64_t CProtoModUdp::getNumRxOctets()
+{
+unsigned i;
+uint64_t rval = 0;
+
+	for ( i=0; i<rxHandlers_.size(); i++ )
+		rval += rxHandlers_[i]->getNumOctets();
+	return rval;
+}
+
+uint64_t CProtoModUdp::getNumRxDgrams()
+{
+unsigned i;
+uint64_t rval = 0;
+
+	for ( i=0; i<rxHandlers_.size(); i++ )
+		rval += rxHandlers_[i]->getNumDgrams();
+	return rval;
 }
 
 CProtoModUdp::~CProtoModUdp()
@@ -286,9 +303,16 @@ void CProtoModUdp::dumpInfo(FILE *f)
 		f = stdout;
 
 	fprintf(f,"CProtoModUdp:\n");
+	fprintf(f,"  Peer port : %15u\n",    getDestPort());
+	fprintf(f,"  RX Threads: %15lu\n",   rxHandlers_.size());
+	fprintf(f,"  Has Poller:               %c\n", poller_ ? 'Y' : 'N');
+	fprintf(f,"  #TX Octets: %15"PRIu64"\n", getNumTxOctets());
+	fprintf(f,"  #TX DGRAMs: %15"PRIu64"\n", getNumTxDgrams());
+	fprintf(f,"  #RX Octets: %15"PRIu64"\n", getNumRxOctets());
+	fprintf(f,"  #RX DGRAMs: %15"PRIu64"\n", getNumRxDgrams());
 }
 
-void CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)
+bool CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)
 {
 fd_set         fds;
 int            selres, sndres;
@@ -302,6 +326,9 @@ unsigned       nios;
 	// We follow a) here...
 	// If they were to fragment a large frame they have to push each
 	// fragment individually.
+
+	nTxDgrams_.fetch_add( 1, boost::memory_order_relaxed );
+	nTxOctets_.fetch_add( bc->getSize(), boost::memory_order_relaxed );
 
 	for (nios=0, b=bc->getHead(); nios<bc->getLen(); nios++, b=b->getNext()) {
 		iov[nios].iov_base = b->getPayload();
@@ -317,14 +344,14 @@ unsigned       nios;
 		selres = ::pselect( tx_.getSd() + 1, NULL, &fds, NULL, !timeout || timeout->isIndefinite() ? NULL : &timeout->tv_, NULL );
 		if ( selres < 0  ) {
 			perror("::pselect() - dropping message due to error");
-			return;
+			return false;
 		}
 		if ( selres == 0 ) {
 #ifdef UDP_DEBUG
 			printf("UDP doPush -- pselect timeout\n");
 #endif
 			// TIMEOUT
-			return;
+			return false;
 		}
 	}
 
@@ -337,7 +364,7 @@ unsigned       nios;
 #warning FIXME
 abort();
 #endif
-		return;
+		return false;
 	}
 
 #ifdef UDP_DEBUG
@@ -346,11 +373,13 @@ abort();
 		printf(" %02x", ((unsigned char*)iov[0].iov_base)[i]);
 	printf("\n");
 #endif
+	return true;
 }
 
 int CProtoModUdp::iMatch(ProtoPortMatchParams *cmp)
 {
-	if ( cmp->udpDestPort_.doMatch_ && cmp->udpDestPort_.val_ == getDestPort() ) {
+	cmp->udpDestPort_.handledBy_ = getProtoMod();
+	if ( cmp->udpDestPort_ == getDestPort() ) {
 		cmp->udpDestPort_.matchedBy_ = getSelfAs<ProtoModUdp>();
 		return 1;
 	}
