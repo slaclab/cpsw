@@ -124,6 +124,13 @@ CYamlTypeRegistry<MutableEnum>::extractClassName(std::vector<std::string> *svec_
 	svec_p->push_back( node.Tag() );
 }
 
+template<> bool
+CYamlTypeRegistry<MutableEnum>::extractInstantiate(const YAML::Node &node)
+{
+	return true;
+}
+
+
 static IYamlTypeRegistry<MutableEnum> *getRegistry()
 {
 static CYamlTypeRegistry<MutableEnum> the_registry_;

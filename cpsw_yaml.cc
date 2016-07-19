@@ -148,6 +148,16 @@ IRegistry::create()
 	return new RegistryImpl();
 }
 
+template <typename T> bool
+CYamlTypeRegistry<T>::extractInstantiate(const YAML::Node &n)
+{
+bool        instantiate    = true;
+
+	readNode( n, "instantiate", &instantiate );
+
+	return instantiate;
+}
+
 template <typename T> void
 CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, const YAML::Node &n)
 {
@@ -191,7 +201,11 @@ const YAML::Node & children( node["children"] );
 		YAML::const_iterator it = children.begin();
 		while ( it != children.end() ) {
 			Field c = registry->makeItem( *it );
-			d.addAtAddress( c, *it );
+			if ( c ) {
+				// if 'instantiate' is 'false' then
+				// makeItem() returns a NULL pointer
+				d.addAtAddress( c, *it );
+			}
 			++it;
 		}
 	}

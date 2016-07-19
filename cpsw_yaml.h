@@ -527,6 +527,27 @@ struct convert<NetIODev> {
 #endif
 }
 
+// helpers to read map entries
+
+template <typename T> static void mustReadNode(const YAML::Node &node, const char *fld, T *val)
+{
+	const YAML::Node &n( getNode(node, fld) );
+	if ( ! n ) {
+		throw NotFoundError( std::string("property '") + std::string(fld) + std::string("'") );
+	} else {
+		*val = n.as<T>();
+	}
+}
+
+template <typename T> static void readNode(const YAML::Node &node, const char *fld, T *val)
+{
+	const YAML::Node &n( getNode(node, fld) );
+	if ( n ) {
+		*val = n.as<T>();
+	}
+}
+
+
 // YAML Emitter overloads
 
 YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s);
@@ -607,10 +628,16 @@ public:
 
 	virtual void extractClassName(std::vector<std::string> *svec_p, const YAML::Node &n);
 
+	virtual bool extractInstantiate(const YAML::Node &n);
+
 	virtual T makeItem(const YAML::Node &n)
 	{
 	std::vector<std::string> str_vec;
 	std::string str_no_factory = "";
+
+		if ( ! extractInstantiate( n ) )
+			return T();
+
 		extractClassName( &str_vec, n  );
 		if ( str_vec.size() == 0 )
 			throw NotFoundError("CYamlTypeRegistry: node w/o class info");
@@ -619,7 +646,9 @@ public:
 			IYamlFactoryBase<T> *factory = static_cast<IYamlFactoryBase<T> *>( registry_->getItem( it->c_str() ) );
 			if ( factory )
 				return factory->makeItem( n, this );
-			str_no_factory = str_no_factory + (*it) + ", ";
+			if ( 0 != str_no_factory.size() )
+				str_no_factory += ", ";
+			str_no_factory += (*it);
 		}
 
 		throw NotFoundError(std::string("No factory for '") + str_no_factory + std::string("' found"));
@@ -676,24 +705,6 @@ public:
 	}
 
 };
-
-template <typename T> static void mustReadNode(const YAML::Node &node, const char *fld, T *val)
-{
-	const YAML::Node &n( getNode(node, fld) );
-	if ( ! n ) {
-		throw NotFoundError( std::string("property '") + std::string(fld) + std::string("'") );
-	} else {
-		*val = n.as<T>();
-	}
-}
-
-template <typename T> static void readNode(const YAML::Node &node, const char *fld, T *val)
-{
-	const YAML::Node &n( getNode(node, fld) );
-	if ( n ) {
-		*val = n.as<T>();
-	}
-}
 
 // For adding YAML support to a subclass of CYamlSupportBase:
 //
