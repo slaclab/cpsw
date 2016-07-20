@@ -120,7 +120,7 @@ TGTS+=$(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
 # Expand the template for all library targets
 $(foreach lib,$(STATIC_LIBRARIES),$(eval $(call LIBa_template,$(lib),$(subst -,_,$(lib)))))
 
-$(foreach lib,$(STATIC_LIBRARIES),$(eval $(call LIBs_template,$(lib),$(subst -,_,$(lib)))))
+$(foreach lib,$(SHARED_LIBRARIES),$(eval $(call LIBs_template,$(lib),$(subst -,_,$(lib)))))
 
 $(STATIC_LIBRARIES:%=lib%.a):
 	$(AR) cr $@ $^
