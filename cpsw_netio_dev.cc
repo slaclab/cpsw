@@ -555,14 +555,9 @@ CNetIODevImpl::CNetIODevImpl(Key &k, const char *name, const char *ip)
 }
 
 CNetIODevImpl::CNetIODevImpl(Key &k, const YAML::Node &node)
-: CDevImpl(k, node),
-  ip_str_( getNode(node, "ipAddr") ? getNode(node, "ipAddr").as<std::string>().c_str() : "ANY" )
+: CDevImpl(k, node)
 {
-const YAML::Node & ipn( getNode(node, "ipAddr") );
-
-	if ( ipn ) {
-		ip_str_ = ipn.as<std::string>();
-		std::string ip( ipn.as<std::string>() );
+	if ( readNode(node, "ipAddr", &ip_str_) ) {
 		if ( INADDR_NONE == ( d_ip_ = inet_addr( ip_str_.c_str() ) ) ) {
 			throw InvalidArgError( ip_str_.c_str() );
 		}
