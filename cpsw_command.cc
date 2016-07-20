@@ -66,8 +66,8 @@ CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, const Items
 CSequenceCommandImpl::CSequenceCommandImpl(Key &key, const YAML::Node &node)
 : CCommandImpl(key, node)
 {
-const YAML::Node &seq_node( node["sequence"] );
-	if ( ! node ) {
+const YAML::Node &seq_node( getNode(node, "sequence") );
+	if ( ! seq_node ) {
 		throw InvalidArgError(std::string(getName()) + " no sequence found");
 	} 
 	if ( ! seq_node.IsSequence() ) {
@@ -93,13 +93,12 @@ CSequenceCommandImpl::dumpYamlPart(YAML::Node &node) const
 
 	while ( it != items_.end() ) {
 		YAML::Node item_node;
-		item_node["entry"] = (*it).first;
-		item_node["value"] = (*it).second;
-		node["sequence"].push_back( item_node );
+		writeNode(item_node, "entry", (*it).first );
+		writeNode(item_node, "value", (*it).second);
+		pushNode(node, "sequence", item_node);
 		++it;
 	}
 }
-
 
 void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 {

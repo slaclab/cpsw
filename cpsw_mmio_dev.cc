@@ -127,8 +127,8 @@ void
 CMMIOAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CAddressImpl::dumpYamlPart( node );
-	node["offset"] = offset_;
-	node["stride"] = stride_;
+	writeNode(node, "offset", offset_);
+	writeNode(node, "stride", stride_);
 }
 
 CMMIODevImpl::CMMIODevImpl(Key &key, const YAML::Node &node)
@@ -146,5 +146,5 @@ void
 CMMIODevImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CDevImpl::dumpYamlPart(node);
-	node["ByteOrder"] = byteOrder_;
+	writeNode(node, "ByteOrder", byteOrder_);
 }

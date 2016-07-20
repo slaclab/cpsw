@@ -80,9 +80,9 @@ CTDestPort::dumpYaml(YAML::Node &node) const
 {
 YAML::Node parms;
 
-	parms["StripHeader"  ] = stripHeader_;
-	parms["outQueueDepth"] = getQueueDepth();
-	parms["TDEST"        ] = getDest();
+	writeNode(parms, "StripHeader"  , stripHeader_   );
+	writeNode(parms, "outQueueDepth", getQueueDepth());
+	writeNode(parms, "TDEST"        , getDest()      );
 
-	node["TDestMux"] = parms;
+	writeNode(node, "TDestMux", parms);
 }

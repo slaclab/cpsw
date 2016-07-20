@@ -94,16 +94,16 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 
 	CEntryImpl::dumpYamlPart(node);
 
-	node["isSigned"] = is_signed_;
-	node["lsBit"]    = ls_bit_;
-	node["sizeBits"] = size_bits_;
-	node["mode"]     = mode_;
-	node["wordSwap"] = wordSwap_;
+	writeNode(node, "isSigned", is_signed_);
+	writeNode(node, "lsBit",    ls_bit_   );
+	writeNode(node, "sizeBits", size_bits_);
+	writeNode(node, "mode",     mode_     );
+	writeNode(node, "wordSwap", wordSwap_ );
 
 	if ( enum_ ) {
 		YAML::Node enums;
 		enum_->dumpYaml( enums );
-		node["enums"] = enums;
+		writeNode(node, "enums", enums);
 	}
 }
 

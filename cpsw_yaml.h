@@ -539,14 +539,22 @@ template <typename T> static void mustReadNode(const YAML::Node &node, const cha
 	}
 }
 
-template <typename T> static void readNode(const YAML::Node &node, const char *fld, T *val)
+template <typename T> static bool readNode(const YAML::Node &node, const char *fld, T *val)
 {
 	const YAML::Node &n( getNode(node, fld) );
 	if ( n ) {
 		*val = n.as<T>();
+		return true;
 	}
+	return false;
 }
 
+template <typename T> static void writeNode(YAML::Node &node, const char *fld, const T &val)
+{
+	node[fld] = val;
+}
+
+void pushNode(YAML::Node &node, const char *fld, const YAML::Node &child);
 
 // YAML Emitter overloads
 

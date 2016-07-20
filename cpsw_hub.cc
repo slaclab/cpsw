@@ -237,8 +237,8 @@ unsigned nelms = DFLT_NELMS;
 void
 CAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
-	node["nelms"]     = nelms_;
-	node["ByteOrder"] = byteOrder_;
+	writeNode(node, "nelms",     nelms_    );
+	writeNode(node, "ByteOrder", byteOrder_);
 }
 
 void
@@ -258,7 +258,7 @@ MyChildren::iterator it;
 		YAML::Node child_node;
 		it->second->getEntryImpl()->dumpYaml( child_node );
 		it->second->dumpYamlPart( child_node );
-		node["children"].push_back( child_node ); 
+		pushNode(node, "children", child_node);
 	}
 }
 

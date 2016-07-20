@@ -402,11 +402,11 @@ CSRPAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CCommAddressImpl::dumpYamlPart( node );
 	YAML::Node srpParms;
-	srpParms["ProtocolVersion"] = protoVersion_;
-	srpParms["TimeoutUS"      ] = usrTimeout_.getUs();
-	srpParms["DynTimeout"     ] = useDynTimeout_;
-	srpParms["RetryCount"     ] = retryCnt_;
-	node["SRP"] = srpParms;
+	writeNode(srpParms, "ProtocolVersion", protoVersion_      );
+	writeNode(srpParms, "TimeoutUS"      , usrTimeout_.getUs());
+	writeNode(srpParms, "DynTimeout"     , useDynTimeout_     );
+	writeNode(srpParms, "RetryCount"     , retryCnt_          );
+	writeNode(node, "SRP", srpParms);
 }
 
 CSRPAddressImpl::CSRPAddressImpl(AKey k, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
@@ -576,7 +576,7 @@ void
 CNetIODevImpl::dumpYamlPart(YAML::Node & node) const
 {
 	CDevImpl::dumpYamlPart( node );
-	node["ipAddr"] = ip_str_;
+	writeNode(node, "ipAddr", ip_str_);
 }
 
 void CSRPAddressImpl::setTimeoutUs(unsigned timeoutUs)
@@ -1362,7 +1362,9 @@ shared_ptr<CCommAddressImpl> addr;
 
 void CNetIODevImpl::addAtAddress(Field child, const YAML::Node &node)
 {
-PortBuilder bldr( node.as<INetIODev::PortBuilder>() );
+PortBuilder bldr;
+
+	readNode( node, 0, &bldr);
 
 	addAtAddress(child, bldr);
 }
@@ -1711,8 +1713,8 @@ ProtoPort port;
 	// since SRP V2 is the default we switch it OFF here; if SRP
 	// is chained after us they will re-enable
 	YAML::Node noSRP;
-	noSRP["ProtocolVersion"] = INetIODev::SRP_UDP_NONE;
-	node["SRP"] = noSRP;
+	writeNode(noSRP, "ProtocolVersion", INetIODev::SRP_UDP_NONE);
+	writeNode(node , "SRP",             noSRP                  );
 	for ( port = protoStack_; port; port = port->getUpstreamPort() ) {
 		port->dumpYaml( node );
 	}

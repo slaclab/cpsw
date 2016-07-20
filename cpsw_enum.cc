@@ -130,7 +130,6 @@ CYamlTypeRegistry<MutableEnum>::extractInstantiate(const YAML::Node &node)
 	return true;
 }
 
-
 static IYamlTypeRegistry<MutableEnum> *getRegistry()
 {
 static CYamlTypeRegistry<MutableEnum> the_registry_;
@@ -154,12 +153,12 @@ CEnumImpl::CTransformFuncImpl::makeItem(const YAML::Node &node, IYamlTypeRegistr
 {
 MutableEnum enm = IMutableEnum::create(this, 0);
 	for ( YAML::const_iterator it(node.begin()); it != node.end(); ++it ) {
-		const YAML::Node &nam( getNode( *it, "name"  ) );
-		const YAML::Node &val( getNode( *it, "value" ) );
-		if ( ! nam || ! val ) {
-			throw InvalidArgError("YAML enum 'name' or 'value' missing");
-		}
-		enm->add( nam.as<std::string>().c_str(), val.as<uint64_t>() );
+		std::string nam;
+		uint64_t    val;
+
+		mustReadNode(*it, "name",  &nam);
+		mustReadNode(*it, "value", &val);
+		enm->add( nam.c_str(), val );
 	}
 	return enm;
 }
@@ -171,9 +170,9 @@ CEnumImpl::dumpYamlPart(YAML::Node &node) const
 
 	while ( it != end() ) {
 		YAML::Node item;
-		item["name"]  = *(*it).first;
-		item["value"] = (*it).second; 
-   		node.push_back( item );
+		writeNode(item, "name", *(*it).first );
+		writeNode(item, "value", (*it).second); 
+		pushNode( node, 0, item );
 		++it;
 	}
 }

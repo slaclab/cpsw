@@ -57,19 +57,17 @@ CEntryImpl::CEntryImpl(Key &key, const YAML::Node &node)
 	mustReadNode( node, "name", &name_ );
 
 	{
-	const YAML::Node & n( getNode(node,"description") );
-	if ( n ) {
-		setDescription( n.as<std::string>() );
-	}
+	std::string str;
+	if ( readNode( node, "description", &str ) )
+		setDescription( str );
 	}
 
 	readNode( node, "size", &size_ );
 
 	{
-	const YAML::Node & n( getNode(node, "cacheable") );
-	if ( n ) {
-		setCacheable( n.as<IField::Cacheable>() );
-	}
+	IField::Cacheable cacheable;
+	if ( readNode( node, "cacheable", &cacheable ) )
+		setCacheable( cacheable );
 	}
 
 	checkArgs();
@@ -86,17 +84,17 @@ const char *d = getDescription();
 	// chain through superclass
 	CYamlSupportBase::dumpYamlPart( node );
 
-	node["name"] = getName();
+	writeNode( node, "name", getName() );
 
 	if ( d && strlen(d) > 0 ) {
-		node["description"] = d;
+		writeNode(node, "description", d);
 	}
 
 	if ( getSize() != DFLT_SIZE )
-		node["size"] = getSize();
+		writeNode(node, "size", getSize());
 
 	if ( getCacheable() != DFLT_CACHEABLE )
-		node["cacheable"] = getCacheable();
+		writeNode(node, "cacheable", getCacheable());
 }
 
 CEntryImpl::~CEntryImpl()

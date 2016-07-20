@@ -25,6 +25,9 @@ const YAML::Node getNode(const YAML::Node &node, const char *key)
 {
 YAML::Node n(node);
 
+	if ( ! key )
+		return n;
+
 	do {
 std::cout<< "looking for "<<key;
 		const YAML::Node & val_node( n[key] );
@@ -60,7 +63,7 @@ std::cout<< "found - IT - ";
 #else
 const YAML::Node getNode(const YAML::Node &node, const char *key)
 {
-	if ( ! node )
+	if ( ! node || ! key )
 		return node;
 
 	const YAML::Node &val( node[key] );
@@ -71,6 +74,15 @@ const YAML::Node getNode(const YAML::Node &node, const char *key)
 	return getNode( node["<<"], key );
 }
 #endif
+
+void pushNode(YAML::Node &node, const char *fld, const YAML::Node &child)
+{
+	if ( fld )
+		node[fld].push_back( child );
+	else
+		node.push_back( child );
+}
+
 
 YAML::Node CYamlSupportBase::overrideNode(const YAML::Node &node)
 {
