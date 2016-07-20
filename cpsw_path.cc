@@ -16,6 +16,9 @@ using std::cout;
 
 typedef shared_ptr<const DevImpl::element_type> ConstDevImpl;
 
+class CPathImpl;
+typedef shared_ptr<CPathImpl> PathImpl;
+
 DevImpl theRootDev( CShObj::create<DevImpl>("ROOT") );
 
 DECLARE_OBJ_COUNTER( ocnt, "Path", 0 )
@@ -25,16 +28,16 @@ Dev IDev::getRootDev()
 	return theRootDev;
 }
 
-class PathImpl : public PathEntryContainer, public IPathImpl {
+class CPathImpl : public PathEntryContainer, public IPathImpl {
 private:
 	ConstDevImpl originDev_;
 
 public:
-	PathImpl();
-	PathImpl(Hub);
-	PathImpl(DevImpl);
+	CPathImpl();
+	CPathImpl(Hub);
+	CPathImpl(DevImpl);
 
-	PathImpl(const PathImpl&);
+	CPathImpl(const CPathImpl&);
 
 	virtual void clear();
 	virtual void clear(Hub);
@@ -48,14 +51,15 @@ public:
 
 	virtual bool empty() const;
 
-	PathImpl::iterator begin();
-	PathImpl::const_iterator begin() const;
+	CPathImpl::iterator begin();
+	CPathImpl::const_iterator begin() const;
 
-	virtual Path findByName(const char *name) const;
-	virtual Path clone()                      const;
+	virtual Path     findByName(const char *name) const;
+	virtual Path     clone()                      const;
+	virtual PathImpl cloneAsPathImpl()            const;
 
-	static bool hasParent(PathImpl::const_reverse_iterator &i);
-	static bool hasParent(PathImpl::reverse_iterator &i);
+	static bool hasParent(CPathImpl::const_reverse_iterator &i);
+	static bool hasParent(CPathImpl::reverse_iterator &i);
 
 	virtual Child up() 
 	{
@@ -109,7 +113,13 @@ public:
 		return originDev_;
 	}
 
-	virtual ~PathImpl();
+	virtual void        explore(IPathVisitor *) const;
+
+	virtual ~CPathImpl();
+
+protected:
+	static  void        explore_r(struct explorer_ctxt *);
+	static  void        explore_children_r(ConstDevImpl, struct explorer_ctxt *);
 };
 
 PathEntry::PathEntry(Address a, int idxf, int idxt, unsigned nelmsLeft)
@@ -133,15 +143,15 @@ PathEntry::PathEntry(Address a, int idxf, int idxt, unsigned nelmsLeft)
 	idxt_ = idxt;
 }
 
-void PathImpl::dump(FILE *f) const
+void CPathImpl::dump(FILE *f) const
 {
 std::string s = toString();
 	fprintf(f, "%s", s.c_str());
 }
 
-static PathImpl *_toPathImpl(Path p)
+static CPathImpl *_toPathImpl(Path p)
 {
-	return static_cast<PathImpl*>( p.get() );
+	return static_cast<CPathImpl*>( p.get() );
 }
 
 IPathImpl * IPathImpl::toPathImpl(Path p)
@@ -149,7 +159,7 @@ IPathImpl * IPathImpl::toPathImpl(Path p)
 	return _toPathImpl(p);
 }
 
-PathImpl::PathImpl()
+CPathImpl::CPathImpl()
 : PathEntryContainer(), originDev_(theRootDev)
 {
 	// maintain an empty marker element so that the back iterator
@@ -158,19 +168,19 @@ PathImpl::PathImpl()
 	++ocnt();
 }
 
-PathImpl::~PathImpl()
+CPathImpl::~CPathImpl()
 {
 	--ocnt();
 }
 
-PathImpl::PathImpl(const PathImpl &in)
+CPathImpl::CPathImpl(const CPathImpl &in)
 : PathEntryContainer(in),
   originDev_(in.originDev_)
 {
 	++ocnt();
 }
 
-PathImpl::PathImpl(Hub h)
+CPathImpl::CPathImpl(Hub h)
 : PathEntryContainer()
 {
 ConstDevImpl c = dynamic_pointer_cast<ConstDevImpl::element_type, Hub::element_type>(h);
@@ -185,7 +195,7 @@ ConstDevImpl c = dynamic_pointer_cast<ConstDevImpl::element_type, Hub::element_t
 	++ocnt();
 }
 
-PathImpl::PathImpl(DevImpl c)
+CPathImpl::CPathImpl(DevImpl c)
 : PathEntryContainer(),
   originDev_(c ? c : theRootDev)
 {
@@ -196,30 +206,30 @@ PathImpl::PathImpl(DevImpl c)
 }
 
 
-int PathImpl::size() const
+int CPathImpl::size() const
 {
 	// not counting the marker element
 	return PathEntryContainer::size() - 1;
 }
 
-bool PathImpl::empty() const
+bool CPathImpl::empty() const
 {
 	return size() <= 0;
 }
 
-PathImpl::iterator PathImpl::begin()
+CPathImpl::iterator CPathImpl::begin()
 {
-	PathImpl::iterator i = PathEntryContainer::begin();
+	CPathImpl::iterator i = PathEntryContainer::begin();
 	return ++i;
 }
 
-PathImpl::const_iterator PathImpl::begin() const
+CPathImpl::const_iterator CPathImpl::begin() const
 {
-	PathImpl::const_iterator i = PathEntryContainer::begin();
+	CPathImpl::const_iterator i = PathEntryContainer::begin();
 	return ++i;
 }
 
-void PathImpl::clear(Hub h)
+void CPathImpl::clear(Hub h)
 {
 ConstDevImpl c = dynamic_pointer_cast< ConstDevImpl::element_type, Hub::element_type> ( h );
 
@@ -229,7 +239,7 @@ ConstDevImpl c = dynamic_pointer_cast< ConstDevImpl::element_type, Hub::element_
 	clear( c );
 }
 
-void PathImpl::clear(DevImpl c)
+void CPathImpl::clear(DevImpl c)
 {
 	PathEntryContainer::clear();
 	push_back( PathEntry(NULLADDR) );
@@ -238,17 +248,17 @@ void PathImpl::clear(DevImpl c)
 }
 
 
-void PathImpl::clear()
+void CPathImpl::clear()
 {
 	clear( theRootDev );
 }
 
-bool PathImpl::hasParent(PathImpl::const_reverse_iterator &i)
+bool CPathImpl::hasParent(CPathImpl::const_reverse_iterator &i)
 {
 	return i->c_p_ != NULL;
 }
 
-bool PathImpl::hasParent(PathImpl::reverse_iterator &i)
+bool CPathImpl::hasParent(CPathImpl::reverse_iterator &i)
 {
 	return i->c_p_ != NULL;
 }
@@ -268,10 +278,10 @@ div_t d;
 	} while ( i );
 }
 
-std::string PathImpl::toString() const
+std::string CPathImpl::toString() const
 {
 std::string rval;
-	for ( PathImpl::const_iterator it=begin(); it != end(); ++it ) {
+	for ( CPathImpl::const_iterator it=begin(); it != end(); ++it ) {
 		rval.push_back('/');
 		rval.append(it->c_p_->getName());
 		if ( it->c_p_->getNelms() > 1 ) {
@@ -289,18 +299,18 @@ std::string rval;
 
 Path IPath::create()
 {
-	return Path( make_shared<PathImpl>() );
+	return Path( make_shared<CPathImpl>() );
 }
 
 Path IPath::create(const char *key)
 {
-	return Path( make_shared<PathImpl>() )->findByName( key );
+	return Path( make_shared<CPathImpl>() )->findByName( key );
 }
 
 
 Path IPath::create(Hub h)
 {
-	return Path( make_shared<PathImpl>( h ) );
+	return Path( make_shared<CPathImpl>( h ) );
 }
 
 
@@ -319,12 +329,12 @@ char         *endp;
 	return (int)rval;
 }
 
-Path PathImpl::findByName(const char *s) const
+Path CPathImpl::findByName(const char *s) const
 {
 Address      found;
 ConstDevImpl h;
-Path         rval = make_shared<PathImpl>( *this );
-PathImpl    *p    = _toPathImpl( rval );
+Path         rval = make_shared<CPathImpl>( *this );
+CPathImpl    *p    = _toPathImpl( rval );
 const char  *sl;
 
 shared_ptr<const EntryImpl::element_type> tailp;
@@ -375,7 +385,7 @@ cout<<"starting at: "<<found->getName() << "\n";
 			const char *cl = op ? strchr(op,']') : 0;
 			const char *mi = op ? strchr(op,'-') : 0;
 
-			if ( ! (h = dynamic_pointer_cast<const DevImpl::element_type>( tailp )) ) {
+			if ( ! (h = tailp->isConstDevImpl()) ) {
 				throw NotDevError( found->getName() );
 			}
 
@@ -437,26 +447,26 @@ cout<<"starting at: "<<found->getName() << "\n";
 	return rval;
 }
 
-ConstDevImpl PathImpl::parentAsDevImpl() const
+ConstDevImpl CPathImpl::parentAsDevImpl() const
 {
-PathImpl::const_reverse_iterator it = rend();
+CPathImpl::const_reverse_iterator it = rend();
 	++it; // rend points after last el
 	++it; // if empty this points at the NULL marker element
 	return hasParent( it ) ? boost::static_pointer_cast<const CDevImpl, CEntryImpl>(it->c_p_->getEntryImpl()) : NULLDEVIMPL;
 }
 
-Hub PathImpl::parent() const
+Hub CPathImpl::parent() const
 {
 	return parentAsDevImpl();
 }
 
-bool PathImpl::verifyAtTail(Path p)
+bool CPathImpl::verifyAtTail(Path p)
 {
-PathImpl *pi = _toPathImpl( p );
+CPathImpl *pi = _toPathImpl( p );
 	return verifyAtTail( pi->originAsDevImpl() );
 }
 
-bool PathImpl::verifyAtTail(ConstDevImpl h)
+bool CPathImpl::verifyAtTail(ConstDevImpl h)
 {
 	if ( empty() ) {
 		originDev_ = h;
@@ -467,12 +477,12 @@ bool PathImpl::verifyAtTail(ConstDevImpl h)
 }
 
 
-static void append2(PathImpl *h, PathImpl *t)
+static void append2(CPathImpl *h, CPathImpl *t)
 {
 	if ( ! h->verifyAtTail( t->originAsDevImpl() ) )
 		throw InvalidPathError( Path(t)->toString() );
 
-	PathImpl::iterator it = t->begin();
+	CPathImpl::iterator it = t->begin();
 
 	unsigned nelmsLeft = h->getNelms();
 	for ( ;  it != t->end(); ++it ) {
@@ -482,18 +492,23 @@ static void append2(PathImpl *h, PathImpl *t)
 	}
 }
 
-Path PathImpl::clone() const
+Path CPathImpl::clone() const
 {
-	return make_shared<PathImpl>( *this );
+	return cloneAsPathImpl();
 }
 
-Path PathImpl::concat(Path p) const
+PathImpl CPathImpl::cloneAsPathImpl() const
 {
-Path rval = clone();
+	return make_shared<CPathImpl>( *this );
+}
+
+Path CPathImpl::concat(Path p) const
+{
+PathImpl rval = cloneAsPathImpl();
 
 	if ( ! p->empty() ) {
-		PathImpl *h = _toPathImpl(rval);
-		PathImpl *t = _toPathImpl(p);
+		CPathImpl *h = rval.get();
+		CPathImpl *t = _toPathImpl(p);
 
 		append2(h, t);
 	}
@@ -501,13 +516,13 @@ Path rval = clone();
 	return rval;
 }
 
-void PathImpl::append(Path p)
+void CPathImpl::append(Path p)
 {
 	if ( ! p->empty() )
 		append2(this, _toPathImpl(p));
 }
 
-void PathImpl::append(Address a, int f, int t)
+void CPathImpl::append(Address a, int f, int t)
 {
 	if ( ! verifyAtTail( a->getOwnerAsDevImpl() ) ) {
 		throw InvalidPathError( Path( this )->toString() );
@@ -515,11 +530,73 @@ void PathImpl::append(Address a, int f, int t)
 	push_back( PathEntry(a, f, t, getNelms()) );
 }
 
-void PathImpl::append(Address a)
+void CPathImpl::append(Address a)
 {
 	append(a, 0, -1);
 }
 
+
+// use a context struct for stuff we can
+// pass by reference to save stack space
+// (recursion)
+struct explorer_ctxt {
+	PathImpl     here;
+	IPathVisitor *visitor;
+};
+
+void
+CPathImpl::explore(IPathVisitor *visitor) const
+{
+struct explorer_ctxt ctxt;
+	// recurse on a copy of 'this' path
+	ctxt.here    = cloneAsPathImpl();
+	ctxt.visitor = visitor;
+
+	if ( empty() ) {
+		// if the path is empty then we must start
+		// at the 'originDev' - we cannot look
+		// at the tail of an empty path
+		explore_children_r( originAsDevImpl(), &ctxt );
+	} else {
+		explore_r( &ctxt );
+	}
+}
+
+void
+CPathImpl::explore_children_r(ConstDevImpl d, struct explorer_ctxt *ctxt)
+{
+	if ( d ) {
+		CDevImpl::const_iterator it( d->begin() );
+		// iterate over children
+		while ( it != d->end() ) {
+			// append a child to the 'here' path
+			ctxt->here->push_back( PathEntry( (*it).second, -1, -1, ctxt->here->getNelms()) );
+			// explore
+			explore_r( ctxt );
+			// remove the child from the 'here' path
+			ctxt->here->pop_back();
+			++it;
+		}
+	}
+}
+
+void
+CPathImpl::explore_r(struct explorer_ctxt *ctxt)
+{
+	if ( ctxt->visitor->visitPre( ctxt->here ) ) {
+
+		// obtain the tail of the 'here' path as a DevImpl. If
+		// the tail is a leaf (not a container) then (virtual) 'isConstDevImpl()' 
+		// returns 'NULL'
+		{
+		ConstDevImpl d(ctxt->here->back().c_p_->getEntryImpl()->isConstDevImpl());
+
+		explore_children_r(d, ctxt );
+		}
+
+		ctxt->visitor->visitPost( ctxt->here );
+	}
+}
 
 bool CompositePathIterator::validConcatenation(Path p)
 {
@@ -531,7 +608,7 @@ bool CompositePathIterator::validConcatenation(Path p)
              == static_pointer_cast<Entry::element_type, EntryImpl::element_type>( (*this)->c_p_->getEntryImpl() ) );
 }
 
-static PathImpl::reverse_iterator rbegin(Path p)
+static CPathImpl::reverse_iterator rbegin(Path p)
 {
 	return _toPathImpl(p)->rbegin();
 }
@@ -551,7 +628,7 @@ void CompositePathIterator::append(Path p)
 		if ( nelmsLeft_ != 1 )
 			throw InternalError("assertion failed: nelmsLeft should == 1 at this point");
 	}
-	PathImpl::reverse_iterator::operator=( rbegin(p) );
+	CPathImpl::reverse_iterator::operator=( rbegin(p) );
 	at_end_     = false;
 	nelmsRight_ = 1;
 }
@@ -562,7 +639,7 @@ CompositePathIterator::CompositePathIterator(Path *p0, Path *p, ...)
 	va_start(ap, p);
 	nelmsLeft_ = 1;
 	if ( ! (at_end_ = (*p0)->empty()) ) {
-		PathImpl::reverse_iterator::operator=( rbegin(*p0) );
+		CPathImpl::reverse_iterator::operator=( rbegin(*p0) );
 	}
 	while ( p ) {
 		append( *p );
@@ -576,7 +653,7 @@ CompositePathIterator::CompositePathIterator(Path *p)
 {
 	nelmsLeft_  = 1;
 	if ( ! (at_end_ = (*p)->empty()) ) {
-		PathImpl::reverse_iterator::operator=( rbegin(*p) );
+		CPathImpl::reverse_iterator::operator=( rbegin(*p) );
 	}
 	nelmsRight_ = 1;
 }
@@ -584,10 +661,10 @@ CompositePathIterator::CompositePathIterator(Path *p)
 CompositePathIterator & CompositePathIterator::operator++()
 {
 	nelmsRight_ *= ((*this)->idxt_ - (*this)->idxf_) + 1;
-	PathImpl::reverse_iterator::operator++();
-	if ( ! PathImpl::hasParent(*this) ) {
+	CPathImpl::reverse_iterator::operator++();
+	if ( ! CPathImpl::hasParent(*this) ) {
 		if ( ! l_.empty() ) {
-			PathImpl::reverse_iterator::operator=(l_.back());
+			CPathImpl::reverse_iterator::operator=(l_.back());
 			l_.pop_back();
 			nelmsLeft_ /= (*this)->nelmsLeft_;
 		} else {

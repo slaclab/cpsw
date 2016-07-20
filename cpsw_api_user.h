@@ -23,6 +23,7 @@ typedef shared_ptr<const IHub>   Hub;
 typedef shared_ptr<const IChild> Child;
 typedef shared_ptr<const IEntry> Entry;
 typedef shared_ptr<IPath>        Path;
+typedef shared_ptr<const IPath>  ConstPath;
 typedef shared_ptr<IScalVal_RO>  ScalVal_RO;
 typedef shared_ptr<IScalVal_WO>  ScalVal_WO;
 typedef shared_ptr<IScalVal>     ScalVal;
@@ -78,39 +79,57 @@ class IChild : public virtual IEntry {
 		virtual ~IChild() {}
 };
 
+// Traverse the hierarchy. This could all be
+// done on top of IPath only but we like to
+// provide a unique API; plus it is more efficient...
+
+class IPathVisitor {
+public:
+	// executed before recursing into children.
+	// If this method returns 'false' then recursion
+	// into children is not performed and
+	// the 'visitPost()' method is not executed.
+	virtual bool visitPre (ConstPath here) = 0;
+	// executed after recursion into children
+	virtual void visitPost(ConstPath here) = 0;
+};
+
 class IPath {
 public:
 	// lookup 'name' under this path and return new 'full' path
 	virtual Path        findByName(const char *name) const = 0;
 	// strip last element of this path and return child at tail (or NULL if none)
-	virtual Child       up()                         = 0;
+	virtual Child       up()                          = 0;
 	// test if this path is empty
-	virtual bool        empty()                const = 0;
-	virtual void        clear()                      = 0; // absolute; reset to root
-	virtual void        clear(Hub)                   = 0; // relative; reset to passed arg
+	virtual bool        empty()                 const = 0;
+	virtual void        clear()                       = 0; // absolute; reset to root
+	virtual void        clear(Hub)                    = 0; // relative; reset to passed arg
 	// return Hub at the tip of this path (if any -- NULL otherwise)
-	virtual       Hub   origin()               const = 0;
+	virtual       Hub   origin()                const = 0;
 	// return parent Hub (if any -- NULL otherwise )
-	virtual       Hub   parent()               const = 0;
+	virtual       Hub   parent()                const = 0;
 	// return Child at the end of this path (if any -- NULL otherwise)
-	virtual Child       tail()                 const = 0;
-	virtual std::string toString()             const = 0;
-	virtual void        dump(FILE *)           const = 0;
+	virtual Child       tail()                  const = 0;
+	virtual std::string toString()              const = 0;
+	virtual void        dump(FILE *)            const = 0;
 	// verify the 'head' of 'p' is identical with the tail of this path
-	virtual bool        verifyAtTail(Path p)         = 0;
+	virtual bool        verifyAtTail(Path p)          = 0;
 	// append a copy of another path to this one.
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
-	virtual void        append(Path p)               = 0;
+	virtual void        append(Path p)                = 0;
 	
 	// append a copy of another path to a copy of this one and return the new copy
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
-	virtual Path        concat(Path p)         const = 0;
+	virtual Path        concat(Path p)          const = 0;
 
 	// make a copy of this path
-	virtual Path        clone()                const = 0;
+	virtual Path        clone()                 const = 0;
 
 	// count number of array elements addressed by this path
-	virtual unsigned    getNelms()             const = 0;
+	virtual unsigned    getNelms()              const = 0;
+
+	// recurse through the hierarchy
+	virtual void        explore(IPathVisitor *) const = 0;
 
 	// create a path
 	static  Path        create();             // absolute; starting at root

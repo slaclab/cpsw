@@ -50,15 +50,38 @@ Path p4 = root->findByName("device/reg[0]");
 
 using std::cout;
 
-class DVisitor : public IVisitor {
-	public:
-	virtual void visit(Field f) { printf("Visiting default E (%s)\n", f->getName()); }
-	virtual void visit(Dev   d) { printf("Visiting default D (%s)\n", d->getName()); }
-};
-
-class DumpNameVisitor : public IVisitor {
+class DumpNameVisitor : public IPathVisitor {
+private:
+	bool pre_;
+	int  indent_;
 public:
-	virtual void visit(Field e) { printf("E: %s\n", e->getName()); }
+	DumpNameVisitor() : pre_(false), indent_(0) {}
+
+	void setPre(bool pre) { pre_ = pre; }
+
+	virtual void pri(Entry e)
+	{
+	int i;
+		printf("E:");
+		for ( i=0; i<indent_; i++ )
+			printf(" ");
+		printf("%s\n", e->getName());
+	}
+
+	virtual bool visitPre(ConstPath p)
+	{
+		indent_++;
+		if ( pre_ )
+			pri( p->tail() );
+		return true;
+	}
+
+	virtual void visitPost(ConstPath p)
+	{
+		if ( !pre_ )
+			pri( p->tail() );
+		indent_--;
+	}
 }; 
 
 struct TestFailed {};
@@ -151,13 +174,15 @@ Path    p  = IPath::create();
 Hub     r  = use_yaml ? build_yaml() : build();
 
 	printf("root  use-count: %li\n", r.use_count());
-#if 0
+
 	{
 	DumpNameVisitor v;
-	r->accept( &v, IVisitable::RECURSE_DEPTH_FIRST );
-	r->accept( &v, IVisitable::RECURSE_DEPTH_AFTER );
+	p = IPath::create(r);
+	v.setPre( false );
+	p->explore( &v );	
+	v.setPre( true );
+	p->explore( &v );	
 	}
-#endif
 
 	p = r->findByName("outer/inner/leaf");
 	printf("root  use-count: %li, origin %s\n", r.use_count(), p->origin()->getName());
