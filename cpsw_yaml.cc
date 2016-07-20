@@ -231,13 +231,6 @@ const YAML::Node &root( root_name ? node[root_name] : node );
 	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry()->makeItem( root ) );
 }
 
-class NoOpDeletor {
-public:
-	void operator()(StreamMuxBuf::Stream::element_type *obj)
-	{
-	}
-};
-
 static YAML::Node
 loadPreprocessedYamlStream(StreamMuxBuf::Stream top_stream)
 {
@@ -251,6 +244,13 @@ YamlPreprocessor     preprocessor( top_stream, &muxer );
 
 		return YAML::Load( top_preprocessed_stream );
 }
+
+class NoOpDeletor {
+public:
+	void operator()(StreamMuxBuf::Stream::element_type *obj)
+	{
+	}
+};
 
 YAML::Node
 CYamlFieldFactoryBase::loadPreprocessedYaml(std::istream &top)
