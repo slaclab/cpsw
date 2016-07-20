@@ -96,14 +96,47 @@ $(2)_CFLAGS_$$(TARNM)  ?= $$($(2)_CFLAGS_default)
 
 endef
 
-TGTS+=$(STATIC_LIBRARIES:%=lib%.a)
+# Template to assemble shared libraries
+# Argument 1 is the name of the library (*without* 'lib' prefix or '.so' suffix)
+# Argument 2 is the name of the library with '-' substituted by '_' (for use in variable names)
+define LIBs_template
+
+$(2)_OBJS=$$(patsubst %.cpp,%.pic.o,$$(patsubst %.cc,%.pic.o,$$(patsubst %.c,%.pic.o,$$($(2)_SRCS))))
+
+lib$(1).so: $$($(2)_OBJS)
+
+SRCS+=$$($(2)_SRCS)
+
+$(1):CXXFLAGS+=$$($(2)_CXXFLAGS) $$($(2)_CXXFLAGS_$$(TARNM))
+$(1):CFLAGS  +=$$($(2)_CFLAGS)   $$($(2)_CFLAGS_$$(TARNM))
+
+$(2)_CXXFLAGS_$$(TARNM)?= $$($(2)_CXXFLAGS_default)
+$(2)_CFLAGS_$$(TARNM)  ?= $$($(2)_CFLAGS_default)
+
+endef
+
+TGTS+=$(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
 
 # Expand the template for all library targets
 $(foreach lib,$(STATIC_LIBRARIES),$(eval $(call LIBa_template,$(lib),$(subst -,_,$(lib)))))
 
+$(foreach lib,$(STATIC_LIBRARIES),$(eval $(call LIBs_template,$(lib),$(subst -,_,$(lib)))))
+
 $(STATIC_LIBRARIES:%=lib%.a):
 	$(AR) cr $@ $^
 	$(RANLIB) $@
+
+%.pic.o: %.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -fpic -o $@ -c $^
+
+%.pic.o: %.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -fpic -o $@ -c $^
+
+%.pic.o: %.c
+	$(CC) $(CPPFLAGS) $(CLAGS) -fpic -o $@ -c $^
+
+$(SHARED_LIBRARIES:%=lib%.so):
+	$(CXX) -shared -o $@ $^
 
 # Template to link programs
 # Argument 1 is the name of the program
@@ -143,8 +176,8 @@ $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIR
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(INSTALL_DIR:%=%/lib/$(TARCH)))
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS:%=-l%),$(lib:%.a=-Wl,-Bstatic % -Wl,-Bdynamic))
 
-$(PROGRAMS) $(TESTPROGRAMS):
-	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS)
+$(PROGRAMS) $(TESTPROGRAMS): $(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
+	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS) $(addprefix -Wl,-rpath,$(INSTALL_DIR:%=%/lib/$(TARCH)))
 
 all: $(TGTS) install
 
@@ -196,6 +229,11 @@ install:
 			mkdir -p $(INSTALL_DIR)/lib/$(TARCH) ;\
 			echo "Installing Libraries $(STATIC_LIBRARIES:%=%lib.a)" ; \
 			$(INSTALL) $(foreach lib,$(STATIC_LIBRARIES),$(lib:%=lib%.a)) $(INSTALL_DIR)/lib/$(TARCH) ;\
+		fi ;\
+		if [ -n "$(SHARED_LIBRARIES)" ] ; then \
+			mkdir -p $(INSTALL_DIR)/lib/$(TARCH) ;\
+			echo "Installing Libraries $(SHARED_LIBRARIES:%=%lib.so)" ; \
+			$(INSTALL) $(foreach lib,$(SHARED_LIBRARIES),$(lib:%=lib%.so)) $(INSTALL_DIR)/lib/$(TARCH) ;\
 		fi ;\
 		if [ -n "$(PROGRAMS)" ] ; then \
 			mkdir -p $(INSTALL_DIR)/bin/$(TARCH) ;\
