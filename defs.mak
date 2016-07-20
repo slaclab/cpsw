@@ -50,11 +50,10 @@ RUN_OPTS=''
 # Libraries currently required by CPSW itself (and thus by anything using it)
 
 # colon separated dirlist
-cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(or $(boostinc_DIR_$(TARNM)), $(boostinc_DIR_default), $(boostinc_DIR)))
-cpswinc_DIRS+=$(addprefix :,$(or $(yaml_cppinc_DIR_$(TARNM)), $(yaml_cppinc_DIR_default), $(yaml_cppinc_DIR)))
+# Note: += adds a whitespace
+cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(or $(boostinc_DIR_$(TARNM)),$(boostinc_DIR_default),$(boostinc_DIR)))$(addprefix :,$(or $(yaml_cppinc_DIR_$(TARNM)),$(yaml_cppinc_DIR_default),$(yaml_cppinc_DIR)))
 # colon separated dirlist
-cpswlib_DIRS=$(CPSW_DIR)/O.$(TARCH)$(addprefix :,$(or $(boostlib_DIR_$(TARNM)), $(boostlib_DIR_default), $(boostlib_DIR)))
-cpswlib_DIRS+=$(addprefix :,$(or $(yaml_cpplib_DIR_$(TARNM)), $(yaml_cpplib_DIR_default), $(yaml_cpplib_DIR)))
+cpswlib_DIRS=$(addsuffix /O.$(TARCH),$(CPSW_DIR))$(addprefix :,$(or $(boostlib_DIR_$(TARNM)),$(boostlib_DIR_default),$(boostlib_DIR)))$(addprefix :,$(or $(yaml_cpplib_DIR_$(TARNM)),$(yaml_cpplib_DIR_default),$(yaml_cpplib_DIR)))
 
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
 CPSW_LIBS   = cpsw yaml-cpp pthread rt
