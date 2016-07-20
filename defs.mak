@@ -58,6 +58,9 @@ cpswlib_DIRS=$(addsuffix /O.$(TARCH),$(CPSW_DIR))$(addprefix :,$(or $(boostlib_D
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
 CPSW_LIBS   = cpsw yaml-cpp pthread rt
 
+COMMA__=,
+SPACE__= #
+
 # definitions
 include $(CPSW_DIR)/config.mak
 -include $(CPSW_DIR)/config.local.mak
