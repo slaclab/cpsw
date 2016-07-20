@@ -81,7 +81,7 @@ udpsrv_SRCS+= udpsrv_mod_axiprom.cc
 
 udpsrv_CXXFLAGS+= -DUDPSRV
 
-udpsrv_LIBS = tstaux cpsw pthread rt
+udpsrv_LIBS = tstaux $(CPSW_LIBS)
 
 PROGRAMS   += udpsrv
 
