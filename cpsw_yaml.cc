@@ -1,4 +1,13 @@
+#include <sstream>
+#include <fstream>
+#include <iostream>
+
+#include <cpsw_api_user.h>
+#include <cpsw_api_builder.h>
 #include <cpsw_yaml.h>
+
+#ifndef NO_YAML_SUPPORT
+
 #include <cpsw_entry.h>
 #include <cpsw_hub.h>
 #include <cpsw_error.h>
@@ -9,9 +18,6 @@
 #include <cpsw_command.h>
 #include <cpsw_preproc.h>
 
-#include <sstream>
-#include <fstream>
-#include <iostream>
 
 using boost::dynamic_pointer_cast;
 
@@ -275,26 +281,6 @@ CYamlFieldFactoryBase::loadPreprocessedYamlFile(const char *file_name)
 	return loadPreprocessedYamlStream( StreamMuxBuf::mkstrm( file_name ) );
 }
 
-Hub
-IHub::loadYamlFile(const char *file_name, const char *root_name)
-{
-	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name ), root_name );
-}
-
-Hub
-IHub::loadYamlStream(std::istream &in, const char *root_name)
-{
-	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYaml( in ), root_name );
-}
-
-Hub
-IHub::loadYamlStream(const char *yaml, const char *root_name)
-{
-std::string  str( yaml );
-std::stringstream sstrm( str );
-	return loadYamlStream( sstrm, root_name );
-}
-
 void
 IYamlSupport::dumpYamlFile(Entry top, const char *file_name, const char *root_name)
 {
@@ -360,3 +346,41 @@ DECLARE_YAML_FIELD_FACTORY(MemDevImpl);
 DECLARE_YAML_FIELD_FACTORY(MMIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(NetIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(SequenceCommandImpl);
+
+#endif
+
+Hub
+IHub::loadYamlFile(const char *file_name, const char *root_name)
+{
+#ifdef NO_YAML_SUPPORT
+	throw NoYAMLSupportError();
+#else
+	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name ), root_name );
+#endif
+}
+
+Hub
+IHub::loadYamlStream(std::istream &in, const char *root_name)
+{
+#ifdef NO_YAML_SUPPORT
+	throw NoYAMLSupportError();
+#else
+	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYaml( in ), root_name );
+#endif
+}
+
+Hub
+IHub::loadYamlStream(const char *yaml, const char *root_name)
+{
+std::string  str( yaml );
+std::stringstream sstrm( str );
+	return loadYamlStream( sstrm, root_name );
+}
+
+#ifdef NO_YAML_SUPPORT
+void
+IYamlSupport::dumpYamlFile(Entry top, const char *file_name, const char *root_name)
+{
+	throw NoYAMLSupportError();
+}
+#endif

@@ -258,5 +258,12 @@ public:
 	}
 };
 
+class NoYAMLSupportError : public CPSWError {
+public:
+	NoYAMLSupportError()
+	: CPSWError("No YAML support compiled in")
+	{
+	}
+};
 
 #endif
