@@ -15,7 +15,10 @@ using boost::make_shared;
 class   Visitor;
 
 class   CEntryImpl;
-typedef shared_ptr<CEntryImpl> EntryImpl;
+typedef shared_ptr<CEntryImpl>      EntryImpl;
+
+class   CDevImpl;
+typedef shared_ptr<const CDevImpl>  ConstDevImpl;
 
 class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase {
 	private:
@@ -96,10 +99,11 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 
 		virtual void accept(IVisitor    *v, RecursionOrder order, int recursionDepth);
 
-		virtual EntryImpl getSelf()            { return getSelfAs<EntryImpl>();       }
+		virtual EntryImpl getSelf()            { return getSelfAs<EntryImpl>();      }
 		virtual EntryImpl getConstSelf() const { return getSelfAsConst<EntryImpl>(); }
 
-		virtual Hub isHub() const   { return Hub( static_cast<Hub::element_type *>(NULL) ); }
+		virtual Hub isHub()                   const { return Hub();          }
+		virtual ConstDevImpl isConstDevImpl() const { return ConstDevImpl(); }
 };
 
 #endif

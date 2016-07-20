@@ -30,8 +30,10 @@ struct StrCmp {
 };
 
 class CDevImpl : public CEntryImpl, public virtual IDev {
-	private:
+	public:
 		typedef  std::map<const char*, Address, StrCmp> MyChildren;
+
+	private:
 		mutable  MyChildren children_; // only by 'add' method
 
 	protected:
@@ -42,6 +44,9 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		CDevImpl(CDevImpl &orig, Key &k):CEntryImpl(orig, k) { throw InternalError("Clone NotImplemented"); }
 
 	public:
+
+		typedef MyChildren::const_iterator const_iterator;
+
 		CDevImpl(Key &k, const char *name, uint64_t size= 0);
 
 		CDevImpl(Key &k, const YAML::Node &n);
@@ -75,7 +80,18 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 
 		virtual Children getChildren() const;
 
-		virtual Hub isHub() const;
+		virtual Hub          isHub()          const;
+		virtual ConstDevImpl isConstDevImpl() const  { return getSelfAsConst<ConstDevImpl>(); }
+
+		virtual const_iterator begin() const
+		{
+			return children_.begin();
+		}
+
+		virtual const_iterator end()   const
+		{
+			return children_.end();
+		}
 
 };
 
