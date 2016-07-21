@@ -203,7 +203,7 @@ CYamlFieldFactoryBase::addChildren(CEntryImpl &e, const YAML::Node &node, IYamlT
 void
 CYamlFieldFactoryBase::addChildren(CDevImpl &d, const YAML::Node &node, IYamlTypeRegistry<Field> *registry)
 {
-const YAML::Node & children( node["children"] );
+const YAML::Node & children( getNode(node,"children") );
 
 	std::cout << "node size " << node.size() << "\n";
 
@@ -213,7 +213,6 @@ const YAML::Node & children( node["children"] );
 		++it;
 	}
 
-	std::cout<<"adding " << children.size() << " children\n";
 
 	if ( children ) {
 		YAML::const_iterator it = children.begin();
