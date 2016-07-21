@@ -113,6 +113,20 @@ public:
 		return originDev_;
 	}
 
+	virtual unsigned    getTailFrom() const
+	{
+		if ( empty() )
+			throw InvalidPathError("getTailFrom() called on an empty Path");
+		return back().idxf_;
+	}
+
+	virtual unsigned    getTailTo() const
+	{
+		if ( empty() )
+			throw InvalidPathError("getTailFrom() called on an empty Path");
+		return back().idxt_;
+	}
+
 	virtual void        explore(IPathVisitor *) const;
 
 	virtual ~CPathImpl();

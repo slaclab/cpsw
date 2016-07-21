@@ -128,6 +128,10 @@ public:
 	// count number of array elements addressed by this path
 	virtual unsigned    getNelms()              const = 0;
 
+	// 'from' and 'to' indices addressed by the tail of this path
+	virtual unsigned    getTailFrom()           const = 0;
+	virtual unsigned    getTailTo()             const = 0;
+
 	// recurse through the hierarchy
 	virtual void        explore(IPathVisitor *) const = 0;
 
