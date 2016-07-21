@@ -67,11 +67,16 @@ DEP_HEADERS += udpsrv_port.h
 DEP_HEADERS += udpsrv_rssi_port.h
 DEP_HEADERS += udpsrv_util.h
 
-STATIC_LIBRARIES+=cpsw
+STATIC_LIBRARIES_YES+=cpsw
+SHARED_LIBRARIES_YES+=cpsw
 
 tstaux_SRCS+= crc32-le-tbl-4.c
 
-STATIC_LIBRARIES+=tstaux
+STATIC_LIBRARIES_YES+=tstaux
+SHARED_LIBRARIES_YES+=tstaux
+
+STATIC_LIBRARIES=$(STATIC_LIBRARIES_$(WITH_STATIC_LIBRARIES))
+SHARED_LIBRARIES=$(SHARED_LIBRARIES_$(WITH_SHARED_LIBRARIES))
 
 udpsrv_SRCS = udpsrv.c
 udpsrv_SRCS+= udpsrv_port.cc
@@ -175,7 +180,9 @@ cpsw_netio_tst_run:     RUN_OPTS=$(cpsw_netio_tst_RUN_OPTS)
 
 cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
 
-cpsw_axiv_udp_tst_run:  RUN_OPTS='' '-S 30'
+cpsw_axiv_udp_tst_run:  RUN_OPTS='-y cpsw_axiv_udp_tst_1.yaml' '-Y cpsw_axiv_udp_tst_1.yaml' '-a192.168.2.10:8193:8194 -R -V3 -D0 -r -d1 -S100 -y cpsw_axiv_udp_tst_2.yaml' '-Y cpsw_axiv_udp_tst_2.yaml -S100'
+
+cpsw_axiv_udp_tst_run:  RUN_VARS=PRBS_BASE=0x0a030000
 
 cpsw_sval_tst_run:      RUN_OPTS='-y cpsw_sval_tst.yaml' '-Y cpsw_sval_tst.yaml'
 

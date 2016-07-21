@@ -187,7 +187,7 @@ run_tests: $(addsuffix _run,$(FILTERED_TBINS))
 $(addsuffix _run,$(FILTERED_TBINS)):%_run: %
 	@for opt in $(RUN_OPTS) ; do \
 	    echo "Running ./$< $${opt}"; \
-        if ( export LD_LIBRARY_PATH="$(cpswlib_DIRS)$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}"; ./$< $${opt} ) ; then \
+        if ( LD_LIBRARY_PATH="$(cpswlib_DIRS)$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) ./$< $${opt} ) ; then \
 			echo "TEST ./$< $${opt} PASSED" ; \
 		else \
 			echo "TEST ./$< $${opt} FAILED" ; \

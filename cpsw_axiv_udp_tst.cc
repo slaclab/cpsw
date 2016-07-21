@@ -45,6 +45,8 @@ AXIVers IAXIVers::create(const char *name)
 {
 AXIVersImpl v = CShObj::create<AXIVersImpl>(name);
 Field f;
+	f = IIntField::create("fpgaVersion", 32, false, 0, IIntField::RO);
+	v->CMMIODevImpl::addAtAddress( f , 0x00 );
 	f = IIntField::create("dnaValue", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f , 0x08 );
 	f = IIntField::create("fdSerial", 64, false, 0, IIntField::RO, 4);
@@ -592,6 +594,8 @@ uint16_t  u16;
 	// can use raw memory for testing instead of UDP
 	Path pre = IPath::create( root );
 
+	ScalVal_RO fpgaVers = IScalVal_RO::create( pre->findByName("mmio/vers/fpgaVersion") );
+
 	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
 	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
 	ScalVal_RO dnaValue = IScalVal_RO::create( pre->findByName("mmio/vers/dnaValue") );
@@ -617,9 +621,14 @@ uint16_t  u16;
 	ScalVal_RO randomData   = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/randomData") ));
 
 
-	ScalVal_RO adcs = IScalVal_RO::create( pre->findByName("mmio/sysm/adcs") );
+	ScalVal_RO adcs;
+
+	if ( sysmon )
+		adcs = IScalVal_RO::create( pre->findByName("mmio/sysm/adcs") );
 
 	printf("AxiVersion:\n");
+	fpgaVers->getVal( &u64 );
+	printf("FpgaVersion: %"PRIu64"\n", u64);
 	bldStamp->getVal( str, sizeof(str)/sizeof(str[0]) );
 	printf("Build String:\n%s\n", (char*)str);
 
