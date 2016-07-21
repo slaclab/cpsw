@@ -59,27 +59,32 @@ public:
 
 	void setPre(bool pre) { pre_ = pre; }
 
-	virtual void pri(Entry e)
+	virtual void pri(ConstPath p)
 	{
+	unsigned f = p->getTailFrom();
+	unsigned t = p->getTailTo();
 	int i;
 		printf("E:");
 		for ( i=0; i<indent_; i++ )
 			printf(" ");
-		printf("%s\n", e->getName());
+		printf("%s[%d", p->tail()->getName(), f);
+		if ( f != t )
+			printf("-%d",t);
+		printf("]\n");
 	}
 
 	virtual bool visitPre(ConstPath p)
 	{
 		indent_++;
 		if ( pre_ )
-			pri( p->tail() );
+			pri( p );
 		return true;
 	}
 
 	virtual void visitPost(ConstPath p)
 	{
 		if ( !pre_ )
-			pri( p->tail() );
+			pri( p );
 		indent_--;
 	}
 }; 

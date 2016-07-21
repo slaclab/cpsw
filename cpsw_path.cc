@@ -583,12 +583,24 @@ CPathImpl::explore_children_r(ConstDevImpl d, struct explorer_ctxt *ctxt)
 		CDevImpl::const_iterator it( d->begin() );
 		// iterate over children
 		while ( it != d->end() ) {
-			// append a child to the 'here' path
-			ctxt->here->push_back( PathEntry( (*it).second, -1, -1, ctxt->here->getNelms()) );
-			// explore
-			explore_r( ctxt );
-			// remove the child from the 'here' path
-			ctxt->here->pop_back();
+
+			if ( (*it).second->isHub() ) {
+				// for hubs do descend into each individual array element
+				unsigned i;
+				for ( i=0; i<(*it).second->getNelms(); i++ ) {
+					// append a child to the 'here' path
+					ctxt->here->push_back( PathEntry( (*it).second, i, i, 1) );
+					// explore
+					explore_r( ctxt );
+					// remove the child from the 'here' path
+					ctxt->here->pop_back();
+				}
+			} else {
+				// for leaf nodes do not descend into each individual array element
+				ctxt->here->push_back( PathEntry( (*it).second, -1, -1, (*it).second->getNelms()) );
+				explore_r( ctxt );
+				ctxt->here->pop_back();
+			}
 			++it;
 		}
 	}
@@ -598,18 +610,10 @@ void
 CPathImpl::explore_r(struct explorer_ctxt *ctxt)
 {
 	if ( ctxt->visitor->visitPre( ctxt->here ) ) {
-
-		// obtain the tail of the 'here' path as a DevImpl. If
-		// the tail is a leaf (not a container) then (virtual) 'isConstDevImpl()' 
-		// returns 'NULL'
-		{
-		ConstDevImpl d(ctxt->here->back().c_p_->getEntryImpl()->isConstDevImpl());
-
-		explore_children_r(d, ctxt );
-		}
-
-		ctxt->visitor->visitPost( ctxt->here );
+		explore_children_r( ctxt->here->back().c_p_->getEntryImpl()->isConstDevImpl(), ctxt );
 	}
+
+	ctxt->visitor->visitPost( ctxt->here );
 }
 
 bool CompositePathIterator::validConcatenation(Path p)

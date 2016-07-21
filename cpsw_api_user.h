@@ -86,12 +86,12 @@ class IChild : public virtual IEntry {
 class IPathVisitor {
 public:
 	// executed before recursing into children.
-	// If this method returns 'false' then recursion
-	// into children is not performed and
-	// the 'visitPost()' method is not executed.
-	virtual bool visitPre (ConstPath here) = 0;
+	// return 'true' to descend into children,
+	// 'false' otherwise.
+	virtual bool  visitPre (ConstPath here) = 0;
+
 	// executed after recursion into children
-	virtual void visitPost(ConstPath here) = 0;
+	virtual void  visitPost(ConstPath here) = 0;
 };
 
 class IPath {
