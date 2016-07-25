@@ -86,6 +86,6 @@ yaml_cpplib_DIR          = $(yaml_DIR)/lib
 # or relative to $(CPSW_DIR).
 #
 # Whether to build static libraries (YES/NO)
-WITH_STATIC_LIBS=NO
+WITH_STATIC_LIBRARIES=NO
 # Whether to build shared libraries (YES/NO)
-WITH_SHARED_LIBS=YES
+WITH_SHARED_LIBRARIES=YES
