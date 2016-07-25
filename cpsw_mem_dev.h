@@ -28,7 +28,7 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	public:
 		CMemDevImpl(Key &k, const char *name, uint64_t size);
 
-		CMemDevImpl(Key &k, const YAML::Node &n);
+		CMemDevImpl(Key &k, YamlState &n);
 
 		static  const char *_getClassName()       { return "MemDev";        }
 		virtual const char * getClassName() const { return _getClassName(); }

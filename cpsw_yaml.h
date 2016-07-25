@@ -24,20 +24,20 @@ namespace YAML {
 
 template <typename T> class IYamlTypeRegistry {
 public:
-	virtual T    makeItem(const YAML::Node &) = 0;
+	virtual T    makeItem(YamlState &) = 0;
 };
 
 template <typename T> class CYamlTypeRegistry : public IYamlTypeRegistry<T> {
 public:
-	virtual T    makeItem(const YAML::Node &)
+	virtual T    makeItem(YamlState &)
 	{
 		throw NoYAMLSupportError();
 	}
-	virtual void extractClassName(std::vector<std::string> *svec_p, const YAML::Node &)
+	virtual void extractClassName(std::vector<std::string> *svec_p, YamlState &)
 	{
 		throw NoYAMLSupportError();
 	}
-	virtual bool extractInstantiate(const YAML::Node &node)
+	virtual bool extractInstantiate(YamlState &node)
 	{
 		throw NoYAMLSupportError();
 	}
@@ -47,7 +47,7 @@ template <typename T> class IYamlFactoryBase {
 public:
 	IYamlFactoryBase(const char *className, IYamlTypeRegistry<T> *r)
 	{}
-	virtual T makeItem(const YAML::Node &node, IYamlTypeRegistry<T> *)
+	virtual T makeItem(YamlState &node, IYamlTypeRegistry<T> *)
 	{
 		throw NoYAMLSupportError();
 	}
@@ -59,12 +59,12 @@ public:
 	virtual void dumpYaml(YAML::Node &n)     const {}
 };
 
-template <typename T> static void mustReadNode(const YAML::Node &node, const char *fld, T *val)
+template <typename T> static void mustReadNode(YamlState &node, const char *fld, T *val)
 {
 	throw NoYAMLSupportError();
 }
 
-template <typename T> static bool readNode(const YAML::Node &node, const char *fld, T *val)
+template <typename T> static bool readNode(YamlState &node, const char *fld, T *val)
 {
 	return false;
 }
@@ -81,7 +81,7 @@ pushNode(YAML::Node &node, const char *fld, const YAML::Node &child)
 }
 
 static inline const YAML::Node
-getNode(const YAML::Node n, const char *fld)
+getNode(YamlState &n, const char *fld)
 {
 	throw NoYAMLSupportError();
 }
@@ -96,6 +96,85 @@ template <typename T> class CYamlFieldFactory {
 
 
 #include <yaml-cpp/yaml.h>
+
+namespace YAML {
+	// A 'Node' extension which remembers parent nodes
+	// (which is necessary for backtracking through "<<" merge keys).
+
+	// The idea is that PNodes 'live' as automatic variables on the
+	// stack.
+	// The 'uplink_' points to the parent node which is on the stack
+	// of the current function or one of its callers.
+	// The assumption is that this class is used from code which
+	// recurses and backtracks through the tree...
+
+	class PNode : public Node {
+	private:
+		const PNode *uplink_;
+
+		PNode operator=(const PNode&);
+
+	public:
+		// Constructor for the root; the parent is NULL
+		PNode( const Node & root )
+		: Node( root ),
+		  uplink_(0)
+		{
+		}
+
+		PNode()
+		: Node( Node(YAML::NodeType::Undefined) ),
+		  uplink_( 0 )
+		{
+		}
+
+		YAML::Node get() const
+		{
+			return *static_cast<const YAML::Node*>(this);
+		}
+		
+
+		// Construct a PNode by map lookup while remembering
+		// the parent.
+		PNode( const PNode *parent, const char *key )
+		: Node( (*parent)[key] ),
+		  uplink_(parent)
+		{
+		}
+
+		// Construct a PNode by sequence lookup while remembering
+		// the parent.
+		PNode( const PNode *parent, unsigned index )
+		: Node( (*parent)[index] ),
+		  uplink_(parent)
+		{
+		}
+
+		// lookup a key starting at 'this' PNode and backtrack
+		// through merge ("<<") keys.
+		//
+		// If there is a structure like this
+		//
+		//   a:
+		//     <<:
+		//       b:
+		//         c:
+		//           key1: merged_value1
+		//           key2: merged_value2
+		//     b:
+        //       c:
+		//         key1: value1:
+		//
+		// then the algorithm is expected to
+		// find
+		//    a["b"]["c"]["key1"] -> value1
+		//    a["b"]["c"]["key2"] -> merged_value2
+		//
+		PNode lookup(const char *key) const;
+	};
+};
+
+typedef const YAML::PNode YamlState;
 
 class CYamlSupportBase;
 typedef shared_ptr<CYamlSupportBase> YamlSupportBase;
@@ -135,7 +214,7 @@ class CYamlSupportBase : public virtual IYamlSupportBase {
 		// Can be used to modify the YAML node before it is passed
 		// to the constructor (create a new node from 'orig', modify
 		// and return it).
-		static YAML::Node overrideNode(const YAML::Node &orig);
+		static void overrideNode(YamlState &orig);
 
 		// insert the classname into a node;
 		// e.g.,:
@@ -157,9 +236,6 @@ typedef shared_ptr<CDevImpl> DevImpl;
 /* Template specializations to convert YAML nodes to CPSW entries 
  * (ByteOrder, IIntField::Mode, Field, MMIODev, etc.)
  */
-
-// Lookup a node iterating through merge tags
-const YAML::Node getNode(const YAML::Node &node, const char *fld);
 
 namespace YAML {
 template<>
@@ -265,7 +341,7 @@ struct convert<IIntField::Mode> {
 
 template<>
 struct convert<MutableEnum> {
-	static bool decode(const Node &node, MutableEnum &rhs)
+	static bool decode(const PNode &node, MutableEnum &rhs)
 	{
 		if ( ! node.IsSequence() ) {
 			return false;
@@ -458,6 +534,7 @@ struct convert<INetIODev::ProtocolVersion> {
 
 };
 
+#if 0
 template<>
 struct convert<INetIODev::PortBuilder> {
   static bool decode(const Node& node, INetIODev::PortBuilder& rhs) {
@@ -580,7 +657,6 @@ struct convert<INetIODev::PortBuilder> {
   }
 };
 
-#if 0
 template<>
 struct convert<NetIODev> {
   static bool decode(const Node& node, NetIODev& rhs) {
@@ -619,9 +695,9 @@ struct convert<NetIODev> {
 
 // helpers to read map entries
 
-template <typename T> static void mustReadNode(const YAML::Node &node, const char *fld, T *val)
+template <typename T> static void mustReadNode(YamlState &node, const char *fld, T *val)
 {
-	const YAML::Node &n( getNode(node, fld) );
+	const YAML::Node &n( node.lookup(fld) );
 	if ( ! n ) {
 		throw NotFoundError( std::string("property '") + std::string(fld) + std::string("'") );
 	} else {
@@ -629,9 +705,9 @@ template <typename T> static void mustReadNode(const YAML::Node &node, const cha
 	}
 }
 
-template <typename T> static bool readNode(const YAML::Node &node, const char *fld, T *val)
+template <typename T> static bool readNode(YamlState &node, const char *fld, T *val)
 {
-	const YAML::Node &n( getNode(node, fld) );
+	const YAML::Node &n( node.lookup(fld) );
 	if ( n ) {
 		*val = n.as<T>();
 		return true;
@@ -657,9 +733,9 @@ template <typename T> class IYamlFactoryBase;
 template <typename T> class IYamlTypeRegistry {
 public:
 
-	virtual T    makeItem(const YAML::Node &) = 0;
+	virtual T    makeItem(YamlState &) = 0;
 
-	virtual void extractClassName(std::vector<std::string> *svec_p, const YAML::Node &)  = 0;
+	virtual void extractClassName(std::vector<std::string> *svec_p, YamlState &)  = 0;
 
 	virtual void addFactory(const char *className, IYamlFactoryBase<T> *f) = 0;
 	virtual void delFactory(const char *className)                         = 0;
@@ -692,7 +768,7 @@ public:
 		r->addFactory( className, this );
 	}
 
-	virtual T makeItem(const YAML::Node &node, IYamlTypeRegistry<T> *) = 0;
+	virtual T makeItem(YamlState &node, IYamlTypeRegistry<T> *) = 0;
 
 	virtual ~IYamlFactoryBase()
 	{
@@ -724,11 +800,11 @@ public:
 		registry_->delItem(className);
 	}
 
-	virtual void extractClassName(std::vector<std::string> *svec_p, const YAML::Node &n);
+	virtual void extractClassName(std::vector<std::string> *svec_p, YamlState &n);
 
-	virtual bool extractInstantiate(const YAML::Node &n);
+	virtual bool extractInstantiate(YamlState &n);
 
-	virtual T makeItem(const YAML::Node &n)
+	virtual T makeItem(YamlState &n)
 	{
 	std::vector<std::string> str_vec;
 	std::string str_no_factory = "";
@@ -772,8 +848,8 @@ class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 		{
 		}
 
-		virtual void addChildren(CEntryImpl &, const YAML::Node &, IYamlTypeRegistry<Field> *);
-		virtual void addChildren(CDevImpl &,   const YAML::Node &, IYamlTypeRegistry<Field> *);
+		virtual void addChildren(CEntryImpl &, YamlState &, IYamlTypeRegistry<Field> *);
+		virtual void addChildren(CDevImpl &,   YamlState &, IYamlTypeRegistry<Field> *);
 
 
 	public:
@@ -794,11 +870,11 @@ public:
 	{
 	}
 
-	virtual Field makeItem(const YAML::Node & node, IYamlTypeRegistry<Field> *registry)
+	virtual Field makeItem(YamlState & state, IYamlTypeRegistry<Field> *registry)
 	{
-	const YAML::Node &n( T::element_type::overrideNode(node) );
-		T fld( CShObj::create<T>(n) );
-		addChildren( *fld, n, registry );
+	    T::element_type::overrideNode(state);
+		T fld( CShObj::create<T, YamlState &>(state) );
+		addChildren( *fld, state, registry );
 		return fld;
 	}
 

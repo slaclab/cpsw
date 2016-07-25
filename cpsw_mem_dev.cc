@@ -11,7 +11,7 @@ CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size)
 {
 }
 
-CMemDevImpl::CMemDevImpl(Key &key, const YAML::Node &node)
+CMemDevImpl::CMemDevImpl(Key &key, YamlState &node)
 : CDevImpl(key, node),
   buf_( new uint8_t[size_] )
 {

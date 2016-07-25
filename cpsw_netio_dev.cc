@@ -78,6 +78,8 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 			reset();
 		}
 
+		CPortBuilder(YamlState &);
+
 
 		bool hasSRP()
 		{
@@ -344,6 +346,8 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 		{
 			return make_shared<CPortBuilder>( *this );
 		}
+
+		static PortBuilder      create(YamlState &ypath);
 };
 
 static bool hasRssi(ProtoPort stack)
@@ -554,10 +558,10 @@ CNetIODevImpl::CNetIODevImpl(Key &k, const char *name, const char *ip)
 	}
 }
 
-CNetIODevImpl::CNetIODevImpl(Key &k, const YAML::Node &node)
-: CDevImpl(k, node)
+CNetIODevImpl::CNetIODevImpl(Key &k, YamlState &ypath)
+: CDevImpl(k, ypath)
 {
-	if ( readNode(node, "ipAddr", &ip_str_) ) {
+	if ( readNode(ypath, "ipAddr", &ip_str_) ) {
 		if ( INADDR_NONE == ( d_ip_ = inet_addr( ip_str_.c_str() ) ) ) {
 			throw InvalidArgError( ip_str_.c_str() );
 		}
@@ -1355,11 +1359,91 @@ shared_ptr<CCommAddressImpl> addr;
 	addr->startProtoStack();
 }
 
-void CNetIODevImpl::addAtAddress(Field child, const YAML::Node &node)
+INetIODev::PortBuilder
+CNetIODevImpl::CPortBuilder::create(YamlState &node)
 {
-PortBuilder bldr;
 
-	readNode( node, 0, &bldr);
+INetIODev::PortBuilder pbldr( INetIODev::createPortBuilder() );
+unsigned                   u;
+int                        i;
+uint64_t                   u64;
+bool                       b;
+INetIODev::ProtocolVersion proto_vers;
+
+	{
+		const YAML::PNode &nn( node.lookup("SRP") );
+		if( nn )
+		{
+			if ( readNode(nn, "ProtocolVersion", &proto_vers) )
+				pbldr->setSRPVersion( proto_vers );
+			if ( readNode(nn, "TimeoutUS", &u64) )
+				pbldr->setSRPTimeoutUS( u64 );
+			if ( readNode(nn, "DynTimeout", &b) )
+				pbldr->useSRPDynTimeout( b );
+			if ( readNode(nn, "RetryCount", &u) )
+				pbldr->setSRPRetryCount( u );
+		}
+	}
+	{
+		const YAML::PNode &nn( node.lookup("udp") );
+		if ( nn )
+		{
+			if ( readNode(nn, "port", &u) )
+				pbldr->setUdpPort( u );
+			if ( readNode(nn, "outQueueDepth", &u) )
+				pbldr->setUdpOutQueueDepth( u );
+			if ( readNode(nn, "numRxThreads", &u) )
+				pbldr->setUdpNumRxThreads( u );
+			if ( readNode(nn, "pollSecs", &i) )
+				pbldr->setUdpPollSecs( i );
+		}
+	}
+	{
+		if ( readNode(node, "RSSI", &b ) )
+			pbldr->useRssi( b );
+	}
+	{
+		const YAML::PNode &nn( node.lookup("depack") );
+		if (nn )
+		{
+			pbldr->useDepack( true );
+			if ( readNode(nn, "outQueueDepth", &u) )
+				pbldr->setDepackOutQueueDepth( u );
+			if ( readNode(nn, "ldFrameWinSize", &u) )
+				pbldr->setDepackLdFrameWinSize( u );
+			if ( readNode(nn, "ldFragWinSize", &u) )
+				pbldr->setDepackLdFragWinSize( u );
+		}
+	}
+	{
+		const YAML::PNode &nn( node.lookup("SRPMux") );
+		if (nn )
+		{
+			pbldr->useSRPMux( true );
+			if ( readNode(nn, "VirtualChannel", &u) )
+				pbldr->setSRPMuxVirtualChannel( u );
+		}
+	}
+	{
+		const YAML::PNode &nn( node.lookup("TDestMux") );
+		if (nn )
+		{
+			pbldr->useTDestMux( true );
+			if ( readNode(nn, "TDEST", &u) )
+				pbldr->setTDestMuxTDEST( u );
+			if ( readNode(nn, "StripHeader", &b) )
+				pbldr->setTDestMuxStripHeader( b );
+			if ( readNode(nn, "outQueueDepth", &u) )
+				pbldr->setTDestMuxOutQueueDepth( u );
+		}
+	}
+
+	return pbldr;
+}
+
+void CNetIODevImpl::addAtAddress(Field child, YamlState &ypath)
+{
+PortBuilder bldr( CPortBuilder::create( ypath ) );
 
 	addAtAddress(child, bldr);
 }

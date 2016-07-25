@@ -47,26 +47,26 @@ CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
 	++ocnt();
 }
 
-CEntryImpl::CEntryImpl(Key &key, const YAML::Node &node)
+CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
 : CShObj(key),
   size_( DFLT_SIZE ),
   cacheable_( DFLT_CACHEABLE ),
   locked_( false )
 {
 
-	mustReadNode( node, "name", &name_ );
+	mustReadNode( ypath, "name", &name_ );
 
 	{
 	std::string str;
-	if ( readNode( node, "description", &str ) )
+	if ( readNode( ypath, "description", &str ) )
 		setDescription( str );
 	}
 
-	readNode( node, "size", &size_ );
+	readNode( ypath, "size", &size_ );
 
 	{
 	IField::Cacheable cacheable;
-	if ( readNode( node, "cacheable", &cacheable ) )
+	if ( readNode( ypath, "cacheable", &cacheable ) )
 		setCacheable( cacheable );
 	}
 

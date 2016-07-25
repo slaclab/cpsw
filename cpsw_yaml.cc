@@ -25,61 +25,23 @@ using boost::dynamic_pointer_cast;
 // Must be caused by how nodes are implemented and
 // reference counted.
 // Use RECURSIVE lookup!
-#define RECURSIVE_GET_NODE
-#ifndef RECURSIVE_GET_NODE
-const YAML::Node getNode(const YAML::Node &node, const char *key)
+YAML::PNode
+YAML::PNode::lookup(const char *key) const
 {
-YAML::Node n(node);
-
 	if ( ! key )
-		return n;
+		return *this;
 
-	do {
-std::cout<< "looking for "<<key;
-		const YAML::Node & val_node( n[key] );
-		if ( val_node ) {
-std::cout<< " -> found: " << val_node << "\n";
-			return val_node;
-		}
-
-std::cout<< " -> not found --> looking for merge node ";
-
-		const YAML::Node & merge_node( n["<<"] );
-
-		// seems we have to be really careful when 
-		// manipulating nodes (c++ - we don't really
-		// know what's happening under the hood).
-		// The 'natural' way to write things would
-		// result in crashes:
-		//
-		//   } while ( (n = n["<<"]) );
-		//
-		// seems we shouldn't assign to 'n' if n["<<"] is
-		// not defined.
-
-		if ( ! merge_node ) {
-std::cout<< " -> not found\n";
-			return merge_node;
-		}
-		n = merge_node;
-std::cout<< "found - IT - ";
-
-	} while ( 1 );
-}
-#else
-const YAML::Node getNode(const YAML::Node &node, const char *key)
-{
-	if ( ! node || ! key )
-		return node;
-
-	const YAML::Node &val( node[key] );
+	PNode val(this, key);
 
 	if ( val )
 		return val;
 
-	return getNode( node["<<"], key );
+	PNode merge( this, "<<" );
+	if ( merge )
+		return merge.lookup(key);
+
+	return merge;
 }
-#endif
 
 void pushNode(YAML::Node &node, const char *fld, const YAML::Node &child)
 {
@@ -90,9 +52,8 @@ void pushNode(YAML::Node &node, const char *fld, const YAML::Node &child)
 }
 
 
-YAML::Node CYamlSupportBase::overrideNode(const YAML::Node &node)
+void CYamlSupportBase::overrideNode(YamlState &node)
 {
-	return node;
 }
 
 void
@@ -167,28 +128,28 @@ IRegistry::create()
 }
 
 template <typename T> bool
-CYamlTypeRegistry<T>::extractInstantiate(const YAML::Node &n)
+CYamlTypeRegistry<T>::extractInstantiate(YamlState &node)
 {
 bool        instantiate    = true;
 
-	readNode( n, "instantiate", &instantiate );
+	readNode( node, "instantiate", &instantiate );
 
 	return instantiate;
 }
 
 template <typename T> void
-CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, const YAML::Node &n)
+CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlState &node)
 {
-	const YAML::Node &node( getNode(n, "class") );
-	if ( ! node ) {
+	const YAML::PNode &class_node( node.lookup("class") );
+	if ( ! class_node ) {
 		throw NotFoundError( std::string("property '") + std::string("class") + std::string("'") );
 	} else {
-		if( node.IsSequence() ) {
-			for ( YAML::const_iterator it=node.begin(); it != node.end(); ++it ) {
+		if( class_node.IsSequence() ) {
+			for ( YAML::const_iterator it=class_node.begin(); it != class_node.end(); ++it ) {
 				svec_p->push_back( it->as<std::string>() );
 			}
-		} else if (node.IsScalar() ) {
-			svec_p->push_back( node.as<std::string>() );
+		} else if (class_node.IsScalar() ) {
+			svec_p->push_back( class_node.as<std::string>() );
 		} else {
 			throw  InvalidArgError( std::string("property '") + std::string("class") + std::string("'") );
 		}
@@ -196,14 +157,14 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, const Y
 }
 
 void
-CYamlFieldFactoryBase::addChildren(CEntryImpl &e, const YAML::Node &node, IYamlTypeRegistry<Field> *registry)
+CYamlFieldFactoryBase::addChildren(CEntryImpl &e, YamlState &node, IYamlTypeRegistry<Field> *registry)
 {
 }
 
 void
-CYamlFieldFactoryBase::addChildren(CDevImpl &d, const YAML::Node &node, IYamlTypeRegistry<Field> *registry)
+CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState &node, IYamlTypeRegistry<Field> *registry)
 {
-const YAML::Node & children( getNode(node,"children") );
+const YAML::PNode & children( node.lookup("children") );
 
 	std::cout << "node size " << node.size() << "\n";
 
@@ -215,15 +176,15 @@ const YAML::Node & children( getNode(node,"children") );
 
 
 	if ( children ) {
-		YAML::const_iterator it = children.begin();
-		while ( it != children.end() ) {
-			Field c = registry->makeItem( *it );
+		unsigned i;
+		for ( i=0; i<children.size(); i++ ) {
+			const YAML::PNode child( &children, i );
+			Field c = registry->makeItem( child );
 			if ( c ) {
 				// if 'instantiate' is 'false' then
 				// makeItem() returns a NULL pointer
-				d.addAtAddress( c, *it );
+				d.addAtAddress( c, child );
 			}
-			++it;
 		}
 	}
 }
@@ -231,7 +192,7 @@ const YAML::Node & children( getNode(node,"children") );
 Dev
 CYamlFieldFactoryBase::dispatchMakeField(const YAML::Node &node, const char *root_name)
 {
-const YAML::Node &root( root_name ? node[root_name] : node );
+YamlState &root( root_name ? node[root_name] : node );
 	/* Root node must be a Dev */
 	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry()->makeItem( root ) );
 }

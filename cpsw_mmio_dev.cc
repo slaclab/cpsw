@@ -108,17 +108,17 @@ void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, ui
 }
 
 void
-CMMIODevImpl::addAtAddress(Field child, const YAML::Node &node)
+CMMIODevImpl::addAtAddress(Field child, YamlState &ypath)
 {
 uint64_t  offset;
 unsigned  nelms     = DFLT_NELMS;
 uint64_t  stride    = DFLT_STRIDE;
 ByteOrder byteOrder = DFLT_BYTE_ORDER;
 
-	mustReadNode(node, "offset",    &offset);
-	readNode    (node, "nelms",     &nelms);
-	readNode    (node, "stride",    &stride);
-	readNode    (node, "ByteOrder", &byteOrder);
+	mustReadNode(ypath, "offset",    &offset);
+	readNode    (ypath, "nelms",     &nelms);
+	readNode    (ypath, "stride",    &stride);
+	readNode    (ypath, "ByteOrder", &byteOrder);
 	
 	addAtAddress(child, offset, nelms, stride, byteOrder);
 }
@@ -131,15 +131,15 @@ CMMIOAddressImpl::dumpYamlPart(YAML::Node &node) const
 	writeNode(node, "stride", stride_);
 }
 
-CMMIODevImpl::CMMIODevImpl(Key &key, const YAML::Node &node)
-: CDevImpl(key, node),
+CMMIODevImpl::CMMIODevImpl(Key &key, YamlState &ypath)
+: CDevImpl(key, ypath),
   byteOrder_(DFLT_BYTE_ORDER)
 {
 	if ( 0 == size_ ) {
 		throw InvalidArgError("'size' zero or unset");
 	}
 
-	readNode( node, "ByteOrder", &byteOrder_ );
+	readNode( ypath, "ByteOrder", &byteOrder_ );
 }
 
 void

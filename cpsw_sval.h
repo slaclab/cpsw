@@ -82,7 +82,7 @@ public:
 
 	CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP, Enum enm = Enum());
 
-	CIntEntryImpl(Key &k, const YAML::Node &n);
+	CIntEntryImpl(Key &k, YamlState &n);
 
 	static  const char *_getClassName()       { return "IntField";      }
 	virtual const char * getClassName() const { return _getClassName(); }

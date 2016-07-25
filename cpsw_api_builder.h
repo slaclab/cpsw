@@ -19,6 +19,10 @@ typedef shared_ptr<IField>     Field;
 typedef shared_ptr<IDev>       Dev;
 typedef shared_ptr<CEntryImpl> EntryImpl;
 
+namespace YAML {
+	class PNode;
+};
+
 typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21 } ByteOrder;
 
 ByteOrder hostByteOrder();
@@ -268,7 +272,7 @@ public:
 
 	static MutableEnum create();
 
-	static MutableEnum create(const YAML::Node &node);
+	static MutableEnum create(const YAML::PNode &node);
 };
 
 extern Enum const enumBool;

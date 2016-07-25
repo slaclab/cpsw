@@ -63,10 +63,10 @@ CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, const Items
 
 }
 
-CSequenceCommandImpl::CSequenceCommandImpl(Key &key, const YAML::Node &node)
+CSequenceCommandImpl::CSequenceCommandImpl(Key &key, YamlState &node)
 : CCommandImpl(key, node)
 {
-const YAML::Node &seq_node( getNode(node, "sequence") );
+YamlState &seq_node( node.lookup("sequence") );
 	if ( ! seq_node ) {
 		throw InvalidArgError(std::string(getName()) + " no sequence found");
 	} 
@@ -74,12 +74,13 @@ const YAML::Node &seq_node( getNode(node, "sequence") );
 		throw InvalidArgError(std::string(getName()) + " YAML node not a sequence");
 	}
 
-	for ( YAML::const_iterator it( seq_node.begin() ); it != seq_node.end(); ++it ) {
+	for ( unsigned i = 0; i < seq_node.size(); ++i ) {
+		YAML::PNode item_node( &seq_node, i );
 		std::string entry;
 		uint64_t    value;
 
-		mustReadNode( *it, "entry", &entry );
-		mustReadNode( *it, "value", &value );
+		mustReadNode( item_node, "entry", &entry );
+		mustReadNode( item_node, "value", &value );
 		items_.push_back( Item( entry, value ) );
 	}
 }

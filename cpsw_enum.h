@@ -44,7 +44,7 @@ public:
 			return in;
 		}
 
-		virtual MutableEnum makeItem(const YAML::Node &node, IYamlTypeRegistry<MutableEnum> *r);
+		virtual MutableEnum makeItem(YamlState &node, IYamlTypeRegistry<MutableEnum> *r);
 
 		// singleton access via base-class template:
 		//

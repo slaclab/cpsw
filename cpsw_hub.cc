@@ -218,18 +218,18 @@ CDevImpl::CDevImpl(Key &k, const char *name, uint64_t size)
 	setCacheable( WT_CACHEABLE );
 }
 
-CDevImpl::CDevImpl(Key &key, const YAML::Node &node)
-: CEntryImpl(key, node)
+CDevImpl::CDevImpl(Key &key, YamlState &ypath)
+: CEntryImpl(key, ypath)
 {
 	setCacheable(WT_CACHEABLE); // default for containers
 }
 
 void
-CDevImpl::addAtAddress(Field child, const YAML::Node &node)
+CDevImpl::addAtAddress(Field child, YamlState &ypath)
 {
 unsigned nelms = DFLT_NELMS;
 
-	readNode(node, "nelms", &nelms);
+	readNode(ypath, "nelms", &nelms);
 
 	addAtAddress(child, nelms);
 }

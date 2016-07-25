@@ -51,8 +51,8 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 		{
 		}
 
-		CMMIODevImpl(Key &k, const YAML::Node &n);
-		virtual void addAtAddress(Field child, const YAML::Node &node);
+		CMMIODevImpl(Key &k, YamlState &ypath);
+		virtual void addAtAddress(Field child, YamlState &ypath);
 
 		virtual void dumpYamlPart(YAML::Node &) const;
 

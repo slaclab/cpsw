@@ -64,7 +64,7 @@ CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool i
 }
 
 
-CIntEntryImpl::CIntEntryImpl(Key &key, const YAML::Node &node)
+CIntEntryImpl::CIntEntryImpl(Key &key, YamlState &node)
 :CEntryImpl(key, node),
  is_signed_(DFLT_IS_SIGNED),
  ls_bit_(DFLT_LS_BIT),

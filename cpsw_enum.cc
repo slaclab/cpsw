@@ -119,13 +119,13 @@ MutableEnum IMutableEnum::create()
 }
 
 template<> void
-CYamlTypeRegistry<MutableEnum>::extractClassName(std::vector<std::string> *svec_p, const YAML::Node &node)
+CYamlTypeRegistry<MutableEnum>::extractClassName(std::vector<std::string> *svec_p, YamlState &node)
 {
 	svec_p->push_back( node.Tag() );
 }
 
 template<> bool
-CYamlTypeRegistry<MutableEnum>::extractInstantiate(const YAML::Node &node)
+CYamlTypeRegistry<MutableEnum>::extractInstantiate(YamlState &node)
 {
 	return true;
 }
@@ -136,7 +136,7 @@ static CYamlTypeRegistry<MutableEnum> the_registry_;
 	return &the_registry_;
 }
 
-MutableEnum IMutableEnum::create(const YAML::Node &node)
+MutableEnum IMutableEnum::create(YamlState &node)
 {
 	return getRegistry()->makeItem( node );
 }
@@ -149,15 +149,17 @@ CEnumImpl::CTransformFuncImpl::CTransformFuncImpl(const Key &key)
 }
 
 MutableEnum
-CEnumImpl::CTransformFuncImpl::makeItem(const YAML::Node &node, IYamlTypeRegistry<MutableEnum> *r)
+CEnumImpl::CTransformFuncImpl::makeItem(YamlState &node, IYamlTypeRegistry<MutableEnum> *r)
 {
 MutableEnum enm = IMutableEnum::create(this, 0);
-	for ( YAML::const_iterator it(node.begin()); it != node.end(); ++it ) {
+unsigned    i;
+	for ( i=0; i<node.size(); i++ ) {
+		const YAML::PNode node_item( &node, i );
 		std::string nam;
 		uint64_t    val;
 
-		mustReadNode(*it, "name",  &nam);
-		mustReadNode(*it, "value", &val);
+		mustReadNode(node_item, "name",  &nam);
+		mustReadNode(node_item, "value", &val);
 		enm->add( nam.c_str(), val );
 	}
 	return enm;

@@ -77,7 +77,7 @@ public:
 
         CCommandImpl(Key &k, const char* name);
 
-		CCommandImpl(Key  &k, const YAML::Node &node)
+		CCommandImpl(Key  &k, YamlState &node)
 		: CEntryImpl(k, node)
 		{
 		}
@@ -110,7 +110,7 @@ private:
 public:
 	CSequenceCommandImpl(Key &k, const char *name, const Items *items_p);
 	virtual void executeCommand(CommandImplContext context) const;
-	CSequenceCommandImpl(Key &k, const YAML::Node &node);
+	CSequenceCommandImpl(Key &k, YamlState &node);
 
 	virtual void dumpYamlPart(YAML::Node &) const;
 
