@@ -127,13 +127,13 @@ $(STATIC_LIBRARIES:%=lib%.a):
 	$(RANLIB) $@
 
 %.pic.o: %.cc
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -fpic -o $@ -c $^
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -fpic -o $@ -c $<
 
 %.pic.o: %.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -fpic -o $@ -c $^
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -fpic -o $@ -c $<
 
 %.pic.o: %.c
-	$(CC) $(CPPFLAGS) $(CLAGS) -fpic -o $@ -c $^
+	$(CC) $(CPPFLAGS) $(CLAGS) -fpic -o $@ -c $<
 
 $(SHARED_LIBRARIES:%=lib%.so):
 	$(CXX) -shared -o $@ $^
