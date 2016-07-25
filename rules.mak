@@ -205,10 +205,10 @@ deps: $(addsuffix .dp, $(basename $(SRCS)))
 endif
 
 %.dp:%.cc $(DEP_HEADERS)
-	$(CXX) $(CXXFLAGS) -MM $< > $@
+	$(CXX) $(CXXFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
 
 %.dp:%.c $(DEP_HEADERS)
-	$(CC) $(CFLAGS) -MM $< > $@
+	$(CC) $(CFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
 
 clean: multi-subdir-clean
 	$(RM) deps git_version_string.h
