@@ -21,28 +21,193 @@
 
 using boost::dynamic_pointer_cast;
 
-// Weird things happen when we do iterative lookup.
-// Must be caused by how nodes are implemented and
-// reference counted.
-// Use RECURSIVE lookup!
-YAML::PNode
-YAML::PNode::lookup(const char *key) const
+using YAML::PNode;
+using YAML::Node;
+using std::cout;
+
+// PNode Implementation
+
+void
+PNode::dump() const
 {
-	if ( ! key )
-		return *this;
-
-	PNode val(this, key);
-
-	if ( val )
-		return val;
-
-	PNode merge( this, "<<" );
-	if ( merge )
-		return merge.lookup(key);
-
-	return merge;
+	printf("PNode key: %s, p: %p, c: %p\n" , key_ , parent_, child_ );
 }
 
+
+// assign a new Node to this PNode while preserving parent/child/key
+// ('merge' operation)
+PNode &
+PNode::operator=(const Node &orig_node)
+{
+	if ( this != &orig_node ) {
+		static_cast<YAML::Node &>(*this) = static_cast<const YAML::Node &>(orig_node);
+	}
+	return *this;
+}
+
+void
+PNode::merge(const Node &orig_node)
+{
+	*this = orig_node;
+}
+
+// 'extract' a Node from a PNode
+Node
+PNode::get() const
+{
+	return * static_cast<const YAML::Node *>(this);
+}
+
+// 'assignment'; moves parent/child from the original to the destination
+PNode &
+PNode::operator=(const PNode &orig)
+{
+	if ( this != &orig ) {
+		if ( orig.child_ )
+			throw "can only copy a PNode at the tail of a chain";
+		static_cast<YAML::Node &>(*this) = static_cast<const YAML::Node &>(orig);
+		parent_ = orig.parent_;
+		child_  = orig.child_;
+		key_    = orig.key_;
+		if ( parent_ )
+			parent_->child_ = this;
+		orig.parent_ = 0;
+		orig.child_  = 0;
+	}
+	return *this;
+}
+
+// 'copy constructor'; moves parent/child from the original to the destination
+PNode::PNode(const PNode &orig)
+: Node( static_cast<const YAML::Node&>(orig) )
+{
+	parent_ = orig.parent_;
+	child_  = orig.child_;
+	key_    = orig.key_;
+	if ( parent_ )
+		parent_->child_ = this;
+	orig.parent_ = 0;
+	orig.child_  = 0;
+}
+
+// Constructor for the root; the parent is NULL
+PNode::PNode( const Node & root )
+: Node( root ),
+  parent_(0),
+  child_(0),
+  key_(0)
+{
+}
+
+// Construct a PNode by map lookup while remembering
+// the parent.
+PNode::PNode( const PNode *parent, const char *key )
+: Node( (*parent)[key] ),
+  parent_(parent),
+  child_(0),
+  key_(key)
+{
+	if ( parent->child_ )
+		throw "Parent has a child!";
+	parent_->child_ = this;
+}
+
+// Construct a PNode by sequence lookup while remembering
+// the parent.
+PNode::PNode( const PNode *parent, unsigned index)
+: Node( (*parent)[index] ),
+  parent_(parent),
+  child_(0),
+  key_(0)
+{
+}
+
+PNode::PNode()
+: Node( YAML::NodeType::Undefined ),
+  parent_(0),
+  child_(0),
+  key_(0)
+{
+}
+
+PNode::~PNode()
+{
+	if ( parent_ )
+		parent_->child_ = 0;
+}
+
+
+Node 
+PNode::backtrack_mergekeys(const PNode *path_head, unsigned path_nelms, const Node &top)
+{
+int  i;
+Node nodes[path_nelms+1];
+
+	// it seems that 'operator=' moves a YAML::Node
+	// we want a copy here.
+	nodes[0] = YAML::Clone( top );
+
+	i=0;
+
+	// search right
+	while ( path_head && (nodes[i+1] = nodes[i][path_head->key_] ) ) {
+		path_head = path_head->child_;
+		i++;
+	}
+
+	if ( ! path_head ) {
+		/* found the last element */
+		return nodes[i];
+	}
+
+	/* not found in right subtree; backtrack */
+	while ( i >= 0 ) {
+
+		if ( (nodes[i] = nodes[i]["<<"]) ) {
+			const Node n( backtrack_mergekeys(path_head, path_nelms - i, nodes[i]) );
+			if ( n )
+				return n;
+		}
+
+		path_head = path_head->parent_;
+		--i;
+	}
+
+	return Node ( YAML::NodeType::Undefined );
+}
+
+void
+isd(PNode *pn)
+{
+if ( pn->IsDefined() )
+	cout << *pn << "\n";
+else
+    cout << "PN UNDEFINED?\n";
+}
+
+PNode
+PNode::lookup(const char *key) const
+{
+// the most frequent case involves no merge key; try a direct
+// lookup first.
+PNode        node(this, key);
+const PNode *top   = this;
+unsigned     nelms = 1;
+
+	while ( !node && top ) {
+		if ( ! top->IsMap() ) {
+			std::cerr << "WARNING: Cannot backtrack merge keys across sequences!";
+			return node;
+		}
+		// try (backtracking) lookup from parent nodes
+		node.merge( backtrack_mergekeys(top->child_, nelms , *top) );
+		top  = top->parent_;
+		nelms++;
+	}
+
+	return node;
+}
+ 
 void pushNode(YAML::Node &node, const char *fld, const YAML::Node &child)
 {
 	if ( fld )

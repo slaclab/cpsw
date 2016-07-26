@@ -108,47 +108,49 @@ namespace YAML {
 	// The assumption is that this class is used from code which
 	// recurses and backtracks through the tree...
 
+	// PNodes observe 'copy-move' semantics. 'parent' and 'child'
+	// information of a PNode is erased when it is copied.
+
 	class PNode : public Node {
 	private:
-		const PNode *uplink_;
-
-		PNode operator=(const PNode&);
+		const PNode mutable * parent_;
+		const PNode mutable * child_;
+		const char          * key_;
 
 	public:
+		void dump() const;
+
+		// assign a new Node to this PNode while preserving parent/child/key
+		// ('merge' operation)
+		PNode & operator=(const Node &orig_node);
+
+		void merge(const Node &orig_node);
+
+		// 'extract' a Node from a PNode
+		Node get() const;
+
+		// 'assignment'; moves parent/child from the original to the destination
+		PNode & operator=(const PNode &orig);
+
+		// 'copy constructor'; moves parent/child from the original to the destination
+		PNode(const PNode &orig);
+
 		// Constructor for the root; the parent is NULL
-		PNode( const Node & root )
-		: Node( root ),
-		  uplink_(0)
-		{
-		}
-
-		PNode()
-		: Node( Node(YAML::NodeType::Undefined) ),
-		  uplink_( 0 )
-		{
-		}
-
-		YAML::Node get() const
-		{
-			return *static_cast<const YAML::Node*>(this);
-		}
-		
+		PNode( const Node & root );
 
 		// Construct a PNode by map lookup while remembering
 		// the parent.
-		PNode( const PNode *parent, const char *key )
-		: Node( (*parent)[key] ),
-		  uplink_(parent)
-		{
-		}
+		PNode( const PNode *parent, const char *key );
 
 		// Construct a PNode by sequence lookup while remembering
 		// the parent.
-		PNode( const PNode *parent, unsigned index )
-		: Node( (*parent)[index] ),
-		  uplink_(parent)
-		{
-		}
+		// Note that merge tag backtracking does not support
+		// backing up through sequences!
+		PNode( const PNode *parent, unsigned index );
+
+		PNode();
+
+		~PNode();
 
 		// lookup a key starting at 'this' PNode and backtrack
 		// through merge ("<<") keys.
@@ -171,6 +173,9 @@ namespace YAML {
 		//    a["b"]["c"]["key2"] -> merged_value2
 		//
 		PNode lookup(const char *key) const;
+
+	private:
+		static YAML::Node backtrack_mergekeys(const YAML::PNode *, unsigned, const YAML::Node &);
 	};
 };
 
