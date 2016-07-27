@@ -88,7 +88,11 @@ udpsrv_CXXFLAGS+= -DUDPSRV
 
 udpsrv_LIBS = tstaux $(CPSW_LIBS)
 
-PROGRAMS   += udpsrv
+cpsw_yaml_xpand_SRCS += cpsw_yaml_xpand.cc
+cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
+
+
+PROGRAMS   += udpsrv cpsw_yaml_xpand
 
 cpsw_path_tst_SRCS       = cpsw_path_tst.cc
 cpsw_path_tst_LIBS       = $(CPSW_LIBS)
