@@ -90,14 +90,16 @@ PNode::PNode(const PNode &orig)
 	orig.child_  = 0;
 }
 
-// Constructor for the root; the parent is NULL
-PNode::PNode( const Node & root )
-: Node( root ),
-  parent_(0),
-  child_(0),
-  key_(0)
+PNode::PNode( const PNode *parent, const char *key, const Node &node)
+: Node( node ),
+  parent_( parent ),
+  child_ ( 0 ),
+  key_( key )
 {
+	if ( parent_ )
+		parent_->child_ = this;
 }
+
 
 // Construct a PNode by map lookup while remembering
 // the parent.
@@ -120,14 +122,8 @@ PNode::PNode( const PNode *parent, unsigned index)
   child_(0),
   key_(0)
 {
-}
-
-PNode::PNode()
-: Node( YAML::NodeType::Undefined ),
-  parent_(0),
-  child_(0),
-  key_(0)
-{
+	if ( parent_ )
+		parent_->child_ = this;
 }
 
 PNode::~PNode()
@@ -185,26 +181,65 @@ else
     cout << "PN UNDEFINED?\n";
 }
 
-PNode
-PNode::lookup(const char *key) const
+		// starting at 'this' node visit all merge keys upstream
+		// until the visitor's 'visit' method returns 'false'.
+void
+PNode::visitMergekeys(MergekeyVisitor *visitor, int maxlevel)
 {
-// the most frequent case involves no merge key; try a direct
-// lookup first.
-PNode        node(this, key);
-const PNode *top   = this;
+const PNode *top   = this->parent_;
 unsigned     nelms = 1;
 
-	while ( !node && top ) {
+	while ( top && maxlevel ) {
+
 		if ( ! top->IsMap() ) {
 			std::cerr << "WARNING: Cannot backtrack merge keys across sequences!";
-			return node;
+			return; // cannot handle merge keys across sequences
 		}
-		// try (backtracking) lookup from parent nodes
-		node.merge( backtrack_mergekeys(top->child_, nelms , *top) );
-		top  = top->parent_;
+
+		YAML::Node merged_node = (*top)["<<"];
+
+		if ( merged_node ) {
+			// try (backtracking) lookup from the node at the mergekey
+			merge( backtrack_mergekeys(top->child_, nelms , merged_node) );
+			if ( *this && ! visitor->visit( this ) )
+				return;
+		}
+
+		// were not lucky in 'node'; continue searching one level up
+		top = top->parent_;
+
+		// each time we back up we must search for a longer path in the
+		// merged node...
 		nelms++;
+
+		if ( maxlevel > 0 )
+			maxlevel--;
 	}
 
+}
+
+class LookupVisitor : public PNode::MergekeyVisitor {
+public:
+	virtual bool visit(PNode *merged_node)
+	{
+		// 
+		return false;
+	}
+};
+
+
+PNode
+PNode::lookup(const char *key, int maxlevel) const
+{
+// a frequent case involves no merge key; try a direct lookup first.
+PNode         node(this, key);
+LookupVisitor visitor;
+	if ( ! node ) {
+		node.visitMergekeys( &visitor, maxlevel );
+	}
+	if ( node.IsNull() ) {
+		node.merge( Node( YAML::NodeType::Undefined ) );
+	}
 	return node;
 }
  
@@ -219,6 +254,7 @@ void pushNode(YAML::Node &node, const char *fld, const YAML::Node &child)
 
 void CYamlSupportBase::overrideNode(YamlState &node)
 {
+	// do nothing
 }
 
 void
@@ -324,40 +360,123 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 void
 CYamlFieldFactoryBase::addChildren(CEntryImpl &e, YamlState &node, IYamlTypeRegistry<Field> *registry)
 {
+	// nothing to do for 'leaf' entries
 }
+
+// The AddChildrenVisitor handles 'upstream' merge keys:
+//
+//   main:
+//     <<:
+//       from_upstream:
+//     children:
+//       here:
+//
+// so that both 'here' and 'from_upstream' are instantiated.
+// This works through multiple levels up to the top, so that
+//
+// <<:
+//   main:
+//     children:
+//       from_up_up:
+//
+// would also instantiate 'from_up_up'.
+//
+//
+// Code inside the 'visitor' method makes sure merge keys at
+// the same level than children are followed:
+//
+//     children:
+//       child:
+//       <<:
+//         sibling1:
+//         <<:
+//           sibling2:
+// 
+// i.e., in addition to 'child', 'sibling1' and 'sibling2' are
+// created.
+class AddChildrenVisitor : public PNode::MergekeyVisitor {
+private:
+	CDevImpl                *d_;
+	IYamlTypeRegistry<Field> *registry_;
+public:
+	AddChildrenVisitor(CDevImpl *d, IYamlTypeRegistry<Field> *registry)
+	: d_(d),
+	  registry_(registry)
+	{
+	}
+	
+	virtual bool visit(PNode *merged_node)
+	{
+
+		while ( *merged_node ) {
+
+			YAML::const_iterator it( merged_node->begin() );
+			YAML::const_iterator ite( merged_node->end()  );
+
+			YAML::Node downmerged_node( YAML::NodeType::Undefined );
+			while ( it != ite ) {
+				const char *k = it->first.as<std::string>().c_str();
+
+				// skip merge node! But remember it and follow downstream
+				// after all other children are handled.
+				if ( 0 == strcmp( k, "<<" ) ) {
+					downmerged_node = it->second;
+				} else {
+					// It is possible that the child already exists because
+					// we are now visiting a merged node.
+					// The child was created as a result from visiting
+					// a 'non-merged' node (or a merged node with higher precedence).
+					// We simply skip creation in this case.
+					//
+					// E.g.,
+					//    children:
+					//       <<:
+					//         child:
+					//            key: defaultval
+					//       child:
+					//         class: theclass
+					//
+					// would first visit 'child' and create it (class:theclass, key: defaultval)
+					// then go into the merged node, find 'child' thereunder and skip a second
+					// instantiation.
+					if ( ! d_->getChild( k ) ) {
+						const YAML::PNode child( merged_node, k, it->second );
+						Field c = registry_->makeItem( child );
+						if ( c ) {
+							// if 'instantiate' is 'false' then
+							// makeItem() returns a NULL pointer
+							d_->addAtAddress( c, child );
+						}
+					}
+				}
+				++it;
+			}
+			merged_node->merge( downmerged_node );
+		}
+		return true; // continue looking for merge keys upstream
+	}
+};
 
 void
 CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState &node, IYamlTypeRegistry<Field> *registry)
 {
-const YAML::PNode & children( node.lookup("children") );
-
-	std::cout << "node size " << node.size() << "\n";
-
-	YAML::const_iterator it = node.begin();
-	while ( it != node.end() ) {
-		std::cout << it->first << "\n";
-		++it;
-	}
-
+YAML::PNode         children( node.lookup("children") );
+AddChildrenVisitor  visitor( &d, registry );
 
 	if ( children ) {
-		unsigned i;
-		for ( i=0; i<children.size(); i++ ) {
-			const YAML::PNode child( &children, i );
-			Field c = registry->makeItem( child );
-			if ( c ) {
-				// if 'instantiate' is 'false' then
-				// makeItem() returns a NULL pointer
-				d.addAtAddress( c, child );
-			}
-		}
+		// handle the 'children' node itself
+		visitor.visit( &children );
 	}
+
+	// and now look for merge keys upstream which may match
+	// our node
+	children.visitMergekeys( &visitor );
 }
 
 Dev
 CYamlFieldFactoryBase::dispatchMakeField(const YAML::Node &node, const char *root_name)
 {
-YamlState &root( root_name ? node[root_name] : node );
+YamlState root( 0, root_name, root_name ? node[root_name] : node );
 	/* Root node must be a Dev */
 	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry()->makeItem( root ) );
 }

@@ -9,24 +9,24 @@
 static void test_a53564754e5eaa9029ff(bool use_yaml)
 {
 const char *yaml=
-"name: root\n"
-"class: Dev\n"
-"children:\n"
-"- name: device\n"
+"root:\n"
 "  class: Dev\n"
-"  size: 100\n"
-"  nelms: 4\n"
 "  children:\n"
-"  - name: reg\n"
-"    class: Field\n"
-"    size: 1\n"
-"    nelms: 16\n";
+"    device:\n"
+"      class: Dev\n"
+"      size: 100\n"
+"      nelms: 4\n"
+"      children:\n"
+"        reg:\n"
+"          class: Field\n"
+"          size: 1\n"
+"          nelms: 16\n";
 
 Hub root;
 
 if ( use_yaml ) {
 	do {
-	root = IHub::loadYamlStream( yaml, 0 );
+	root = IHub::loadYamlStream( yaml, "root" );
 	} while (0);
 } else {
 
@@ -110,26 +110,26 @@ Hub      hh;
 static Hub build_yaml()
 {
 const char *yaml=
-"name: root\n"
-"class: Dev\n"
-"children:\n"
-"- name: outer\n"
+"root:\n"
 "  class: Dev\n"
-"  nelms: 2\n"
 "  children:\n"
-"  - name: inner\n"
-"    class: Dev\n"
-"    cacheable: WT_CACHEABLE\n"
-"    nelms: 4\n"
-"    children:\n"
-"    - name: leaf\n"
-"      class: Field\n"
-"      size: 7\n"
-"    - name: leaf1\n"
-"      class: Field\n"
-"      size: 8\n"
-"      nelms: 4\n";
-	return IHub::loadYamlStream( yaml, 0 );
+"    outer:\n"
+"      class: Dev\n"
+"      nelms: 2\n"
+"      children:\n"
+"        inner:\n"
+"          class: Dev\n"
+"          cacheable: WT_CACHEABLE\n"
+"          nelms: 4\n"
+"          children:\n"
+"            leaf:\n"
+"              class: Field\n"
+"              size: 7\n"
+"            leaf1:\n"
+"              class: Field\n"
+"              size: 8\n"
+"              nelms: 4\n";
+	return IHub::loadYamlStream( yaml, "root" );
 }
 
 static Dev build()

@@ -248,22 +248,18 @@ CAddressImpl::dumpYamlPart(YAML::Node &node) const
 void
 CDevImpl::dumpYamlPart(YAML::Node &node) const
 {
-	CEntryImpl::dumpYamlPart(node);
-}
-
-void
-CDevImpl::dumpYaml(YAML::Node &node) const
-{
 MyChildren::iterator it;
-
-	CEntryImpl::dumpYaml( node );
-
+	CEntryImpl::dumpYamlPart(node);
+	YAML::Node children;
 	for ( it = children_.begin(); it != children_.end(); ++it ) {
 		YAML::Node child_node;
 		it->second->getEntryImpl()->dumpYaml( child_node );
 		it->second->dumpYamlPart( child_node );
-		pushNode(node, "children", child_node);
+		if ( it->second->getEntryImpl()->getCacheable() == getCacheable() )
+			child_node.remove("cacheable");
+		writeNode(children, it->second->getName(), child_node );
 	}
+	writeNode( node, "children", children );
 }
 
 Dev IDev::create(const char *name, uint64_t size)

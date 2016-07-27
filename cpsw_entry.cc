@@ -49,12 +49,11 @@ CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
 
 CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
 : CShObj(key),
+  name_( ypath.getName() ),
   size_( DFLT_SIZE ),
   cacheable_( DFLT_CACHEABLE ),
   locked_( false )
 {
-
-	mustReadNode( ypath, "name", &name_ );
 
 	{
 	std::string str;
@@ -84,8 +83,6 @@ const char *d = getDescription();
 	// chain through superclass
 	CYamlSupportBase::dumpYamlPart( node );
 
-	writeNode( node, "name", getName() );
-
 	if ( d && strlen(d) > 0 ) {
 		writeNode(node, "description", d);
 	}
@@ -95,6 +92,7 @@ const char *d = getDescription();
 
 	if ( getCacheable() != DFLT_CACHEABLE )
 		writeNode(node, "cacheable", getCacheable());
+
 }
 
 CEntryImpl::~CEntryImpl()

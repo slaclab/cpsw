@@ -56,7 +56,6 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		static  const char *_getClassName()       { return "Dev";           }
 		virtual const char * getClassName() const { return _getClassName(); }
 
-		virtual void dumpYaml(YAML::Node &node) const;
 		virtual ~CDevImpl();
 
 		virtual CDevImpl *clone(Key &k) { return new CDevImpl( *this, k ); }

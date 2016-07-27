@@ -18,10 +18,10 @@ const char *topyaml =
 "\n"
 "root:\n"
 "  class: Dev\n"
-"  name:  main\n"
 "  children:\n"
-"    - <<: *anchor\n"
-"      name: overridename\n";
+"    overridename:\n"
+"      <<: *anchor\n"
+;
 
 const char *incyaml =
 "#\n"
@@ -29,13 +29,13 @@ const char *incyaml =
 "#include "TOP"\n"
 "#\n"
 "\n"
-"leaf:   &anchor\n"
-"  name:  origname\n"
+"leaf: &anchor\n"
 "  nelms: 5\n"
 "  class:\n"          // Ordered list of class hierarchy
 "    - MyField1\n"    
 "    - MyField2\n"
-"    - Field\n";
+"    - Field\n"
+;
 
 const char *noincincyaml =
 "#\n"
@@ -43,11 +43,11 @@ const char *noincincyaml =
 "#\n"
 "\n"
 "leaf:   &anchor\n"
-"  name:  origname\n"
 "  nelms: 5\n"
 "  class:\n"          // Ordered list of class hierarchy
 "    - MyField\n"    
-"    - Field\n";
+"    - Field\n"
+;
 
 
 class TestFailed{};

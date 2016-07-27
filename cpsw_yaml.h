@@ -120,6 +120,11 @@ namespace YAML {
 	public:
 		void dump() const;
 
+		const char *getName() const
+		{
+			return key_;	
+		}
+
 		// assign a new Node to this PNode while preserving parent/child/key
 		// ('merge' operation)
 		PNode & operator=(const Node &orig_node);
@@ -135,12 +140,12 @@ namespace YAML {
 		// 'copy constructor'; moves parent/child from the original to the destination
 		PNode(const PNode &orig);
 
-		// Constructor for the root; the parent is NULL
-		PNode( const Node & root );
-
 		// Construct a PNode by map lookup while remembering
 		// the parent.
 		PNode( const PNode *parent, const char *key );
+
+		// A PNode from a Node
+		PNode( const PNode *parent, const char *key, const Node &node);
 
 		// Construct a PNode by sequence lookup while remembering
 		// the parent.
@@ -148,9 +153,18 @@ namespace YAML {
 		// backing up through sequences!
 		PNode( const PNode *parent, unsigned index );
 
-		PNode();
-
 		~PNode();
+
+		class MergekeyVisitor {
+		public:
+			virtual bool visit(PNode *merged_node) = 0;
+		};
+
+		// starting at 'this' node visit all merge keys upstream
+		// until the visitor's 'visit' method returns 'false', the
+		// root is reached or 'maxlevel' parents have been scanned
+		// for merge keys.
+		void visitMergekeys(MergekeyVisitor *, int maxlevel = -1);
 
 		// lookup a key starting at 'this' PNode and backtrack
 		// through merge ("<<") keys.
@@ -172,7 +186,11 @@ namespace YAML {
 		//    a["b"]["c"]["key1"] -> value1
 		//    a["b"]["c"]["key2"] -> merged_value2
 		//
-		PNode lookup(const char *key) const;
+		// Since recursive lookups through many merge keys can become
+		// quite expensive we provide the 'maxlevel' feature which
+		// tells the algorithm through how many levels of parents it
+		// should search for merge keys (0: none, <0 all levels).
+		PNode lookup(const char *key, int maxlevel = -1) const;
 
 	private:
 		static YAML::Node backtrack_mergekeys(const YAML::PNode *, unsigned, const YAML::Node &);
@@ -344,6 +362,7 @@ struct convert<IIntField::Mode> {
   }
 };
 
+#if 0
 template<>
 struct convert<MutableEnum> {
 	static bool decode(const PNode &node, MutableEnum &rhs)
@@ -359,7 +378,6 @@ struct convert<MutableEnum> {
 	}
 };
 
-#if 0
 template<>
 struct convert<IIntField::Builder> {
 	static bool decode(const Node &node, IIntField::Builder &rhs)

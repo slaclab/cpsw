@@ -80,8 +80,11 @@ MutableEnum e;
 	readNode(node, "mode",     &mode_     );
 	readNode(node, "wordSwap", &wordSwap_ );
 
-	readNode(node, "enums",    &e         );
-	enum_     = e;
+	YamlState enum_node( node.lookup( "enums" ) );
+
+	if ( enum_node ) {
+		enum_ = IMutableEnum::create( enum_node );
+	}
 
 	size_     = computeSize(wordSwap_, size_bits_, ls_bit_);
 
@@ -94,11 +97,16 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 
 	CEntryImpl::dumpYamlPart(node);
 
-	writeNode(node, "isSigned", is_signed_);
-	writeNode(node, "lsBit",    ls_bit_   );
-	writeNode(node, "sizeBits", size_bits_);
-	writeNode(node, "mode",     mode_     );
-	writeNode(node, "wordSwap", wordSwap_ );
+	if ( is_signed_ != DFLT_IS_SIGNED )
+		writeNode(node, "isSigned", is_signed_);
+	if ( ls_bit_    != DFLT_LS_BIT    )
+		writeNode(node, "lsBit",    ls_bit_   );
+	if ( size_bits_ != DFLT_SIZE_BITS )
+		writeNode(node, "sizeBits", size_bits_);
+	if ( mode_      != DFLT_MODE      )
+		writeNode(node, "mode",     mode_     );
+	if ( wordSwap_  != DFLT_WORD_SWAP )
+		writeNode(node, "wordSwap", wordSwap_ );
 
 	if ( enum_ ) {
 		YAML::Node enums;

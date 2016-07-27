@@ -57,7 +57,7 @@ public:
 	{
 	}
 
-	CMyCommandImpl(Key &k, const YAML::Node &node)
+	CMyCommandImpl(Key &k, YamlState &node)
 	: CCommandImpl(k, node)
 	{
 	}
