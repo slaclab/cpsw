@@ -206,7 +206,11 @@ CDevImpl::~CDevImpl()
 
 Address CDevImpl::getAddress(const char *name) const
 {
-	return children_[name];
+MyChildren::const_iterator it( children_.find( name ) );
+	// operator[] creates an entry if the key is not found
+	if ( it == children_.end() )
+		return Address();
+	return it->second;
 }
 
 CDevImpl::CDevImpl(Key &k, const char *name, uint64_t size)
