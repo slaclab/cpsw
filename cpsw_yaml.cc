@@ -44,8 +44,30 @@ PNode::dump() const
 PNode &
 PNode::operator=(const Node &orig_node)
 {
+	// YAML::Node objects seem to behave somehow like references.
+	// I.e., when we
+	//
+	//   YAML::Node nodeA = nodeB;
+	//
+    //              nodeA = nodeC;
+	//
+	// then the 'contents' of what node C refers to
+	// seem to be assigned to what node A refers to.
+	//
+	// almost like the following operation:
+	//
+	//   assign(NODE **p, NODE *rhs) {
+	//	   if ( *p )
+	//        **p = *rhs; // if pointer already in use copy contents
+	//     else 
+	//        *p  = rhs;  // if pointer NULL then assign pointer
+	//   }
+	//
+	// The above is not what we really want. It seems that 'reset()' 
+	// just transfers 'references' (rather than contents)
+	//
 	if ( this != &orig_node ) {
-		static_cast<YAML::Node &>(*this) = static_cast<const YAML::Node &>(orig_node);
+		static_cast<YAML::Node &>(*this).reset( static_cast<const YAML::Node &>(orig_node) );
 	}
 	return *this;
 }
@@ -144,14 +166,13 @@ PNode::backtrack_mergekeys(const PNode *path_head, unsigned path_nelms, const No
 int  i;
 Node nodes[path_nelms+1];
 
-	// it seems that 'operator=' moves a YAML::Node
-	// we want a copy here.
-	nodes[0] = YAML::Clone( top );
+	// see comments in PNode::operator=(const Node &)
+	nodes[0].reset( top );
 
 	i=0;
 
 	// search right
-	while ( path_head && (nodes[i+1] = nodes[i][path_head->key_] ) ) {
+	while ( path_head && (nodes[i+1].reset( nodes[i][path_head->key_] ), nodes[i+1]) ) {
 		path_head = path_head->child_;
 		i++;
 	}
@@ -164,7 +185,9 @@ Node nodes[path_nelms+1];
 	/* not found in right subtree; backtrack */
 	while ( i >= 0 ) {
 
-		if ( (nodes[i] = nodes[i]["<<"]) ) {
+		// see comments in PNode::operator=(const Node &)
+		nodes[i].reset(nodes[i]["<<"]);
+		if ( nodes[i] ) {
 			const Node n( backtrack_mergekeys(path_head, path_nelms - i, nodes[i]) );
 			if ( n )
 				return n;
@@ -201,7 +224,7 @@ unsigned     nelms = 1;
 			return; // cannot handle merge keys across sequences
 		}
 
-		YAML::Node merged_node = (*top)["<<"];
+		const YAML::Node &merged_node = (*top)["<<"];
 
 		if ( merged_node ) {
 			// try (backtracking) lookup from the node at the mergekey
@@ -450,7 +473,8 @@ public:
 				// skip merge node! But remember it and follow downstream
 				// after all other children are handled.
 				if ( 0 == strcmp( k, "<<" ) ) {
-					downmerged_node = it->second;
+					// see comments in PNode::operator=(const Node &)
+					downmerged_node.reset( it->second );
 				} else {
 					// It is possible that the child already exists because
 					// we are now visiting a merged node.
