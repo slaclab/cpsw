@@ -2,6 +2,10 @@
 #include <fstream>
 #include <iostream>
 
+#include <boost/unordered_set.hpp>
+
+#include <string.h>
+
 #include <cpsw_api_user.h>
 #include <cpsw_api_builder.h>
 #include <cpsw_yaml.h>
@@ -20,6 +24,7 @@
 
 
 using boost::dynamic_pointer_cast;
+using boost::unordered_set;
 
 using YAML::PNode;
 using YAML::Node;
@@ -398,13 +403,38 @@ class AddChildrenVisitor : public PNode::MergekeyVisitor {
 private:
 	CDevImpl                *d_;
 	IYamlTypeRegistry<Field> *registry_;
+
+	struct StrHash {
+		size_t operator() (const char *str) const
+		{
+		size_t hash = 5381;
+		size_t c;
+			while ( (c = *str++) ) {
+				hash = (hash << 5) + hash + c;
+			}
+			return hash;
+		}
+	};
+
+	struct StrCmp {
+		bool operator() (const char *a, const char *b) const
+		{
+			return 0 == ::strcmp(a, b);
+		}
+	};
+
+	// record children that were not created because 'instantiated' is false
+	// we need to remember this when going through merge keys upstream
+	// (which may contain the same child marked as instantiated = true).
+	unordered_set<const char*, StrHash, StrCmp>  not_instantiated_;
+
 public:
 	AddChildrenVisitor(CDevImpl *d, IYamlTypeRegistry<Field> *registry)
 	: d_(d),
 	  registry_(registry)
 	{
 	}
-	
+
 	virtual bool visit(PNode *merged_node)
 	{
 
@@ -439,13 +469,15 @@ public:
 					// would first visit 'child' and create it (class:theclass, key: defaultval)
 					// then go into the merged node, find 'child' thereunder and skip a second
 					// instantiation.
-					if ( ! d_->getChild( k ) ) {
+					if ( ! d_->getChild( k ) && 0 == not_instantiated_.count( k ) ) {
 						const YAML::PNode child( merged_node, k, it->second );
 						Field c = registry_->makeItem( child );
 						if ( c ) {
 							// if 'instantiate' is 'false' then
 							// makeItem() returns a NULL pointer
 							d_->addAtAddress( c, child );
+						} else {
+							not_instantiated_.insert( k );
 						}
 					}
 				}
