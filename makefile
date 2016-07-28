@@ -151,6 +151,10 @@ cpsw_yaml_preproc_tst_SRCS = cpsw_yaml_preproc_tst.cc
 cpsw_yaml_preproc_tst_LIBS = $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_yaml_preproc_tst
 
+cpsw_yaml_merge_tst_SRCS = cpsw_yaml_merge_tst.cc
+cpsw_yaml_merge_tst_LIBS = $(CPSW_LIBS)
+TESTPROGRAMS              += cpsw_yaml_merge_tst
+
 TEST_AXIV_YES=
 TEST_AXIV_NO=cpsw_axiv_udp_tst
 DISABLED_TESTPROGRAMS=$(TEST_AXIV_$(TEST_AXIV))
