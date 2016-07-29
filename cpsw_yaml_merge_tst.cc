@@ -1,5 +1,6 @@
 #include <cpsw_api_user.h>
 #include <cpsw_yaml.h>
+#include <iostream>
 
 static const char *yaml=
 "default:\n"
