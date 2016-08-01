@@ -131,7 +131,7 @@ PNode::PNode( const PNode *parent, const char *key, const Node &node)
 // Construct a PNode by map lookup while remembering
 // the parent.
 PNode::PNode( const PNode *parent, const char *key )
-: Node( (*parent)[key] ),
+: Node( YAML::NodeType::Undefined ),
   parent_(parent),
   child_(0),
   key_(key)
@@ -139,6 +139,10 @@ PNode::PNode( const PNode *parent, const char *key )
 	if ( parent->child_ )
 		throw "Parent has a child!";
 	parent_->child_ = this;
+
+	if ( (*parent)[key] )
+		*this = (*parent)[key];
+		
 }
 
 // Construct a PNode by sequence lookup while remembering
@@ -262,11 +266,8 @@ PNode::lookup(const char *key, int maxlevel) const
 // a frequent case involves no merge key; try a direct lookup first.
 PNode         node(this, key);
 LookupVisitor visitor;
-	if ( ! node ) {
+	if ( node.IsNull()  || ! node.IsDefined() ) {
 		node.visitMergekeys( &visitor, maxlevel );
-	}
-	if ( node.IsNull() ) {
-		node.merge( Node( YAML::NodeType::Undefined ) );
 	}
 	return node;
 }
