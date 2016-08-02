@@ -9,7 +9,9 @@ StreamMuxBuf::StreamMuxBuf(unsigned bufsz)
   bufsz_(bufsz),
   done_(false)
 {
-	streams_.reserve(10);
+//FIXME get segfault if we don't reserve enough
+//streams for total number of includes?
+	streams_.reserve(50);
 	// if we don't reserve then we can't initialize 'current_'
 	current_ = streams_.begin();
 }
@@ -88,6 +90,9 @@ YamlPreprocessor::YamlPreprocessor(const char *main_name, StreamMuxBuf *mux)
 : main_( StreamMuxBuf::mkstrm( main_name ) ),
   mux_(mux)
 {
+	std::string full_path( main_name );
+	int idx = full_path.find_last_of("\\/");
+	path_  = full_path.substr(0, idx + 1); // get path including "/"
 }
 
 bool
@@ -123,7 +128,8 @@ YamlPreprocessor::process(StreamMuxBuf::Stream current)
 				len -= beg;
 
 			// recursively process included file
-			process( StreamMuxBuf::mkstrm( line.substr(beg, len).c_str() ) );
+			// in same directory
+			process( StreamMuxBuf::mkstrm( ( path_ + line.substr(beg, len) ).c_str() ) );
 		}
 	}
 

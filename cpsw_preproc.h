@@ -66,6 +66,7 @@ private:
 	StreamMuxBuf::Stream                main_;
 	StreamMuxBuf                       *mux_;
 	Map                                 tags_;
+	std::string                         path_;
 
 	// no copying
 	YamlPreprocessor(const YamlPreprocessor &);
