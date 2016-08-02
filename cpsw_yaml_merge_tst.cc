@@ -138,6 +138,7 @@ int i;
 			}
 		}
 
+	std::cout << argv[0] << " - success\n";
 
 	} catch ( CPSWError &e ) {
 		std::cout << "CPSW Error: " << e.getInfo() << "\n";
