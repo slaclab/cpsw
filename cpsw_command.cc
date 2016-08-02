@@ -83,6 +83,11 @@ YamlState &seq_node( node.lookup("sequence") );
 		mustReadNode( item_node, "value", &value );
 		items_.push_back( Item( entry, value ) );
 	}
+
+//FIXME
+//is this undefined behavior?
+//should probably fix in container addAtAddress
+	writeNode(const_cast<YAML::Node &>( static_cast<const YAML::Node &>(node ) ), "offset", 0);
 }
 
 void
