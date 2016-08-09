@@ -129,7 +129,7 @@ class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
 
 		virtual bool            hasUdp()
 		{
-			return true;
+			return getUdpPort() != 0;
 		}
 
 		virtual void            useSRPDynTimeout(bool v)
@@ -1445,7 +1445,11 @@ void CNetIODevImpl::addAtAddress(Field child, YamlState &ypath)
 {
 PortBuilder bldr( CPortBuilder::create( ypath ) );
 
-	addAtAddress(child, bldr);
+	if ( bldr->hasUdp() ) {
+		addAtAddress(child, bldr);
+	} else {
+		CDevImpl::addAtAddress(child, ypath);
+	}
 }
 
 void CNetIODevImpl::addAtAddress(Field child, INetIODev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
@@ -1534,7 +1538,7 @@ PortBuilder          bldr   = bldr_in->clone();
 bool                 hasSRP = SRP_UDP_NONE != bldr->getSRPVersion();
 
 	// sanity checks
-	if ( ! bldr->hasUdp() || 0 == bldr->getUdpPort() )
+	if ( ! bldr->hasUdp() )
 		throw ConfigurationError("Currently only UDP transport supported\n");
 
 	if ( ! hasSRP && bldr->hasSRPMux() ) {

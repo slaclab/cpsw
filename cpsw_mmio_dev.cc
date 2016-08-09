@@ -115,12 +115,15 @@ unsigned  nelms     = DFLT_NELMS;
 uint64_t  stride    = DFLT_STRIDE;
 ByteOrder byteOrder = DFLT_BYTE_ORDER;
 
-	mustReadNode(ypath, "offset",    &offset);
-	readNode    (ypath, "nelms",     &nelms);
-	readNode    (ypath, "stride",    &stride);
-	readNode    (ypath, "ByteOrder", &byteOrder);
-	
-	addAtAddress(child, offset, nelms, stride, byteOrder);
+	if ( readNode(ypath, "offset", &offset ) ) {
+		readNode    (ypath, "nelms",     &nelms);
+		readNode    (ypath, "stride",    &stride);
+		readNode    (ypath, "ByteOrder", &byteOrder);
+
+		addAtAddress(child, offset, nelms, stride, byteOrder);
+	} else {
+		CDevImpl::addAtAddress(child, ypath);
+	}
 }
 
 void
