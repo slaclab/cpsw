@@ -38,8 +38,11 @@ DEP_HEADERS += $(HEADERS)
 #TARNM is used in makefile variable names:
 #TARNM=<current target architecture with '-' replaced by '_'>
 
-# List libraries to build:
+# List static libraries to build:
 STATIC_LIBRARIES += myLib
+
+# List shared libraries to build:
+SHARED_LIBRARIES += myLib
 
 # List programs to build:
 PROGRAMS         += myProg
