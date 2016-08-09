@@ -9,11 +9,7 @@ StreamMuxBuf::StreamMuxBuf(unsigned bufsz)
   bufsz_(bufsz),
   done_(false)
 {
-//FIXME get segfault if we don't reserve enough
-//streams for total number of includes?
-	streams_.reserve(50);
-	// if we don't reserve then we can't initialize 'current_'
-	current_ = streams_.begin();
+	current_ = streams_.end();
 }
 
 int
@@ -45,7 +41,13 @@ StreamMuxBuf::pushbuf(Stream s)
 	if ( s->fail() )
 		throw FailedStreamError("StreamMuxBuf::pushbuf -- cannot push failed stream");
 
+
+	bool first_el(streams_.empty());
+
 	streams_.push_back( s );
+
+	if ( first_el )
+		current_ = streams_.begin();
 }
 
 void

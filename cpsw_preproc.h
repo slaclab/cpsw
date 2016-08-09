@@ -3,7 +3,7 @@
 
 #include <streambuf>
 #include <istream>
-#include <vector>
+#include <list>
 
 #include <cpsw_error.h>
 
@@ -26,10 +26,10 @@ public:
 	typedef shared_ptr<std::istream> Stream;
 private:
 	typedef char                Char;
-	typedef std::vector<Stream> Vec;
+	typedef std::list<Stream>   StreamsContainer;
 
-	Vec                         streams_;
-	Vec::iterator               current_;
+	StreamsContainer            streams_;
+	StreamsContainer::iterator  current_;
 	Char                       *buf_;
 	unsigned                    bufsz_;
 	bool                        done_;
