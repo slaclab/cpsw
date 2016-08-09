@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <string.h>
 
 StreamMuxBuf::StreamMuxBuf(unsigned bufsz)
 : buf_( new Char[bufsz] ),
@@ -79,22 +80,33 @@ std::ifstream *p = new std::ifstream( fnam );
 	return Stream( p );
 }
 
-YamlPreprocessor::YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux)
+static void
+set_path(std::string *dst, const char *yaml_dir)
+{
+size_t l = yaml_dir ? strlen(yaml_dir) : 0;
+	if ( l > 0 ) {
+		std::string sep;
+		*dst = std::string(yaml_dir);
+		if ( yaml_dir[l-1] != '/' )
+			*dst += std::string("/");
+	}
+}
+
+YamlPreprocessor::YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux, const char *yaml_dir)
 : main_(inp),
   mux_(mux)
 {
+	set_path( &path_, yaml_dir );
 	if ( inp->fail() ) {
 		throw FailedStreamError("YamlPreprocessor: main stream has 'failed' status");
 	}
 }
 
-YamlPreprocessor::YamlPreprocessor(const char *main_name, StreamMuxBuf *mux)
+YamlPreprocessor::YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, const char *yaml_dir)
 : main_( StreamMuxBuf::mkstrm( main_name ) ),
   mux_(mux)
 {
-	std::string full_path( main_name );
-	int idx = full_path.find_last_of("\\/");
-	path_  = full_path.substr(0, idx + 1); // get path including "/"
+	set_path( &path_, yaml_dir );
 }
 
 bool

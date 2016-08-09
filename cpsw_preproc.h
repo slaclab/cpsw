@@ -90,11 +90,11 @@ public:
 	//
 	//   const YAML::Node &node( YAML::Load( preprocessed_stream ) );             
 	//
-	YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux);
+	YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux, const char *yaml_dir);
 
 	
 	// helper which creates the main Stream
-	YamlPreprocessor(const char *main_name, StreamMuxBuf *mux);
+	YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, const char *yaml_dir);
 
 protected:
 	// check if a given 'once' tag exists and record it otherwise

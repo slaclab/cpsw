@@ -539,11 +539,11 @@ YamlState root( 0, root_name, root_name ? node[root_name] : node );
 }
 
 static YAML::Node
-loadPreprocessedYamlStream(StreamMuxBuf::Stream top_stream)
+loadPreprocessedYamlStream(StreamMuxBuf::Stream top_stream, const char *yaml_dir)
 {
 StreamMuxBuf         muxer;
 
-YamlPreprocessor     preprocessor( top_stream, &muxer );
+YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
 
 		preprocessor.process();
 
@@ -560,26 +560,26 @@ public:
 };
 
 YAML::Node
-CYamlFieldFactoryBase::loadPreprocessedYaml(std::istream &top)
+CYamlFieldFactoryBase::loadPreprocessedYaml(std::istream &top, const char *yaml_dir)
 {
 StreamMuxBuf         muxer;
 StreamMuxBuf::Stream top_stream( &top, NoOpDeletor() );
-	return loadPreprocessedYamlStream( top_stream );
+	return loadPreprocessedYamlStream( top_stream, yaml_dir );
 }
 
 YAML::Node
-CYamlFieldFactoryBase::loadPreprocessedYaml(const char *yaml)
+CYamlFieldFactoryBase::loadPreprocessedYaml(const char *yaml, const char *yaml_dir)
 {
 std::string       str( yaml );
 std::stringstream sstrm( str );
 
-	return loadPreprocessedYaml( sstrm );
+	return loadPreprocessedYaml( sstrm, yaml_dir );
 }
 
 YAML::Node
-CYamlFieldFactoryBase::loadPreprocessedYamlFile(const char *file_name)
+CYamlFieldFactoryBase::loadPreprocessedYamlFile(const char *file_name, const char *yaml_dir)
 {
-	return loadPreprocessedYamlStream( StreamMuxBuf::mkstrm( file_name ) );
+	return loadPreprocessedYamlStream( StreamMuxBuf::mkstrm( file_name ), yaml_dir );
 }
 
 void
@@ -651,31 +651,31 @@ DECLARE_YAML_FIELD_FACTORY(SequenceCommandImpl);
 #endif
 
 Hub
-IHub::loadYamlFile(const char *file_name, const char *root_name)
+IHub::loadYamlFile(const char *file_name, const char *root_name, const char *yaml_dir)
 {
 #ifdef NO_YAML_SUPPORT
 	throw NoYAMLSupportError();
 #else
-	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name ), root_name );
+	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name, yaml_dir ), root_name );
 #endif
 }
 
 Hub
-IHub::loadYamlStream(std::istream &in, const char *root_name)
+IHub::loadYamlStream(std::istream &in, const char *root_name, const char *yaml_dir)
 {
 #ifdef NO_YAML_SUPPORT
 	throw NoYAMLSupportError();
 #else
-	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYaml( in ), root_name );
+	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYaml( in, yaml_dir ), root_name );
 #endif
 }
 
 Hub
-IHub::loadYamlStream(const char *yaml, const char *root_name)
+IHub::loadYamlStream(const char *yaml, const char *root_name, const char *yaml_dir)
 {
 std::string  str( yaml );
 std::stringstream sstrm( str );
-	return loadYamlStream( sstrm, root_name );
+	return loadYamlStream( sstrm, root_name, yaml_dir );
 }
 
 #ifdef NO_YAML_SUPPORT

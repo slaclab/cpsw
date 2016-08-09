@@ -153,10 +153,11 @@ public:
 
 	virtual Children   getChildren()               const = 0;
 
-	static Hub loadYamlFile(const char *file_name, const char *root_name);
-	static Hub loadYamlStream(std::istream &yaml,  const char *root_name);
+	// yaml_dir: path to a directory where (all) yaml files reside; NULL (or empty) denotes CWD
+	static Hub loadYamlFile(const char *file_name, const char *root_name, const char *yaml_dir = 0);
+	static Hub loadYamlStream(std::istream &yaml,  const char *root_name, const char *yaml_dir = 0);
 	// convenience wrapper
-	static Hub loadYamlStream(const char *yaml,    const char *root_name);
+	static Hub loadYamlStream(const char *yaml,    const char *root_name, const char *yaml_dir = 0);
 };
 
 // Enum class
