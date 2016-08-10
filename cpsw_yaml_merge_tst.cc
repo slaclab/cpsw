@@ -1,4 +1,5 @@
 #include <cpsw_api_user.h>
+#include <cpsw_api_builder.h>
 #include <cpsw_yaml.h>
 #include <iostream>
 
@@ -49,6 +50,7 @@ static const char *yaml=
 "              class: Field\n"
 "            merge:\n"
 "              nelms: 44\n"
+"              size:  88\n"
 "              class: something\n"
 "          upmerge:\n"
 "            class: Field\n"
@@ -56,6 +58,7 @@ static const char *yaml=
 "         <<: \n"
 "            merge:\n"
 "              class: Field\n"
+"              size:\n"
 "            <<:\n"
 "              downmerge:\n"
 "                class: Field\n"
@@ -113,8 +116,12 @@ int i;
 			top->findByName( paths[i] );
 		}
 
-		// check if the default (nelms) is merged from upstream
+		// check if the default 'nelms' is merged from upstream
 		if ( top->findByName( "main/merge" )->tail()->getNelms() != 44 )
+			throw TestFailed();
+
+		// check if the default/merged 'size' is overridden and erased
+		if ( top->findByName( "main/merge" )->tail()->getSize() != IField::DFLT_SIZE )
 			throw TestFailed();
 
 		// if we set 'instantiate=false' then '/main/merge' must not
