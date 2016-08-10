@@ -128,10 +128,26 @@ PNode::PNode( const PNode *parent, const char *key, const Node &node)
 }
 
 
+// somewhere between 0.5.1 and 0.5.3 two 'flavors' of undefined nodes
+// were introduced (without the user being able to tell the difference :-()
+// 'valid' nodes which are 'undefined' and 'invalid' nodes (which have no
+// memory behind them). Both of these return 'IsDefined()' ==> false 
+// or 'operator!()' ==> true.
+// Breaking 0.5.1, 'undefined' nodes now may throw exceptions when
+// operation are attempted and the node is 'invalid'. 'invalid' nodes
+// can never be made 'valid'. Thus, this case must be caught in
+// the constructor...
+static Node fixInvalidNode(const Node &n)
+{
+	// if operator!() returns 'true' then make sure
+	// a proper 'undefined' node is used.
+	return n ? n : Node( YAML::NodeType::Undefined );
+}
+
 // Construct a PNode by map lookup while remembering
 // the parent.
 PNode::PNode( const PNode *parent, const char *key )
-: Node( YAML::NodeType::Undefined ),
+: Node( fixInvalidNode((*parent)[key]) ),
   parent_(parent),
   child_(0),
   key_(key)
@@ -139,22 +155,17 @@ PNode::PNode( const PNode *parent, const char *key )
 	if ( parent->child_ )
 		throw "Parent has a child!";
 	parent_->child_ = this;
-
-	if ( (*parent)[key] )
-		*this = (*parent)[key];
-		
 }
 
 // Construct a PNode by sequence lookup while remembering
 // the parent.
 PNode::PNode( const PNode *parent, unsigned index)
-: Node( (*parent)[index] ),
+: Node( fixInvalidNode( (*parent)[index] ) ),
   parent_(parent),
   child_(0),
   key_(0)
 {
-	if ( parent_ )
-		parent_->child_ = this;
+	parent_->child_ = this;
 }
 
 PNode::~PNode()
@@ -175,8 +186,8 @@ Node nodes[path_nelms+1];
 
 	i=0;
 
-	// search right
-	while ( path_head && (nodes[i+1].reset( nodes[i][path_head->key_] ), nodes[i+1]) ) {
+	// search right 
+	while ( path_head && (nodes[i+1].reset( fixInvalidNode( nodes[i][path_head->key_] ) ), nodes[i+1]) ) {
 		path_head = path_head->child_;
 		i++;
 	}
@@ -190,7 +201,7 @@ Node nodes[path_nelms+1];
 	while ( i >= 0 ) {
 
 		// see comments in PNode::operator=(const Node &)
-		nodes[i].reset(nodes[i]["<<"]);
+		nodes[i].reset( fixInvalidNode( nodes[i]["<<"] ) );
 		if ( nodes[i] ) {
 			const Node n( backtrack_mergekeys(path_head, path_nelms - i, nodes[i]) );
 			if ( n )
@@ -228,7 +239,9 @@ unsigned     nelms = 1;
 			return; // cannot handle merge keys across sequences
 		}
 
-		const YAML::Node &merged_node = (*top)["<<"];
+		// no need for 'fixInvalidNode()' since 'merged_node' is only
+		// operated on if it is not 'undefined'.
+		const YAML::Node &merged_node( (*top)["<<"] );
 
 		if ( merged_node ) {
 			// try (backtracking) lookup from the node at the mergekey
@@ -266,8 +279,11 @@ PNode::lookup(const char *key, int maxlevel) const
 // a frequent case involves no merge key; try a direct lookup first.
 PNode         node(this, key);
 LookupVisitor visitor;
-	if ( node.IsNull()  || ! node.IsDefined() ) {
+	if ( ! node ) {
 		node.visitMergekeys( &visitor, maxlevel );
+	}
+	if ( node.IsNull() ) {
+		node.merge( Node( YAML::NodeType::Undefined ) );
 	}
 	return node;
 }
