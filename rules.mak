@@ -171,7 +171,7 @@ $(PROGRAMS) $(TESTPROGRAMS):LIBS=$($(subst -,_,$@)_LIBS)
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS  = -L.
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(subst -,_,$(lib))_DIR) $($(subst -,_,$(lib))_DIR_$(TARNM)),)))
 # don't apply ADD_updir to cpswlib_DIRS because CPSW_DIR already was 'upped'.
-# This means that e.g. boostlib_DIR must be absolute or relative to CPSW_DIR
+# This means that e.g. yaml_cpplib_DIR must be absolute or relative to CPSW_DIR
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(INSTALL_DIR:%=%/lib/$(TARCH)))
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS:%=-l%),$(lib:%.a=-Wl,-Bstatic % -Wl,-Bdynamic))
