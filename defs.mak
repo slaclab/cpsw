@@ -17,7 +17,19 @@ GIT_VERSION_STRING:=$(shell echo -n '"'`git describe --always --dirty`'"')
 #
 # For a host build this should be empty (since we assume the tools to be in PATH)
 # but the user may override by defining CROSS_host...
-CROSS=$(if $(findstring undefined,$(origin CROSS_$(TARNM))),$(CROSS_default),$(CROSS_$(TARNM)))
+define arch2var
+$(1)=$$(if $$(findstring undefined,$$(origin $(1)_$$(TARNM))),$$($(1)_default),$$($(1)_$$(TARNM)))
+endef
+
+$(foreach var,CROSS yaml_cpp_DIR boost_DIR,$(eval $(call arch2var,$(var))))
+
+CROSS_default=$(addsuffix -,$(filter-out $(HARCH),$(TARCH)))
+
+boostinc_DIR=$(if $(boost_DIR),$(boost_DIR)/include,)
+boostlib_DIR=$(if $(boost_DIR),$(boost_DIR)/lib,)
+
+yaml_cppinc_DIR=$(if $(yaml_cpp_DIR),$(yaml_cpp_DIR)/include,)
+yaml_cpplib_DIR=$(if $(yaml_cpp_DIR),$(yaml_cpp_DIR)/lib,)
 
 # Tools
 CC     =$(CROSS)$(or $(CC_$(TARNM)),$(CC_default),gcc)
