@@ -61,6 +61,9 @@ CPSW_LIBS   = cpsw yaml-cpp pthread rt
 COMMA__=,
 SPACE__= #
 
+WITH_SHARED_LIBRARIES=YES
+WITH_STATIC_LIBRARIES=NO
+
 # definitions
 include $(CPSW_DIR)/config.mak
 -include $(CPSW_DIR)/config.local.mak
