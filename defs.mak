@@ -19,6 +19,9 @@ GIT_VERSION_STRING:=$(shell echo -n '"'`git describe --always --dirty`'"')
 # but the user may override by defining CROSS_host...
 CROSS=$(if $(findstring undefined,$(origin CROSS_$(TARNM))),$(CROSS_default),$(CROSS_$(TARNM)))
 
+CROSS_default=$(addsuffix -,$(filter-out $(HARCH),$(TARCH)))
+
+
 # Tools
 CC     =$(CROSS)$(or $(CC_$(TARNM)),$(CC_default),gcc)
 CXX    =$(CROSS)$(or $(CXX_$(TARNM)),$(CXX_default),g++)
