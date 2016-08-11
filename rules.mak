@@ -230,7 +230,7 @@ install_headers: git_version_string.h
 		fi ;\
 	fi
 
-install_bins_libs: install_headers
+do_install: install_headers
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		if [ -n "$(STATIC_LIBRARIES)" ] ; then \
 			mkdir -p $(INSTALL_DIR)/lib/$(TARCH) ;\
