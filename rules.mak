@@ -1,11 +1,18 @@
 # Rules for CPSW makefiles
 
+# The general pattern is that you invoke 
+
+# provide 'multi-' aliases for most common targets
+
 # default target
-multi-top: multi-all
+all: multi-build
+	@true
+
+install: multi-do_install
 	@true
 
 # run tests (on host)
-test:sub-$(HARCH)-run_tests
+test: sub-$(HARCH)-run_tests
 
 multi-install_headers: install_headers
 
@@ -179,7 +186,7 @@ $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS:%=-l%),$(lib:%.a=-W
 $(PROGRAMS) $(TESTPROGRAMS): $(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
 	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS) $(addprefix -Wl$(COMMA__)-rpath,$(INSTALL_DIR:%=%/lib/$(TARCH)))
 
-all: $(TGTS)
+build: $(TGTS)
 
 run_tests: $(addsuffix _run,$(FILTERED_TBINS))
 	@echo "ALL TESTS PASSED"
@@ -223,7 +230,7 @@ install_headers: git_version_string.h
 		fi ;\
 	fi
 
-install: install_headers
+install_bins_libs: install_headers
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		if [ -n "$(STATIC_LIBRARIES)" ] ; then \
 			mkdir -p $(INSTALL_DIR)/lib/$(TARCH) ;\
