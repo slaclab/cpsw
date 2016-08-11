@@ -156,7 +156,8 @@ cpsw_yaml_merge_tst_LIBS = $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_yaml_merge_tst
 
 TEST_AXIV_YES=
-TEST_AXIV_NO=cpsw_axiv_udp_tst
+TEST_AXIV_NO =cpsw_axiv_udp_tst
+TEST_AXIV    =NO
 DISABLED_TESTPROGRAMS=$(TEST_AXIV_$(TEST_AXIV))
 
 include $(CPSW_DIR)/rules.mak
