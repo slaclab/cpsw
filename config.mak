@@ -19,73 +19,82 @@ HARCH=linux-x86_64
 ARCHES += linuxRT-x86_64
 
 # Next, you need to define prefixes (which may include
-# absolute paths) for the tools, e.g.,:
+# absolute paths) so that e.g., $(CROSS_xxx)gcc can be
+# used as a C compiler, e.g.:
 BR_VERSION=2015.02
 
-BR_ARCH_linuxRT_x86_64=x86_64
-BR_ARCH_linuxRT_x86=i686
-BR_ARCH_linuxRT_zynq=arm
-BR_ARCH=$(BR_ARCH_$(TARNM))
-
-BR_TOOLDIR=/afs/slac/package/linuxRT/buildroot-$(BR_VERSION)/host/$(HARCH)/$(BR_ARCH)/usr/bin
+BR_PATH=/afs/slac/package/linuxRT/buildroot-$(BR_VERSION)/host/$(HARCH)/$(1)/usr/bin/$(1)-linux-
 
 # CROSS_xxx = path_to_xxx_tools/xxx-
 # CROSS_yyy = path_to_yyy_tools/yyy-
 #
-# host build needs no prefix
-CROSS_linux_x86_64=
-CROSS_linuxRT_x86_64=$(BR_TOOLDIR)/$(BR_ARCH)-linux-
+CROSS_linux_x86_64  =# host build needs no prefix
+CROSS_linuxRT_x86_64=$(call BR_PATH,x86_64)
+CROSS_linuxRT_x86   =$(call BR_PATH,i686)
+CROSS_linuxRT_zynq  =$(call BR_PATH,arm)
 
-# so that e.g., $(CROSS_xxx)gcc can be used as a C compiler
 
 # (you can override 'gcc' by another compiler by setting CC_<arch>)
-
 
 # CPSW requires 'boost'. If this installed at a non-standard
 # location (where it cannot be found automatically by the tools)
 # then you need to set one of the variables
-
-# boostinc_DIR_xxx, boostinc_DIR_default, boostinc_DIR
-BOOST_VERSION=1.57.0
-
-BOOST_ARCH_linux_x86_64=linux-x86_64
-BOOST_ARCH_linuxRT_x86_64=linuxRT_glibc-x86_64
-
-BOOST_ARCH=$(BOOST_ARCH_$(TARNM))
-boostinc_DIR=/afs/slac/g/lcls/package/boost/$(BOOST_VERSION)/$(BOOST_ARCH)/include
-boostlib_DIR=/afs/slac/g/lcls/package/boost/$(BOOST_VERSION)/$(BOOST_ARCH)/lib
-
-# YAML
-YAML_VERSION             = yaml-cpp-0.5.3
-
-YAML_ARCH_linux_x86_64   = rhel6-x86_64
-YAML_ARCH_linuxRT_x86_64 = buildroot-2015.02-x86_64
-
-YAML_ARCH                = $(YAML_ARCH_$(TARNM))
-
-yaml_DIR                 = /afs/slac/g/lcls/package/yaml-cpp/$(YAML_VERSION)/$(YAML_ARCH)
-yaml_cppinc_DIR          = $(yaml_DIR)/include
-yaml_cpplib_DIR          = $(yaml_DIR)/lib
-
+#
+# boostinc_DIR_xxx,
+# boostinc_DIR_default,
+# boostinc_DIR,
+# boost_DIR,
+# boost_DIR_xxx,
+# boost_DIR_default
+#
 # to the directory where boost headers are installed.
+# In case of 'boost_DIR, boost_DIR_xxx, boost_DIR_default'
+# a '/include' suffix is attached
 # These aforementioned variables are tried in the listed
 # order and the first one which is defined is used.
 # Thus, e.g.,
 #
 # boostinc_DIR_xxx = /a/b/c
-# boostinc_DIR     = /e/f
+# boost_DIR_yyy     = /e/f
+# boost_DIR_default =
 #
-# will use /a/b/c for architecture 'xxx' and /e/f for
-# any other one (including the 'host').
-
+# will use /a/b/c for architecture 'xxx' and /e/f/include for 'yyy'
+# and nothing for any other one (including the 'host').
+#
 # Likewise, you must set
 # boostlib_DIR_xxx, boostlib_DIR_default, boostlib_DIR
-# if 'boost' libraries cannot be found automatically by
-# the (cross) tools.
-# Note 'boostlib_DIR' (& friends) must be absolute paths
+# (or any of boost_DIR, boost_DIR_xxx, boost_DIR_default in 
+# which case a '/lib' suffix is attached) if 'boost' libraries
+# cannot be found automatically by the (cross) tools.
+#
+# Note 'boost_DIR' (& friends) must be absolute paths
 # or relative to $(CPSW_DIR).
 #
+
+# 
+BOOST_VERSION=1.57.0
+
+BOOST_PATH=/afs/slac/g/lcls/package/boost/$(BOOST_VERSION)
+
+boost_DIR_linux_x86_64  =$(BOOST_PATH)/linux-x86_64
+boost_DIR_linuxRT_x86_64=$(BOOST_PATH)/linuxRT_glibc-x86_64
+
+# YAML-CPP
+#
+# Analogous to the boost-specific variables a set of
+# variables prefixed by 'yaml_cpp_' is used to identify
+# the install location of yaml-cpp headers and library.
+# 
+YAML_CPP_VERSION         = yaml-cpp-0.5.3
+YAML_CPP_PATH            = /afs/slac/g/lcls/package/yaml-cpp/$(YAML_CPP_VERSION)
+
+yaml_cpp_DIR_linux_x86_64  =$(YAML_CPP_PATH)/rhel6-x86_64
+yaml_cpp_DIR_linuxRT_x86_64=$(YAML_CPP_PATH)/buildroot-2015.02-x86_64
+
 # Whether to build static libraries (YES/NO)
 WITH_STATIC_LIBRARIES=NO
 # Whether to build shared libraries (YES/NO)
 WITH_SHARED_LIBRARIES=YES
+
+# Define an install location
+# INSTALL_DIR=/usr/local
