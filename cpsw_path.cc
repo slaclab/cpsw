@@ -494,7 +494,7 @@ bool CPathImpl::verifyAtTail(ConstDevImpl h)
 static void append2(CPathImpl *h, CPathImpl *t)
 {
 	if ( ! h->verifyAtTail( t->originAsDevImpl() ) )
-		throw InvalidPathError( Path(t)->toString() );
+		throw InvalidPathError( t->toString() );
 
 	CPathImpl::iterator it = t->begin();
 
@@ -539,7 +539,7 @@ void CPathImpl::append(Path p)
 void CPathImpl::append(Address a, int f, int t)
 {
 	if ( ! verifyAtTail( a->getOwnerAsDevImpl() ) ) {
-		throw InvalidPathError( Path( this )->toString() );
+		throw InvalidPathError( this->toString() );
 	}
 	push_back( PathEntry(a, f, t, getNelms()) );
 }
