@@ -25,11 +25,13 @@ main(int argc, char **argv)
 int opt;
 const char *use_yaml = 0;
 const char *dmp_yaml = 0;
+const char *dmp_conf = 0;
 
-	while ( (opt = getopt(argc, argv, "y:Y:")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "y:Y:C:")) > 0 ) {
 		switch (opt) {
 			case 'Y': use_yaml = optarg; break;
 			case 'y': dmp_yaml = optarg; break;
+			case 'C': dmp_conf = optarg; break;
 		}
 	}
 try {
@@ -83,7 +85,6 @@ try {
 		throw TestFailed("reading initial value of 'mango' (as bool)");
 	}
 
-std::cout << "YYY\n";
 	IEnum::iterator itbeg = menuVal->getEnum()->begin();
 	IEnum::iterator itend = menuVal->getEnum()->end();
 	IEnum::iterator it;
@@ -134,12 +135,28 @@ std::cout << "YYY\n";
 		// expected
 	}
 
+	// reset to a value that is OK for menu + bool so that
+	// config dump succeeds
+	boolVal->setVal("False");
+
 	if ( nitems != 8 || nitems != 2*menuVal->getEnum()->getNelms() ) {
 		throw TestFailed("Unexpected number of enum entries");
 	}
 
 	if ( dmp_yaml ) {
 		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
+	}
+
+	if ( dmp_conf ) {
+		YAML::Node n;
+		if ( 0 != strlen( dmp_conf ) ) {
+			n = YAML::LoadFile( dmp_conf );
+		}
+		IPath::create( root )->dumpConfigToYaml( n );
+		YAML::Emitter e; e << n;
+
+		std::cout << e.c_str() << "\n";
+		
 	}
 
 }

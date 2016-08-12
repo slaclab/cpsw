@@ -26,6 +26,15 @@ CCommandImpl::CCommandImpl(Key &k, const char *name):
 
 }
 
+YAML::Node
+CCommandImpl::dumpMyConfigToYaml(Path p) const
+{
+// return just an empty node; there is really no
+// configuration data to be saved but we do need
+// a placeholder.
+return YAML::Node(""); //just a non-Null node
+}
+
 CommandImplContext CCommandImpl::createContext(Path pParent) const
 {
 	return make_shared<CCommandImplContext>(pParent);

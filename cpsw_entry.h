@@ -21,6 +21,10 @@ class   CDevImpl;
 typedef shared_ptr<const CDevImpl>  ConstDevImpl;
 
 class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase {
+	public:
+		static const int CONFIG_PRIO_OFF = 0;
+		static const int DFLT_CONFIG_PRIO = CONFIG_PRIO_OFF;
+
 	private:
 		// WARNING -- when modifying fields you might need to
 		//            modify 'operator=' as well as the copy
@@ -31,6 +35,8 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		uint64_t    	    size_;
 	private:
 		mutable Cacheable   cacheable_;
+		mutable int         configPrio_;
+		mutable bool        configPrioSet_;
 		mutable bool        locked_;
 
 
@@ -40,9 +46,14 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 
 	protected:
 		// prevent public copy construction -- cannot copy the 'self'
-		// member this constructor is intended be used by the 'clone'
+		// member. This constructor is intended to be used by the 'clone'
 		// template which takes care of setting 'self'.
 		CEntryImpl(CEntryImpl &ei, Key &k);
+
+		// subclasses may want to define their default configuration priority.
+		// This just helps to reduce the size of the YAML file since default
+		// values are not stored.
+		virtual int getDefaultConfigPrio() const;
 
 	public:
 		CEntryImpl(Key &k, const char *name, uint64_t size);
@@ -50,6 +61,10 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		CEntryImpl(Key &k, YamlState &n);
 
 		virtual void dumpYamlPart(YAML::Node &) const;
+
+		virtual YAML::Node dumpMyConfigToYaml(Path) const;
+
+		virtual void dumpConfigToYaml(Path, YAML::Node &) const;
 
 		// Every subclass MUST implement the 'getClassName()' virtual
 		// method. Just copy-paste this one:
@@ -81,9 +96,18 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 			return cacheable_;
 		}
 
+		virtual int getConfigPrio() const
+		{
+			return configPrio_;
+		}
+
 		// may throw exception if modified after
 		// being attached
 		virtual void setCacheable(Cacheable cacheable);
+
+		// may throw exception if modified after
+		// being attached
+		virtual void setConfigPrio(int configPrio);
 
 		virtual ~CEntryImpl();
 
@@ -96,6 +120,8 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		{
 			return locked_;
 		}
+
+		virtual void postHook();
 
 		virtual void accept(IVisitor    *v, RecursionOrder order, int recursionDepth);
 

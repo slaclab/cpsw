@@ -81,6 +81,8 @@ public:
 		: CEntryImpl(k, node)
 		{
 		}
+
+		virtual YAML::Node dumpMyConfigToYaml(Path) const;
 };
 
 class CCommand_Adapt;

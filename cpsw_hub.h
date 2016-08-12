@@ -6,6 +6,7 @@
 #include <cpsw_entry.h>
 
 #include <map>
+#include <list>
 
 #include <stdio.h>
 #include <string.h>
@@ -30,18 +31,28 @@ struct StrCmp {
 };
 
 class CDevImpl : public CEntryImpl, public virtual IDev {
-	public:
+	protected:
 		typedef  std::map<const char*, Address, StrCmp> MyChildren;
+		typedef  std::list<Address>                     PrioList;
+
 
 	private:
-		mutable  MyChildren children_; // only by 'add' method
+		mutable  MyChildren children_;       // only by 'add' method
+		mutable  PrioList   configPrioList_; // order for dumping configuration fields
 
 	protected:
 		virtual void add(AddressImpl a, Field child);
 
 		virtual IAddress::AKey getAKey()  { return IAddress::AKey( getSelfAs<DevImpl>() );       }
 
+		// this must recursively clone all children.
 		CDevImpl(CDevImpl &orig, Key &k):CEntryImpl(orig, k) { throw InternalError("Clone NotImplemented"); }
+
+		// hubs should be dumped by default
+		virtual int getDefaultConfigPrio() const
+		{
+			return 1;
+		}
 
 	public:
 
@@ -59,7 +70,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual ~CDevImpl();
 
 		virtual CDevImpl *clone(Key &k) { return new CDevImpl( *this, k ); }
-
+ 
 		// template: each (device-specific) address must be instantiated
 		// by it's creator device and then added.
 		virtual void addAtAddress(Field child, unsigned nelms)
@@ -72,7 +83,11 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 
 		virtual Path findByName(const char *s) const;
 
-		virtual Child getChild(const char *name) const { return getAddress( name ); }
+		virtual Child getChild(const char *name) const
+		{
+			return getAddress( name );
+		}
+
 		virtual Address getAddress(const char *name) const;
 	
 		virtual void accept(IVisitor *v, RecursionOrder order, int recursionDepth);
@@ -80,7 +95,11 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual Children getChildren() const;
 
 		virtual Hub          isHub()          const;
-		virtual ConstDevImpl isConstDevImpl() const  { return getSelfAsConst<ConstDevImpl>(); }
+
+		virtual ConstDevImpl isConstDevImpl() const
+		{
+			return getSelfAsConst<ConstDevImpl>();
+		}
 
 		virtual const_iterator begin() const
 		{
@@ -92,6 +111,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 			return children_.end();
 		}
 
+		virtual void dumpConfigToYaml(Path p, YAML::Node &) const;
 };
 
 #define NULLHUB     Hub( static_cast<IHub *>(NULL) )

@@ -63,6 +63,11 @@ CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool i
 	checkArgs();
 }
 
+int
+CIntEntryImpl::getDefaultConfigPrio() const
+{
+	return RW == mode_ ? DFLT_CONFIG_PRIO_RW : CONFIG_PRIO_OFF;
+}
 
 CIntEntryImpl::CIntEntryImpl(Key &key, YamlState &node)
 :CEntryImpl(key, node),
@@ -798,6 +803,56 @@ unsigned nelms = nelmsFromIdx(r, p_, getNelms());
 	}
 }
 
+YAML::Node
+CIntEntryImpl::dumpMyConfigToYaml(Path p) const
+{
+	if ( WO != getMode() ) {
+		ScalVal_RO val( IScalVal_RO::create( p ) );
+		unsigned   nelms = val->getNelms();
+		uint64_t   u64[ nelms ];
+		unsigned   i;
+
+		if ( nelms == 0 )
+			return YAML::Node( YAML::NodeType::Undefined );
+
+		if ( nelms != val->getVal( u64, nelms ) ) {
+			throw ConfigurationError("CIntEntryImpl::dumpMyConfigToYaml -- unexpected number of elements read");
+		}
+
+		// check if all values are identical
+		for ( i=nelms-1; i>0; i-- ) {
+			if ( u64[0] != u64[i] )
+				break;
+		}
+
+		if ( i ) {
+			// must save full array;
+			YAML::Node n( YAML::NodeType::Sequence );
+
+			if ( enum_ ) {
+				for ( i=0; i<nelms; i++ ) {
+					n.push_back( *(enum_->map( u64[i] ).first) );
+				}
+			} else {
+				for ( i=0; i<nelms; i++ ) {
+					n.push_back( u64[i] );
+				}
+			}
+			return n;
+		} else {
+			// can save single value
+			YAML::Node n( YAML::NodeType::Scalar );
+			if ( enum_ )
+				n = *enum_->map( u64[0] ).first;
+			else
+				n = u64[0];
+			return n;
+		}
+	}
+	return YAML::Node( YAML::NodeType::Undefined );
+}
+
+
 CIntEntryImpl::CBuilder::CBuilder(Key &k)
 :CShObj(k)
 {
@@ -836,6 +891,14 @@ IIntField::Builder CIntEntryImpl::CBuilder::lsBit(int lsBit)
 IIntField::Builder CIntEntryImpl::CBuilder::mode(Mode mode)
 {
 	mode_     = mode;
+	if ( RW != mode )
+		configPrio( 0 );
+	return getSelfAs<BuilderImpl>();
+}
+
+IIntField::Builder CIntEntryImpl::CBuilder::configPrio(int configPrio)
+{
+	configPrio_ = configPrio;
 	return getSelfAs<BuilderImpl>();
 }
 
@@ -859,12 +922,13 @@ IIntField::Builder CIntEntryImpl::CBuilder::reset()
 
 void CIntEntryImpl::CBuilder::init()
 {
-	name_     = std::string();
-	sizeBits_ = DFLT_SIZE_BITS;
-	lsBit_    = DFLT_LS_BIT;
-	isSigned_ = DFLT_IS_SIGNED;
-	mode_     = DFLT_MODE;
-    wordSwap_ = DFLT_WORD_SWAP;
+	name_       = std::string();
+	sizeBits_   = DFLT_SIZE_BITS;
+	lsBit_      = DFLT_LS_BIT;
+	isSigned_   = DFLT_IS_SIGNED;
+	mode_       = DFLT_MODE;
+	configPrio_ = RW == DFLT_MODE ? DFLT_CONFIG_PRIO_RW : 0;
+    wordSwap_   = DFLT_WORD_SWAP;
 }
 
 IntField CIntEntryImpl::CBuilder::build()
@@ -874,7 +938,9 @@ IntField CIntEntryImpl::CBuilder::build()
 
 IntField CIntEntryImpl::CBuilder::build(const char *name)
 {
-	return CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_, enum_);
+IntEntryImpl rval = CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_, enum_);
+	rval->setConfigPrio( configPrio_ );
+	return rval;
 }
 
 IIntField::Builder  CIntEntryImpl::CBuilder::create()

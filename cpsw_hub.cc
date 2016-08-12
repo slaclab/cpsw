@@ -184,6 +184,7 @@ public:
 void CDevImpl::add(AddressImpl a, Field child)
 {
 EntryImpl e = child->getSelf();
+int       prio;
 
 	AddChildVisitor propagateAttributes( getSelfAs<DevImpl>(), child );
 
@@ -193,6 +194,23 @@ EntryImpl e = child->getSelf();
 	if ( ! ret.second ) {
 		/* Address object should be automatically deleted by smart pointer */
 		throw DuplicateNameError(child->getName());
+	}
+
+	// add to the prioritiy list; priority 0 means no dumping
+	if ( (prio = e->getConfigPrio()) ) {
+		if ( configPrioList_.empty() || prio <= configPrioList_.front()->getEntryImpl()->getConfigPrio() ) {
+			configPrioList_.push_front( a );
+		} else if ( prio >= configPrioList_.back()->getEntryImpl()->getConfigPrio() ) {
+			configPrioList_.push_back( a );
+		} else {
+			// must search the list;
+			PrioList::iterator it( configPrioList_.begin() );
+			
+			while ( (*it)->getEntryImpl()->getConfigPrio() < prio ) {
+				++it;
+			}
+			configPrioList_.insert( it, a );
+		}
 	}
 }
 
@@ -311,4 +329,116 @@ MyChildren::iterator it;
 	}
 
 	return rval;
+}
+
+void CDevImpl::dumpConfigToYaml(Path p, YAML::Node &n) const
+{
+	if ( !n || n.IsNull() ) {
+		// new node, i.e., first time config
+
+
+		// construct a sequence node for our children
+		n = YAML::Node( YAML::NodeType::Sequence );
+
+		// first, we dump any settings of our own.
+		// CDevImpl does have no such settings but
+		// a subclass may and override 'dumpMyConfigToYaml()'.
+		// Such settings would end up in the 'self' node.
+		YAML::Node self;
+		CEntryImpl::dumpConfigToYaml( p, self );
+		if ( self && ! self.IsNull() ) {
+			// only save 'self' if there is anything...
+			n.push_back(self);
+		}
+
+		// now proceed to saving all our children
+		PrioList::const_iterator it;
+		for ( it=configPrioList_.begin(); it != configPrioList_.end(); ++it ) {
+			Address a( *it );
+
+			// A node for the child
+			YAML::Node child;
+
+			// append child to the path
+			IPathImpl::toPathImpl( p )->append( a, 0, a->getNelms() - 1 );
+
+			// dump child into the 'child' node
+			a->getEntryImpl()->dumpConfigToYaml( p, child );
+
+			if ( child && ! child.IsNull() ) {
+				// they actually put something there;
+
+				// now create a single-element map; the 'key' is the pathname
+				// of the child and the value is the child node containing
+				// all of the child's settings
+				YAML::Node path_node;
+				path_node[a->getName()] = child;
+
+				// append to our sequence
+				n.push_back(path_node);
+			}
+
+			// pop child from path
+			p->up();
+		}
+	} else if ( ! n.IsSequence() ) {
+		throw ConfigurationError("Unexpected YAML format -- sequence expected");
+	} else {
+		// We did get a template hierarchy. OK; we'll save stuff in the order
+		// specified by the template sequence.
+		YAML::Node::iterator it;
+		for ( it = n.begin(); it != n.end(); ++it ) {
+
+			YAML::Node child(*it);
+
+			if ( 0 == std::string("value").compare( child.Tag() ) ) {
+				// If this node has a 'value' tag then that means that the
+				// node contains settings for *this* device (see above).
+				// A subclass of CDevImpl may want to save state here...
+				CEntryImpl::dumpConfigToYaml( p, child );
+			} else {
+				// no 'value' tag; this means that the child must be a map
+				// with a single entry: a path element (key) which identifies
+				// a descendant of ours and a value which is to be interpreted
+				// by the descendant.
+				if ( ! child.IsMap() ) {
+					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node '%s' (Map expected) -- IGNORING\n", child.as<std::string>().c_str());
+					continue;
+				}
+				if ( child.size() != 1 ) {
+					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node '%s' (Map with more than 1 element) -- IGNORING\n", child.as<std::string>().c_str());
+					continue;
+				}
+
+				// obtain the single entry of this map
+				YAML::iterator item( child.begin() );
+
+				// extract the key
+				const char *key = item->first.as<std::string>().c_str();
+
+				try {
+					// try to find the entity referred to by the yaml node in our hierarchy
+					Path descendant( findByName( key ) );
+
+					p->append( descendant );
+
+					p->dumpConfigToYaml( item->second );
+
+					int i = descendant->size();
+
+					// strip descendant from path again
+					while ( i-- > 0 )
+						p->up();
+
+				} catch ( NotFoundError e ) {
+					// descendant not found; not a big deal but spit out a warning
+					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node '%s' (key %s not found) -- IGNORING\n", child.as<std::string>().c_str(), key);
+				}
+			}
+
+			// if the child has cleared 'its' node then we also remove the sequence entry
+			if ( child && child.begin() == child.end() )
+				child = YAML::Node( YAML::NodeType::Undefined );
+		}
+	}
 }

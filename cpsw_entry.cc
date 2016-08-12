@@ -30,6 +30,8 @@ CEntryImpl::CEntryImpl(Key &k, const char *name, uint64_t size)
   name_( name ),
   size_( size),
   cacheable_( DFLT_CACHEABLE ),
+  configPrio_( DFLT_CONFIG_PRIO ),
+  configPrioSet_( false ),
   locked_( false )
 {
 	checkArgs();
@@ -42,6 +44,8 @@ CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
   description_(ei.description_),
   size_(ei.size_),
   cacheable_(ei.cacheable_),
+  configPrio_(ei.configPrio_),
+  configPrioSet_(ei.configPrioSet_),
   locked_( false )
 {
 	++ocnt();
@@ -52,6 +56,8 @@ CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
   name_( ypath.getName() ),
   size_( DFLT_SIZE ),
   cacheable_( DFLT_CACHEABLE ),
+  configPrio_( DFLT_CONFIG_PRIO ),
+  configPrioSet_( false ),
   locked_( false )
 {
 
@@ -69,9 +75,22 @@ CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
 		setCacheable( cacheable );
 	}
 
+	int configPrio;
+	if ( readNode( ypath, "configPrio", &configPrio ) )
+		setConfigPrio( configPrio );
+
 	checkArgs();
 
 	++ocnt();
+}
+
+void
+CEntryImpl::postHook()
+{
+	// executed once the object is fully constructed;
+	// we may thus use polymorphic function here...
+	if ( ! configPrioSet_ )
+		setConfigPrio( getDefaultConfigPrio() );
 }
 
 // Quite dumb ATM; no attempt to consolidate
@@ -93,6 +112,14 @@ const char *d = getDescription();
 	if ( getCacheable() != DFLT_CACHEABLE )
 		writeNode(node, "cacheable", getCacheable());
 
+	if ( getConfigPrio() != getDefaultConfigPrio() )
+		writeNode(node, "configPrio", getConfigPrio());
+
+}
+
+int CEntryImpl::getDefaultConfigPrio() const
+{
+	return DFLT_CONFIG_PRIO;
 }
 
 CEntryImpl::~CEntryImpl()
@@ -118,6 +145,37 @@ void CEntryImpl::setCacheable(Cacheable cacheable)
 	}
 	this->cacheable_   = cacheable;
 }
+
+void CEntryImpl::setConfigPrio(int configPrio)
+{
+	if ( configPrio_ != configPrio && locked_ ) {
+		throw ConfigurationError("Configuration Error - cannot modify attached device");
+	}
+	this->configPrio_    = configPrio;
+	this->configPrioSet_ = true;
+}
+
+void CEntryImpl::dumpConfigToYaml(Path p, YAML::Node &n) const
+{
+YAML::Node new_n = dumpMyConfigToYaml( p );
+	if ( new_n ) {
+		// attach a tag.
+		new_n.SetTag( "value" );
+	}
+	n = new_n;
+}
+
+YAML::Node CEntryImpl::dumpMyConfigToYaml(Path p) const
+{
+	// normally, entries which have nothing to save/restore
+	// should not even be executing this. It may however
+	// happen that a config file template lists an entry
+	// which has nothing to contribute.
+	// We just return an empty node which tells our
+	// caller to ignore us.
+	return YAML::Node( YAML::NodeType::Undefined );
+}
+
 
 void CEntryImpl::accept(IVisitor *v, RecursionOrder order, int depth)
 {

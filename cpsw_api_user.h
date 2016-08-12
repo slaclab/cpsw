@@ -39,6 +39,8 @@ typedef shared_ptr< std::vector<Child> > Children;
 
 #include <cpsw_error.h>
 
+#include <yaml-cpp/yaml.h>
+
 namespace YAML {
 	class Node;
 };
@@ -65,6 +67,7 @@ public:
 	virtual uint64_t    getSize()        const = 0;
 	virtual const char *getDescription() const = 0;
 	virtual Hub         isHub()          const = 0;
+
 	virtual ~IEntry() {}
 };
 
@@ -102,6 +105,11 @@ public:
 	virtual Child       up()                          = 0;
 	// test if this path is empty
 	virtual bool        empty()                 const = 0;
+
+	// return depth of the path, i.e., how many '/' separated
+	// "levels" there are
+	virtual int         size()                  const = 0;
+
 	virtual void        clear()                       = 0; // absolute; reset to root
 	virtual void        clear(Hub)                    = 0; // relative; reset to passed arg
 	// return Hub at the tip of this path (if any -- NULL otherwise)
@@ -134,6 +142,24 @@ public:
 
 	// recurse through the hierarchy
 	virtual void        explore(IPathVisitor *) const = 0;
+
+	// Recurse through hierarchy (underneath this path), and let
+	// entries dump their current values (aka "configuration") 
+	// in YAML format.
+	// When this call returns then the 'template' node is the
+	// root of a hierarchy of YAML nodes which serializes the
+	// current values.
+	// And existing YAML hierarchy may be passed ('template')
+	// in which case entries are processed as defined by the 'template'.
+	// The template is populated with current values.
+	// An 'empty' (undefined or NULL) template may be passed.
+	// In this case the children of a hub are processed in an
+	// order of increasing 'configPrio' (a property defined by
+	// each entry).
+	// This helps creating a configuration file for the first
+	// time.
+	virtual void        dumpConfigToYaml(YAML::Node &) const = 0;
+
 
 	// create a path
 	static  Path        create();             // absolute; starting at root

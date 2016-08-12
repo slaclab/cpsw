@@ -65,6 +65,13 @@ protected:
 	{
 	}
 
+	// postHook is invoked after construction. It allows
+	// base-classes to do initialization steps that use
+	// sub-class virtual functions...
+	virtual void postHook()
+	{
+	}
+
 private:
 	weak_ptr<CShObj> self_;
 
@@ -99,6 +106,14 @@ private:
 		// this starts threads in new and cloned objects!
 		p->startRedirector();
 
+		return me;
+	}
+
+	template <typename P>
+	static shared_ptr<P> postConstruct(P *p)
+	{
+	shared_ptr<P> me( setSelf(p) );
+		me->postHook();
 		return me;
 	}
 
@@ -173,7 +188,7 @@ public:
 	Key k;
 	typename T::element_type *p = new typename T::element_type( k );
 
-		return setSelf( p );
+		return postConstruct( p );
 	}
 
 	template <typename T, typename A1>
@@ -182,7 +197,7 @@ public:
 	Key k;
 	typename T::element_type *p = new typename T::element_type( k, a1 );
 
-		return setSelf( p );
+		return postConstruct( p );
 	}
 
 	template <typename T, typename A1, typename A2>
@@ -191,7 +206,7 @@ public:
 	Key k;
 	typename T::element_type *p = new typename T::element_type( k, a1, a2 );
 
-		return setSelf( p );
+		return postConstruct( p );
 	}
 
 	template <typename T, typename A1, typename A2, typename A3>
@@ -200,7 +215,7 @@ public:
 	Key k;
 	typename T::element_type *p = new typename T::element_type( k, a1, a2, a3 );
 
-		return setSelf( p );
+		return postConstruct( p );
 	}
 
 	template <typename T, typename A1, typename A2, typename A3, typename A4>
@@ -209,7 +224,7 @@ public:
 	Key k;
 	typename T::element_type *p = new typename T::element_type( k, a1, a2, a3, a4 );
 
-		return setSelf( p );
+		return postConstruct( p );
 	}
 
 	template <typename T, typename A1, typename A2, typename A3, typename A4, typename A5>
@@ -218,7 +233,7 @@ public:
 	Key k;
 	typename T::element_type *p = new typename T::element_type( k, a1, a2, a3, a4, a5 );
 
-		return setSelf( p );
+		return postConstruct( p );
 	}
 	template <typename T, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
 	static T create(A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6)
@@ -226,7 +241,7 @@ public:
 	Key k;
 	typename T::element_type *p = new typename T::element_type( k, a1, a2, a3, a4, a5, a6 );
 
-		return setSelf( p );
+		return postConstruct( p );
 	}
 
 	template <typename T, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7>
@@ -235,7 +250,7 @@ public:
 	Key k;
 	typename T::element_type *p = new typename T::element_type( k, a1, a2, a3, a4, a5, a6, a7 );
 
-		return setSelf( p );
+		return postConstruct( p );
 	}
 
 };

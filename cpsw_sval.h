@@ -20,6 +20,8 @@ typedef shared_ptr<CScalVal_Adapt>   ScalVal_Adapt;
 
 class CIntEntryImpl : public CEntryImpl, public virtual IIntField {
 public:
+	static const int DFLT_CONFIG_PRIO_RW = 1;
+
 	class CBuilder : public virtual IBuilder, public CShObj {
 	private:
 		std::string name_;
@@ -27,6 +29,7 @@ public:
 		bool        isSigned_;
 		int         lsBit_;	
 		Mode        mode_;
+		int         configPrio_;
         unsigned    wordSwap_;
 		Enum        enum_;
 
@@ -36,14 +39,15 @@ public:
 	public:
 		CBuilder(Key &k);
 		CBuilder(CBuilder &orig, Key &k)
-		:CShObj    (orig, k),
-		 name_     (orig.name_),
-		 sizeBits_ (orig.sizeBits_),
-		 isSigned_ (orig.isSigned_),
-		 lsBit_    (orig.lsBit_),
-		 mode_     (orig.mode_),
-         wordSwap_ (orig.wordSwap_),
-         enum_     (orig.enum_)
+		:CShObj     (orig, k),
+		 name_      (orig.name_),
+		 sizeBits_  (orig.sizeBits_),
+		 isSigned_  (orig.isSigned_),
+		 lsBit_     (orig.lsBit_),
+		 mode_      (orig.mode_),
+		 configPrio_(orig.configPrio_),
+         wordSwap_  (orig.wordSwap_),
+         enum_      (orig.enum_)
 		{
 		}
 
@@ -56,6 +60,7 @@ public:
 		virtual Builder isSigned(bool);
 		virtual Builder lsBit(int);
 		virtual Builder mode(Mode);
+		virtual Builder configPrio(int);
 		virtual Builder wordSwap(unsigned);
 		virtual Builder setEnum(Enum);
 		virtual Builder reset();
@@ -77,8 +82,11 @@ private:
 
 	void checkArgs();
 
-public:
+protected:
 
+	virtual int      getDefaultConfigPrio() const;
+
+public:
 
 	CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP, Enum enm = Enum());
 
@@ -88,6 +96,8 @@ public:
 	virtual const char * getClassName() const { return _getClassName(); }
 
 	virtual void dumpYamlPart(YAML::Node &n) const;
+
+	virtual YAML::Node dumpMyConfigToYaml(Path p) const;
 
 	CIntEntryImpl(CIntEntryImpl &orig, Key &k)
 	:CEntryImpl(orig, k),
