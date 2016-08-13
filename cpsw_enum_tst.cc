@@ -26,12 +26,14 @@ int opt;
 const char *use_yaml = 0;
 const char *dmp_yaml = 0;
 const char *dmp_conf = 0;
+const char * ld_conf = 0;
 
-	while ( (opt = getopt(argc, argv, "y:Y:C:")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "y:Y:C:L:")) > 0 ) {
 		switch (opt) {
 			case 'Y': use_yaml = optarg; break;
 			case 'y': dmp_yaml = optarg; break;
 			case 'C': dmp_conf = optarg; break;
+			case 'L':  ld_conf = optarg; break;
 		}
 	}
 try {
@@ -145,6 +147,11 @@ try {
 
 	if ( dmp_yaml ) {
 		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
+	}
+
+	if ( ld_conf ) {
+		YAML::Node n( YAML::LoadFile( ld_conf ) );
+		IPath::create( root )->loadConfigFromYaml( n );
 	}
 
 	if ( dmp_conf ) {

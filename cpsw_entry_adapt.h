@@ -25,10 +25,6 @@ public:
 	virtual uint64_t    getSize()        const { return ie_->getSize(); }
 	virtual Hub         isHub()          const { return ie_->isHub();   }
 	virtual Path        getPath()        const { return p_->clone();    }
-	virtual void        dumpConfigToYaml(Path p, YAML::Node &n) const
-	{
-		ie_->dumpConfigToYaml( p, n );
-	}
 
 	template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p)
 	{

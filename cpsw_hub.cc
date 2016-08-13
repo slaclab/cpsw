@@ -331,21 +331,24 @@ MyChildren::iterator it;
 	return rval;
 }
 
-void CDevImpl::dumpConfigToYaml(Path p, YAML::Node &n) const
+void CDevImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 {
 	if ( !n || n.IsNull() ) {
 		// new node, i.e., first time config
 
+		if ( ! doDump )
+			throw ConfigurationError("No YAML node to process (loadConfig)");
 
-		// construct a sequence node for our children
-		n = YAML::Node( YAML::NodeType::Sequence );
+
+		// construct an empty node for our children
+		n = YAML::Node( YAML::NodeType::Undefined );
 
 		// first, we dump any settings of our own.
 		// CDevImpl does have no such settings but
-		// a subclass may and override 'dumpMyConfigToYaml()'.
+		// a subclass may and override 'dumpYamlConfig()/loadYamlConfig()'.
 		// Such settings would end up in the 'self' node.
 		YAML::Node self;
-		CEntryImpl::dumpConfigToYaml( p, self );
+		CEntryImpl::processYamlConfig( p, self, doDump );
 		if ( self && ! self.IsNull() ) {
 			// only save 'self' if there is anything...
 			n.push_back(self);
@@ -363,7 +366,7 @@ void CDevImpl::dumpConfigToYaml(Path p, YAML::Node &n) const
 			IPathImpl::toPathImpl( p )->append( a, 0, a->getNelms() - 1 );
 
 			// dump child into the 'child' node
-			a->getEntryImpl()->dumpConfigToYaml( p, child );
+			a->getEntryImpl()->processYamlConfig( p, child, doDump );
 
 			if ( child && ! child.IsNull() ) {
 				// they actually put something there;
@@ -394,8 +397,8 @@ void CDevImpl::dumpConfigToYaml(Path p, YAML::Node &n) const
 			if ( 0 == std::string("value").compare( child.Tag() ) ) {
 				// If this node has a 'value' tag then that means that the
 				// node contains settings for *this* device (see above).
-				// A subclass of CDevImpl may want to save state here...
-				CEntryImpl::dumpConfigToYaml( p, child );
+				// A subclass of CDevImpl may want to load/save state here...
+				CEntryImpl::processYamlConfig( p, child, doDump );
 			} else {
 				// no 'value' tag; this means that the child must be a map
 				// with a single entry: a path element (key) which identifies
@@ -422,7 +425,10 @@ void CDevImpl::dumpConfigToYaml(Path p, YAML::Node &n) const
 
 					p->append( descendant );
 
-					p->dumpConfigToYaml( item->second );
+					if ( doDump )
+						p->dumpConfigToYaml( item->second );
+					else
+						p->loadConfigFromYaml( item->second );
 
 					int i = descendant->size();
 

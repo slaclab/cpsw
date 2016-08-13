@@ -82,7 +82,8 @@ public:
 		{
 		}
 
-		virtual YAML::Node dumpMyConfigToYaml(Path) const;
+		virtual YAML::Node dumpMyConfigToYaml(Path)                 const;
+		virtual void       loadMyConfigFromYaml(Path, YAML::Node &) const;
 };
 
 class CCommand_Adapt;

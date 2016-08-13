@@ -5,10 +5,11 @@
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"usage: %s [-hc] -r root_node_name\n", nm);
+	fprintf(stderr,"usage: %s [-hc] [-C config_file] [-L config_file] -r root_node_name\n", nm);
 	fprintf(stderr,"           -h                   : this message\n");
 	fprintf(stderr,"           -c                   : config dump\n");
 	fprintf(stderr,"           -C <config_file>     : config dump from file\n");
+	fprintf(stderr,"           -L <config_file>     : config load from file\n");
 	fprintf(stderr,"           -r <root_node_name>  : node in input YAML file to use for the root node\n");
 	fprintf(stderr,"  Read YAML from stdin, build hierarchy and dump YAML on stdout\n");
 }
@@ -19,9 +20,10 @@ main(int argc, char **argv)
 int opt;
 int             rval = 1;
 int             cd   = 0;
-const char *conffnam = 0;
+const char *confdnam = 0;
 const char *rootname = 0;
-	while ( (opt = getopt(argc, argv, "hcC:r:")) > 0 ) {
+const char *conflnam = 0;
+	while ( (opt = getopt(argc, argv, "hcC:r:L:")) > 0 ) {
 		switch ( opt ) {
 			case 'c':
 				cd = 1;
@@ -29,8 +31,13 @@ const char *rootname = 0;
 
 			case 'C':
 				cd = 1;
-				conffnam=optarg;
+				confdnam=optarg;
 			break;
+
+			case 'L':
+				conflnam = optarg;
+			break;
+
 			case 'h':
 				rval = 0;
 				// fall through
@@ -49,10 +56,16 @@ const char *rootname = 0;
 	}
 	try {
 		Hub h( IHub::loadYamlStream(std::cin, rootname) );
+
+		if ( conflnam ) {
+			YAML::Node conf( YAML::LoadFile( conflnam ) );
+			IPath::create( h )->loadConfigFromYaml( conf );
+		}
+
 		if ( cd ) {
 			YAML::Node n;
-			if ( conffnam ) {
-				n = YAML::LoadFile( conffnam );
+			if ( confdnam ) {
+				n = YAML::LoadFile( confdnam );
 			}
 			Path p( IPath::create( h ) );
 			p->dumpConfigToYaml( n );

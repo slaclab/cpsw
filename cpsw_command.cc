@@ -29,10 +29,16 @@ CCommandImpl::CCommandImpl(Key &k, const char *name):
 YAML::Node
 CCommandImpl::dumpMyConfigToYaml(Path p) const
 {
-// return just an empty node; there is really no
+// return a node; there is really no
 // configuration data to be saved but we do need
 // a placeholder.
-return YAML::Node(""); //just a non-Null node
+return YAML::Node("exec"); //just a non-Null node
+}
+
+void
+CCommandImpl::loadMyConfigFromYaml(Path p, YAML::Node &node) const
+{
+	ICommand::create( p )->execute();
 }
 
 CommandImplContext CCommandImpl::createContext(Path pParent) const

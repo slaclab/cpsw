@@ -158,8 +158,8 @@ public:
 	// each entry).
 	// This helps creating a configuration file for the first
 	// time.
-	virtual void        dumpConfigToYaml(YAML::Node &) const = 0;
-
+	virtual void        dumpConfigToYaml(YAML::Node &)   const = 0;
+	virtual void        loadConfigFromYaml(YAML::Node &) const = 0;
 
 	// create a path
 	static  Path        create();             // absolute; starting at root

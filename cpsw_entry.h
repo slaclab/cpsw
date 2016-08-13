@@ -63,8 +63,9 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		virtual void dumpYamlPart(YAML::Node &) const;
 
 		virtual YAML::Node dumpMyConfigToYaml(Path) const;
+		virtual void       loadMyConfigFromYaml(Path, YAML::Node &) const;
 
-		virtual void dumpConfigToYaml(Path, YAML::Node &) const;
+		virtual void processYamlConfig(Path, YAML::Node &, bool) const;
 
 		// Every subclass MUST implement the 'getClassName()' virtual
 		// method. Just copy-paste this one:

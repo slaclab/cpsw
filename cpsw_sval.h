@@ -97,7 +97,8 @@ public:
 
 	virtual void dumpYamlPart(YAML::Node &n) const;
 
-	virtual YAML::Node dumpMyConfigToYaml(Path p) const;
+	virtual YAML::Node dumpMyConfigToYaml(Path p)                  const;
+	virtual void       loadMyConfigFromYaml(Path p, YAML::Node &n) const;
 
 	CIntEntryImpl(CIntEntryImpl &orig, Key &k)
 	:CEntryImpl(orig, k),

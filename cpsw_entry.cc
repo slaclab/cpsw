@@ -155,14 +155,18 @@ void CEntryImpl::setConfigPrio(int configPrio)
 	this->configPrioSet_ = true;
 }
 
-void CEntryImpl::dumpConfigToYaml(Path p, YAML::Node &n) const
+void CEntryImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 {
-YAML::Node new_n = dumpMyConfigToYaml( p );
-	if ( new_n ) {
-		// attach a tag.
-		new_n.SetTag( "value" );
+	if ( doDump ) {
+		YAML::Node new_n = dumpMyConfigToYaml( p );
+		if ( new_n ) {
+			// attach a tag.
+			new_n.SetTag( "value" );
+		}
+		n = new_n;
+	} else {
+		loadMyConfigFromYaml(p, n);
 	}
-	n = new_n;
 }
 
 YAML::Node CEntryImpl::dumpMyConfigToYaml(Path p) const
@@ -176,6 +180,11 @@ YAML::Node CEntryImpl::dumpMyConfigToYaml(Path p) const
 	return YAML::Node( YAML::NodeType::Undefined );
 }
 
+void
+CEntryImpl::loadMyConfigFromYaml(Path p, YAML::Node &n) const
+{
+	throw ConfigurationError("This class doesn't implement loadMyConfigFromYaml");
+}
 
 void CEntryImpl::accept(IVisitor *v, RecursionOrder order, int depth)
 {

@@ -852,6 +852,64 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p) const
 	return YAML::Node( YAML::NodeType::Undefined );
 }
 
+void
+CIntEntryImpl::loadMyConfigFromYaml(Path p, YAML::Node &n) const
+{
+unsigned nelms, i;
+
+	if ( RO == getMode() ) {
+		throw ConfigurationError("Cannot load configuration into read-only ScalVal");
+	}
+
+	if ( !n )
+		throw InvalidArgError("CIntEntryImpl::loadMyConfigFromYaml -- empty YAML node");
+
+	if ( n.IsScalar() ) {
+		nelms = 1;
+	} else if ( ! n.IsSequence() ) {
+		throw InvalidArgError("CIntEntryImpl::loadMyConfigFromYaml -- YAML node a Scalar nor a Sequence");
+	} else {
+		nelms = n.size();
+	}
+
+	if ( 0 == nelms )
+		return;
+
+	if ( nelms < p->getNelms() ) {
+		throw InvalidArgError("CIntEntryImpl::loadMyConfigFromYaml --  elements in YAML node < number expected from PATH");
+	}
+
+	if ( nelms > p->getNelms() ) {
+		fprintf(stderr,"WARNING: loadMyConfnigFromYaml -- excess elements in YAML Node; IGNORED\n");
+		nelms = p->getNelms();
+	}
+
+	uint64_t u64[nelms];
+
+	if ( n.IsScalar() ) {
+		if ( enum_ ) {
+			u64[0] = enum_->map( n.as<std::string>().c_str() ).second;
+		} else {
+			u64[0] = n.as<uint64_t>();
+		}
+	} else {
+		if ( enum_ ) {
+			for ( i=0; i<nelms; i++ ) {
+				u64[i] = enum_->map( n[i].as<std::string>().c_str() ).second;
+			}
+		} else {
+			for ( i=0; i<nelms; i++ ) {
+				u64[i] = n[i].as<uint64_t>();
+			}
+		}
+	}
+
+	ScalVal val( IScalVal::create(p) );
+
+	val->setVal( u64, nelms );
+
+}
+
 
 CIntEntryImpl::CBuilder::CBuilder(Key &k)
 :CShObj(k)
