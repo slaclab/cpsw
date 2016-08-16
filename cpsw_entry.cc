@@ -12,6 +12,9 @@
 
 using boost::dynamic_pointer_cast;
 
+const int CEntryImpl::CONFIG_PRIO_OFF;
+const int CEntryImpl::DFLT_CONFIG_PRIO;
+
 static DECLARE_OBJ_COUNTER( ocnt, "EntryImpl", 1 ) // root device
 
 void CEntryImpl::checkArgs()

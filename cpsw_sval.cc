@@ -13,6 +13,8 @@
 
 using std::string;
 
+const int CIntEntryImpl::DFLT_CONFIG_PRIO_RW;
+
 class CStreamAdapt;
 typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
