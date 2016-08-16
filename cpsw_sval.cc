@@ -13,6 +13,8 @@
 
 using std::string;
 
+const int CIntEntryImpl::DFLT_CONFIG_PRIO_RW = 1;
+
 class CStreamAdapt;
 typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
@@ -875,7 +877,8 @@ unsigned nelms, i;
 	if ( 0 == nelms )
 		return;
 
-	if ( nelms < p->getNelms() ) {
+	// A scalar means we will write all elements to same value 
+	if ( nelms < p->getNelms()  && !n.IsScalar() ) {
 		throw InvalidArgError("CIntEntryImpl::loadMyConfigFromYaml --  elements in YAML node < number expected from PATH");
 	}
 
@@ -886,12 +889,15 @@ unsigned nelms, i;
 
 	uint64_t u64[nelms];
 
+	ScalVal val( IScalVal::create(p) );
+
 	if ( n.IsScalar() ) {
 		if ( enum_ ) {
 			u64[0] = enum_->map( n.as<std::string>().c_str() ).second;
 		} else {
 			u64[0] = n.as<uint64_t>();
 		}
+		val->setVal( u64[0] );
 	} else {
 		if ( enum_ ) {
 			for ( i=0; i<nelms; i++ ) {
@@ -902,11 +908,8 @@ unsigned nelms, i;
 				u64[i] = n[i].as<uint64_t>();
 			}
 		}
+		val->setVal( u64, nelms );
 	}
-
-	ScalVal val( IScalVal::create(p) );
-
-	val->setVal( u64, nelms );
 
 }
 
