@@ -197,7 +197,60 @@ IEnum::iterator ite = enm->end();
 	return d;
 }
 
-// FIXME: write a better function; one which also supports the buffer interface
+class ViewGuard {
+private:
+	Py_buffer *theview_;
+
+public:
+	ViewGuard(Py_buffer *view)
+	: theview_(view)
+	{
+	}
+
+	~ViewGuard()
+	{
+		PyBuffer_Release( theview_ );
+	}
+};
+
+// Read into an object which implements the (new) python buffer interface
+// (supporting only a contiguous buffer)
+
+static unsigned wrap_ScalVal_RO_getVal_into(ScalVal_RO val, object &o)
+{
+PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
+Py_buffer view;
+	if ( !  PyObject_CheckBuffer( op )
+	     || 0 != PyObject_GetBuffer( op, &view, PyBUF_C_CONTIGUOUS | PyBUF_WRITEABLE ) ) {
+		throw InvalidArgError("Require an object which implements the buffer interface");
+	}
+	ViewGuard guard( &view );
+
+	Py_ssize_t nelms = view.len / view.itemsize;
+
+	if ( nelms > val->getNelms() )
+		nelms = val->getNelms();
+
+	IndexRange rng(0, nelms-1);
+
+	if        ( view.itemsize == sizeof(uint8_t ) ) {
+		uint8_t *bufp = reinterpret_cast<uint8_t*>(view.buf);
+		// set same value to all elements ? 
+		return val->getVal( bufp, nelms, &rng );
+	} else if ( view.itemsize == sizeof(uint16_t) ) {
+		uint16_t *bufp = reinterpret_cast<uint16_t*>(view.buf);
+		return val->getVal( bufp, nelms, &rng );
+	} else if ( view.itemsize == sizeof(uint32_t) ) {
+		uint32_t *bufp = reinterpret_cast<uint32_t*>(view.buf);
+		return val->getVal( bufp, nelms, &rng );
+	} else if ( view.itemsize == sizeof(uint64_t) ) {
+		uint64_t *bufp = reinterpret_cast<uint64_t*>(view.buf);
+		return val->getVal( bufp, nelms, &rng );
+	}
+
+	throw InvalidArgError("Unable to convert python argument");
+}
+
 static boost::python::object wrap_ScalVal_RO_getVal(ScalVal_RO val)
 {
 boost::python::object o;
@@ -239,22 +292,6 @@ unsigned got;
 		return l;
 	}
 }
-
-class ViewGuard {
-private:
-	Py_buffer *theview_;
-
-public:
-	ViewGuard(Py_buffer *view)
-	: theview_(view)
-	{
-	}
-
-	~ViewGuard()
-	{
-		PyBuffer_Release( theview_ );
-	}
-};
 
 static unsigned wrap_ScalVal_setVal(ScalVal val, object &o)
 {
@@ -302,9 +339,6 @@ Py_buffer view;
 			v64.push_back( extract<uint64_t>( o[i] ) );
 	}
 	return val->setVal( &v64[0], nelms, &rng );
-
-
-	throw InvalidArgError("Unable to convert python argument");
 }
 
 static int64_t wrap_Stream_read(Stream val, object &o)
@@ -451,6 +485,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 	class_<IScalVal_RO, bases<IScalVal_Base>, boost::noncopyable> ScalVal_ROClazz("ScalVal_RO", no_init);
 	ScalVal_ROClazz
 		.def("getVal",       wrap_ScalVal_RO_getVal)
+		.def("getVal",       wrap_ScalVal_RO_getVal_into)
 		.def("create",       &IScalVal_RO::create)
 		.staticmethod("create")
 	;
