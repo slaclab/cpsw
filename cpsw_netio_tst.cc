@@ -197,11 +197,11 @@ const char *dmp_yaml =  0;
 						continue;
 					sprintf(nam,"vro-%i-%i-%i-be",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
 					if ( ! use_yaml )
-					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx]    , 1, IMMIODev::STRIDE_AUTO, BE ); 
+					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx], IIntField::RO), offs[off_idx]    , 1, IMMIODev::STRIDE_AUTO, BE ); 
 					ScalVal_RO v_be = IScalVal_RO::create( pre->findByName(nam) );
 					sprintf(nam,"vro-%i-%i-%i-le",sizes[size_idx], lsbs[lsb_idx], offs[off_idx]);
 					if ( ! use_yaml )
-					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx]), offs[off_idx] + 8, 1, IMMIODev::STRIDE_AUTO, LE ); 
+					srvm->addAtAddress( IIntField::create(nam, sizes[size_idx], false, lsbs[lsb_idx], IIntField::RO), offs[off_idx] + 8, 1, IMMIODev::STRIDE_AUTO, LE ); 
 					ScalVal_RO v_le = IScalVal_RO::create( pre->findByName(nam) );
 
 					v_le->getVal( &v_got, 1 );
