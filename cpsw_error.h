@@ -4,8 +4,9 @@
 #include <string>
 #include <string.h>
 #include <stdint.h>
+#include <exception>
 
-class CPSWError {
+class CPSWError : public std::exception {
 private:
 	std::string name_;
 public:
@@ -32,6 +33,15 @@ public:
 	virtual std::string &getInfo()
 	{
 		return name_;
+	}
+
+	virtual const char *what() const throw()
+	{
+		return name_.c_str();
+	}
+
+	virtual ~CPSWError() throw()
+	{
 	}
 };
 
