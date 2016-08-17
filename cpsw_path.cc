@@ -41,7 +41,7 @@ public:
 
 	virtual void clear();
 	virtual void clear(Hub);
-	virtual void clear(DevImpl);
+	virtual void clear(ConstDevImpl);
 
 	virtual void dump(FILE *f) const;
 
@@ -265,7 +265,7 @@ ConstDevImpl c = dynamic_pointer_cast< ConstDevImpl::element_type, Hub::element_
 	clear( c );
 }
 
-void CPathImpl::clear(DevImpl c)
+void CPathImpl::clear(ConstDevImpl c)
 {
 	PathEntryContainer::clear();
 	push_back( PathEntry(NULLADDR) );
@@ -276,7 +276,7 @@ void CPathImpl::clear(DevImpl c)
 
 void CPathImpl::clear()
 {
-	clear( theRootDev );
+	clear( static_pointer_cast<ConstDevImpl::element_type>( theRootDev ) );
 }
 
 bool CPathImpl::hasParent(CPathImpl::const_reverse_iterator &i)
