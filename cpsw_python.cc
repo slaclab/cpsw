@@ -331,17 +331,34 @@ IndexRange rng(from, to);
 		// try the hard way...
 	}
 
-	if ( ! PySequence_Check( o.ptr() ) ) {
-		return val->setVal( extract<uint64_t>( o ) );
+	// if the object is not a python sequence then 'len()' cannot be used.
+	// Thus, we have to handle this case separately...
+	if ( ! PySequence_Check( op ) ) {
+		if ( val->getEnum() && PyString_Check( op ) ) {
+			// if we have enums and they give us a string then
+			// we supply the string and let CPSW do the mapping
+			const char *str_p = extract<const char*>( o );
+			return val->setVal( &str_p, 1, &rng );
+		} else {
+			return val->setVal( extract<uint64_t>( o ), &rng );
+		}
 	}
 
 	unsigned nelms = len(o);
 
-	std::vector<uint64_t> v64;
-	for ( int i = 0; i < nelms; ++i ) {
+	if ( val->getEnum() && PyString_Check( op ) ) {
+		std::vector<const char *> vstr;
+		for ( int i = 0; i < nelms; ++i ) {
+			vstr.push_back( extract<const char*>( o[i] ) );
+		}
+		return val->setVal( &vstr[0], nelms, &rng );
+	} else {
+		std::vector<uint64_t> v64;
+		for ( int i = 0; i < nelms; ++i ) {
 			v64.push_back( extract<uint64_t>( o[i] ) );
+		}
+		return val->setVal( &v64[0], nelms, &rng );
 	}
-	return val->setVal( &v64[0], nelms, &rng );
 }
 
 BOOST_PYTHON_FUNCTION_OVERLOADS(ScalVal_setVal_ol, wrap_ScalVal_setVal, 2, 4)
