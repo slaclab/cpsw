@@ -21,6 +21,7 @@ typedef shared_ptr<CScalVal_Adapt>   ScalVal_Adapt;
 class CIntEntryImpl : public CEntryImpl, public virtual IIntField {
 public:
 	static const int DFLT_CONFIG_PRIO_RW = 1;
+	static const int DFLT_CONFIG_BASE    = 16; // dump configuration values in hex
 
 	class CBuilder : public virtual IBuilder, public CShObj {
 	private:
@@ -30,6 +31,7 @@ public:
 		int         lsBit_;	
 		Mode        mode_;
 		int         configPrio_;
+		int         configBase_;
         unsigned    wordSwap_;
 		Enum        enum_;
 
@@ -46,6 +48,7 @@ public:
 		 lsBit_     (orig.lsBit_),
 		 mode_      (orig.mode_),
 		 configPrio_(orig.configPrio_),
+		 configBase_(orig.configBase_),
          wordSwap_  (orig.wordSwap_),
          enum_      (orig.enum_)
 		{
@@ -61,6 +64,7 @@ public:
 		virtual Builder lsBit(int);
 		virtual Builder mode(Mode);
 		virtual Builder configPrio(int);
+		virtual Builder configBase(int);
 		virtual Builder wordSwap(unsigned);
 		virtual Builder setEnum(Enum);
 		virtual Builder reset();
@@ -79,6 +83,7 @@ private:
 	Mode     mode_;
 	unsigned wordSwap_;
 	Enum     enum_;
+	int      configBase_;
 
 	void checkArgs();
 
@@ -107,17 +112,22 @@ public:
 	 size_bits_(orig.size_bits_),
 	 mode_(orig.mode_),
 	 wordSwap_(orig.wordSwap_),
-	 enum_(orig.enum_)
+	 enum_(orig.enum_),
+	 configBase_(orig.configBase_)
 	{
 	}
 
-	virtual CIntEntryImpl *clone(Key &k) { return new CIntEntryImpl( *this, k ); }
-	virtual bool     isSigned()    const { return is_signed_; }
-	virtual int      getLsBit()    const { return ls_bit_;    }
-	virtual uint64_t getSizeBits() const { return size_bits_; }
-	virtual unsigned getWordSwap() const { return wordSwap_;  }
-	virtual Mode     getMode()     const { return mode_;      }
-	virtual Enum     getEnum()     const { return enum_;      }
+	virtual CIntEntryImpl *clone(Key &k)   { return new CIntEntryImpl( *this, k ); }
+
+	virtual bool     isSigned()      const { return is_signed_;                    }
+	virtual int      getLsBit()      const { return ls_bit_;                       }
+	virtual uint64_t getSizeBits()   const { return size_bits_;                    }
+	virtual unsigned getWordSwap()   const { return wordSwap_;                     }
+	virtual int      getConfigBase() const { return configBase_;                   }
+	virtual Mode     getMode()       const { return mode_;                         }
+	virtual Enum     getEnum()       const { return enum_;                         }
+
+	virtual void     setConfigBase(int);
 };
 
 class IIntEntryAdapt : public IEntryAdapt, public virtual IScalVal_Base {

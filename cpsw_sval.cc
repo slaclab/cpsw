@@ -29,6 +29,15 @@ computeSize(unsigned wordSwap, uint64_t sizeBits, int lsBit)
 	return	wordSwap > 0 && wordSwap != b2B(sizeBits) ? b2B(sizeBits) + (lsBit ? 1 : 0) : b2B(sizeBits + lsBit);
 }
 
+static int checkConfigBase(int proposed)
+{
+	if ( 0 == proposed )
+		proposed = CIntEntryImpl::DFLT_CONFIG_BASE;
+	if ( 10 != proposed && 16 != proposed )
+		throw InvalidArgError("configBase must be 10 or 16");
+	return proposed;
+}
+
 void
 CIntEntryImpl::checkArgs()
 {
@@ -46,6 +55,8 @@ unsigned byteSize = b2B(size_bits_);
 			throw InvalidArgError("wordSwap does not divide size");
 		}
 	}
+
+	configBase_ = checkConfigBase( configBase_ );
 }
 
 
@@ -60,7 +71,8 @@ CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool i
 	size_bits_(sizeBits),
 	mode_(mode),
 	wordSwap_( wordSwap ),
-	enum_(enm)
+	enum_(enm),
+	configBase_( DFLT_CONFIG_BASE )
 {
 	checkArgs();
 }
@@ -71,21 +83,31 @@ CIntEntryImpl::getDefaultConfigPrio() const
 	return RW == mode_ ? DFLT_CONFIG_PRIO_RW : CONFIG_PRIO_OFF;
 }
 
+void
+CIntEntryImpl::setConfigBase(int proposed)
+{
+	if ( getLocked() )
+        throw ConfigurationError("Configuration Error - cannot modify attached device");
+	configBase_ = checkConfigBase( proposed );
+}
+
 CIntEntryImpl::CIntEntryImpl(Key &key, YamlState &node)
 :CEntryImpl(key, node),
  is_signed_(DFLT_IS_SIGNED),
  ls_bit_(DFLT_LS_BIT),
  size_bits_(DFLT_SIZE_BITS),
  mode_(DFLT_MODE),
- wordSwap_(DFLT_WORD_SWAP)
+ wordSwap_(DFLT_WORD_SWAP),
+ configBase_(DFLT_CONFIG_BASE)
 {
 MutableEnum e;
 
-	readNode(node, "isSigned", &is_signed_);
-	readNode(node, "lsBit",    &ls_bit_   );
-	readNode(node, "sizeBits", &size_bits_);
-	readNode(node, "mode",     &mode_     );
-	readNode(node, "wordSwap", &wordSwap_ );
+	readNode(node, "isSigned",   &is_signed_ );
+	readNode(node, "lsBit",      &ls_bit_    );
+	readNode(node, "sizeBits",   &size_bits_ );
+	readNode(node, "mode",       &mode_      );
+	readNode(node, "wordSwap",   &wordSwap_  );
+	readNode(node, "configBase", &configBase_);
 
 	YamlState enum_node( node.lookup( "enums" ) );
 
@@ -114,6 +136,8 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 		writeNode(node, "mode",     mode_     );
 	if ( wordSwap_  != DFLT_WORD_SWAP )
 		writeNode(node, "wordSwap", wordSwap_ );
+	if ( configBase_ != DFLT_CONFIG_BASE )
+		writeNode(node, "configBase", configBase_ );
 
 	if ( enum_ ) {
 		YAML::Node enums;
@@ -827,6 +851,16 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p) const
 				break;
 		}
 
+		// base 10 settings
+		int field_width = 0;
+		const char *fmt = isSigned() ? "%*"PRId64 : "%*"PRIu64;
+
+		if ( 16 == getConfigBase() ) {
+			// base 16 settings
+			field_width = (getSizeBits() + 3) / 4; // one hex char per nibble
+			fmt         = "0x%0*"PRIx64;
+		}
+
 		if ( i ) {
 			// must save full array;
 			YAML::Node n( YAML::NodeType::Sequence );
@@ -836,18 +870,24 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p) const
 					n.push_back( *(enum_->map( u64[i] ).first) );
 				}
 			} else {
+				char cbuf[66];
 				for ( i=0; i<nelms; i++ ) {
-					n.push_back( u64[i] );
+					// yaml-cpp dumps integers in decimal representation
+					::snprintf(cbuf, sizeof(cbuf), fmt, field_width, u64[i]);
+					n.push_back( cbuf );
 				}
 			}
 			return n;
 		} else {
 			// can save single value
 			YAML::Node n( YAML::NodeType::Scalar );
-			if ( enum_ )
+			if ( enum_ ) {
 				n = *enum_->map( u64[0] ).first;
-			else
-				n = u64[0];
+			} else {
+				char cbuf[66];
+				::snprintf(cbuf, sizeof(cbuf), fmt, field_width, u64[0]);
+				n = cbuf;
+			}
 			return n;
 		}
 	}
@@ -963,6 +1003,12 @@ IIntField::Builder CIntEntryImpl::CBuilder::configPrio(int configPrio)
 	return getSelfAs<BuilderImpl>();
 }
 
+IIntField::Builder CIntEntryImpl::CBuilder::configBase(int configBase)
+{
+	configBase_ = checkConfigBase( configBase );
+	return getSelfAs<BuilderImpl>();
+}
+
 IIntField::Builder CIntEntryImpl::CBuilder::wordSwap(unsigned wordSwap)
 {
 	wordSwap_ = wordSwap;
@@ -989,6 +1035,7 @@ void CIntEntryImpl::CBuilder::init()
 	isSigned_   = DFLT_IS_SIGNED;
 	mode_       = DFLT_MODE;
 	configPrio_ = RW == DFLT_MODE ? DFLT_CONFIG_PRIO_RW : 0;
+	configBase_ = DFLT_CONFIG_BASE;
     wordSwap_   = DFLT_WORD_SWAP;
 }
 
@@ -1001,6 +1048,7 @@ IntField CIntEntryImpl::CBuilder::build(const char *name)
 {
 IntEntryImpl rval = CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_, enum_);
 	rval->setConfigPrio( configPrio_ );
+	rval->setConfigBase( configBase_ );
 	return rval;
 }
 
