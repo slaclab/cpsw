@@ -460,7 +460,18 @@ public:
 	}
 };
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(Hub_loadYamlFile_ol, IHub::loadYamlFile, 1, 3)
+BOOST_PYTHON_FUNCTION_OVERLOADS(Hub_loadYamlFile_ol,   IHub::loadYamlFile, 1, 3)
+
+static Hub
+wrap_Hub_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0)
+{
+// couls use IHub::loadYamlStream(const char *,...) but that would make a new string
+// which we hopefully can avoid:
+std::istringstream sstrm( yaml );
+	return IHub::loadYamlStream( sstrm, root_name, yaml_dir_name );
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(Hub_loadYamlStream_ol, wrap_Hub_loadYamlStream, 1, 3)
 
 BOOST_PYTHON_MODULE(pycpsw)
 {
@@ -499,7 +510,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 	HubClazz
 		.def("findByName",     &IHub::findByName)
 		.def("getChild",       &IHub::getChild)
-		.def("loadYamlFile",   &IHub::loadYamlFile, Hub_loadYamlFile_ol( args("file_name", "root_name", "yaml_dir") ))
+		.def("loadYamlFile",   &IHub::loadYamlFile, Hub_loadYamlFile_ol( args("yamlFileName", "rootName", "yamlIncDirName") ))
+		.def("loadYaml",       wrap_Hub_loadYamlStream, Hub_loadYamlStream_ol( args("yamlString", "rootName", "yamlIncDirName") ))
 		.staticmethod("loadYamlFile")
 	;
 
@@ -523,8 +535,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.def("getNelms",     &IPath::getNelms)
 		.def("getTailFrom",  &IPath::getTailFrom)
 		.def("getTailTo",    &IPath::getTailTo)
-		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlFile,   Path_loadConfigFromYamlFile_ol( args("self", "configYamlFilename", "yamlIncludeDirname") ) )
-		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlString, Path_loadConfigFromYamlString_ol( args("self", "configYamlString", "yamlIncludeDirname") ) )
+		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlFile,   Path_loadConfigFromYamlFile_ol( args("self", "configYamlFilename", "yamlIncDirname") ) )
+		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlString, Path_loadConfigFromYamlString_ol( args("self", "configYamlString", "yamlIncDirname") ) )
 		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlString)
 		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYamlFile)
 		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYaml)
