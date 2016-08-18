@@ -216,10 +216,12 @@ public:
 // Read into an object which implements the (new) python buffer interface
 // (supporting only a contiguous buffer)
 
-static unsigned wrap_ScalVal_RO_getVal_into(ScalVal_RO val, object &o)
+static unsigned wrap_ScalVal_RO_getVal_into(ScalVal_RO val, object &o, int from = -1, int to = -1)
 {
-PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
-Py_buffer view;
+PyObject  *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
+Py_buffer  view;
+IndexRange rng(from, to);
+
 	if ( !  PyObject_CheckBuffer( op )
 	     || 0 != PyObject_GetBuffer( op, &view, PyBUF_C_CONTIGUOUS | PyBUF_WRITEABLE ) ) {
 		throw InvalidArgError("Require an object which implements the buffer interface");
@@ -231,7 +233,6 @@ Py_buffer view;
 	if ( nelms > val->getNelms() )
 		nelms = val->getNelms();
 
-	IndexRange rng(0, nelms-1);
 
 	if        ( view.itemsize == sizeof(uint8_t ) ) {
 		uint8_t *bufp = reinterpret_cast<uint8_t*>(view.buf);
@@ -251,20 +252,22 @@ Py_buffer view;
 	throw InvalidArgError("Unable to convert python argument");
 }
 
-static boost::python::object wrap_ScalVal_RO_getVal(ScalVal_RO val)
+BOOST_PYTHON_FUNCTION_OVERLOADS(ScalVal_RO_getVal_into_ol, wrap_ScalVal_RO_getVal_into, 2, 4)
+
+
+static boost::python::object wrap_ScalVal_RO_getVal(ScalVal_RO val, int from=-1, int to=-1, bool forceNumeric = false)
 {
-boost::python::object o;
+Enum       enm   = val->getEnum();
+unsigned   nelms = val->getNelms();
+unsigned   got;
+IndexRange rng(from, to);
 
-Enum     enm   = val->getEnum();
-unsigned nelms = val->getNelms();
-unsigned got;
-
-	if ( enm ) {
+	if ( enm && ! forceNumeric ) {
 
 	std::vector<CString>  str;
 
 		str.reserve(nelms);
-		got = val->getVal( &str[0], nelms );
+		got = val->getVal( &str[0], nelms, &rng );
 		if ( 1 == got ) {
 			return boost::python::object( *str[0] );	
 		}
@@ -274,13 +277,14 @@ unsigned got;
 			l.append( *str[i] );
 		}
 		return l;
+
 	} else {
 
 	std::vector<uint64_t> v64;
 
 		v64.reserve(nelms);
 
-		got = val->getVal( &v64[0], nelms );
+		got = val->getVal( &v64[0], nelms, &rng );
 		if ( 1 == got ) {
 			return boost::python::object( v64[0] );
 		}
@@ -293,10 +297,13 @@ unsigned got;
 	}
 }
 
-static unsigned wrap_ScalVal_setVal(ScalVal val, object &o)
+BOOST_PYTHON_FUNCTION_OVERLOADS(ScalVal_RO_getVal_ol, wrap_ScalVal_RO_getVal, 1, 4)
+
+static unsigned wrap_ScalVal_setVal(ScalVal val, object &o, int from=-1, int to=-1)
 {
-PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
-Py_buffer view;
+PyObject  *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
+Py_buffer  view;
+IndexRange rng(from, to);
 
 	if (    PyObject_CheckBuffer( op )
 	     && 0 == PyObject_GetBuffer( op, &view, PyBUF_C_CONTIGUOUS ) ) {
@@ -304,8 +311,6 @@ Py_buffer view;
 		ViewGuard guard( &view );
 
 		Py_ssize_t nelms = view.len / view.itemsize;
-
-		IndexRange rng(0, nelms-1);
 
 		if        ( view.itemsize == sizeof(uint8_t ) ) {
 			uint8_t *bufp = reinterpret_cast<uint8_t*>(view.buf);
@@ -332,8 +337,6 @@ Py_buffer view;
 
 	unsigned nelms = len(o);
 
-	IndexRange rng(0, nelms-1);
-
 	std::vector<uint64_t> v64;
 	for ( int i = 0; i < nelms; ++i ) {
 			v64.push_back( extract<uint64_t>( o[i] ) );
@@ -341,7 +344,9 @@ Py_buffer view;
 	return val->setVal( &v64[0], nelms, &rng );
 }
 
-static int64_t wrap_Stream_read(Stream val, object &o)
+BOOST_PYTHON_FUNCTION_OVERLOADS(ScalVal_setVal_ol, wrap_ScalVal_setVal, 2, 4)
+
+static int64_t wrap_Stream_read(Stream val, object &o, int64_t timeoutUs = -1)
 {
 PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
 Py_buffer view;
@@ -351,10 +356,17 @@ Py_buffer view;
 	}
 	ViewGuard guard( &view );
 
-	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len );
+	CTimeout timeout;
+
+	if ( timeoutUs >= 0 )
+		timeout.set( (uint64_t)timeoutUs );
+
+	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 }
 
-static int64_t wrap_Stream_write(Stream val, object &o)
+BOOST_PYTHON_FUNCTION_OVERLOADS(Stream_read_ol, wrap_Stream_read, 2, 3)
+
+static int64_t wrap_Stream_write(Stream val, object &o, int64_t timeoutUs = 0)
 {
 PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
 Py_buffer view;
@@ -364,8 +376,14 @@ Py_buffer view;
 	}
 	ViewGuard guard( &view );
 
-	return val->write( reinterpret_cast<uint8_t*>(view.buf), view.len );
+	CTimeout timeout;
+	if ( timeoutUs >= 0 )
+		timeout.set( (uint64_t)timeoutUs );
+
+	return val->write( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 }
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(Stream_write_ol, wrap_Stream_write, 2, 3)
 
 // wrap IPathVisitor to call back into python (assuming the visitor
 // is implemented there, of course)
@@ -395,6 +413,8 @@ public:
 		std::cout << "deleting WrapPathVisitor\n";
 	}
 };
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(Hub_loadYamlFile_ol, IHub::loadYamlFile, 1, 3)
 
 BOOST_PYTHON_MODULE(pycpsw)
 {
@@ -427,12 +447,13 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.def("getNelms",       &IChild::getNelms)
 	;
 
+
 	// wrap 'IHub' interface
 	class_<IHub, bases<IEntry>, boost::noncopyable> HubClazz("Hub", no_init);
 	HubClazz
 		.def("findByName",     &IHub::findByName)
 		.def("getChild",       &IHub::getChild)
-		.def("loadYamlFile",   &IHub::loadYamlFile)
+		.def("loadYamlFile",   &IHub::loadYamlFile, Hub_loadYamlFile_ol( args("file_name", "root_name", "yaml_dir") ))
 		.staticmethod("loadYamlFile")
 	;
 
@@ -484,8 +505,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 	// wrap 'IScalVal_RO' interface
 	class_<IScalVal_RO, bases<IScalVal_Base>, boost::noncopyable> ScalVal_ROClazz("ScalVal_RO", no_init);
 	ScalVal_ROClazz
-		.def("getVal",       wrap_ScalVal_RO_getVal)
-		.def("getVal",       wrap_ScalVal_RO_getVal_into)
+		.def("getVal",       wrap_ScalVal_RO_getVal, ScalVal_RO_getVal_ol( args("self", "fromIdx","toIdx","forceNumeric") ))
+		.def("getVal",       wrap_ScalVal_RO_getVal_into, ScalVal_RO_getVal_into_ol( args("self", "bufObject", "fromIdx", "toIdx") ) )
 		.def("create",       &IScalVal_RO::create)
 		.staticmethod("create")
 	;
@@ -493,7 +514,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 	// wrap 'IScalVal' interface
 	class_<IScalVal, bases<IScalVal_RO>, boost::noncopyable> ScalVal_Clazz("ScalVal", no_init);
 	ScalVal_Clazz
-		.def("setVal",       wrap_ScalVal_setVal)
+		.def("setVal",       wrap_ScalVal_setVal, ScalVal_setVal_ol( args("self", "values", "fromIdx", "toIdx") ) )
 		.def("create",       &IScalVal::create)
 		.staticmethod("create")
 	;
@@ -501,8 +522,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 	// wrap 'IStream' interface
 	class_<IStream, boost::noncopyable> Stream_Clazz("Stream", no_init);
 	Stream_Clazz
-		.def("read",         wrap_Stream_read)
-		.def("write",        wrap_Stream_write)
+		.def("read",         wrap_Stream_read, Stream_read_ol( args("self", "bufObject", "timeoutUs") ) )
+		.def("write",        wrap_Stream_write, Stream_write_ol( args("self", "bufObject", "timeoutUs") ))
 		.def("create",       &IStream::create)
 		.staticmethod("create")
 	;
