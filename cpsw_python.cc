@@ -363,7 +363,7 @@ IndexRange rng(from, to);
 	// if the object is not a python sequence then 'len()' cannot be used.
 	// Thus, we have to handle this case separately...
 	if ( ! PySequence_Check( op ) ) {
-		if ( val->getEnum() && PyString_Check( op ) ) {
+		if ( val->getEnum() && PyBytes_Check( op ) ) {
 			// if we have enums and they give us a string then
 			// we supply the string and let CPSW do the mapping
 			const char *str_p = extract<const char*>( o );
@@ -375,15 +375,15 @@ IndexRange rng(from, to);
 
 	unsigned nelms = len(o);
 
-	if ( val->getEnum() && PyString_Check( op ) ) {
+	if ( val->getEnum() && PyBytes_Check( op ) ) {
 		std::vector<const char *> vstr;
-		for ( int i = 0; i < nelms; ++i ) {
+		for ( unsigned i = 0; i < nelms; ++i ) {
 			vstr.push_back( extract<const char*>( o[i] ) );
 		}
 		return val->setVal( &vstr[0], nelms, &rng );
 	} else {
 		std::vector<uint64_t> v64;
-		for ( int i = 0; i < nelms; ++i ) {
+		for ( unsigned i = 0; i < nelms; ++i ) {
 			v64.push_back( extract<uint64_t>( o[i] ) );
 		}
 		return val->setVal( &v64[0], nelms, &rng );
