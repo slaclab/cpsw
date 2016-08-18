@@ -137,22 +137,17 @@ public:
 	register_exception_translator<clazz>( tr_##clazz );
 };
 
-static void wrap_Path_loadConfigFromYamlFile(Path p, const char *filename, const char *yaml_dir = 0)
+static void wrap_Path_loadConfigFromYamlFile(Path p, const char *filename, const char *yaml_dir)
 {
 YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYamlFile( filename, yaml_dir ) );
 	p->loadConfigFromYaml( conf );
 }
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(Path_loadConfigFromYamlFile_ol, wrap_Path_loadConfigFromYamlFile, 2, 3)
-
-static void wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir = 0)
+static void wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir)
 {
 YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
 	p->loadConfigFromYaml( conf );
 }
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(Path_loadConfigFromYamlString_ol, wrap_Path_loadConfigFromYamlString, 2, 3)
-
 
 // raii for file stream
 class ofs : public std::fstream {
@@ -245,7 +240,7 @@ public:
 // Read into an object which implements the (new) python buffer interface
 // (supporting only a contiguous buffer)
 
-static unsigned wrap_ScalVal_RO_getVal_into(ScalVal_RO val, object &o, int from = -1, int to = -1)
+static unsigned wrap_ScalVal_RO_getVal_into(ScalVal_RO val, object &o, int from, int to)
 {
 PyObject  *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
 Py_buffer  view;
@@ -281,10 +276,9 @@ IndexRange rng(from, to);
 	throw InvalidArgError("Unable to convert python argument");
 }
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(ScalVal_RO_getVal_into_ol, wrap_ScalVal_RO_getVal_into, 2, 4)
 
 
-static boost::python::object wrap_ScalVal_RO_getVal(ScalVal_RO val, int from=-1, int to=-1, bool forceNumeric = false)
+static boost::python::object wrap_ScalVal_RO_getVal(ScalVal_RO val, int from, int to, bool forceNumeric)
 {
 Enum       enm   = val->getEnum();
 unsigned   nelms = val->getNelms();
@@ -326,9 +320,7 @@ IndexRange rng(from, to);
 	}
 }
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(ScalVal_RO_getVal_ol, wrap_ScalVal_RO_getVal, 1, 4)
-
-static unsigned wrap_ScalVal_setVal(ScalVal val, object &o, int from=-1, int to=-1)
+static unsigned wrap_ScalVal_setVal(ScalVal val, object &o, int from, int to)
 {
 PyObject  *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
 Py_buffer  view;
@@ -390,9 +382,7 @@ IndexRange rng(from, to);
 	}
 }
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(ScalVal_setVal_ol, wrap_ScalVal_setVal, 2, 4)
-
-static int64_t wrap_Stream_read(Stream val, object &o, int64_t timeoutUs = -1)
+static int64_t wrap_Stream_read(Stream val, object &o, int64_t timeoutUs)
 {
 PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
 Py_buffer view;
@@ -410,9 +400,7 @@ Py_buffer view;
 	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 }
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(Stream_read_ol, wrap_Stream_read, 2, 3)
-
-static int64_t wrap_Stream_write(Stream val, object &o, int64_t timeoutUs = 0)
+static int64_t wrap_Stream_write(Stream val, object &o, int64_t timeoutUs)
 {
 PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
 Py_buffer view;
@@ -428,8 +416,6 @@ Py_buffer view;
 
 	return val->write( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 }
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(Stream_write_ol, wrap_Stream_write, 2, 3)
 
 // wrap IPathVisitor to call back into python (assuming the visitor
 // is implemented there, of course)
@@ -535,8 +521,22 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.def("getNelms",     &IPath::getNelms)
 		.def("getTailFrom",  &IPath::getTailFrom)
 		.def("getTailTo",    &IPath::getTailTo)
-		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlFile,   Path_loadConfigFromYamlFile_ol( args("self", "configYamlFilename", "yamlIncDirname") ) )
-		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlString, Path_loadConfigFromYamlString_ol( args("self", "configYamlString", "yamlIncDirname") ) )
+		.def("loadConfigFromYamlFile", wrap_Path_loadConfigFromYamlFile,
+             ( arg("self"), arg("configYamlFilename"), arg("yamlIncDirname")=0 ),
+             "\n"
+             "Load a configuration file in YAML format and write out into the hardware.\n"
+             "\n"
+             "'yamlIncDirname' may point to a directory where included YAML files can\n"
+             "be found. Defaults to the directory where the YAML file is located."
+         )
+		.def("loadConfigFromYamlString", wrap_Path_loadConfigFromYamlString,
+             ( arg("self"), arg("configYamlString"), arg("yamlIncDirname")=0 ),
+             "\n"
+             "Load a configuration from a YAML formatted string and write out into the hardware.\n"
+             "\n"
+             "'yamlIncDirname' may point to a directory where included YAML files can be found.\n"
+             "Defaults to the directory where the YAML file is located.\n"
+         )
 		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlString)
 		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYamlFile)
 		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYaml)
@@ -547,53 +547,264 @@ BOOST_PYTHON_MODULE(pycpsw)
 	class_<IPathVisitor, WrapPathVisitor, boost::noncopyable, boost::shared_ptr<WrapPathVisitor> > WrapPathVisitorClazz("PathVisitor");
 
 	// wrap 'IEnum' interface
-	class_<IEnum, boost::noncopyable> Enum_Clazz("Enum", no_init);
+	class_<IEnum, boost::noncopyable> Enum_Clazz(
+		"Enum",
+		"\n"
+		"An Enum object is a dictionary with associates strings to numerical\n"
+		"values.",
+		no_init
+	);
+
 	Enum_Clazz
-		.def("getNelms",     &IEnum::getNelms)
-		.def("getItems",     wrap_Enum_getItems)
+		.def("getNelms",     &IEnum::getNelms,
+			"\n"
+			"Return the number of entries in this Enum."
+		)
+		.def("getItems",     wrap_Enum_getItems,
+			"\n"
+			"Return this enum converted into a python dictionary."
+		)
 	;
 
 	// wrap 'IScalVal_Base' interface
-	class_<IScalVal_Base, bases<IEntry>, boost::noncopyable> ScalVal_BaseClazz("ScalVal_Base", no_init);
-	ScalVal_BaseClazz
-		.def("getNelms",     &IScalVal_Base::getNelms)
-		.def("getSizeBits",  &IScalVal_Base::getSizeBits)
-		.def("isSigned",     &IScalVal_Base::isSigned)
-		.def("getPath",      &IScalVal_Base::getPath)
-		.def("getEnum",      &IScalVal_Base::getEnum)
-	;
+	class_<IScalVal_Base, bases<IEntry>, boost::noncopyable> ScalVal_BaseClazz(
+		"ScalVal_Base",
+		"\n"
+		"Base class for ScalVal variants.\n",
+		no_init
+	);
 
+	ScalVal_BaseClazz
+		.def("getNelms",     &IScalVal_Base::getNelms,
+			"\n"
+			"Return number of elements addressed by this ScalVal.\n"
+			"\n"
+			"The Path used to instantiate a ScalVal may address an array\n"
+			"of scalar values. This method returns the number of array elements"
+		)
+		.def("getSizeBits",  &IScalVal_Base::getSizeBits,
+			"\n"
+			"Return the size in bits of this ScalVal.\n"
+			"\n"
+			"If the ScalVal represents an array then the return value is the size\n"
+			"of each individual element."
+		)
+		.def("isSigned",     &IScalVal_Base::isSigned,
+			"\n"
+			"Return True if this ScalVal represents a signed number.\n"
+			"\n"
+			"If the ScalVal is read into a wider number than its native bitSize\n"
+			"then automatic sign-extension is performed (for signed ScalVals)."
+		)
+		.def("getPath",      &IScalVal_Base::getPath,
+			"\n"
+			"Return a copy of the Path which was used to create this ScalVal."
+		)
+		.def("getEnum",      &IScalVal_Base::getEnum,
+			"\n"
+			"Return 'Enum' object associated with this ScalVal (if any).\n"
+			"\n"
+			"An Enum object is a dictionary with associates strings to numerical\n"
+			"values."
+		)
+	;
 	// wrap 'IScalVal_RO' interface
-	class_<IScalVal_RO, bases<IScalVal_Base>, boost::noncopyable> ScalVal_ROClazz("ScalVal_RO", no_init);
+	class_<IScalVal_RO, bases<IScalVal_Base>, boost::noncopyable> ScalVal_ROClazz(
+		"ScalVal_RO",
+		"\n"
+		"Read-Only interface for endpoints which support scalar values.\n"
+		"\n"
+		"This interface supports reading integer values e.g., registers\n"
+		"or individual bits. It may also feature an associated map of\n"
+		"'enum strings'. E.g., a bit with such a map attached could be\n"
+		"read as 'True' or 'False'.\n"
+		"\n"
+		"NOTE: If no write operations are required then it is preferable\n"
+		"      to use the ScalVal_RO interface (as opposed to ScalVal)\n"
+		"      since the underlying endpoint may be read-only.",
+		no_init
+	);
+
 	ScalVal_ROClazz
-		.def("getVal",       wrap_ScalVal_RO_getVal, ScalVal_RO_getVal_ol( args("self", "fromIdx","toIdx","forceNumeric") ))
-		.def("getVal",       wrap_ScalVal_RO_getVal_into, ScalVal_RO_getVal_into_ol( args("self", "bufObject", "fromIdx", "toIdx") ) )
-		.def("create",       &IScalVal_RO::create)
-		.staticmethod("create")
+		.def("getVal",       wrap_ScalVal_RO_getVal,
+			( arg("self"), arg("fromIdx") = -1, arg("toIdx") = -1, arg("forceNumeric") = false ),
+			"\n"
+			"Read one or multiple values, return as a scalar or a list.\n"
+			"\n"
+			"If no indices (fromIdx, toIdx) are specified then all elements addressed by\n"
+			"the path object from which the ScalVal_RO was created are retrieved. All\n"
+			"values are represented by a 'c-style flattened' list:\n"
+			"\n"
+			"  /some/dev[0-1]/item[0-1]\n"
+			"\n"
+			"would return [ dev0_item0_value, dev0_item1_value, dev1_item0_value, ... ].\n"
+			"\n"
+			"The indices may be used to only cover the subset of the addressed items starting\n"
+			"at 'fromIdx' up to and including 'toIdx'.\n"
+			"E.g., if a ScalVal_RO created from the above path is read with:\n"
+			"\n"
+			"  ScalVal_RO.create( root.findByName('/some/dev[0-1]/item[0-1]') )->getVal( 1, 2 )\n"
+			"\n"
+			"then [ dev0_item1, dev1_item0 ] would be returned. If both 'fromIdx' and 'toIdx'\n"
+			"are negative then all elements are included. A negative 'toIdx' is equivalent to\n"
+			"'toIdx' == 'fromIdx' and results in only the single element at 'fromIdx' to be read.\n"
+			"\n"
+			"If the ScalVal_RO supports an 'enum' menu then the numerical values read from the\n"
+			"underlying hardware are mapped back to strings which are returned by 'getVal()'.\n"
+			"The optional 'forceNumeric' argument, when set to 'True', suppresses this\n"
+			"conversion and fetches the raw numerical values."
+		)
+		.def(			"getVal",       wrap_ScalVal_RO_getVal_into,
+			( arg(			"self"), arg("bufObject"), arg("fromIdx") = -1, arg("toIdx") = -1),
+			"\n"
+			"Read one or multiple values into a buffer, return the number of items read.\n"
+			"\n"
+			"This variant of 'getVal()' reads values directly into 'bufObject' which must\n"
+			"support the ('new-style') buffer protocol (e.g., numpy.ndarray).\n"
+			"If the buffer is larger than the number of elements retrieved (i.e., the\n"
+			"return value of this method) then the excess elements are undefined.\n"
+			"\n"
+			"The index limits ('fromIdx/toIdx') may be used to restrict the number of\n"
+			"elements read as described above.\n"
+			"\n"
+			"No mapping to enum strings is supported by this variant of 'getVal()'."
+		)
+		.def(			"create",       &IScalVal_RO::create,
+			( arg("path") ),
+			"\n"
+			"Instantiate a 'ScalVal_RO' interface at the endpoint identified by 'path'\n"
+			"\n"
+			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"      not support this interface."
+		)
+		.staticmethod(			"create")
 	;
 
 	// wrap 'IScalVal' interface
-	class_<IScalVal, bases<IScalVal_RO>, boost::noncopyable> ScalVal_Clazz("ScalVal", no_init);
+	class_<IScalVal, bases<IScalVal_RO>, boost::noncopyable> ScalVal_Clazz(
+		"ScalVal",
+		"\n"
+		"Interface for endpoints which support scalar values.\n"
+		"\n"
+		"This interface supports reading/writing integer values e.g., registers\n"
+		"or individual bits. It may also feature an associated map of\n"
+		"'enum strings'. E.g., a bit with such a map attached could be\n"
+		"read/written as 'True' or 'False'.",
+		no_init
+	);
+
 	ScalVal_Clazz
-		.def("setVal",       wrap_ScalVal_setVal, ScalVal_setVal_ol( args("self", "values", "fromIdx", "toIdx") ) )
-		.def("create",       &IScalVal::create)
+		.def(			"setVal",       wrap_ScalVal_setVal,
+		    ( arg(			"self"), arg("values"), arg("fromIdx") = -1, arg("toIdx") = -1 ),
+			"\n"
+			"Write one or multiple values, return the number of elements written."
+			"\n"
+			"If no indices (fromIdx, toIdx) are specified then all elements addressed by\n"
+			"the path object from which the ScalVal was created are written. All values\n"
+			"represented by a 'c-style flattened' list or array:\n"
+			"\n"
+			"  /some/dev[0-1]/item[0-1]\n"
+			"\n"
+			"would expect [ dev0_item0_value, dev0_item1_value, dev1_item0_value, ... ].\n"
+			"\n"
+			"The indices may be used to only cover the subset of the addressed items starting\n"
+			"at 'fromIdx' up to and including 'toIdx'.\n"
+			"E.g., if a ScalVal created from the above path is written with:\n"
+			"\n"
+			"  ScalVal.create( root.findByName('/some/dev[0-1]/item[0-1]') )->setVal( [44,55], 1, 2 )\n"
+			"\n"
+			"then dev[0]/item[1] would be written with 44 and dev[1]/item[0] with 55.\n"
+			"If both 'fromIdx' and 'toIdx' are negative then all elements are included. A\n"
+			"negative 'toIdx' is equivalent to 'toIdx' == 'fromIdx' and results in only\n"
+			"the single element at 'fromIdx' to be written.\n"
+			"\n"
+			"If the ScalVal has an associated enum 'menu' and 'values' are strings then\n"
+			"these strings are mapped by the enum to raw numerical values.\n"
+			"\n"
+			"If the 'values' object implements the (new-style) buffer protocol then 'setVal()'\n"
+			"will extract values directly from the buffer. No enum strings are supported in\n"
+			"this case."
+		)
+		.def("create",       &IScalVal::create,
+			( arg("path") ),
+			"\n"
+			"Instantiate a 'ScalVal' interface at the endpoint identified by 'path'\n"
+			"\n"
+			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"      not support this interface."
+		)
 		.staticmethod("create")
 	;
 
 	// wrap 'IStream' interface
-	class_<IStream, boost::noncopyable> Stream_Clazz("Stream", no_init);
+	class_<IStream, boost::noncopyable> Stream_Clazz(
+		"Stream",
+		"\n"
+		"Interface for endpoints with support streaming of raw data.",
+		no_init
+	);
+
 	Stream_Clazz
-		.def("read",         wrap_Stream_read, Stream_read_ol( args("self", "bufObject", "timeoutUs") ) )
-		.def("write",        wrap_Stream_write, Stream_write_ol( args("self", "bufObject", "timeoutUs") ))
-		.def("create",       &IStream::create)
+		.def("read",         wrap_Stream_read,
+            ( arg("self"), arg("bufObject"), arg("timeoutUs") = -1 ),
+			"\n"
+			"Read raw bytes from a streaming interface into a buffer and return the number of bytes read.\n"
+			"\n"
+			"'bufObject' must support the (new-style) buffer protocol.\n"
+			"\n"
+			"The 'timeoutUs' argument may be used to limit the time this\n"
+			"method blocks waiting for data to arrive. A (relative) timeout\n"
+			"in micro-seconds may be specified. A negative timeout blocks\n"
+			"indefinitely."
+		)
+		.def("write",        wrap_Stream_write,
+			( arg("self"), arg("bufObject"), arg("timeoutUs") = 0 ),
+			"\n"
+			"Write raw bytes from a streaming interface into a buffer and return the number of bytes written.\n"
+			"\n"
+			"'bufObject' must support the (new-style) buffer protocol.\n"
+			"\n"
+			"The 'timeoutUs' argument may be used to limit the time this\n"
+			"method blocks waiting for data to be accepted. A (relative) timeout\n"
+			"in micro-seconds may be specified. A negative timeout blocks\n"
+			"indefinitely."
+		)
+		.def("create",       &IStream::create,
+			( arg("path") ),
+			"\n"
+			"Instantiate a 'Stream' interface at the endpoint identified by 'path'\n"
+			"\n"
+			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"      not support this interface."
+		)
 		.staticmethod("create")
 	;
 
 	// wrap 'ICommand' interface
-	class_<ICommand, bases<IEntry>, boost::noncopyable> Command_Clazz("Command", no_init);
+	class_<ICommand, bases<IEntry>, boost::noncopyable> Command_Clazz(
+		"Command",
+		"\n"
+		"The Command interface gives access to commands implemented by the underlying endpoint.\n"
+		"\n"
+		"Details of the command are hidden. Execution runs the command or command sequence\n"
+		"coded by the endpoint.",
+		no_init
+	);
+
 	Command_Clazz
-		.def("execute",      &ICommand::execute)
-		.def("create",       &ICommand::create)
+		.def("execute",      &ICommand::execute,
+			"\n"
+			"Execute the command implemented by the endpoint addressed by the\n"
+			"path which was created when instantiating the Command interface."
+		)
+		.def("create",       &ICommand::create,
+			( arg("path") ),
+			"\n"
+			"Instantiate a 'Stream' interface at the endpoint identified by 'path'\n"
+			"\n"
+			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"      not support this interface."
+		)
 		.staticmethod("create")
 	;
 
