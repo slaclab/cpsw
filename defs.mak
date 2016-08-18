@@ -31,6 +31,9 @@ boostlib_DIR=$(if $(boost_DIR),$(boost_DIR)/lib,)
 yaml_cppinc_DIR=$(if $(yaml_cpp_DIR),$(yaml_cpp_DIR)/include,)
 yaml_cpplib_DIR=$(if $(yaml_cpp_DIR),$(yaml_cpp_DIR)/lib,)
 
+pyinc_DIR=$(if $(py_DIR),$(py_DIR)/include,)
+
+
 # Tools
 CC     =$(CROSS)$(or $(CC_$(TARNM)),$(CC_default),gcc)
 CXX    =$(CROSS)$(or $(CXX_$(TARNM)),$(CXX_default),g++)
@@ -42,12 +45,11 @@ INSTALL=install -C
 OPT_CXXFLAGS=-g -Wall -O2
 OPT_CFLAGS  =-g -Wall -O2
 
-CXXFLAGS+= $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
-CXXFLAGS+= $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
+CPPFLAGS+= $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
+CPPFLAGS+= $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
+CPPFLAGS+= $(USR_CPPFLAGS) $(or $(USR_CPPFLAGS_$(TARNM)),$(USR_CPPFLAGS_default))
 CXXFLAGS+= $(OPT_CXXFLAGS)
 CXXFLAGS+= $(USR_CXXFLAGS) $(or $(USR_CXXFLAGS_$(TARNM)),$(USR_CXXFLAGS_default))
-CFLAGS  += $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
-CFLAGS  += $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
 CFLAGS  += $(OPT_CFLAGS)
 CFLAGS  += $(USR_CFLAGS)   $(or $(USR_CFLAGS_$(TARNM)),$(USR_CFLAGS_default))
 

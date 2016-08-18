@@ -96,5 +96,14 @@ WITH_STATIC_LIBRARIES=NO
 # Whether to build shared libraries (YES/NO)
 WITH_SHARED_LIBRARIES=YES
 
+# Whether to build the python wrapper (this requires boost/python and python >= 2.7).
+# The choice may be target specific, e.g.,
+#
+WITH_PYCPSW_default   = NO
+# WITH_PYCPSW_host    = YES
+#
+# You may also have to set boost_DIR_<arch> or boostinc_DIR_<arch>
+# and py_DIR_<arch> or pyinc_DIR_<arch> (see above)
+
 # Define an install location
 # INSTALL_DIR=/usr/local

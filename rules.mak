@@ -86,7 +86,7 @@ sub-%:
 
 # Template to assemble static libraries
 # Argument 1 is the name of the library (*without* 'lib' prefix or '.a' suffix)
-# Argument 2 is the name of the library with '-' substituted by '_' (for use in variable names)
+# Argument 2 is the name of the library with '-' and '.' substituted by '_' (for use in variable names)
 define LIBa_template
 
 $(2)_OBJS=$$(patsubst %.cpp,%.o,$$(patsubst %.cc,%.o,$$(patsubst %.c,%.o,$$($(2)_SRCS))))
@@ -95,9 +95,12 @@ lib$(1).a: $$($(2)_OBJS)
 
 SRCS+=$$($(2)_SRCS)
 
+# when computing dependencies (.dp) for source files we want to add target_specific CPPFLAGS (-I)
+$(1) $(addsuffix .dp, $(basename $($(2)_SRCS))):CPPFLAGS+=$$($(2)_CPPFLAGS) $$($(2)_CPPFLAGS_$$(TARNM))
 $(1):CXXFLAGS+=$$($(2)_CXXFLAGS) $$($(2)_CXXFLAGS_$$(TARNM))
 $(1):CFLAGS  +=$$($(2)_CFLAGS)   $$($(2)_CFLAGS_$$(TARNM))
 
+$(2)_CPPFLAGS_$$(TARNM)?= $$($(2)_CPPFLAGS_default)
 $(2)_CXXFLAGS_$$(TARNM)?= $$($(2)_CXXFLAGS_default)
 $(2)_CFLAGS_$$(TARNM)  ?= $$($(2)_CFLAGS_default)
 
@@ -105,7 +108,7 @@ endef
 
 # Template to assemble shared libraries
 # Argument 1 is the name of the library (*without* 'lib' prefix or '.so' suffix)
-# Argument 2 is the name of the library with '-' substituted by '_' (for use in variable names)
+# Argument 2 is the name of the library with '-' and '.' substituted by '_' (for use in variable names)
 define LIBs_template
 
 $(2)_OBJS=$$(patsubst %.cpp,%.pic.o,$$(patsubst %.cc,%.pic.o,$$(patsubst %.c,%.pic.o,$$($(2)_SRCS))))
@@ -114,9 +117,12 @@ lib$(1).so: $$($(2)_OBJS)
 
 SRCS+=$$($(2)_SRCS)
 
+# when computing dependencies (.dp) for source files we want to add target_specific CPPFLAGS (-I)
+$(1) $(addsuffix .dp, $(basename $($(2)_SRCS))):CPPFLAGS+=$$($(2)_CPPFLAGS) $$($(2)_CPPFLAGS_$$(TARNM))
 $(1):CXXFLAGS+=$$($(2)_CXXFLAGS) $$($(2)_CXXFLAGS_$$(TARNM))
 $(1):CFLAGS  +=$$($(2)_CFLAGS)   $$($(2)_CFLAGS_$$(TARNM))
 
+$(2)_CPPFLAGS_$$(TARNM)?= $$($(2)_CPPFLAGS_default)
 $(2)_CXXFLAGS_$$(TARNM)?= $$($(2)_CXXFLAGS_default)
 $(2)_CFLAGS_$$(TARNM)  ?= $$($(2)_CFLAGS_default)
 
@@ -125,9 +131,9 @@ endef
 TGTS+=$(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
 
 # Expand the template for all library targets
-$(foreach lib,$(STATIC_LIBRARIES),$(eval $(call LIBa_template,$(lib),$(subst -,_,$(lib)))))
+$(foreach lib,$(STATIC_LIBRARIES),$(eval $(call LIBa_template,$(lib),$(subst .,_,$(subst -,_,$(lib))))))
 
-$(foreach lib,$(SHARED_LIBRARIES),$(eval $(call LIBs_template,$(lib),$(subst -,_,$(lib)))))
+$(foreach lib,$(SHARED_LIBRARIES),$(eval $(call LIBs_template,$(lib),$(subst .,_,$(subst -,_,$(lib))))))
 
 $(STATIC_LIBRARIES:%=lib%.a):
 	$(AR) cr $@ $^
@@ -147,19 +153,22 @@ $(SHARED_LIBRARIES:%=lib%.so):
 
 # Template to link programs
 # Argument 1 is the name of the program
-# Argument 2 is the name of the program with '-' substituted by '_' (for use in variable names)
+# Argument 2 is the name of the program with '-' and '.' substituted by '_' (for use in variable names)
 define PROG_template
 
 $(2)_OBJS=$$(patsubst %.cpp,%.o,$$(patsubst %.cc,%.o,$$(patsubst %.c,%.o,$$($(2)_SRCS))))
 
-$(1): $$($(2)_OBJS) $$(wildcard $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst -,_,$$(lib))_DIR_$$(TARNM))/lib$$(lib).a $$($$(subst -,_,$$(lib))_DIR)/lib$$(lib).a),) $$(foreach lib,$$($(2)_LIBS),lib$$(lib).a))
+$(1): $$($(2)_OBJS) $$(wildcard $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst .,_,$$(subst -,_,$$(lib)))_DIR_$$(TARNM))/lib$$(lib).a $$($$(subst .,_,$$(subst -,_,$$(lib)))_DIR)/lib$$(lib).a),) $$(foreach lib,$$($(2)_LIBS),lib$$(lib).a))
 
 SRCS+=$$($(2)_SRCS)
 
 $(1):LDFLAGS +=$$($(2)_LDFLAGS)  $$($(2)_LDFLAGS_$$(TARNM))
+# when computing dependencies (.dp) for source files we want to add target_specific CPPFLAGS (-I)
+$(1) $(addsuffix .dp, $(basename $($(2)_SRCS))):CPPFLAGS+=$$($(2)_CPPFLAGS) $$($(2)_CPPFLAGS_$$(TARNM))
 $(1):CXXFLAGS+=$$($(2)_CXXFLAGS) $$($(2)_CXXFLAGS_$$(TARNM))
 $(1):CFLAGS  +=$$($(2)_CFLAGS)   $$($(2)_CFLAGS_$$(TARNM))
 
+$(2)_CPPFLAGS_$$(TARNM)?= $$($(2)_CPPFLAGS_default)
 $(2)_CXXFLAGS_$$(TARNM)?= $$($(2)_CXXFLAGS_default)
 $(2)_CFLAGS_$$(TARNM)  ?= $$($(2)_CFLAGS_default)
 $(2)_LDFLAGS_$$(TARNM) ?= $$($(2)_LDFLAGS_default)
@@ -170,13 +179,13 @@ TGTS+=$(PROGRAMS)
 TGTS+=$(TESTPROGRAMS)
 
 # Expand the template for all program (and testprogram) targets
-$(foreach bin,$(PROGRAMS) $(TESTPROGRAMS),$(eval $(call PROG_template,$(bin),$(subst -,_,$(bin)))))
+$(foreach bin,$(PROGRAMS) $(TESTPROGRAMS),$(eval $(call PROG_template,$(bin),$(subst .,_,$(subst -,_,$(bin))))))
 
-$(PROGRAMS) $(TESTPROGRAMS):OBJS=$($(subst -,_,$@)_OBJS)
-$(PROGRAMS) $(TESTPROGRAMS):LIBS=$($(subst -,_,$@)_LIBS)
+$(PROGRAMS) $(TESTPROGRAMS):OBJS=$($(subst .,_,$(subst -,_,$@)_OBJS))
+$(PROGRAMS) $(TESTPROGRAMS):LIBS=$($(subst .,_,$(subst -,_,$@)_LIBS))
 
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS  = -L.
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(subst -,_,$(lib))_DIR) $($(subst -,_,$(lib))_DIR_$(TARNM)),)))
+$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(subst .,_,$(subst -,_,$(lib)))_DIR) $($(subst .,_,$(subst -,_,$(lib)))_DIR_$(TARNM)),)))
 # don't apply ADD_updir to cpswlib_DIRS because CPSW_DIR already was 'upped'.
 # This means that e.g. yaml_cpplib_DIR must be absolute or relative to CPSW_DIR
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
@@ -212,10 +221,10 @@ deps: $(addsuffix .dp, $(basename $(SRCS)))
 endif
 
 %.dp:%.cc $(DEP_HEADERS)
-	$(CXX) $(CXXFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
 
 %.dp:%.c $(DEP_HEADERS)
-	$(CC) $(CFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
 
 clean: multi-subdir-clean
 	$(RM) deps git_version_string.h

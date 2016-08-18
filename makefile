@@ -91,8 +91,17 @@ udpsrv_LIBS = tstaux $(CPSW_LIBS)
 cpsw_yaml_xpand_SRCS += cpsw_yaml_xpand.cc
 cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 
+# Python wrapper; only built if WITH_PYCPSW is set to YES (can be target specific)
+pycpsw_so_SRCS    = cpsw_python.cc
+pycpsw_so_LIBS    = boost_python-py34 $(CPSW_LIBS)
+pycpsw_so_LDFLAGS = -shared
+pycpsw_so_CXXFLAGS= -fpic
+pycpsw_so_CPPFLAGS=$(addprefix -I,$(or $(pyinc_DIR_$(TARNM)),$(pyinc_DIR_default),$(pyinc_DIR)))
 
-PROGRAMS   += udpsrv cpsw_yaml_xpand
+PYCPSW_YES        = pycpsw.so
+PYCPSW            = $(PYCPSW_$(or $(WITH_PYCPSW_$(TARNM)),$(WITH_PYCPSW_default),$(WITH_CPSW)))
+
+PROGRAMS                += udpsrv cpsw_yaml_xpand $(PYCPSW)
 
 cpsw_path_tst_SRCS       = cpsw_path_tst.cc
 cpsw_path_tst_LIBS       = $(CPSW_LIBS)
