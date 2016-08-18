@@ -1,11 +1,13 @@
 #include <cpsw_api_user.h>
+#include <cpsw_yaml.h>
+#include <yaml-cpp/yaml.h>
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
 #include <boost/python/list.hpp>
 #include <boost/python/dict.hpp>
-#include <yaml-cpp/yaml.h>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 using namespace boost::python;
@@ -135,11 +137,22 @@ public:
 	register_exception_translator<clazz>( tr_##clazz );
 };
 
-static void wrap_Path_loadConfigFromYaml(Path p, const char *filename)
+static void wrap_Path_loadConfigFromYamlFile(Path p, const char *filename, const char *yaml_dir = 0)
 {
-YAML::Node conf( YAML::LoadFile( filename ) );
+YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYamlFile( filename, yaml_dir ) );
 	p->loadConfigFromYaml( conf );
 }
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(Path_loadConfigFromYamlFile_ol, wrap_Path_loadConfigFromYamlFile, 2, 3)
+
+static void wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir = 0)
+{
+YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
+	p->loadConfigFromYaml( conf );
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(Path_loadConfigFromYamlString_ol, wrap_Path_loadConfigFromYamlString, 2, 3)
+
 
 // raii for file stream
 class ofs : public std::fstream {
@@ -155,7 +168,7 @@ public:
 	}
 };
 
-static void wrap_Path_dumpConfigToYaml(Path p, const char *filename)
+static void wrap_Path_dumpConfigToYamlFile(Path p, const char *filename)
 {
 YAML::Node conf;
 	p->dumpConfigToYaml( conf );
@@ -166,6 +179,22 @@ YAML::Emitter emit;
 ofs strm( filename );
 	strm << emit.c_str() << "\n";
 }
+
+static std::string wrap_Path_dumpConfigToYaml(Path p)
+{
+YAML::Node conf;
+	p->dumpConfigToYaml( conf );
+
+YAML::Emitter emit;
+	emit << conf;
+
+std::ostringstream strm;
+
+	strm << emit.c_str() << "\n";
+
+	return strm.str();
+}
+
 
 // Need wrappers for methods which take 
 // shared pointers to const objects which
@@ -494,7 +523,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.def("getNelms",     &IPath::getNelms)
 		.def("getTailFrom",  &IPath::getTailFrom)
 		.def("getTailTo",    &IPath::getTailTo)
-		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYaml)
+		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlFile,   Path_loadConfigFromYamlFile_ol( args("self", "configYamlFilename", "yamlIncludeDirname") ) )
+		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlString, Path_loadConfigFromYamlString_ol( args("self", "configYamlString", "yamlIncludeDirname") ) )
+		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlString)
+		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYamlFile)
 		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYaml)
 		.def("create",       wrap_Path_create)
 		.staticmethod("create")
