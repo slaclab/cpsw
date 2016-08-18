@@ -106,6 +106,13 @@ YamlPreprocessor::YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, con
 : main_( StreamMuxBuf::mkstrm( main_name ) ),
   mux_(mux)
 {
+const char  *sep;
+std::string  main_dir;
+	if ( ! yaml_dir && (sep = ::strrchr(main_name,'/')) ) {
+		main_dir = std::string(main_name);
+		main_dir.resize(sep - main_name);
+		yaml_dir = main_dir.c_str();
+	}
 	set_path( &path_, yaml_dir );
 }
 

@@ -595,6 +595,13 @@ std::stringstream sstrm( str );
 YAML::Node
 CYamlFieldFactoryBase::loadPreprocessedYamlFile(const char *file_name, const char *yaml_dir)
 {
+const char  *sep;
+std::string  main_dir;
+	if ( ! yaml_dir && (sep = ::strrchr(file_name,'/')) ) {
+		main_dir = std::string(file_name);
+		main_dir.resize(sep - file_name);
+		yaml_dir = main_dir.c_str();
+	}
 	return loadPreprocessedYamlStream( StreamMuxBuf::mkstrm( file_name ), yaml_dir );
 }
 
