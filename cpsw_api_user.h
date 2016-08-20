@@ -252,7 +252,7 @@ public:
 
 	/*!
 	 * Load a hierarchy definition in YAML format from a file.
-	 * The hierarchy is built from the node with name 'rootName.
+	 * The hierarchy is built from the node with name 'rootName'.
 	 * 
 	 * Optionally, 'yamlDir' may be passed which identifies a directory
 	 * where *all* yaml files reside. NULL (or empty) instructs the
