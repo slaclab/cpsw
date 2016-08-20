@@ -39,8 +39,6 @@ typedef shared_ptr< std::vector<Child> > Children;
 
 #include <cpsw_error.h>
 
-#include <yaml-cpp/yaml.h>
-
 namespace YAML {
 	class Node;
 };

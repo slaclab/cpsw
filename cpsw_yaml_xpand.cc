@@ -2,6 +2,7 @@
 #include <cpsw_api_builder.h>
 #include <stdio.h>
 #include <iostream>
+#include <yaml-cpp/yaml.h>
 
 static void usage(const char *nm)
 {

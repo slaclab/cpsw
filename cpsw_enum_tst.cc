@@ -4,6 +4,7 @@
 #include <string.h>
 #include <string>
 #include <iostream>
+#include <yaml-cpp/yaml.h>
 
 #include <cpsw_api_builder.h>
 #include <cpsw_obj_cnt.h>
