@@ -446,8 +446,6 @@ public:
 	}
 };
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(Hub_loadYamlFile_ol,   IHub::loadYamlFile, 1, 3)
-
 static Hub
 wrap_Hub_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0)
 {
@@ -456,8 +454,6 @@ wrap_Hub_loadYamlStream(const std::string &yaml, const char *root_name = "root",
 std::istringstream sstrm( yaml );
 	return IHub::loadYamlStream( sstrm, root_name, yaml_dir_name );
 }
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(Hub_loadYamlStream_ol, wrap_Hub_loadYamlStream, 1, 3)
 
 BOOST_PYTHON_MODULE(pycpsw)
 {
@@ -475,30 +471,136 @@ BOOST_PYTHON_MODULE(pycpsw)
 	register_ptr_to_python< shared_ptr<std::string const> >();
 
 	// wrap 'IEntry' interface
-	class_<IEntry, boost::noncopyable> EntryClazz("Entry", no_init);
+	class_<IEntry, boost::noncopyable>
+	EntryClazz(
+		"Entry",
+		"\n"
+		"Basic Node in the hierarchy",
+		no_init
+	);
+
 	EntryClazz
-		.def("getName",        &IEntry::getName)
-		.def("getSize",        &IEntry::getSize)
-		.def("getDescription", &IEntry::getDescription)
-		.def("isHub",          &IEntry::isHub)
+		.def("getName",        &IEntry::getName,
+			( arg("self") ),
+			"\n"
+			"Return the name of this Entry"
+		)
+		.def("getSize",        &IEntry::getSize,
+			( arg("self") ),
+			"\n"
+			"Return the size (in bytes) of the entity represented by this Entry\n"
+			"Note: if an array of Entries is present then 'getSize()' returns\n"
+			"      the size of each element. In case of a compound/container element\n"
+			"      the size of the entire compound is returned (including  arrays *in*\n"
+			"      the container -- but not covering arrays of the container itself)."
+		)
+		.def("getDescription", &IEntry::getDescription,
+			( arg("self") ),
+			"\n"
+			"Return the description string (if any) of this Entry."
+		)
+		.def("isHub",          &IEntry::isHub,
+			( arg("self") ),
+			"\n"
+			"Test if this Entry is a Hub and return a reference.\n"
+			"\n"
+			"If this Entry is *not* a Hub then 'None' is returned."
+		)
 	;
 
 	// wrap 'IChild' interface
-	class_<IChild, bases<IEntry>, boost::noncopyable> ChildClazz("Child", no_init);
+	class_<IChild, bases<IEntry>, boost::noncopyable>
+	ChildClazz(
+		"Child",
+		"\n"
+		"An Entry which is attached to a Hub.\n"
+		"\n",
+		no_init);
+
 	ChildClazz
-		.def("getOwner",       &IChild::getOwner)
-		.def("getNelms",       &IChild::getNelms)
+		.def("getOwner",       &IChild::getOwner,
+			( arg("self") ),
+			"\n"
+			"Return the Hub to which this Child is attached."
+		)
+		.def("getNelms",       &IChild::getNelms,
+			( arg("self") ),
+			"\n"
+			"Return the number of elements this Child represents.\n"
+			"\n"
+			"For array nodes the return value is > 1.\n"
+		)
 	;
 
 
 	// wrap 'IHub' interface
-	class_<IHub, bases<IEntry>, boost::noncopyable> HubClazz("Hub", no_init);
+	class_<IHub, bases<IEntry>, boost::noncopyable>
+	HubClazz("Hub",
+		"\n"
+		"Base class of all containers.",
+		no_init
+	);
+
 	HubClazz
-		.def("findByName",     &IHub::findByName)
-		.def("getChild",       &IHub::getChild)
-		.def("loadYamlFile",   &IHub::loadYamlFile, Hub_loadYamlFile_ol( args("yamlFileName", "rootName", "yamlIncDirName") ))
-		.def("loadYaml",       wrap_Hub_loadYamlStream, Hub_loadYamlStream_ol( args("yamlString", "rootName", "yamlIncDirName") ))
+		.def("findByName",     &IHub::findByName,
+			( arg("self"), arg("pathString") ),
+			"\n"
+			"find all entries matching 'path' in or underneath this hub.\n"
+			"No wildcards are supported ATM. 'matching' refers to array\n"
+			"indices which may be used in the path.\n"
+			"\n"
+			"E.g., if there is an array of four devices [0-3] then the\n"
+			"path may select just two of them:\n"
+			"\n"
+			"     devices[1-2]\n"
+			"\n"
+			"omitting explicit indices selects *all* instances of an array."
+			"\n"
+			"SEE ALSO: Path.findByName.\n"
+			"\n"
+			"WARNING: do not use this method unless you know what you are\n"
+			"         doing. A Path which does not originate at the root\n"
+			"         cannot be used for communication and using it for\n"
+			"         instantiating interfaces (ScalVal, Command, ...) will\n"
+			"         result in I/O failures!\n"
+		)
+		.def("getChild",       &IHub::getChild,
+			( arg("self"), arg("nameString") ),	
+			"\n"
+			"Return a child with name 'nameString' (or 'None' if no matching child exists)."
+		)
+		.def("loadYamlFile",   &IHub::loadYamlFile,
+			( arg("yamlFileName"), arg("rootName") = 0, arg("yamlIncDirName") = 0 ),
+			"\n"
+			"Load a hierarchy definition in YAML format from a file.\n"
+			"\n"
+			"The hierarchy is built from the node with name 'rootName'.\n"
+			"\n"
+			"Optionally, 'yamlIncDirName' may be passed which identifies a directory\n"
+			"where *all* yaml files reside. 'None' (or empty) instructs the method to\n"
+			"use the same directory where 'fileName' resides.\n"
+			"\n"
+			"The directory is relevant for included YAML files.\n"
+			"\n"
+			"RETURNS: Hub at the root of the device hierarchy."
+		)
 		.staticmethod("loadYamlFile")
+		.def("loadYaml",       wrap_Hub_loadYamlStream,
+			( arg("yamlString"), arg("rootName") = 0, arg("yamlIncDirName") = 0 ),
+			"\n"
+			"Load a hierarchy definition in YAML format from a string.\n"
+			"\n"
+			"The hierarchy is built from the node with name 'rootName'.\n"
+			"\n"
+			"Optionally, 'yamlIncDirName' may be passed which identifies a directory\n"
+			"where *all* yaml files reside. 'None' (or empty) instructs the method to\n"
+			"use the current working directory.\n"
+			"\n"
+			"The directory is relevant for included YAML files.\n"
+			"\n"
+			"RETURNS: Hub at the root of the device hierarchy."
+		)
+		.staticmethod("loadYaml")
 	;
 
 	// wrap 'IPath' interface
@@ -556,15 +658,18 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"A 'NotFoundError' is thrown if the target of the operation does not exist."
 		)
 		.def("up",           &IPath::up,
+			( arg("self") ),
 			"\n"
 			"Strip the last element off this path and return the child which\n"
 			"was at the tail prior to the operation"
 		)
 		.def("empty",        &IPath::empty,
+			( arg("self") ),
 			"\n"
 			"Test if this Path is empty returning 'True'/'False'"
 		)
 		.def("size",         &IPath::size,
+			( arg("self") ),
 			"\n"
 			"Return the depth of this Path, i.e., how many '/' separated\n"
 			"'levels' there are."
@@ -579,18 +684,22 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"information."
 		)
 		.def("origin",       &IPath::origin,
+			( arg("self") ),
 			"\n"
 			"Return the Hub at the root of this path (if any -- 'None' otherwise)"
 		)
 		.def("parent",       &IPath::parent,
+			( arg("self") ),
 			"\n"
 			"Return the parent Hub (if any -- 'None' otherwise)"
 		)
 		.def("tail",         &IPath::tail,
+			( arg("self") ),
 			"\n"
 			"Return the child at the end of this Path (if any -- 'None' otherwise)"
 		)
 		.def("toString",     &IPath::toString,
+			( arg("self") ),
 			"\n"
 			"Convert this Path to a string representation"
 		)
@@ -619,10 +728,12 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"      a new copy."
 		)
 		.def("clone",        &IPath::clone,
+			( arg("self") ),
 			"\n"
 			"Return a copy of this Path."
 		)
 		.def("getNelms",     &IPath::getNelms,
+			( arg("self") ),
 			"\n"
 			"Count and return the number of array elements addressed by this path.\n"
 			"\n"
@@ -630,6 +741,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"which represents 'device[0-3]/reg[0-3]' 'getNelms()' would yield 16."
 		)
 		.def("getTailFrom",  &IPath::getTailFrom,
+			( arg("self") ),
 			"\n"
 			"Return the 'from' index addressed by the tail of this path.\n"
 			"\n"
@@ -638,6 +750,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"index is 1.)"
 		)
 		.def("getTailTo",    &IPath::getTailTo,
+			( arg("self") ),
 			"\n"
 			"Return the 'to' index addressed by the tail of this path.\n"
 			"\n"
@@ -674,6 +787,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"Read a configuration from hardware and save to a file in YAML format."
 		)
 		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYaml,
+			( arg("self") ),
             "\n"
 			"Read a configuration from hardware and return as a string in YAML format."
 		)
@@ -735,10 +849,12 @@ BOOST_PYTHON_MODULE(pycpsw)
 
 	Enum_Clazz
 		.def("getNelms",     &IEnum::getNelms,
+			( arg("self") ),
 			"\n"
 			"Return the number of entries in this Enum."
 		)
 		.def("getItems",     wrap_Enum_getItems,
+			( arg("self") ),
 			"\n"
 			"Return this enum converted into a python dictionary."
 		)
@@ -755,6 +871,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 
 	ScalVal_BaseClazz
 		.def("getNelms",     &IScalVal_Base::getNelms,
+			( arg("self") ),
 			"\n"
 			"Return number of elements addressed by this ScalVal.\n"
 			"\n"
@@ -762,6 +879,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"of scalar values. This method returns the number of array elements"
 		)
 		.def("getSizeBits",  &IScalVal_Base::getSizeBits,
+			( arg("self") ),
 			"\n"
 			"Return the size in bits of this ScalVal.\n"
 			"\n"
@@ -769,6 +887,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"of each individual element."
 		)
 		.def("isSigned",     &IScalVal_Base::isSigned,
+			( arg("self") ),
 			"\n"
 			"Return True if this ScalVal represents a signed number.\n"
 			"\n"
@@ -776,10 +895,12 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"then automatic sign-extension is performed (for signed ScalVals)."
 		)
 		.def("getPath",      &IScalVal_Base::getPath,
+			( arg("self") ),
 			"\n"
 			"Return a copy of the Path which was used to create this ScalVal."
 		)
 		.def("getEnum",      &IScalVal_Base::getEnum,
+			( arg("self") ),
 			"\n"
 			"Return 'Enum' object associated with this ScalVal (if any).\n"
 			"\n"
