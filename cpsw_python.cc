@@ -451,8 +451,8 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(Hub_loadYamlFile_ol,   IHub::loadYamlFile, 1, 3)
 static Hub
 wrap_Hub_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0)
 {
-// couls use IHub::loadYamlStream(const char *,...) but that would make a new string
-// which we hopefully can avoid:
+// could use IHub::loadYamlStream(const char *,...) but that would make a new string
+// which we want to avoid.
 std::istringstream sstrm( yaml );
 	return IHub::loadYamlStream( sstrm, root_name, yaml_dir_name );
 }
@@ -502,25 +502,156 @@ BOOST_PYTHON_MODULE(pycpsw)
 	;
 
 	// wrap 'IPath' interface
-    class_<IPath, boost::noncopyable> PathClazz("Path", no_init);
+    class_<IPath, boost::noncopyable>
+	PathClazz(
+		"Path",
+		"\n"
+		"Path objects are a 'handle' to a particular node in the hierarchy\n"
+		"they encode complete routing information from the 'tail' node up\n"
+		"to the root of the hierarchy. They also include index ranges for\n"
+		"array members that are in the path.\n"
+		"\n"
+        "Paths are constructed by lookup and are passed to the factories\n"
+		"that instantiate accessor interfaces such as 'ScalVal', 'Command'\n"
+		"or 'Stream'.",
+		no_init
+	);
+
 	PathClazz
-		.def("findByName",   &IPath::findByName)
-		.def("up",           &IPath::up)
-		.def("empty",        &IPath::empty)
-		.def("size",         &IPath::size)
-		.def("clear",        wrap_Path_clear)
-		.def("origin",       &IPath::origin)
-		.def("parent",       &IPath::parent)
-		.def("tail",         &IPath::tail)
-		.def("toString",     &IPath::toString)
-		.def("verifyAtTail", &IPath::verifyAtTail)
-		.def("append",       &IPath::append)
-		.def("explore",      &IPath::explore)
-		.def("concat",       &IPath::concat)
-		.def("clone",        &IPath::clone)
-		.def("getNelms",     &IPath::getNelms)
-		.def("getTailFrom",  &IPath::getTailFrom)
-		.def("getTailTo",    &IPath::getTailTo)
+		.def("findByName",   &IPath::findByName,
+			( arg("self"), arg( "pathString" ) ),
+			"\n"
+			"looup 'pathString' starting from 'this' path and return a new Path object\n"
+			"\n"
+			"'pathString' (a string object) may span multiple levels in the hierarchy,\n"
+			"separated by '/' - analogous to a file system.\n"
+			"However, CPSW supports the concept of 'array nodes', i.e., some nodes\n"
+			"(at any level of depth) may represent multiple identical devices or\n" 
+			"registers. Array indices are zero-based.\n"
+			"\n"
+			"When looking up an entity, the range(s) of items to address may be\n"
+			"restricted by specifying index ranges. E.g., if there are 4 identical\n"
+			"devices with ringbuffers of 32 elements each then a Path addressing\n"
+			"all of these could be specified:\n"
+			"\n"
+			"      /prefix/device[0-3]/ringbuf[0-31]\n"
+			"\n"
+			"If the user wishes only to access ringbuffer locations 8 to 12 in the\n"
+			"second device then they could construct a Path:\n"
+			"\n"
+			"      /prefix/device[1]/ringbuf[8-12]\n"
+			"\n"
+			"If a ScalVal is instantiated from this path then getVal/setVal would\n"
+			"only read/write the desired subset of registers\n"
+			"\n"
+			"It should be noted that absence of a index specification is synonymous\n"
+			"to covering the full range. In the above example:\n"
+			"\n"
+			"      /prefix/device/ringbuf\n"
+			"\n"
+			"would be identical to\n"
+			"\n"
+			"      /prefix/device[1]/ringbuf[8-12]\n"
+			"\n"
+			"A 'NotFoundError' is thrown if the target of the operation does not exist."
+		)
+		.def("up",           &IPath::up,
+			"\n"
+			"Strip the last element off this path and return the child which\n"
+			"was at the tail prior to the operation"
+		)
+		.def("empty",        &IPath::empty,
+			"\n"
+			"Test if this Path is empty returning 'True'/'False'"
+		)
+		.def("size",         &IPath::size,
+			"\n"
+			"Return the depth of this Path, i.e., how many '/' separated\n"
+			"'levels' there are."
+		)
+		.def("clear",        wrap_Path_clear,
+			( arg("self"), arg("hub") ),
+			"\n"
+			"Clear this Path and reset starting at 'hub'.\n"
+			"\n"
+			"Note: if 'hub' is not a true root device then future\n"
+			"communication attempts may fail due to lack of routing\n"
+			"information."
+		)
+		.def("origin",       &IPath::origin,
+			"\n"
+			"Return the Hub at the root of this path (if any -- 'None' otherwise)"
+		)
+		.def("parent",       &IPath::parent,
+			"\n"
+			"Return the parent Hub (if any -- 'None' otherwise)"
+		)
+		.def("tail",         &IPath::tail,
+			"\n"
+			"Return the child at the end of this Path (if any -- 'None' otherwise)"
+		)
+		.def("toString",     &IPath::toString,
+			"\n"
+			"Convert this Path to a string representation"
+		)
+		.def("verifyAtTail", &IPath::verifyAtTail,
+			( arg("self"), arg("path") ),
+			"\n"
+			"Verify that 'path' starts where 'this' Path ends; returns 'True'/'False'\n"
+			"\n"
+			"If this condition does not hold then the two Paths cannot be concatenated\n"
+			"(and an exception would result)."
+		)
+		.def("append",       &IPath::append,
+			( arg("self"), arg("path") ),
+			"\n"
+			"Append a copy of 'path' to 'this' one\n"
+			"\n"
+			"If verifyAtTail(path) returns 'False' then 'append' raises an 'InvalidPathError'."
+		)
+		.def("concat",       &IPath::concat,
+			( arg("self"), arg("path") ),
+			"\n"
+			"Append a copy of 'path' to 'this' one and return a copy of the result.\n"
+			"\n"
+			"If verifyAtTail(path) returns 'False' then 'append' raises an 'InvalidPathError'.\n"
+			"Note: 'append()' modifies the original path whereas 'concat' returns\n"
+			"      a new copy."
+		)
+		.def("clone",        &IPath::clone,
+			"\n"
+			"Return a copy of this Path."
+		)
+		.def("getNelms",     &IPath::getNelms,
+			"\n"
+			"Count and return the number of array elements addressed by this path.\n"
+			"\n"
+			"This sums up array elements at *all* levels. E.g., executed on a Path\n"
+			"which represents 'device[0-3]/reg[0-3]' 'getNelms()' would yield 16."
+		)
+		.def("getTailFrom",  &IPath::getTailFrom,
+			"\n"
+			"Return the 'from' index addressed by the tail of this path.\n"
+			"\n"
+			"E.g., executed on a Path which represents 'device[0-3]/reg[1-2]'\n"
+			"the method would yield 1. (The tail element is 'reg' and the 'from'\n"
+			"index is 1.)"
+		)
+		.def("getTailTo",    &IPath::getTailTo,
+			"\n"
+			"Return the 'to' index addressed by the tail of this path.\n"
+			"\n"
+			"E.g., executed on a Path which represents 'device[0-3]/reg[1-2]'\n"
+			"the method would yield 2. (The tail element is 'reg' and the 'to'\n"
+			"index is 2.)"
+		)
+		.def("explore",      &IPath::explore,
+			( arg("self"), arg("pathVisitor") ),
+			"\n"
+			"Recurse through the hierarchy rooted at 'this' Path and apply 'pathVisitor' to every descendent.\n"
+			"\n"
+			"See 'PathVisitor' for more information."
+		)
 		.def("loadConfigFromYamlFile", wrap_Path_loadConfigFromYamlFile,
              ( arg("self"), arg("configYamlFilename"), arg("yamlIncDirname")=0 ),
              "\n"
@@ -537,17 +668,64 @@ BOOST_PYTHON_MODULE(pycpsw)
              "'yamlIncDirname' may point to a directory where included YAML files can be found.\n"
              "Defaults to the directory where the YAML file is located.\n"
          )
-		.def("loadConfigFromYaml", wrap_Path_loadConfigFromYamlString)
-		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYamlFile)
-		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYaml)
-		.def("create",       wrap_Path_create)
+		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYamlFile,
+			( arg("self"), arg("fileName") ),
+            "\n"
+			"Read a configuration from hardware and save to a file in YAML format."
+		)
+		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYaml,
+            "\n"
+			"Read a configuration from hardware and return as a string in YAML format."
+		)
+		.def("create",       wrap_Path_create,
+			( arg("hub") ),
+			"\n"
+			"Create a new Path originating at 'hub'\n"
+			"\n"
+			"Note: if 'hub' is not a true root device then future\n"
+			"communication attempts may fail due to lack of routing\n"
+			"information."
+		)
 		.staticmethod("create")
 	;
 
-	class_<IPathVisitor, WrapPathVisitor, boost::noncopyable, boost::shared_ptr<WrapPathVisitor> > WrapPathVisitorClazz("PathVisitor");
+	class_<IPathVisitor, WrapPathVisitor, boost::noncopyable, boost::shared_ptr<WrapPathVisitor> >
+	WrapPathVisitorClazz(
+		"PathVisitor",
+		"\n"
+		"Traverse the hierarchy.\n"
+		"\n"
+		"\n"
+		"The user must implement an implementation for this\n"
+		"interface which performs any desired action on each\n"
+		"node in the hierarchy.\n"
+		"\n"
+		"The 'IPath::explore()' method accepts an IPathVisitor\n"
+		"and recurses through the hierarchy calling into\n"
+		"IPathVisitor from each visited node.\n"
+		"\n"
+		"The user must implement 'visitPre()' and 'visitPost()'\n"
+		"methods. Both methods are invoked for each node in the\n"
+		"hierarchy and a Path object leading to the node is supplied\n"
+		"to these methods. The user typically includes state information\n"
+		"in his/her implementation of the interface.\n"
+		"\n"
+		"visitPre() is executed before recursing into children of 'path'.\n"
+		"If the method returns 'False' then no recursion into children\n"
+		"occurs.\n"
+		"\n"
+		"   bool visitPre(Path path)\n"
+		"\n"
+		"visiPost() is invoked after recursion into children and even\n"
+		"if recursion was skipped due to 'visitPre()' returning 'False'\n"
+		"\n"
+		"   void visitPost(Path path)\n"
+		"\n"
+	);
 
 	// wrap 'IEnum' interface
-	class_<IEnum, boost::noncopyable> Enum_Clazz(
+	class_<IEnum, boost::noncopyable>
+	Enum_Clazz(
 		"Enum",
 		"\n"
 		"An Enum object is a dictionary with associates strings to numerical\n"
@@ -567,7 +745,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 	;
 
 	// wrap 'IScalVal_Base' interface
-	class_<IScalVal_Base, bases<IEntry>, boost::noncopyable> ScalVal_BaseClazz(
+	class_<IScalVal_Base, bases<IEntry>, boost::noncopyable>
+	ScalVal_BaseClazz(
 		"ScalVal_Base",
 		"\n"
 		"Base class for ScalVal variants.\n",
@@ -608,8 +787,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"values."
 		)
 	;
+
 	// wrap 'IScalVal_RO' interface
-	class_<IScalVal_RO, bases<IScalVal_Base>, boost::noncopyable> ScalVal_ROClazz(
+	class_<IScalVal_RO, bases<IScalVal_Base>, boost::noncopyable>
+	ScalVal_ROClazz(
 		"ScalVal_RO",
 		"\n"
 		"Read-Only interface for endpoints which support scalar values.\n"
@@ -681,7 +862,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 	;
 
 	// wrap 'IScalVal' interface
-	class_<IScalVal, bases<IScalVal_RO>, boost::noncopyable> ScalVal_Clazz(
+	class_<IScalVal, bases<IScalVal_RO>, boost::noncopyable>
+	ScalVal_Clazz(
 		"ScalVal",
 		"\n"
 		"Interface for endpoints which support scalar values.\n"
@@ -737,7 +919,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 	;
 
 	// wrap 'IStream' interface
-	class_<IStream, boost::noncopyable> Stream_Clazz(
+	class_<IStream, boost::noncopyable>
+	Stream_Clazz(
 		"Stream",
 		"\n"
 		"Interface for endpoints with support streaming of raw data.",
@@ -760,7 +943,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.def("write",        wrap_Stream_write,
 			( arg("self"), arg("bufObject"), arg("timeoutUs") = 0 ),
 			"\n"
-			"Write raw bytes from a streaming interface into a buffer and return the number of bytes written.\n"
+			"Write raw bytes to a streaming interface from a buffer and return the number of bytes written.\n"
 			"\n"
 			"'bufObject' must support the (new-style) buffer protocol.\n"
 			"\n"
@@ -781,7 +964,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 	;
 
 	// wrap 'ICommand' interface
-	class_<ICommand, bases<IEntry>, boost::noncopyable> Command_Clazz(
+	class_<ICommand, bases<IEntry>, boost::noncopyable>
+	Command_Clazz(
 		"Command",
 		"\n"
 		"The Command interface gives access to commands implemented by the underlying endpoint.\n"
