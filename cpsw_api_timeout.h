@@ -3,23 +3,53 @@
 
 #include <cpsw_error.h>
 
+/*!
+ * Timeout class
+ */
 class CTimeout {
 protected:
 	static const time_t INDEFINITE_S = -1;
 public:
 	struct timespec tv_;
 
-	// default is indefinite
+	/*!
+	 * No-args constructor - INDEFINITE timeout
+	 */
 	CTimeout()
 	{
 		setIndefinite();
 	}
 
+	/*!
+	 * Constructor supplying microseconds.
+	 */
 	CTimeout(uint64_t timeout_us)
 	{
 		set(timeout_us);
 	}
 
+	/*!
+	 * Constructor from a POSIX timespec.
+	 */
+	CTimeout(const struct timespec &tv)
+	:tv_(tv)
+	{
+	}
+
+	/*!
+	 * Constructor from explicit seconds and nanoseconds
+	 */
+	CTimeout(time_t s, long ns)
+	{
+		tv_.tv_sec  = s;
+		if ( ns >= 1000000000 )
+			throw InvalidArgError("Timeout 'ns' must be < 1E9");
+		tv_.tv_nsec = ns;
+	}
+
+	/*!
+	 * Set the timeout to 'timeout_us' microseconds.
+	 */
 	void set(uint64_t timeout_us)
 	{
 		if ( timeout_us < 1000000 ) {
@@ -31,39 +61,45 @@ public:
 		}
 	}
 
-	CTimeout(const struct timespec &tv)
-	:tv_(tv)
-	{
-	}
-
+	/*!
+	 * Set the timeout to a POSIX timespec.
+	 */
 	void set(const struct timespec &tv)
 	{
 		tv_ = tv;
 	}
 
-	uint64_t getUs() const
-	{
-		return (uint64_t)tv_.tv_sec * (uint64_t)1000000 + (uint64_t)tv_.tv_nsec/(uint64_t)1000;
-	}
-
+	/*!
+	 * Set to INDEFINITE
+	 */
 	void setIndefinite()
 	{
 		tv_.tv_sec  = INDEFINITE_S;
 		tv_.tv_nsec = 0;
 	}
 
-
-	CTimeout(time_t s, long ns)
+	/*!
+	 * Retrieve timeout in microseconds.
+	 */
+	uint64_t getUs() const
 	{
-		tv_.tv_sec  = s;
-		if ( ns >= 1000000000 )
-			throw InvalidArgError("Timeout 'ns' must be < 1E9");
-		tv_.tv_nsec = ns;
+		return (uint64_t)tv_.tv_sec * (uint64_t)1000000 + (uint64_t)tv_.tv_nsec/(uint64_t)1000;
 	}
 
+	/*!
+	 * Is the timeout indefinite?
+	 */
 	bool isIndefinite() const { return tv_.tv_sec == INDEFINITE_S; }
+
+	/*!
+	 * Is the timeout zero (called function returns immediately
+	 * if there is no work to do).
+	 */
 	bool isNone()       const { return tv_.tv_sec ==  0 && tv_.tv_nsec == 0; }
 
+	/*!
+	 * Add a timeout to THIS.
+	 */
 	CTimeout & operator +=(const CTimeout &rhs)
 	{
 		if ( ! isIndefinite() ) {
@@ -79,6 +115,9 @@ public:
 		return *this;
 	}
 
+	/*!
+	 * Subtract a timeout from THIS.
+	 */
 	CTimeout & operator -=(const CTimeout &rhs)
 	{
 		if ( ! isIndefinite() ) {
@@ -94,18 +133,27 @@ public:
 		return *this;
 	}
 
+	/*!
+	 * Add two timeouts and return the sum
+	 */
 	friend CTimeout operator +(CTimeout lhs, const CTimeout &rhs)
 	{
 		lhs += rhs;
 		return lhs;
 	}
 
+	/*!
+	 * Subtract two timeouts and return the difference
+	 */
 	friend CTimeout operator -(CTimeout lhs, const CTimeout &rhs)
 	{
 		lhs -= rhs;
 		return lhs;
 	}
 
+	/*!
+	 * Comparison operator: lhs < rhs (lhs expires before rhs)
+	 */
 	friend int operator <(const CTimeout lhs, const CTimeout &rhs)
 	{
 		return lhs.tv_.tv_sec < rhs.tv_.tv_sec
@@ -113,9 +161,14 @@ public:
 	}
 };
 
+/*!
+ * Constant for 'no timeout'
+ */
 static const CTimeout TIMEOUT_NONE( 0, 0 );
+
+/*!
+ * Constant for 'indefinite timeout'
+ */
 static const CTimeout TIMEOUT_INDEFINITE;
 
 #endif
-
-

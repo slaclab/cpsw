@@ -19,22 +19,22 @@ class IScalVal_RO;
 class IScalVal_WO;
 class IScalVal;
 class IEnum;
-typedef shared_ptr<const IHub>   Hub;
-typedef shared_ptr<const IChild> Child;
-typedef shared_ptr<const IEntry> Entry;
-typedef shared_ptr<IPath>        Path;
-typedef shared_ptr<const IPath>  ConstPath;
-typedef shared_ptr<IScalVal_RO>  ScalVal_RO;
-typedef shared_ptr<IScalVal_WO>  ScalVal_WO;
-typedef shared_ptr<IScalVal>     ScalVal;
-typedef shared_ptr<IEnum>        Enum;
-typedef shared_ptr<const std::string> CString;
 class IEventListener;
 class IEventSource;
-typedef shared_ptr<IEventSource> EventSource;
 class IStream;
-typedef shared_ptr<IStream> Stream;
 
+typedef shared_ptr<const IEntry>         Entry;
+typedef shared_ptr<const IHub>           Hub;
+typedef shared_ptr<const IChild>         Child;
+typedef shared_ptr<IPath>                Path;
+typedef shared_ptr<const IPath>          ConstPath;
+typedef shared_ptr<IScalVal_RO>          ScalVal_RO;
+typedef shared_ptr<IScalVal_WO>          ScalVal_WO;
+typedef shared_ptr<IScalVal>             ScalVal;
+typedef shared_ptr<IEnum>                Enum;
+typedef shared_ptr<const std::string>    CString;
+typedef shared_ptr<IEventSource>         EventSource;
+typedef shared_ptr<IStream>              Stream;
 typedef shared_ptr< std::vector<Child> > Children;
 
 #include <cpsw_error.h>
@@ -49,49 +49,101 @@ public:
 };
 
 
-// The hierarchy of things
+/*
+ * The hierarchy of things
+ */
 
-// An entity
-//
-// The same entity can be referenced from different places
-// in the hierarchy.
-
-// NOTE: the strings returned by 'getName()', 'getDescription()'
-//       are only valid while a shared pointer to containing object
-//       is held.
+/*!
+ * An entity
+ *
+ * The same entity can be referenced from different places
+ * in the hierarchy.
+ *
+ * NOTE: the strings returned by 'getName()', 'getDescription()'
+ *       are only valid while a shared pointer to containing object
+ *       is held.
+ */
 class IEntry {
 public:
+	/*!
+	 * Return the name of this Entry
+	 */
 	virtual const char *getName()        const = 0;
+
+	/*!
+	 * Return the size (in bytes) of this Entry
+	 */
 	virtual uint64_t    getSize()        const = 0;
+
+	/*!
+	 * Return the description string (or NULL)
+	 */
 	virtual const char *getDescription() const = 0;
+
+	/*!
+	 * Test if this Entry is a Hub; return a shared pointer
+	 * to itself (as a Hub) if this is the case, NULL otherwise.
+	 */
 	virtual Hub         isHub()          const = 0;
 
 	virtual ~IEntry() {}
 };
 
-// A node which connects an entry with a hub
-
+/*!
+ * A node which connects an Entry with a Hub
+ */
 class IChild : public virtual IEntry {
 	public:
+		/*!
+		 * Return the 'owning' Hub of this Entry
+		 * (or NULL if this Entry is at the root of
+		 * the hierarchy).
+		 */
 		virtual       Hub       getOwner()     const = 0;
+
+		/*!
+		 * Return the number of elements (if this Child
+		 * represents an array of identical Entries then
+		 * getNelms() returns a number bigger than 1).
+		 */
 		virtual       unsigned  getNelms()     const = 0;
+
+		/*!
+		 * Dump information about this child to FILE
+		 */
 		virtual       void      dump(FILE*)    const = 0;
+
+		/*!
+		 * Dump information about this child to stdout
+		 */
 		virtual       void      dump()         const = 0;
 		virtual ~IChild() {}
 };
 
-// Traverse the hierarchy. This could all be
-// done on top of IPath only but we like to
-// provide a unique API; plus it is more efficient...
 
+/*!
+ * Traverse the hierarchy.
+ *
+ * The user must implement an implementation for this
+ * interface which performs any desired action on each
+ * node in the hierarchy.
+ *
+ * The 'IPath::explore()' method accepts an IPathVisitor
+ * and recurses through the hierarchy calling into
+ * IPathVisitor from each visited node.
+ */
 class IPathVisitor {
 public:
-	// executed before recursing into children.
-	// return 'true' to descend into children,
-	// 'false' otherwise.
+	/*!
+	 * Executed before recursing into children.
+	 * return 'true' to descend into children,
+	 * 'false' otherwise.
+	 */
 	virtual bool  visitPre (ConstPath here) = 0;
 
-	// executed after recursion into children
+	/*!
+	 * Executed after recursion into children.
+	 */
 	virtual void  visitPost(ConstPath here) = 0;
 };
 
@@ -99,7 +151,7 @@ class IPath {
 public:
 	// lookup 'name' under this path and return new 'full' path
 	virtual Path        findByName(const char *name) const = 0;
-	// strip last element of this path and return child at tail (or NULL if none)
+	// strip last element off this path and return child at tail (or NULL if none)
 	virtual Child       up()                          = 0;
 	// test if this path is empty
 	virtual bool        empty()                 const = 0;
@@ -141,23 +193,25 @@ public:
 	// recurse through the hierarchy
 	virtual void        explore(IPathVisitor *) const = 0;
 
-	// Recurse through hierarchy (underneath this path), and let
-	// entries dump their current values (aka "configuration") 
-	// in YAML format.
-	// When this call returns then the 'template' node is the
-	// root of a hierarchy of YAML nodes which serializes the
-	// current values.
-	// And existing YAML hierarchy may be passed ('template')
-	// in which case entries are processed as defined by the 'template'.
-	// The template is populated with current values.
-	// An 'empty' (undefined or NULL) template may be passed.
-	// In this case the children of a hub are processed in an
-	// order of increasing 'configPrio' (a property defined by
-	// each entry).
-	// This helps creating a configuration file for the first
-	// time.
-	virtual void        dumpConfigToYaml(YAML::Node &)   const = 0;
-	virtual void        loadConfigFromYaml(YAML::Node &) const = 0;
+	/*!
+	 * Recurse through hierarchy (underneath this path), and let
+	 * entries dump their current values (aka "configuration") 
+	 * in YAML format.
+	 * When this call returns then the 'template' node is the
+	 * root of a hierarchy of YAML nodes which serializes the
+	 * current values.
+	 * And existing YAML hierarchy may be passed ('template')
+	 * in which case entries are processed as defined by the 'template'.
+	 * The template is populated with current values.
+	 * An 'empty' (undefined or NULL) template may be passed.
+	 * In this case the children of a hub are processed in an
+	 * order of increasing 'configPrio' (a property defined by
+	 * each entry).
+	 * This helps creating a configuration file for the first
+	 * time.
+	 */
+	virtual void        dumpConfigToYaml (YAML::Node   &tmplt)   const = 0;
+	virtual void        loadConfigFromYaml(YAML::Node  &config)  const = 0;
 
 	// create a path
 	static  Path        create();             // absolute; starting at root
@@ -167,43 +221,94 @@ public:
 	virtual ~IPath() {}
 };
 
-// A collection of nodes
+/*!
+ * A collection of child nodes
+ */
 class IHub : public virtual IEntry {
 public:
-	// find all entries matching 'path' in or underneath this hub
+	/*!
+	 * find all entries matching 'path' in or underneath this hub.
+	 * No wildcards are supported ATM. 'matching' refers to array
+	 * indices which may be used in the path.
+	 * 
+	 * E.g., if there is an array of four devices [0-3] then the
+	 * path may select just two of them:
+	 *
+	 *      devices[1-2]
+	 *
+	 * omitting explicit indices selects *all* instances of an array.
+	 */
 	virtual Path       findByName(const char *path) const = 0;
 
+	/*!
+	 * Find a child with 'name' in this hub.
+	 */
 	virtual Child      getChild(const char *name)  const = 0;
 
+	/*!
+	 * Retrieve a list of all children
+	 */
 	virtual Children   getChildren()               const = 0;
 
-	// yaml_dir: path to a directory where (all) yaml files reside; NULL (or empty) denotes CWD
+	/*!
+	 * Load a hierarchy definition in YAML format from a file.
+	 * The hierarchy is built from the node with name 'rootName.
+	 * 
+	 * Optionally, 'yamlDir' may be passed which identifies a directory
+	 * where *all* yaml files reside. NULL (or empty) instructs the
+	 * method to use the same directory where 'fileName' resides.
+	 *
+	 * The directory is relevant for included YAML files.
+	 *
+	 * RETURNS: Hub at the root of the device hierarchy.
+	 */
 	static Hub loadYamlFile(
-					const char *file_name,
-					const char *root_name = "root",
-					const char *yaml_dir  = 0
+					const char *fileName,
+					const char *rootName = "root",
+					const char *yamlDir  = 0
 	);
 
+	/*!
+	 * Load a hierarchy definition in YAML format from a std::istream.
+	 * The hierarchy is built from the node with name 'rootName'.
+	 * 
+	 * Optionally, 'yamlDir' may be passed which identifies a directory
+	 * where *all* yaml files reside. NULL (or empty) denotes CWD.
+	 *
+	 * The directory is relevant for included YAML files.
+	 *
+	 * RETURNS: Hub at the root of the device hierarchy.
+	 */
 	static Hub loadYamlStream(
 					std::istream &yaml,
-					const char *root_name = 0,
-					const char *yaml_dir  = 0
+					const char *rootName = 0,
+					const char *yamlDir  = 0
 	);
 
-	// convenience wrapper
+	/*!
+	 * Convenience wrapper which converts a C-style string into
+	 * std::istream and uses the overloaded method (see above).
+	 */
 	static Hub loadYamlStream(
 					const char *yaml,
-					const char *root_name = "root",
-					const char *yaml_dir  = 0
+					const char *rootName = "root",
+					const char *yamlDir  = 0
 	);
 };
 
-// Enum class
+/*!
+ * An Enum object is a dictionary with associates strings to numerical
+ * values.
+ */
 class IEnum : public virtual IYamlSupportBase {
 public:
+
 	typedef std::pair< CString, uint64_t>                 Item;
 	typedef std::iterator<std::input_iterator_tag, Item>  IteratorBase;
 
+	/*!
+	 * Iterator interface for Enums
+	 */
 	class IIterator {
 	public:
 		virtual IIterator    & operator++()               = 0;
@@ -212,6 +317,10 @@ public:
 		virtual               ~IIterator() {}
 	};
 
+	/*!
+	 * Concrete iterator using the opaque implementation
+	 * behind the interface.
+	 */
 	class iterator : public IteratorBase {
 		private:
 			char rawmem[32];
@@ -234,65 +343,121 @@ public:
 	virtual iterator begin()       const = 0;
 	virtual iterator end()         const = 0;
 
+	/*!
+	 * Return the number of entries in this Enum.
+	 */
 	virtual unsigned getNelms()    const = 0;
 
-	virtual Item map(uint64_t)           = 0;
+	/*!
+	 * Map from a string to an Enum Item (number/string pair)
+	 */
 	virtual Item map(const char *)       = 0;
+
+	/*!
+	 * Map back from a number to an Enum Item (number/string pair)
+	 */
+	virtual Item map(uint64_t)           = 0;
 
 	virtual ~IEnum() {}
 };
 
-// Base interface to integral values
+/*!
+ * Base interface to integral values
+ */
 class IScalVal_Base : public virtual IEntry {
 public:
-	virtual unsigned getNelms()               = 0; // if array
+	/*!
+	 * Return number of elements addressed by this ScalVal.
+	 * 
+	 * The Path used to instantiate a ScalVal may address an array
+	 * of scalar values. This method returns the number of array elements
+	 */
+	virtual unsigned getNelms()               = 0;
+
+	/*!
+	 * Return the size in bits of this ScalVal.
+	 * 
+	 * If the ScalVal represents an array then the return value is the size
+	 * of each individual element.
+	 */
 	virtual uint64_t getSizeBits()      const = 0; // size in bits
+
+	/*!
+	 * Return True if this ScalVal represents a signed number.
+	 * 
+	 * If the ScalVal is read into a wider number than its native bitSize
+	 * then automatic sign-extension is performed (for signed ScalVals).
+	 */
 	virtual bool     isSigned()         const = 0;
+
+	/*!
+	 * Return a copy of the Path which was used to create this ScalVal.
+	 */
 	virtual Path     getPath()          const = 0;
+
+	/*!
+	 * Return 'Enum' object associated with this ScalVal (if any).
+	 * 
+	 * An Enum object is a dictionary with associates strings to numerical
+	 * values.
+	 */
 	virtual Enum     getEnum()          const = 0;
+
 	virtual ~IScalVal_Base () {}
 };
 
 
-// IndexRange can be used to programmatically access a subset
-// of a ScalVal.
-// Assume, e.g., that ScalVal 'v' refers to an array with 100
-// elements:
-//
-//    v = IScalVal::create( path_prefix->findByName( "something[400-499]" ) );
-//
-// If you want to read just element 456 then you can
-//
-//    IndexRange rng(56);
-//
-//    v->getVal( buf, 1, &rng );
-//
-// IndexRange also allows for easy iteration through an array:
-// Assume you want to read in chunks of 10 elements:
-//
-//    IndexRange rng(0, 9);
-//
-//    for (unsigned i=0; i<10; i++, ++rng) { // prefix increment is more efficient
-//       v->getVal( buf, 10, &rng );
-//    }
-//
-// NOTES:
-//   - range must address a slice *within* the limits of the ScalVal itself.
-//     E.g., in the above example you could not address element 300.
-//   - IndexRange has no knowledge of ScalVal. It is the user's responsibility
-//     to ensure the entire index range falls within the ScalVal's limits
-//     (otherwise you incur an exception).
-//   - For now only the rightmost array can be sliced. Support for multiple
-//     dimensions can be added in the future.
-//
-//     E.g., if you have a ScalVal:  "container[0-3]/value[0-99]"
-//     then you can only slice 'value'.
-//
+/*!
+ * IndexRange can be used to programmatically access a subset
+ * of a ScalVal.
+ *
+ * Assume, e.g., that ScalVal 'v' refers to an array with 100
+ * elements:
+ *
+ *      v = IScalVal::create( path_prefix->findByName( "something[400-499]" ) );
+ *
+ * If you want to read just element 456 then you can
+ *
+ *      IndexRange rng(56);
+ *      v->getVal( buf, 1, &rng );
+ *
+ * IndexRange also allows for easy iteration through an array:
+ * Assume you want to read in chunks of 10 elements:
+ *
+ *      IndexRange rng(0, 9);
+ *
+ *      for (unsigned i=0; i<10; i++, ++rng) { // prefix increment is more efficient
+ *         v->getVal( buf, 10, &rng );
+ *      }
+ *
+ * NOTES:
+ *   - range must address a slice *within* the limits of the ScalVal itself.
+ *     E.g., in the above example you could not address element 300.
+ *   - IndexRange has no knowledge of ScalVal. It is the user's responsibility
+ *     to ensure the entire index range falls within the ScalVal's limits
+ *     (otherwise you incur an exception).
+ *   - For now only the rightmost array can be sliced. Support for multiple
+ *     dimensions can be added in the future.
+ *
+ *     E.g., if you have a ScalVal:  "container[0-3]/value[0-99]"
+ *     then you can only slice 'value'.
+ */
 class IndexRange : public std::vector< std::pair<int,int> > {
 public:
-	// ranges are inclusive, i.e., from=3, to=7 covers 3,4,5,6,7
+	/*!
+	 * Constructor for a range of elements.
+	 *
+	 * Ranges are inclusive, i.e., from=3, to=7 covers 3,4,5,6,7
+	 */
 	IndexRange(int from, int to);
+	/*!
+	 * Constructor for a single element
+	 */
 	IndexRange(int fromto);
+
+	/*!
+	 * getters/setters
+	 */
 	virtual int  getFrom();
 	virtual int  getTo();
 	virtual void setFrom(int);
@@ -300,57 +465,116 @@ public:
 	virtual void setFromTo(int);
 	virtual void setFromTo(int from, int to);
 
-	// increment: (from, to) := ( to + 1,  to + to - from + 1 )
+	/*!
+	 * increment: (from, to) := ( to + 1,  to + to - from + 1 )
+	 */
 	virtual IndexRange &operator++();
 
 	virtual ~IndexRange(){}
 };
 
-// Read-only interface to an integral value.
-// Any size (1..64 bits) is represented by
-// a (sign-extended) uint.
+/*!
+ * Read-Only interface for endpoints which support integral values.
+ * 
+ * This interface supports reading integer values e.g., registers
+ * or individual bits. It may also feature an associated map of
+ * 'enum strings'. E.g., a bit with such a map attached could be
+ * read as 'True' or 'False'.
+ * 
+ * NOTE: If no write operations are required then it is preferable
+ *       to use the ScalVal_RO interface (as opposed to ScalVal)
+ *       since the underlying endpoint may be read-only.
+ *
+ * Any size (1..64 bits) is represented by a (sign-extended) uint64.
+ */
 class IScalVal_RO : public virtual IScalVal_Base {
 public:
-    // (possibly truncating, sign-extending) read into 64/32/16/8-bit (array)
-	// NOTE: nelms must be large enough to hold ALL values addressed by the
-	//       underlying Path. The range of indices may be reduced using the
-	//       'range' argument.
+	/*!
+     * (possibly truncating, sign-extending) read into 64/32/16/8-bit (array)
+	 *
+	 * NOTE: nelms must be large enough to hold ALL values addressed by the
+	 *       underlying Path. The range of indices may be reduced using the
+	 *       'range' argument.
+	 *
+	 * NOTE: If no write operations are required then it is preferable
+	 *       to use the ScalVal_RO interface (as opposed to ScalVal)
+	 *       since the underlying endpoint may be read-only.
+	 */
 	virtual unsigned getVal(uint64_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
 	virtual unsigned getVal(uint32_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
 	virtual unsigned getVal(uint16_t *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
 	virtual unsigned getVal(uint8_t  *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
+	/*!
+	 * If the underlying element has an Enum menu attached then reading strings
+	 * from the interface will cause the raw numerical values to be mapped through
+	 * the Enum into strings.
+	 */
 	virtual unsigned getVal(CString  *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
 	virtual ~IScalVal_RO () {}
 
-	// Throws an exception if path doesn't point to an object which supports this interface
-	static ScalVal_RO create(Path p);
+	/*!
+	 * Instantiate a 'ScalVal_RO' interface at the endpoint identified by 'path'
+	 *
+	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
+	 *       not support this interface.
+	 */
+	static ScalVal_RO create(Path path);
 };
 
-// Write-only:
+/*!
+ * Write-only Interface (not supported)
+ */
 class IScalVal_WO : public virtual IScalVal_Base {
 public:
-    // (possibly truncating) write from 64/32/16/8-bit (array)
-	// NOTE: nelms must be large enough to hold ALL values addressed by the
-	//       underlying Path. The range of indices may be reduced using the
-	//       'range' argument.
+	/*!
+     * (possibly truncating) write from 64/32/16/8-bit (array)
+	 * NOTE: nelms must be large enough to hold ALL values addressed by the
+	 *       underlying Path. The range of indices may be reduced using the
+	 *       'range' argument.
+	 */
 	virtual unsigned setVal(uint64_t    *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
 	virtual unsigned setVal(uint32_t    *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
 	virtual unsigned setVal(uint16_t    *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
 	virtual unsigned setVal(uint8_t     *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	/*!
+	 * If the underlying element has an Enum menu attached then writing strings
+	 * to the interface will cause these to be mapped through the Enum into raw
+	 * numerical values.
+	 */
 	virtual unsigned setVal(const char* *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
 	virtual unsigned setVal(uint64_t     v, IndexRange *range = 0) = 0; // set all elements to same value
 	virtual unsigned setVal(const char*  v, IndexRange *range = 0) = 0; // set all elements to same value
 	virtual ~IScalVal_WO () {}
 
-	// Throws an exception if path doesn't point to an object which supports this interface
-	static ScalVal_WO create(Path p);
+	/*!
+	 * Instantiate a 'ScalVal_WO' interface at the endpoint identified by 'path'
+	 *
+	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
+	 *       not support this interface.
+	 */
+	static ScalVal_WO create(Path path);
 };
 
-// Read-write:
+/*!
+ * Read-Write Interface for endpoints which support scalar values.
+ *
+ * This interface supports reading/writing integer values e.g., registers
+ * or individual bits. It may also feature an associated map of
+ * 'enum strings'. E.g., a bit with such a map attached could be
+ * read/written as 'True' or 'False'.
+ */
 class IScalVal: public virtual IScalVal_RO, public virtual IScalVal_WO {
 public:
 	virtual ~IScalVal () {}
-	static ScalVal create(Path p);
+
+	/*!
+	 * 
+	 * Instantiate a 'ScalVal' interface at the endpoint identified by 'path'
+	 * 
+	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
+	 *       not support this interface.
+	 */
+	static ScalVal create(Path path);
 };
 
 // Analogous to ScalVal there could be interfaces to double, enums, strings...
@@ -358,26 +582,48 @@ public:
 
 // We don't want the timeout class to clutter this header.
 //
-// The most important features are
-//
-//   CTimeout( uint64_t        timeout_microseconds );
-//   CTimeout( struct timespec timeout              );
-//   CTimeout( time_t          seconds              , long nanoseconds );
-//   CTimeout()
-//      the default constructor builds an INDEFINITE timeout
-//
-// and there are operators '+=',  '-=', '<'
-//
+/*!
+ * The most important features are
+ *
+ *   CTimeout( uint64_t        timeout_microseconds );
+ *   CTimeout( struct timespec timeout              );
+ *   CTimeout( time_t          seconds              , long nanoseconds );
+ *   CTimeout()
+ *      the default constructor builds an INDEFINITE timeout
+ *
+ *  and there are operators '+=',  '-=', '<'
+ */
+class CTimeout;
 #include <cpsw_api_timeout.h>
 
-
+/*!
+ * Interface for endpoints with support streaming of raw data.",
+ */ 
 class IStream {
 public:
-	virtual int64_t read(uint8_t *buf, uint64_t size,  const CTimeout timeout = TIMEOUT_INDEFINITE, uint64_t off = 0) = 0;
+	/*!
+	 * Read raw bytes from a streaming interface into a buffer and return the number of bytes read.
+	 * 
+	 * The 'timeoutUs' argument may be used to limit the time this
+	 * method blocks waiting for data to arrive. A (relative) timeout
+	 * in micro-seconds may be specified. TIMEOUT_INDEFINITE blocks
+	 * indefinitely.
+	 *
+	 * 'off' bytes of data are skipped before storing into the buffer.
+	 *
+	 * RETURNS: number of octets read (may be less than 'size')
+	 */
+	virtual int64_t read(uint8_t *buf, uint64_t size,  const CTimeout timeoutUs = TIMEOUT_INDEFINITE, uint64_t off = 0) = 0;
 
-	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeout = TIMEOUT_NONE) = 0;
+	/*!
+	 * Write raw bytes to a streaming interface and return the number of bytes written.
+	 */
+	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeoutUs = TIMEOUT_NONE) = 0;
 
-	static Stream create(Path p);
+	/*!
+	 * Instantiate a 'Stream' interface at the endpoint identified by 'path'
+	 */
+	static Stream create(Path path);
 };
 
 class ICommand;
