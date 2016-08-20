@@ -455,10 +455,35 @@ std::istringstream sstrm( yaml );
 	return IHub::loadYamlStream( sstrm, root_name, yaml_dir_name );
 }
 
+static boost::python::tuple
+wrap_Hub_getChildren(shared_ptr<IHub> h)
+{
+Hub hc(h);
+
+	Children chldrn = hc->getChildren();
+
+	Children::element_type::const_iterator it ( chldrn->begin() );
+	Children::element_type::const_iterator ite( chldrn->end()   );
+
+	// I would have preferred to convert the vector 'directly'
+	// into a tuple - but 'make_tuple' kept producing compiler errors...
+
+	boost::python::list l;
+
+	while ( it != ite ) {
+		l.append( *it );
+		++it;
+	}
+
+    return boost::python::tuple( l );
+}
+
 BOOST_PYTHON_MODULE(pycpsw)
 {
 
+
 	register_ptr_to_python<Child                          >();
+	register_ptr_to_python<Children                       >();
 	register_ptr_to_python<Hub                            >();
 	register_ptr_to_python<Path                           >();
 	register_ptr_to_python<ConstPath                      >();
@@ -568,6 +593,11 @@ BOOST_PYTHON_MODULE(pycpsw)
 			( arg("self"), arg("nameString") ),	
 			"\n"
 			"Return a child with name 'nameString' (or 'None' if no matching child exists)."
+		)
+		.def("getChildren",    wrap_Hub_getChildren,
+			( arg("self") ),
+			"\n"
+			"Return a list of all children"
 		)
 		.def("loadYamlFile",   &IHub::loadYamlFile,
 			( arg("yamlFileName"), arg("rootName") = 0, arg("yamlIncDirName") = 0 ),
