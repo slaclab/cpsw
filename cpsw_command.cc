@@ -155,7 +155,7 @@ void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 					c->execute();
 				}
 			} catch (CPSWError &e) {
-				std::string str = "(SequenceCommand: " + p->toString() + ") ";
+				std::string str = "(SequenceCommand: " + parent->toString() + "/" + (*it).first + ") ";
 				e.prepend( str );
 				throw;
 			}
