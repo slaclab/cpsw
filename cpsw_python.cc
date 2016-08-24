@@ -286,9 +286,9 @@ IndexRange rng(from, to);
 
 	if ( enm && ! forceNumeric ) {
 
-	std::vector<CString>  str;
+    // must not use 'reserve' which doesn't construct invalid shared pointers!
+	std::vector<CString>  str(nelms, CString());
 
-		str.reserve(nelms);
 		got = val->getVal( &str[0], nelms, &rng );
 		if ( 1 == got ) {
 			return boost::python::object( *str[0] );	
