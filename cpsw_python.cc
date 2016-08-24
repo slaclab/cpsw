@@ -4,7 +4,6 @@
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
 #include <boost/python/list.hpp>
-#include <boost/python/dict.hpp>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -207,18 +206,18 @@ Hub hc(h);
 	return IPath::create(hc);
 }
 
-static boost::python::dict wrap_Enum_getItems(Enum enm)
+static boost::python::list wrap_Enum_getItems(Enum enm)
 {
-boost::python::dict d;
+boost::python::list l;
 
 IEnum::iterator it  = enm->begin();
 IEnum::iterator ite = enm->end();
 	while ( it != ite ) {
-		d[ *(*it).first ] = (*it).second;
+        l.append( boost::python::make_tuple( *(*it).first, (*it).second ) );
 		++it;
 	}
 
-	return d;
+	return l;
 }
 
 class ViewGuard {
@@ -872,8 +871,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 	Enum_Clazz(
 		"Enum",
 		"\n"
-		"An Enum object is a dictionary with associates strings to numerical\n"
-		"values.",
+		"An Enum object is a list of (string, numerical value) tuples.",
 		no_init
 	);
 
@@ -886,7 +884,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.def("getItems",     wrap_Enum_getItems,
 			( arg("self") ),
 			"\n"
-			"Return this enum converted into a python dictionary."
+			"Return this enum converted into a python list.\n"
+			"We chose this over a dictionary (to which the list\n"
+			"can easily be converted) because it preserves the\n"
+			"original order of the menu entreis."
 		)
 	;
 
@@ -934,8 +935,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Return 'Enum' object associated with this ScalVal (if any).\n"
 			"\n"
-			"An Enum object is a dictionary with associates strings to numerical\n"
-			"values."
+			"An Enum object is a list of (str,int) tuples with associates strings\n",
+            "with numerical values."
 		)
 	;
 
