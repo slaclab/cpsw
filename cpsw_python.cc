@@ -325,7 +325,32 @@ PyObject  *op = o.ptr(); // no need for incrementing the refcnt while 'o' is ali
 Py_buffer  view;
 IndexRange rng(from, to);
 
-	if (    PyObject_CheckBuffer( op )
+bool useEnum    = !!val->getEnum();
+bool enumScalar = false;
+
+	// use buffer interface only for non-enums
+
+    if ( useEnum ) {
+		if ( ! PyBytes_Check( op ) && ! PyUnicode_Check( op ) ) {
+			if ( PySequence_Check( op ) ) {
+				// could be a sequence of strings
+                object o1( o[0] );
+				PyObject *op1 = o1.ptr();
+				if ( ! PyBytes_Check( op1 ) && ! PyUnicode_Check( op1 ) ) {
+					// not a sequence of strings - do not use enums
+					useEnum = false;
+				}
+			} else {
+				// a scalar that is not a string cannot use enums
+				useEnum = false;
+			}
+		} else {
+			enumScalar = true;
+		}
+	}
+
+	if (  ! useEnum
+		 && PyObject_CheckBuffer( op )
 	     && 0 == PyObject_GetBuffer( op, &view, PyBUF_C_CONTIGUOUS ) ) {
 		// new style buffer interface
 		ViewGuard guard( &view );
@@ -353,25 +378,32 @@ IndexRange rng(from, to);
 
 	// if the object is not a python sequence then 'len()' cannot be used.
 	// Thus, we have to handle this case separately...
+
 	if ( ! PySequence_Check( op ) ) {
-		if ( val->getEnum() && PyBytes_Check( op ) ) {
-			// if we have enums and they give us a string then
-			// we supply the string and let CPSW do the mapping
-			const char *str_p = extract<const char*>( o );
-			return val->setVal( &str_p, 1, &rng );
-		} else {
-			return val->setVal( extract<uint64_t>( o ), &rng );
-		}
+		// a single string (attempt to set enum) is also a sequence
+		return val->setVal( extract<uint64_t>( o ), &rng );
 	}
 
-	unsigned nelms = len(o);
+	unsigned nelms = enumScalar ? 1 : len(o);
 
-	if ( val->getEnum() && PyBytes_Check( op ) ) {
-		std::vector<const char *> vstr;
-		for ( unsigned i = 0; i < nelms; ++i ) {
-			vstr.push_back( extract<const char*>( o[i] ) );
+	if ( useEnum ) {
+		// we can't just extract a 'const char *' pointer -- under
+		// python3 all strings are unicode and we must first convert
+		// to a c++ std::string. Should be backwards compatible to 
+		// python 2.7.
+        std::vector<std::string>  vstr;
+		std::vector<const char *> vcstr;
+
+        if ( enumScalar ) {
+			vstr.push_back( extract<std::string>( o ) );
+			vcstr.push_back( vstr[0].c_str() );
+		} else {
+			for ( unsigned i = 0; i < nelms; ++i ) {
+				vstr.push_back( extract<std::string>( o[i] ) );
+				vcstr.push_back( vstr[i].c_str() );
+			}
 		}
-		return val->setVal( &vstr[0], nelms, &rng );
+		return val->setVal( &vcstr[0], nelms, &rng );
 	} else {
 		std::vector<uint64_t> v64;
 		for ( unsigned i = 0; i < nelms; ++i ) {
