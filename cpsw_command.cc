@@ -124,7 +124,7 @@ CSequenceCommandImpl::dumpYamlPart(YAML::Node &node) const
 
 void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 {
-	const Path parent( context->getParent() );
+	ConstPath parent( context->getParent() );
 
 	Path p;
 

@@ -62,9 +62,20 @@ private:
 protected:
 	Path   pParent_;
 public:
-	CCommandImplContext(Path pParent) : pParent_(pParent) { ++sh_ocnt_(); }
-	virtual ~CCommandImplContext()                        { --sh_ocnt_(); }
-	const Path getParent() const { return pParent_; }    
+	CCommandImplContext(Path pParent) : pParent_(pParent)
+	{
+		++sh_ocnt_();
+	}
+
+	virtual ~CCommandImplContext()
+	{
+		--sh_ocnt_();
+	}
+
+	virtual ConstPath getParent() const
+	{
+		return pParent_;
+	}
 };
 
 class CCommandImpl : public CEntryImpl {
