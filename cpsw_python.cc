@@ -426,7 +426,6 @@ public:
 	WrapPathVisitor(PyObject *self)
 	: self_(self)
 	{
-		std::cout << "creating WrapPathVisitor\n";
 	}
 
 	virtual bool visitPre(ConstPath here)
@@ -441,7 +440,6 @@ public:
 
 	virtual ~WrapPathVisitor()
 	{
-		std::cout << "deleting WrapPathVisitor\n";
 	}
 };
 
