@@ -20,5 +20,3 @@ IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
 		throw ConfigurationError("Configuration Error: byte-order not set");
 	}
 }
-
-
