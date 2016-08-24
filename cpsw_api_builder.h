@@ -3,9 +3,20 @@
 
 #include <cpsw_api_user.h>
 
-// ************** BIG NOTE ****************
-//   The builder API is NOT THREAD SAFE.
-// ****************************************
+/*!************** BIG NOTE ****************
+ *   The builder API is NOT THREAD SAFE.
+ ******************************************/
+
+/*
+ * The Builder API allows the user to programmatically
+ * assemble a hierarchy of devices and endpoints without
+ * having to know any implementation details.
+ *
+ * NOTE: The builder API has been superseeded by YAML.
+ *       Application- and device-support designers are
+ *       now encouraged to use a YAML file to define
+ *       a hierarchy rather than coding C++.
+ */
 
 using boost::static_pointer_cast;
 
