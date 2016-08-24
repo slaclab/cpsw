@@ -60,6 +60,12 @@ CCommand_Adapt::CCommand_Adapt(Key &k,  Path p, shared_ptr<const CCommandImpl> i
   pContext_ = ie->createContext( p );
 }
 
+void
+CCommand_Adapt::execute()
+{
+	asCommandImpl()->executeCommand( pContext_ );
+}
+
 Command CCommand_Adapt::create(Path p)
 {
 	Command_Adapt comm = IEntryAdapt::check_interface<Command_Adapt, CommandImpl>( p );

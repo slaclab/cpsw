@@ -98,7 +98,7 @@ public:
 
         static Command create(Path p);
 
-        virtual void execute() { asCommandImpl()->executeCommand( pContext_ ); }
+        virtual void execute();
 
 protected:
         virtual shared_ptr<const CCommandImpl> asCommandImpl() const { return static_pointer_cast<const CCommandImpl, const CEntryImpl>(ie_); }
