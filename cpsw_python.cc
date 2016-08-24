@@ -136,13 +136,13 @@ public:
 	register_exception_translator<clazz>( tr_##clazz );
 };
 
-static void wrap_Path_loadConfigFromYamlFile(Path p, const char *filename, const char *yaml_dir)
+static void wrap_Path_loadConfigFromYamlFile(Path p, const char *filename, const char *yaml_dir = 0)
 {
 YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYamlFile( filename, yaml_dir ) );
 	p->loadConfigFromYaml( conf );
 }
 
-static void wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir)
+static void wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir = 0)
 {
 YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
 	p->loadConfigFromYaml( conf );
@@ -475,10 +475,26 @@ Hub hc(h);
     return boost::python::tuple( l );
 }
 
+// without the overload macros (using 'arg' within 'def') there
+// are problems when a default pointer is set to 0.
+// Complaints about mismatching python and c++ arg types (when using defaults)
+BOOST_PYTHON_FUNCTION_OVERLOADS( IHub_loadYamlFile_ol,
+                                 IHub::loadYamlFile,
+                                 1, 3 )
+
+BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Hub_loadYamlStream_ol,
+                                 wrap_Hub_loadYamlStream,
+                                 1, 3 )
+
+BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadConfigFromYamlFile_ol,
+                                 wrap_Path_loadConfigFromYamlFile,
+                                 2, 3 )
+BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadConfigFromYamlString_ol,
+                                 wrap_Path_loadConfigFromYamlString,
+                                 2, 3 )
+
 BOOST_PYTHON_MODULE(pycpsw)
 {
-
-
 	register_ptr_to_python<Child                          >();
 	register_ptr_to_python<Children                       >();
 	register_ptr_to_python<Hub                            >();
@@ -597,11 +613,12 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"Return a list of all children"
 		)
 		.def("loadYamlFile",   &IHub::loadYamlFile,
-			( arg("yamlFileName"), arg("rootName") = 0, arg("yamlIncDirName") = 0 ),
+			IHub_loadYamlFile_ol(
+			args("yamlFileName", "rootName", "yamlIncDirName"),
 			"\n"
 			"Load a hierarchy definition in YAML format from a file.\n"
 			"\n"
-			"The hierarchy is built from the node with name 'rootName'.\n"
+			"The hierarchy is built from the node with name 'rootName' (defaults to 'root').\n"
 			"\n"
 			"Optionally, 'yamlIncDirName' may be passed which identifies a directory\n"
 			"where *all* yaml files reside. 'None' (or empty) instructs the method to\n"
@@ -610,14 +627,16 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"The directory is relevant for included YAML files.\n"
 			"\n"
 			"RETURNS: Hub at the root of the device hierarchy."
+			)
 		)
 		.staticmethod("loadYamlFile")
 		.def("loadYaml",       wrap_Hub_loadYamlStream,
-			( arg("yamlString"), arg("rootName") = 0, arg("yamlIncDirName") = 0 ),
+			wrap_Hub_loadYamlStream_ol(
+			args("yamlString", "rootName", "yamlIncDirName"),
 			"\n"
 			"Load a hierarchy definition in YAML format from a string.\n"
 			"\n"
-			"The hierarchy is built from the node with name 'rootName'.\n"
+			"The hierarchy is built from the node with name 'rootName' (defaults to 'root').\n"
 			"\n"
 			"Optionally, 'yamlIncDirName' may be passed which identifies a directory\n"
 			"where *all* yaml files reside. 'None' (or empty) instructs the method to\n"
@@ -626,6 +645,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"The directory is relevant for included YAML files.\n"
 			"\n"
 			"RETURNS: Hub at the root of the device hierarchy."
+			)
 		)
 		.staticmethod("loadYaml")
 	;
@@ -793,20 +813,24 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"See 'PathVisitor' for more information."
 		)
 		.def("loadConfigFromYamlFile", wrap_Path_loadConfigFromYamlFile,
-             ( arg("self"), arg("configYamlFilename"), arg("yamlIncDirname")=0 ),
-             "\n"
-             "Load a configuration file in YAML format and write out into the hardware.\n"
-             "\n"
-             "'yamlIncDirname' may point to a directory where included YAML files can\n"
-             "be found. Defaults to the directory where the YAML file is located."
+			wrap_Path_loadConfigFromYamlFile_ol(
+            args("self", "configYamlFilename", "yamlIncDirname"),
+            "\n"
+            "Load a configuration file in YAML format and write out into the hardware.\n"
+            "\n"
+            "'yamlIncDirname' may point to a directory where included YAML files can\n"
+            "be found. Defaults to the directory where the YAML file is located."
+			)
          )
 		.def("loadConfigFromYamlString", wrap_Path_loadConfigFromYamlString,
-             ( arg("self"), arg("configYamlString"), arg("yamlIncDirname")=0 ),
-             "\n"
-             "Load a configuration from a YAML formatted string and write out into the hardware.\n"
-             "\n"
-             "'yamlIncDirname' may point to a directory where included YAML files can be found.\n"
-             "Defaults to the directory where the YAML file is located.\n"
+			wrap_Path_loadConfigFromYamlString_ol(
+            args("self", "configYamlString", "yamlIncDirname"),
+            "\n"
+            "Load a configuration from a YAML formatted string and write out into the hardware.\n"
+            "\n"
+            "'yamlIncDirname' may point to a directory where included YAML files can be found.\n"
+            "Defaults to the directory where the YAML file is located.\n"
+			)
          )
 		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYamlFile,
 			( arg("self"), arg("fileName") ),
