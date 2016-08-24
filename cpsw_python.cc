@@ -536,6 +536,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 	register_ptr_to_python< shared_ptr<IScalVal_Base>     >();
 	register_ptr_to_python<ScalVal_RO                     >();
 	register_ptr_to_python<ScalVal                        >();
+	register_ptr_to_python<Command                        >();
 	register_ptr_to_python<Stream                         >();
 
 	register_ptr_to_python< shared_ptr<std::string const> >();
