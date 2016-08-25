@@ -36,7 +36,7 @@ class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 		unsigned                              nelmsLeft_;
 
 	public:
-		// construct from a single path 
+		// construct from a single path
 		CompositePathIterator(Path *p);
 		// construct from a NULL-terminated list of paths
 		CompositePathIterator(Path *p0, Path *p, ...);

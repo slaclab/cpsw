@@ -153,7 +153,7 @@ public:
 	virtual bool poll()
 	{
 		if ( ! pending_ ) {
-			pending_ = checkForEvent();		
+			pending_ = checkForEvent();
 		}
 		return pending_;
 	}
@@ -240,7 +240,7 @@ public:
 //
 // Usually: the SOURCE uses a shared_ptr to the EventSet (so it can 'notify')
 //          and the EventSet uses a straight pointer back (so it can 'poll')
-//          
+//
 //          The Entity implementing the HANDLER normally also executes
 //          the event loop (processEvent) and holds a shared_ptr to
 //          the EventSet. The EventSet uses a straight pointer back to the
@@ -264,7 +264,7 @@ public:
 	virtual void del(IEventSource  *)                                 = 0;
 	virtual void del(IEventHandler *)                                 = 0;
 
-	// to be called by 
+	// to be called by
 	virtual void notify()                                             = 0;
 
 	virtual ~IEventSet() {}

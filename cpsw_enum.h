@@ -106,7 +106,7 @@ public:
 			{
 				return iter_ == static_cast<CIteratorImpl*>(other)->iter_;
 			}
-	
+
 			virtual ~CIteratorImpl()
 			{
 			}

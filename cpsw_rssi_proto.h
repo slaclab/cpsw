@@ -19,7 +19,7 @@ public:
 
 	typedef enum { READ, SET } MODE;
 
-	class BadHeader { 
+	class BadHeader {
 	public:
 		std::string msg_;
 		BadHeader( const char *msg ) : msg_(msg) {}
@@ -164,7 +164,7 @@ public:
 	uint8_t  getRexMX() { return    buf_[14];  }
 	 // max # accumulated ack;   NEGOTIATED (0 -> ack immediately)
 	uint8_t  getCakMX() { return    buf_[15];  }
-	 // max out of seq for EACK; NEGOTIATED (0 -> immediate EACK) 
+	 // max out of seq for EACK; NEGOTIATED (0 -> immediate EACK)
 	uint8_t  getOsaMX() { return    buf_[16];  }
 	uint8_t  getUnits() { return    buf_[17];  }
 	 // provided by server :-(
@@ -190,7 +190,7 @@ public:
 		prev &= 0xf;
 		setXflgs( prev | (v << 4) );
 	}
-	
+
 	RssiSynHeader(uint8_t *buf, size_t bufsz, bool computeChksum, MODE initMode);
 	RssiSynHeader();
 

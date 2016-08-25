@@ -37,7 +37,7 @@ public:
 	virtual void          modShutdown();
 
 	virtual IEventSource *getReadEventSource();
-	
+
 	virtual CTimeout      getAbsTimeoutPop(const CTimeout *rel_timeout);
 	virtual CTimeout      getAbsTimeoutPush(const CTimeout *rel_timeout);
 

@@ -91,7 +91,7 @@ protected:
 			// cannot use smart pointer here because CProtoModUdp's
 			// constructor creates the threads (and a smart ptr is
 			// not available yet).
-			// In any case - the thread objects are only used 
+			// In any case - the thread objects are only used
 			// internally...
 			CProtoModUdp   *owner_;
 
@@ -122,7 +122,7 @@ protected:
 
 	virtual bool doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout);
 
-	virtual bool push(BufChain bc, const CTimeout *timeout, bool abs_timeout)	
+	virtual bool push(BufChain bc, const CTimeout *timeout, bool abs_timeout)
 	{
 		return doPush(bc, true, timeout, abs_timeout);
 	}

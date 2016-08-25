@@ -56,7 +56,7 @@ protected:
 public:
 	IAckTimer(RssiTimerList *l) : RssiTimer("ACK", l) {}
 	virtual void process() { processAckTimeout(); }
-	
+
 };
 
 class INulTimer : public RssiTimer {
@@ -65,7 +65,7 @@ protected:
 public:
 	INulTimer(RssiTimerList *l) : RssiTimer("NUL", l) {}
 	virtual void process() { processNulTimeout(); }
-	
+
 };
 
 // currently posts events when the state is changed to
@@ -105,7 +105,7 @@ protected:
 };
 
 
-class CRssi : public CRunnable, 
+class CRssi : public CRunnable,
               public IRxEventHandler,
               public IUsrInputEventHandler,
               public IUsrOutputEventHandler,
@@ -121,7 +121,7 @@ public:
 	static const uint8_t  LD_MAX_UNACKED_SEGS = 4;
 	static const uint8_t  MAX_UNACKED_SEGS = 1<<LD_MAX_UNACKED_SEGS; // must be power of two
 	static const uint16_t MAX_SEGMENT_SIZE = 1500 - 20 - 8; // - IP - UDP
-	static const uint16_t RETRANSMIT_TIMEO = 10;            // ms ? 
+	static const uint16_t RETRANSMIT_TIMEO = 10;            // ms ?
 	static const uint16_t CUMLTD_ACK_TIMEO =  5;            // < rexmit TO
 	static const uint16_t NUL_SEGMEN_TIMEO = 3000;
 	static const uint8_t  MAX_RETRANSMIT_N = 15;
@@ -150,7 +150,7 @@ public:
 	virtual ~CRssi();
 
 	const char *getName()  { return name_;     }
-	
+
 	virtual void dumpStats(FILE *);
 
 protected:
@@ -170,7 +170,7 @@ protected:
 
 	public:
 		BufBase(unsigned ldsz)
-		: buf_( (capa_= (1<<ldsz)) ), 
+		: buf_( (capa_= (1<<ldsz)) ),
 		  rp_(0),
 		  msk_( ((1<<ldsz)-1) )
 		{
@@ -189,7 +189,7 @@ protected:
 		BufChain pop()
 		{
 		BufChain rval;
-			
+
 			rval.swap( buf_[rp_&msk_] );
 
 			if ( rval ) {
@@ -227,7 +227,7 @@ protected:
 	class RingBuf : public BufBase {
 	private:
 		BufIdx wp_;
-	
+
 		friend class iterator;
 
 	public:
@@ -291,7 +291,7 @@ protected:
 
 			for ( i=0; i<cumAck; i++ )
 				pop();
-			
+
 			return cumAck;
 		}
 
@@ -331,7 +331,7 @@ protected:
 	class ReassembleBuf : public BufBase {
 	private:
 		SeqNo lim_;
-		
+
 	public:
 		// capa is a power of two, limit is anything
 		ReassembleBuf(unsigned ld_capa, unsigned limit)
@@ -550,7 +550,7 @@ protected:
 		unsigned busyDeassertRex_;
 	} stats_;
 
-	
+
 	// all of the event handler callbacks are executed
 	// in the context of the thread 'body'
 	virtual void handleRxEvent       (IIntEventSource *src);
@@ -576,7 +576,7 @@ protected:
 
 	void getAbsTime(CTimeout *to)
 	{
-		if ( clock_gettime( CLOCK_REALTIME, &to->tv_ ) ) 
+		if ( clock_gettime( CLOCK_REALTIME, &to->tv_ ) )
 			throw InternalError("clock_gettime failed");
 	}
 

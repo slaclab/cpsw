@@ -259,7 +259,7 @@ public:
 		return outputQueue_ ? outputQueue_->getReadEventSource() : NULL;
 	}
 
-	virtual ProtoPort mustGetUpstreamPort() 
+	virtual ProtoPort mustGetUpstreamPort()
 	{
 	ProtoPort rval = getUpstreamPort();
 		if ( ! rval )

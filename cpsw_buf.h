@@ -42,7 +42,7 @@ typedef shared_ptr<IBufQueue> BufQueue;
 // The 'forward' chain of strong references starting at 'HEAD' keeps
 // the chain 'alive'. Without HEAD only the last node would 'survive'
 // since there would be no strong references to other nodes.
- 
+
 
 class IBuf {
 public:

@@ -70,7 +70,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual ~CDevImpl();
 
 		virtual CDevImpl *clone(Key &k) { return new CDevImpl( *this, k ); }
- 
+
 		// template: each (device-specific) address must be instantiated
 		// by it's creator device and then added.
 		virtual void addAtAddress(Field child, unsigned nelms)
@@ -89,7 +89,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		}
 
 		virtual Address getAddress(const char *name) const;
-	
+
 		virtual void accept(IVisitor *v, RecursionOrder order, int recursionDepth);
 
 		virtual Children getChildren() const;

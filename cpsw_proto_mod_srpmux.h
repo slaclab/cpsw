@@ -11,7 +11,7 @@ typedef shared_ptr<CSRPPort>         SRPPort;
 
 class CProtoModSRPMux : public CProtoModByteMux<SRPPort> {
 private:
-	INetIODev::ProtocolVersion protoVersion_;	
+	INetIODev::ProtocolVersion protoVersion_;
 
 protected:
 	CProtoModSRPMux(const CProtoModSRPMux &orig, Key &k)

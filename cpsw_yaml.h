@@ -123,7 +123,7 @@ namespace YAML {
 
 		const char *getName() const
 		{
-			return key_;	
+			return key_;
 		}
 
 		// assign a new Node to this PNode while preserving parent/child/key
@@ -257,7 +257,7 @@ class CYamlSupportBase : public virtual IYamlSupportBase {
 class CDevImpl;
 typedef shared_ptr<CDevImpl> DevImpl;
 
-/* Template specializations to convert YAML nodes to CPSW entries 
+/* Template specializations to convert YAML nodes to CPSW entries
  * (ByteOrder, IIntField::Mode, Field, MMIODev, etc.)
  */
 
@@ -272,7 +272,7 @@ namespace YAML {
 
 				if( str.compare( "LE" ) == 0 )
 					rhs = LE;
-				else if (str.compare( "BE" ) == 0 ) 
+				else if (str.compare( "BE" ) == 0 )
 					rhs = BE;
 				else
 					rhs = UNKNOWN;
@@ -302,9 +302,9 @@ namespace YAML {
 
 				if( str.compare( "NOT_CACHEABLE" ) == 0 )
 					rhs = IField::NOT_CACHEABLE;
-				else if (str.compare( "WT_CACHEABLE" ) == 0 ) 
+				else if (str.compare( "WT_CACHEABLE" ) == 0 )
 					rhs = IField::WT_CACHEABLE;
-				else if (str.compare( "WB_CACHEABLE" ) == 0 ) 
+				else if (str.compare( "WB_CACHEABLE" ) == 0 )
 					rhs = IField::WB_CACHEABLE;
 				else
 					rhs = IField::UNKNOWN_CACHEABLE;
@@ -404,7 +404,7 @@ namespace YAML {
 
 				if( str.compare( "RO" ) == 0 )
 					rhs = IIntField::RO;
-				else if (str.compare( "WO" ) == 0 ) 
+				else if (str.compare( "WO" ) == 0 )
 #if 0
 					// without caching and bit-level access at the SRP protocol level we cannot
 					// support write-only yet.
@@ -412,7 +412,7 @@ namespace YAML {
 #else
 				rhs = IIntField::RW;
 #endif
-				else if (str.compare( "RW" ) == 0 ) 
+				else if (str.compare( "RW" ) == 0 )
 					rhs = IIntField::RW;
 				else
 					return false;
@@ -442,11 +442,11 @@ namespace YAML {
 
 				if ( str.compare( "SRP_UDP_V1" ) == 0 )
 					rhs = INetIODev::SRP_UDP_V1;
-				else if (str.compare( "SRP_UDP_V2" ) == 0 ) 
+				else if (str.compare( "SRP_UDP_V2" ) == 0 )
 					rhs = INetIODev::SRP_UDP_V2;
-				else if (str.compare( "SRP_UDP_V3" ) == 0 ) 
+				else if (str.compare( "SRP_UDP_V3" ) == 0 )
 					rhs = INetIODev::SRP_UDP_V3;
-				else if (str.compare( "SRP_UDP_NONE" ) == 0 ) 
+				else if (str.compare( "SRP_UDP_NONE" ) == 0 )
 					rhs = INetIODev::SRP_UDP_NONE;
 				else
 					return false;

@@ -88,11 +88,11 @@ public:
 	//
 	//   std::istream     preprocessed_stream( &muxbuf );
 	//
-	//   const YAML::Node &node( YAML::Load( preprocessed_stream ) );             
+	//   const YAML::Node &node( YAML::Load( preprocessed_stream ) );
 	//
 	YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux, const char *yaml_dir);
 
-	
+
 	// helper which creates the main Stream
 	YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, const char *yaml_dir);
 
@@ -101,7 +101,7 @@ protected:
 	// RETURNS: true if already present.
 	virtual bool check_exists(const std::string &key);
 
-	// process a Stream	
+	// process a Stream
 	virtual void process(StreamMuxBuf::Stream current);
 
 public:

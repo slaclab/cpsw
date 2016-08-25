@@ -6,7 +6,7 @@
 
 class CRunnable {
 private:
-	pthread_t     tid_;	
+	pthread_t     tid_;
 	bool          started_;
 	std::string   name_;
 
@@ -15,7 +15,7 @@ private:
 protected:
 	// to be implemented by subclasses
 
-	virtual void* threadBody()    = 0; 
+	virtual void* threadBody()    = 0;
 
 	pthread_t     getTid() { return tid_ ; }
 
@@ -42,7 +42,7 @@ public:
 	virtual bool threadStop() { return threadStop(NULL); }
 
 	// Destructor of subclass should call stop -- cannot
-	// rely on base class to do so because subclass 
+	// rely on base class to do so because subclass
 	// data is already torn down!
 	virtual ~CRunnable();
 };

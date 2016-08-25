@@ -82,7 +82,7 @@ public:
 	{
 	RssiTimer *el;
 
-		cancel();	
+		cancel();
 
 		for ( el = lh(); el; el=el->next_ ) {
 			if ( ! el->next_ || exp < el->next_->exp_ ) {
@@ -96,7 +96,7 @@ public:
 	void arm_rel(CTimeout &exp)
 	{
 	CTimeout abst;
-		// FIXME -- should use method associated with synchronization device 
+		// FIXME -- should use method associated with synchronization device
 		if ( clock_gettime( CLOCK_REALTIME, &abst.tv_ ) ) {
 			throw InternalError("glock_gettime failed");
 		}

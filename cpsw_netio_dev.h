@@ -98,7 +98,7 @@ public:
 };
 
 class CSRPAddressImpl : public CCommAddressImpl {
-private:            
+private:
 	INetIODev::ProtocolVersion protoVersion_;
 	CTimeout         usrTimeout_;
 	mutable DynTimeout dynTimeout_;

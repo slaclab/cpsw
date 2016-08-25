@@ -96,7 +96,7 @@ public:
 		pthread_mutex_destroy( &m_ );
 	}
 
-	void l() 
+	void l()
 	{
 	int err;
 		if ( (err = pthread_mutex_lock( &m_ )) ) {

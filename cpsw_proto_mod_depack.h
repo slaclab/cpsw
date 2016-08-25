@@ -38,8 +38,8 @@ public:
 	static const unsigned VERSION_BIT_SIZE    =  4;
 	static const unsigned FRAME_NO_BIT_OFFSET =  4;
 	static const unsigned FRAME_NO_BIT_SIZE   = 12;
-	static const unsigned FRAG_NO_BIT_OFFSET  = 16; 
-	static const unsigned FRAG_NO_BIT_SIZE    = 24; 
+	static const unsigned FRAG_NO_BIT_OFFSET  = 16;
+	static const unsigned FRAG_NO_BIT_SIZE    = 24;
 	static const unsigned FRAG_MAX            = (1<<FRAG_NO_BIT_SIZE) - 1;
 
 	static const unsigned TDEST_BIT_OFFSET    = 40;
@@ -143,7 +143,7 @@ public:
 		if ( ! parse(hdrBase, hdrSize) )
 			throw InvalidHeaderException();
 	}
-	
+
 	void insert(uint8_t *hdrBase, size_t hdrSize);
 
 	FrameID      getFrameNo() { return frameNo_; }
@@ -207,7 +207,7 @@ protected:
 	FragID           oldestFrag_;
 	FragID           lastFrag_;
 	CTimeout         timeout_;
-	vector<Buf>      fragWin_;	
+	vector<Buf>      fragWin_;
 	bool             isComplete_;
 	bool             running_;
 

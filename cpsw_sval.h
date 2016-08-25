@@ -42,7 +42,7 @@ public:
 
 	protected:
 		typedef shared_ptr<CBuilder> BuilderImpl;
-		
+
 	public:
 		CBuilder(Key &k);
 		CBuilder(CBuilder &orig, Key &k)

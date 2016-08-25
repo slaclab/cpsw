@@ -24,7 +24,7 @@ protected:
 
 	typedef shared_ptr<CShObj> ShObj;
 
-	// Key object; only we 
+	// Key object; only we
 	class Key {
 		private:
 			bool good_;
@@ -39,7 +39,7 @@ protected:
 			}
 
 		// subclass of CshObj may copy a key
-		// but if they don't hand it to CshObj()'s 
+		// but if they don't hand it to CshObj()'s
 		// constructor they will never be fully
 		// constructed (and not able to hand out
 		// the stolen key).

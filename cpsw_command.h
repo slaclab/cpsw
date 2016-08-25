@@ -47,7 +47,7 @@ typedef shared_ptr<CCommandImplContext> CommandImplContext;
 //           Alternatively, a new context class could be
 //           derived from CCommandImplContext with a ScalVal member.
 //           This member would be created once (from createContext())
-//           and reused every time the command executes.           
+//           and reused every time the command executes.
 //           See cpsw_command_tst.cc for an example.
 //
 //           WARNING: when keeping shared pointers in the context
