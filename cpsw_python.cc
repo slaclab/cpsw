@@ -236,6 +236,15 @@ public:
 	}
 };
 
+static object wrap_ScalVal_Base_getEncoding(shared_ptr<IScalVal_Base> val)
+{
+	IScalVal_Base::Encoding enc = val->getEncoding();
+	if ( IScalVal_Base::NONE == enc )
+		return object();
+
+	return object( YAML::convert<IScalVal_Base::Encoding>::do_encode( enc ) );
+}
+
 // Read into an object which implements the (new) python buffer interface
 // (supporting only a contiguous buffer)
 
@@ -984,6 +993,17 @@ BOOST_PYTHON_MODULE(pycpsw)
 			( arg("self") ),
 			"\n"
 			"Return a copy of the Path which was used to create this ScalVal."
+		)
+		.def("getEncoding", wrap_ScalVal_Base_getEncoding,
+			( arg("self") ),
+			"\n"
+			"Return a string which describes the encoding if this ScalVal is\n"
+			"itself a string. Common encodings include 'ASCII', 'UTF_8\n"
+			"Custom encodings are also communicated as 'CUSTOM_<integer>'.\n"
+			"If this ScalVal is not a string then the encoding should be <None>\n"
+			"(i.e., the object None).\n\n"
+			"The encoding may e.g., be used to convert a numerical array into\n"
+			"a string by python (second argument to the str() constructor)."
 		)
 		.def("getEnum",      &IScalVal_Base::getEnum,
 			( arg("self") ),

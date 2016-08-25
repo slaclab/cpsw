@@ -93,6 +93,7 @@ template <typename T> class CYamlFieldFactory {
 
 #include <cpsw_api_builder.h>
 #include <cpsw_shared_obj.h>
+#include <stdio.h>
 
 
 #include <yaml-cpp/yaml.h>
@@ -319,6 +320,75 @@ struct convert<IField::Cacheable> {
 		case IField::WB_CACHEABLE:  node = "WB_CACHEABLE";  break;
 		default:                    node = "UNKNOWN_CACHEABLE"; break;
 	}
+
+    return node;
+  }
+};
+
+template<>
+struct convert<IScalVal_Base::Encoding> {
+  static bool decode(const Node& node, IScalVal_Base::Encoding& rhs) {
+
+
+    if (!node.IsScalar())
+      return false;
+
+    std::string str = node.Scalar();
+    unsigned          num;
+
+    if      ( str.compare( "NONE"   ) == 0 )
+      rhs = IScalVal_Base::NONE;
+    else if ( str.compare( "ASCII"  ) == 0 )
+      rhs = IScalVal_Base::ASCII;
+    else if ( str.compare( "EBCDIC" ) == 0 )
+      rhs = IScalVal_Base::EBCDIC;
+    else if ( str.compare( "UTF_8"  ) == 0 )
+      rhs = IScalVal_Base::UTF_8;
+    else if ( str.compare( "UTF_16" ) == 0 )
+      rhs = IScalVal_Base::UTF_16;
+    else if ( str.compare( "UTF_32" ) == 0 )
+      rhs = IScalVal_Base::UTF_32;
+    else if ( 1 == ::sscanf( str.c_str(), "ISO_8859_%d", &num ) && num >=1 && num <=16 )
+	  rhs = static_cast<IScalVal_Base::Encoding>( IScalVal_Base::ISO_8859_1 + num - 1 );
+    else if ( 1 == ::sscanf( str.c_str(), "CUSTOM_%i", &num ) )
+	  rhs = static_cast<IScalVal_Base::Encoding>( IScalVal_Base::CUSTOM + num );
+    else
+      rhs = IScalVal_Base::NONE;
+
+    return true;
+  }
+
+  static inline std::string
+  do_encode(const IScalVal_Base::Encoding &rhs)
+  {
+    if      ( IScalVal_Base::NONE   == rhs )
+		return std::string("NONE");
+    else if ( IScalVal_Base::ASCII  == rhs )
+		return std::string("ASCII");
+    else if ( IScalVal_Base::EBCDIC == rhs )
+		return std::string("EBCDIC");
+    else if ( IScalVal_Base::UTF_8  == rhs )
+		return std::string("UTF_8");
+    else if ( IScalVal_Base::UTF_16 == rhs )
+		return std::string("UTF_16");
+    else if ( IScalVal_Base::UTF_32 == rhs )
+		return std::string("UTF_32");
+    else if ( IScalVal_Base::ISO_8859_1 <= rhs && IScalVal_Base::ISO_8859_16 >= rhs ) {
+        char buf[100];
+        snprintf(buf, sizeof(buf), "ISO_8859_%d", (unsigned)rhs - IScalVal_Base::ISO_8859_1 + 1);
+        return std::string(buf);
+	} else if ( IScalVal_Base::CUSTOM <= rhs ) {
+        char buf[100];
+        snprintf(buf, sizeof(buf), "CUSTOM_%d", (unsigned)rhs - IScalVal_Base::CUSTOM);
+        return std::string(buf);
+	} else {
+		return std::string("NONE");
+	}
+  }
+
+  static Node encode(const IScalVal_Base::Encoding& rhs) {
+
+    Node node( do_encode( rhs ) );
 
     return node;
   }

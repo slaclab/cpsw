@@ -56,6 +56,10 @@ unsigned byteSize = b2B(size_bits_);
 		}
 	}
 
+	/* Encoding is not currently used by CPSW itself; just a hint for others;
+	 * thus, don't check.
+	 */
+
 	configBase_ = checkConfigBase( configBase_ );
 }
 
@@ -71,6 +75,7 @@ CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool i
 	size_bits_(sizeBits),
 	mode_(mode),
 	wordSwap_( wordSwap ),
+	encoding_( DFLT_ENCODING ),
 	enum_(enm),
 	configBase_( DFLT_CONFIG_BASE )
 {
@@ -91,6 +96,14 @@ CIntEntryImpl::setConfigBase(int proposed)
 	configBase_ = checkConfigBase( proposed );
 }
 
+void
+CIntEntryImpl::setEncoding(Encoding proposed)
+{
+	if ( getLocked() )
+		throw ConfigurationError("Configuration Error - cannot modify attached device");
+	encoding_ = proposed;
+}
+
 CIntEntryImpl::CIntEntryImpl(Key &key, YamlState &node)
 :CEntryImpl(key, node),
  is_signed_(DFLT_IS_SIGNED),
@@ -98,6 +111,7 @@ CIntEntryImpl::CIntEntryImpl(Key &key, YamlState &node)
  size_bits_(DFLT_SIZE_BITS),
  mode_(DFLT_MODE),
  wordSwap_(DFLT_WORD_SWAP),
+ encoding_(DFLT_ENCODING),
  configBase_(DFLT_CONFIG_BASE)
 {
 MutableEnum e;
@@ -107,6 +121,7 @@ MutableEnum e;
 	readNode(node, "sizeBits",   &size_bits_ );
 	readNode(node, "mode",       &mode_      );
 	readNode(node, "wordSwap",   &wordSwap_  );
+	readNode(node, "encoding",   &encoding_  );
 	readNode(node, "configBase", &configBase_);
 
 	YamlState enum_node( node.lookup( "enums" ) );
@@ -136,6 +151,8 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 		writeNode(node, "mode",     mode_     );
 	if ( wordSwap_  != DFLT_WORD_SWAP )
 		writeNode(node, "wordSwap", wordSwap_ );
+	if ( encoding_  != DFLT_ENCODING )
+		writeNode(node, "encoding", encoding_ );
 	if ( configBase_ != DFLT_CONFIG_BASE )
 		writeNode(node, "configBase", configBase_ );
 
@@ -1015,6 +1032,12 @@ IIntField::Builder CIntEntryImpl::CBuilder::wordSwap(unsigned wordSwap)
 	return getSelfAs<BuilderImpl>();
 }
 
+IIntField::Builder CIntEntryImpl::CBuilder::encoding(Encoding encoding)
+{
+	encoding_ = encoding;
+	return getSelfAs<BuilderImpl>();
+}
+
 IIntField::Builder CIntEntryImpl::CBuilder::setEnum(Enum enm)
 {
 	enum_ = enm;
@@ -1036,7 +1059,8 @@ void CIntEntryImpl::CBuilder::init()
 	mode_       = DFLT_MODE;
 	configPrio_ = RW == DFLT_MODE ? DFLT_CONFIG_PRIO_RW : 0;
 	configBase_ = DFLT_CONFIG_BASE;
-    wordSwap_   = DFLT_WORD_SWAP;
+	wordSwap_   = DFLT_WORD_SWAP;
+	encoding_   = DFLT_ENCODING;
 }
 
 IntField CIntEntryImpl::CBuilder::build()
@@ -1047,6 +1071,7 @@ IntField CIntEntryImpl::CBuilder::build()
 IntField CIntEntryImpl::CBuilder::build(const char *name)
 {
 IntEntryImpl rval = CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_, enum_);
+	rval->setEncoding  ( encoding_   );
 	rval->setConfigPrio( configPrio_ );
 	rval->setConfigBase( configBase_ );
 	return rval;

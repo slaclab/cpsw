@@ -23,17 +23,22 @@ public:
 	static const int DFLT_CONFIG_PRIO_RW = 1;
 	static const int DFLT_CONFIG_BASE    = 16; // dump configuration values in hex
 
+	typedef IScalVal_Base::Encoding Encoding;
+
+	static const Encoding DFLT_ENCODING = IScalVal::NONE;
+
 	class CBuilder : public virtual IBuilder, public CShObj {
 	private:
 		std::string name_;
-		uint64_t    sizeBits_;
-		bool        isSigned_;
-		int         lsBit_;	
-		Mode        mode_;
-		int         configPrio_;
-		int         configBase_;
-        unsigned    wordSwap_;
-		Enum        enum_;
+		uint64_t           sizeBits_;
+		bool               isSigned_;
+		int                lsBit_;
+		Mode               mode_;
+		int                configPrio_;
+		int                configBase_;
+		unsigned           wordSwap_;
+		Encoding           encoding_;
+		Enum               enum_;
 
 	protected:
 		typedef shared_ptr<CBuilder> BuilderImpl;
@@ -49,8 +54,9 @@ public:
 		 mode_      (orig.mode_),
 		 configPrio_(orig.configPrio_),
 		 configBase_(orig.configBase_),
-         wordSwap_  (orig.wordSwap_),
-         enum_      (orig.enum_)
+		 wordSwap_  (orig.wordSwap_),
+		 encoding_  (orig.encoding_),
+		 enum_      (orig.enum_)
 		{
 		}
 
@@ -66,6 +72,7 @@ public:
 		virtual Builder configPrio(int);
 		virtual Builder configBase(int);
 		virtual Builder wordSwap(unsigned);
+		virtual Builder encoding(Encoding);
 		virtual Builder setEnum(Enum);
 		virtual Builder reset();
 
@@ -77,13 +84,14 @@ public:
 		static  Builder create();
 	};
 private:
-	bool     is_signed_;
-	int      ls_bit_;
-	uint64_t size_bits_;
-	Mode     mode_;
-	unsigned wordSwap_;
-	Enum     enum_;
-	int      configBase_;
+	bool               is_signed_;
+	int                ls_bit_;
+	uint64_t           size_bits_;
+	Mode               mode_;
+	unsigned           wordSwap_;
+	Encoding           encoding_;
+	Enum               enum_;
+	int                configBase_;
 
 	void checkArgs();
 
@@ -112,6 +120,7 @@ public:
 	 size_bits_(orig.size_bits_),
 	 mode_(orig.mode_),
 	 wordSwap_(orig.wordSwap_),
+	 encoding_(orig.encoding_),
 	 enum_(orig.enum_),
 	 configBase_(orig.configBase_)
 	{
@@ -123,11 +132,13 @@ public:
 	virtual int      getLsBit()      const { return ls_bit_;                       }
 	virtual uint64_t getSizeBits()   const { return size_bits_;                    }
 	virtual unsigned getWordSwap()   const { return wordSwap_;                     }
+	virtual Encoding getEncoding()   const { return encoding_;                     }
 	virtual int      getConfigBase() const { return configBase_;                   }
 	virtual Mode     getMode()       const { return mode_;                         }
 	virtual Enum     getEnum()       const { return enum_;                         }
 
 	virtual void     setConfigBase(int);
+	virtual void     setEncoding(Encoding);
 };
 
 class IIntEntryAdapt : public IEntryAdapt, public virtual IScalVal_Base {
@@ -139,6 +150,7 @@ public:
 	virtual int      getLsBit()    const { return asIntEntry()->getLsBit();    }
 	virtual uint64_t getSizeBits() const { return asIntEntry()->getSizeBits(); }
 	virtual unsigned getWordSwap() const { return asIntEntry()->getWordSwap(); }
+	virtual Encoding getEncoding() const { return asIntEntry()->getEncoding(); }
 	virtual IIntField::Mode     getMode()     const { return asIntEntry()->getMode(); }
 	virtual Path     getPath()     const { return IEntryAdapt::getPath(); }
 	virtual unsigned getNelms();
