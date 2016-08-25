@@ -1365,15 +1365,18 @@ CNetIODevImpl::CPortBuilder::create(YamlState &node)
 
 INetIODev::PortBuilder pbldr( INetIODev::createPortBuilder() );
 unsigned                   u;
-int                        i;
 uint64_t                   u64;
 bool                       b;
 INetIODev::ProtocolVersion proto_vers;
+int                        i;
 
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_SRP) );
 		if( nn )
 		{
+			// initialize proto_vers to silence rhel compiler warning
+			// about potentially un-initialized 'proto_vers'
+			proto_vers = pbldr->getSRPVersion();
 			if ( readNode(nn, YAML_KEY_protocolVersion, &proto_vers) )
 				pbldr->setSRPVersion( proto_vers );
 			if ( readNode(nn, YAML_KEY_timeoutUS, &u64) )
@@ -1394,6 +1397,9 @@ INetIODev::ProtocolVersion proto_vers;
 				pbldr->setUdpOutQueueDepth( u );
 			if ( readNode(nn, YAML_KEY_numRxThreads, &u) )
 				pbldr->setUdpNumRxThreads( u );
+			// initialize i to silence rhel compiler warning
+			// about potentially un-initialized 'i'
+			i = pbldr->getUdpPollSecs();
 			if ( readNode(nn, YAML_KEY_pollSecs, &i) )
 				pbldr->setUdpPollSecs( i );
 		}
