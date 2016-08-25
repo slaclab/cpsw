@@ -1385,7 +1385,7 @@ INetIODev::ProtocolVersion proto_vers;
 		}
 	}
 	{
-		const YAML::PNode &nn( node.lookup("udp") );
+		const YAML::PNode &nn( node.lookup("UDP") );
 		if ( nn )
 		{
 			if ( readNode(nn, "port", &u) )
