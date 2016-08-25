@@ -67,7 +67,7 @@ public:
 	CCommAddressImpl(AKey k, ProtoPort protoStack)
 	: CAddressImpl(k),
 	  protoStack_(protoStack),
-      running_(false)
+	  running_(false)
 	{
 	}
 

@@ -108,7 +108,7 @@ public:
 
 		current.attr(name_.c_str()) = object( handle<>( borrowed( excTypeObj_ ) ) ); \
 
-     	//std::cout << "EXCEPTION TYPE REFCOUNT CRE " << Py_REFCNT(getTypeObj()) << "\n";
+	//std::cout << "EXCEPTION TYPE REFCOUNT CRE " << Py_REFCNT(getTypeObj()) << "\n";
 	}
 
 	~ExceptionTranslator()
@@ -121,9 +121,9 @@ public:
 	// The actual translation
 	void operator() (const ECL &e) const
 	{
-     //std::cout << "EXCEPTION TYPE REFCOUNT PRE " << Py_REFCNT(getTypeObj()) << "\n";
+	//std::cout << "EXCEPTION TYPE REFCOUNT PRE " << Py_REFCNT(getTypeObj()) << "\n";
 		PyErr_SetString( getTypeObj(), e.what() );
-     //std::cout << "EXCEPTION TYPE REFCOUNT PST " << Py_REFCNT(getTypeObj()) << "\n";
+	//std::cout << "EXCEPTION TYPE REFCOUNT PST " << Py_REFCNT(getTypeObj()) << "\n";
 	}
 
 // Macros to save typing
@@ -213,7 +213,7 @@ boost::python::list l;
 IEnum::iterator it  = enm->begin();
 IEnum::iterator ite = enm->end();
 	while ( it != ite ) {
-        l.append( boost::python::make_tuple( *(*it).first, (*it).second ) );
+		l.append( boost::python::make_tuple( *(*it).first, (*it).second ) );
 		++it;
 	}
 
@@ -295,7 +295,7 @@ IndexRange rng(from, to);
 
 	if ( enm && ! forceNumeric ) {
 
-    // must not use 'reserve' which doesn't construct invalid shared pointers!
+	// must not use 'reserve' which doesn't construct invalid shared pointers!
 	std::vector<CString>  str(nelms, CString());
 
 		got = val->getVal( &str[0], nelms, &rng );
@@ -339,11 +339,11 @@ bool enumScalar = false;
 
 	// use buffer interface only for non-enums
 
-    if ( useEnum ) {
+	if ( useEnum ) {
 		if ( ! PyBytes_Check( op ) && ! PyUnicode_Check( op ) ) {
 			if ( PySequence_Check( op ) ) {
 				// could be a sequence of strings
-                object o1( o[0] );
+				object o1( o[0] );
 				PyObject *op1 = o1.ptr();
 				if ( ! PyBytes_Check( op1 ) && ! PyUnicode_Check( op1 ) ) {
 					// not a sequence of strings - do not use enums
@@ -400,10 +400,10 @@ bool enumScalar = false;
 		// python3 all strings are unicode and we must first convert
 		// to a c++ std::string. Should be backwards compatible to 
 		// python 2.7.
-        std::vector<std::string>  vstr;
+		std::vector<std::string>  vstr;
 		std::vector<const char *> vcstr;
 
-        if ( enumScalar ) {
+		if ( enumScalar ) {
 			vstr.push_back( extract<std::string>( o ) );
 			vcstr.push_back( vstr[0].c_str() );
 		} else {
@@ -513,7 +513,7 @@ Hub hc(h);
 		++it;
 	}
 
-    return boost::python::tuple( l );
+	return boost::python::tuple( l );
 }
 
 // without the overload macros (using 'arg' within 'def') there
@@ -693,7 +693,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 	;
 
 	// wrap 'IPath' interface
-    class_<IPath, boost::noncopyable>
+	class_<IPath, boost::noncopyable>
 	PathClazz(
 		"Path",
 		"\n"
@@ -702,7 +702,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 		"to the root of the hierarchy. They also include index ranges for\n"
 		"array members that are in the path.\n"
 		"\n"
-        "Paths are constructed by lookup and are passed to the factories\n"
+		"Paths are constructed by lookup and are passed to the factories\n"
 		"that instantiate accessor interfaces such as 'ScalVal', 'Command'\n"
 		"or 'Stream'.",
 		no_init
@@ -856,32 +856,32 @@ BOOST_PYTHON_MODULE(pycpsw)
 		)
 		.def("loadConfigFromYamlFile", wrap_Path_loadConfigFromYamlFile,
 			wrap_Path_loadConfigFromYamlFile_ol(
-            args("self", "configYamlFilename", "yamlIncDirname"),
-            "\n"
-            "Load a configuration file in YAML format and write out into the hardware.\n"
-            "\n"
-            "'yamlIncDirname' may point to a directory where included YAML files can\n"
-            "be found. Defaults to the directory where the YAML file is located."
+			args("self", "configYamlFilename", "yamlIncDirname"),
+			"\n"
+			"Load a configuration file in YAML format and write out into the hardware.\n"
+			"\n"
+			"'yamlIncDirname' may point to a directory where included YAML files can\n"
+			"be found. Defaults to the directory where the YAML file is located."
 			)
-         )
+		)
 		.def("loadConfigFromYamlString", wrap_Path_loadConfigFromYamlString,
 			wrap_Path_loadConfigFromYamlString_ol(
-            args("self", "configYamlString", "yamlIncDirname"),
-            "\n"
-            "Load a configuration from a YAML formatted string and write out into the hardware.\n"
-            "\n"
-            "'yamlIncDirname' may point to a directory where included YAML files can be found.\n"
-            "Defaults to the directory where the YAML file is located.\n"
+			args("self", "configYamlString", "yamlIncDirname"),
+			"\n"
+			"Load a configuration from a YAML formatted string and write out into the hardware.\n"
+			"\n"
+			"'yamlIncDirname' may point to a directory where included YAML files can be found.\n"
+			"Defaults to the directory where the YAML file is located.\n"
 			)
-         )
+		)
 		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYamlFile,
 			( arg("self"), arg("fileName") ),
-            "\n"
+			"\n"
 			"Read a configuration from hardware and save to a file in YAML format."
 		)
 		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYaml,
 			( arg("self") ),
-            "\n"
+			"\n"
 			"Read a configuration from hardware and return as a string in YAML format."
 		)
 		.def("create",       wrap_Path_create,
@@ -1011,7 +1011,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"Return 'Enum' object associated with this ScalVal (if any).\n"
 			"\n"
 			"An Enum object is a list of (str,int) tuples with associates strings\n",
-            "with numerical values."
+			"with numerical values."
 		)
 	;
 
@@ -1156,7 +1156,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 
 	Stream_Clazz
 		.def("read",         wrap_Stream_read,
-            ( arg("self"), arg("bufObject"), arg("timeoutUs") = -1 ),
+			( arg("self"), arg("bufObject"), arg("timeoutUs") = -1 ),
 			"\n"
 			"Read raw bytes from a streaming interface into a buffer and return the number of bytes read.\n"
 			"\n"

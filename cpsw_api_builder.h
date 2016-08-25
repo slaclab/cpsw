@@ -43,7 +43,7 @@ public:
 	typedef enum RecursionOrder { RECURSE_DEPTH_FIRST = true, RECURSE_DEPTH_AFTER = false } RecursionOrder;
 	static const int DEPTH_INDEFINITE = -1; // recurse into all leaves
 	static const int DEPTH_NONE       =  0; // no recursion; current leaf only
-                                            // positive values give desired depth
+	                                        // positive values give desired depth
 	virtual void accept(IVisitor *v, RecursionOrder order, int recursionDepth = DEPTH_INDEFINITE) = 0;
 	virtual ~IVisitable() {}
 };

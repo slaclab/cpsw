@@ -16,10 +16,10 @@
 
 #define READ_3BYTE_CMD     (0x03 << CMD_OFFSET)
 #define READ_4BYTE_CMD     (0x13 << CMD_OFFSET)
-   
+
 #define FLAG_STATUS_REG    (0x70 << CMD_OFFSET)
 #define FLAG_STATUS_RDY    (0x80)
-   
+
 #define WRITE_ENABLE_CMD   (0x06 << CMD_OFFSET)
 #define WRITE_DISABLE_CMD  (0x04 << CMD_OFFSET)
 
@@ -28,7 +28,7 @@
 
 #define ENABLE_RESET_CMD   (0x66 << CMD_OFFSET)
 #define RESET_CMD          (0x99 << CMD_OFFSET)
-   
+
 #define ERASE_CMD          (0xD8 << CMD_OFFSET)
 #define ERASE_SIZE         (0x10000)
 

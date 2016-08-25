@@ -112,10 +112,10 @@ class CRssi : public CRunnable,
               public IRexTimer,
               public IAckTimer,
               public INulTimer,
-			  public CConnectionOpenEventSource,
-			  public CConnectionNotOpenEventSource,
-			  public CConnectionClosedEventSource
-              {
+              public CConnectionOpenEventSource,
+              public CConnectionNotOpenEventSource,
+              public CConnectionClosedEventSource
+{
 
 public:
 	static const uint8_t  LD_MAX_UNACKED_SEGS = 4;

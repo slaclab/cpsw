@@ -87,7 +87,7 @@ public:
 #define DECLARE_OBJ_COUNTER(name,module,static_objs) \
 CpswObjCounter & name() \
 { \
-  static CpswObjCounter *xxx_ = new CpswObjCounter( module, static_objs ); \
-  return *xxx_; \
+	static CpswObjCounter *xxx_ = new CpswObjCounter( module, static_objs ); \
+	return *xxx_; \
 }
 #endif

@@ -55,9 +55,9 @@ void CCommandImpl::executeCommand(CommandImplContext ctxt) const
 CCommand_Adapt::CCommand_Adapt(Key &k,  Path p, shared_ptr<const CCommandImpl> ie):
 	IEntryAdapt(k, p, ie)
 {
-  p = p->clone();
-  p->up();
-  pContext_ = ie->createContext( p );
+	p = p->clone();
+	p->up();
+	pContext_ = ie->createContext( p );
 }
 
 void
@@ -81,7 +81,6 @@ CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, const Items
 : CCommandImpl(k, name),
   items_( *items_p )
 {
-
 }
 
 CSequenceCommandImpl::CSequenceCommandImpl(Key &key, YamlState &node)

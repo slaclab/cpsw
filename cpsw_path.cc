@@ -499,7 +499,7 @@ bool CPathImpl::verifyAtTail(ConstDevImpl h)
 		return true;
 	} 
 	return (    static_pointer_cast<Entry::element_type, ConstDevImpl::element_type>( h )
-             == static_pointer_cast<Entry::element_type, EntryImpl::element_type>( back().c_p_->getEntryImpl() ) );
+	         == static_pointer_cast<Entry::element_type, EntryImpl::element_type>( back().c_p_->getEntryImpl() ) );
 }
 
 
@@ -648,7 +648,7 @@ bool CompositePathIterator::validConcatenation(Path p)
 	if ( p->empty() )
 		return false;
 	return (    static_pointer_cast<Entry::element_type, Hub::element_type      >( p->origin() )
-             == static_pointer_cast<Entry::element_type, EntryImpl::element_type>( (*this)->c_p_->getEntryImpl() ) );
+	         == static_pointer_cast<Entry::element_type, EntryImpl::element_type>( (*this)->c_p_->getEntryImpl() ) );
 }
 
 static CPathImpl::reverse_iterator rbegin(Path p)

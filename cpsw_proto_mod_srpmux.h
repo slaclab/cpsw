@@ -16,7 +16,7 @@ private:
 protected:
 	CProtoModSRPMux(const CProtoModSRPMux &orig, Key &k)
 	: CProtoModByteMux<SRPPort>(orig, k),
-  	  protoVersion_(orig.protoVersion_)
+	  protoVersion_(orig.protoVersion_)
 	{
 	}
 

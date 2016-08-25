@@ -49,7 +49,7 @@ public:
 	CWriteArgs()
 	: cacheable_ ( IField::UNKNOWN_CACHEABLE ),
 	  src_       ( NULL ),
-      off_       ( 0 ),
+	  off_       ( 0 ),
 	  nbytes_    ( 0 ),
 	  msk1_      ( 0 ),
 	  mskn_      ( 0 ),

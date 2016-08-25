@@ -54,7 +54,7 @@ uint8_t  msk1, mskn;
 	// l is > 0
 
 	msk1 = (1 << shift) - 1;
-    mskn = ~ ( (1 << ((shift + bit_size) % 8)) - 1 );
+	mskn = ~ ( (1 << ((shift + bit_size) % 8)) - 1 );
 	if ( mskn == 0xff )
 		mskn = 0x00;
 

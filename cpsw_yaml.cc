@@ -49,7 +49,7 @@ PNode::operator=(const Node &orig_node)
 	//
 	//   YAML::Node nodeA = nodeB;
 	//
-    //              nodeA = nodeC;
+	//              nodeA = nodeC;
 	//
 	// then the 'contents' of what node C refers to
 	// seem to be assigned to what node A refers to.
@@ -221,7 +221,7 @@ isd(PNode *pn)
 if ( pn->IsDefined() )
 	cout << *pn << "\n";
 else
-    cout << "PN UNDEFINED?\n";
+	cout << "PN UNDEFINED?\n";
 }
 
 		// starting at 'this' node visit all merge keys upstream
@@ -637,23 +637,25 @@ shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const Entry
 	}
 }
 
-YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s) {
-    uint64_t u64;
-    s->getVal( &u64 );
-    out << YAML::BeginMap;
-    out << YAML::Key << s->getName();
-    out << YAML::Value << u64;
-    out << YAML::EndMap;
-    return out;
+YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s)
+{
+	uint64_t u64;
+	s->getVal( &u64 );
+	out << YAML::BeginMap;
+	out << YAML::Key << s->getName();
+	out << YAML::Value << u64;
+	out << YAML::EndMap;
+	return out;
 }
 
-YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h) {
-    Children ch = h->getChildren();
-    for( unsigned i = 0; i < ch->size(); i++ )
-    {
-//       out << ch[i]; 
-    }
-    return out;
+YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h)
+{
+	Children ch = h->getChildren();
+	for( unsigned i = 0; i < ch->size(); i++ )
+	{
+		//       out << ch[i]; 
+	}
+	return out;
 }
 
 IYamlTypeRegistry<Field> *

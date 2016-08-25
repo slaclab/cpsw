@@ -92,7 +92,7 @@ void
 CIntEntryImpl::setConfigBase(int proposed)
 {
 	if ( getLocked() )
-        throw ConfigurationError("Configuration Error - cannot modify attached device");
+		throw ConfigurationError("Configuration Error - cannot modify attached device");
 	configBase_ = checkConfigBase( proposed );
 }
 

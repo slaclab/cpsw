@@ -341,7 +341,7 @@ protected:
 	: depth_(depth),
 	  wwater_(wwater),
 	  rp_(0),
-      wp_(0),
+	  wp_(0),
 	  rdSync_( CEventBufSync::create(0,0) ),
 	  wrSync_( CEventBufSync::create(depth, wwater) ),
 	  isOpen_(true),

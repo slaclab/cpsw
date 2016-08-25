@@ -22,8 +22,8 @@ void CEntryImpl::checkArgs()
 const char *cptr;
 	for ( cptr = name_.c_str(); *cptr; cptr++ ) {
 		if ( ! isalnum( *cptr )
-                     && '_' != *cptr 
-                     && '-' != *cptr  )
+		             && '_' != *cptr 
+		             && '-' != *cptr  )
 					throw InvalidIdentError(name_);
 	}
 }

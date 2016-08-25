@@ -25,9 +25,9 @@ typedef shared_ptr<CDevImpl>    DevImpl;
 typedef weak_ptr<CDevImpl>     WDevImpl;
 
 struct StrCmp {
-    bool operator () (const char *a, const char *b ) const {
-        return strcmp(a , b) < 0 ? true : false;
-    }
+	bool operator () (const char *a, const char *b ) const {
+		return strcmp(a , b) < 0 ? true : false;
+	}
 };
 
 class CDevImpl : public CEntryImpl, public virtual IDev {

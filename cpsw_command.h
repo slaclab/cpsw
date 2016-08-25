@@ -84,9 +84,9 @@ public:
 		virtual CommandImplContext createContext( Path pParent )   const;
 
 		// context is passed back to 'executeCommand'
-        virtual void executeCommand( CommandImplContext pContext ) const;
+		virtual void executeCommand( CommandImplContext pContext ) const;
 
-        CCommandImpl(Key &k, const char* name);
+		CCommandImpl(Key &k, const char* name);
 
 		CCommandImpl(Key  &k, YamlState &node)
 		: CEntryImpl(k, node)
@@ -102,17 +102,17 @@ typedef shared_ptr<CCommand_Adapt> Command_Adapt;
 
 class CCommand_Adapt: public virtual ICommand, public virtual IEntryAdapt {
 private:
-        CommandImplContext pContext_;
+		CommandImplContext pContext_;
 
 public:
-        CCommand_Adapt(Key &k, Path p, shared_ptr<const CCommandImpl> ie);
+		CCommand_Adapt(Key &k, Path p, shared_ptr<const CCommandImpl> ie);
 
-        static Command create(Path p);
+		static Command create(Path p);
 
-        virtual void execute();
+		virtual void execute();
 
 protected:
-        virtual shared_ptr<const CCommandImpl> asCommandImpl() const { return static_pointer_cast<const CCommandImpl, const CEntryImpl>(ie_); }
+		virtual shared_ptr<const CCommandImpl> asCommandImpl() const { return static_pointer_cast<const CCommandImpl, const CEntryImpl>(ie_); }
 };
 
 class CSequenceCommandImpl;

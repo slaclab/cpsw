@@ -78,12 +78,12 @@ static void createPathShouldFail(Hub h, const char *name)
 }
 
 const char *paths[] = {
-    "main/merge",
+	"main/merge",
 	"main/nomerge",
-    "main/downmerge",
-    "main/upmerge",
-    "main/updownmerge",
-    "main/upupmerge",
+	"main/downmerge",
+	"main/upmerge",
+	"main/updownmerge",
+	"main/upupmerge",
 	0
 };
 
@@ -98,7 +98,6 @@ std::stringstream sstrm( str );
 
 		Hub top( CYamlFieldFactoryBase::dispatchMakeField( root, "root" ) );
 int i;
-
 
 		// 'default' node sets 'instantiate: false' everywhere
 
