@@ -175,7 +175,7 @@ public:
 	// append a copy of another path to this one.
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
 	virtual void        append(Path p)                = 0;
-	
+
 	// append a copy of another path to a copy of this one and return the new copy
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
 	virtual Path        concat(Path p)          const = 0;
@@ -195,7 +195,7 @@ public:
 
 	/*!
 	 * Recurse through hierarchy (underneath this path), and let
-	 * entries dump their current values (aka "configuration") 
+	 * entries dump their current values (aka "configuration")
 	 * in YAML format.
 	 * When this call returns then the 'template' node is the
 	 * root of a hierarchy of YAML nodes which serializes the
@@ -230,7 +230,7 @@ public:
 	 * find all entries matching 'path' in or underneath this hub.
 	 * No wildcards are supported ATM. 'matching' refers to array
 	 * indices which may be used in the path.
-	 * 
+	 *
 	 * E.g., if there is an array of four devices [0-3] then the
 	 * path may select just two of them:
 	 *
@@ -253,7 +253,7 @@ public:
 	/*!
 	 * Load a hierarchy definition in YAML format from a file.
 	 * The hierarchy is built from the node with name 'rootName'.
-	 * 
+	 *
 	 * Optionally, 'yamlDir' may be passed which identifies a directory
 	 * where *all* yaml files reside. NULL (or empty) instructs the
 	 * method to use the same directory where 'fileName' resides.
@@ -271,7 +271,7 @@ public:
 	/*!
 	 * Load a hierarchy definition in YAML format from a std::istream.
 	 * The hierarchy is built from the node with name 'rootName'.
-	 * 
+	 *
 	 * Optionally, 'yamlDir' may be passed which identifies a directory
 	 * where *all* yaml files reside. NULL (or empty) denotes CWD.
 	 *
@@ -368,7 +368,7 @@ class IScalVal_Base : public virtual IEntry {
 public:
 	/*!
 	 * Return number of elements addressed by this ScalVal.
-	 * 
+	 *
 	 * The Path used to instantiate a ScalVal may address an array
 	 * of scalar values. This method returns the number of array elements
 	 */
@@ -376,7 +376,7 @@ public:
 
 	/*!
 	 * Return the size in bits of this ScalVal.
-	 * 
+	 *
 	 * If the ScalVal represents an array then the return value is the size
 	 * of each individual element.
 	 */
@@ -384,7 +384,7 @@ public:
 
 	/*!
 	 * Return True if this ScalVal represents a signed number.
-	 * 
+	 *
 	 * If the ScalVal is read into a wider number than its native bitSize
 	 * then automatic sign-extension is performed (for signed ScalVals).
 	 */
@@ -397,7 +397,7 @@ public:
 
 	/*!
 	 * Return 'Enum' object associated with this ScalVal (if any).
-	 * 
+	 *
 	 * An Enum object is a dictionary with associates strings to numerical
 	 * values.
 	 */
@@ -475,12 +475,12 @@ public:
 
 /*!
  * Read-Only interface for endpoints which support integral values.
- * 
+ *
  * This interface supports reading integer values e.g., registers
  * or individual bits. It may also feature an associated map of
  * 'enum strings'. E.g., a bit with such a map attached could be
  * read as 'True' or 'False'.
- * 
+ *
  * NOTE: If no write operations are required then it is preferable
  *       to use the ScalVal_RO interface (as opposed to ScalVal)
  *       since the underlying endpoint may be read-only.
@@ -568,9 +568,9 @@ public:
 	virtual ~IScalVal () {}
 
 	/*!
-	 * 
+	 *
 	 * Instantiate a 'ScalVal' interface at the endpoint identified by 'path'
-	 * 
+	 *
 	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
 	 *       not support this interface.
 	 */
@@ -598,12 +598,12 @@ class CTimeout;
 
 /*!
  * Interface for endpoints with support streaming of raw data.",
- */ 
+ */
 class IStream {
 public:
 	/*!
 	 * Read raw bytes from a streaming interface into a buffer and return the number of bytes read.
-	 * 
+	 *
 	 * The 'timeoutUs' argument may be used to limit the time this
 	 * method blocks waiting for data to arrive. A (relative) timeout
 	 * in micro-seconds may be specified. TIMEOUT_INDEFINITE blocks
@@ -640,7 +640,7 @@ public:
 	 */
 	virtual void execute() = 0;
 
-   	/*!
+	/*!
 	 * Instantiate a 'Command' interface at the endpoint identified by 'path'
 	 */
      static Command create(Path p);
