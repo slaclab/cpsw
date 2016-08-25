@@ -406,10 +406,10 @@ CSRPAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CCommAddressImpl::dumpYamlPart( node );
 	YAML::Node srpParms;
-	writeNode(srpParms, "ProtocolVersion", protoVersion_      );
-	writeNode(srpParms, "TimeoutUS"      , usrTimeout_.getUs());
-	writeNode(srpParms, "DynTimeout"     , useDynTimeout_     );
-	writeNode(srpParms, "RetryCount"     , retryCnt_          );
+	writeNode(srpParms, "protocolVersion", protoVersion_      );
+	writeNode(srpParms, "timeoutUS"      , usrTimeout_.getUs());
+	writeNode(srpParms, "dynTimeout"     , useDynTimeout_     );
+	writeNode(srpParms, "retryCount"     , retryCnt_          );
 	writeNode(node, "SRP", srpParms);
 }
 
@@ -1374,13 +1374,13 @@ INetIODev::ProtocolVersion proto_vers;
 		const YAML::PNode &nn( node.lookup("SRP") );
 		if( nn )
 		{
-			if ( readNode(nn, "ProtocolVersion", &proto_vers) )
+			if ( readNode(nn, "protocolVersion", &proto_vers) )
 				pbldr->setSRPVersion( proto_vers );
-			if ( readNode(nn, "TimeoutUS", &u64) )
+			if ( readNode(nn, "timeoutUS", &u64) )
 				pbldr->setSRPTimeoutUS( u64 );
-			if ( readNode(nn, "DynTimeout", &b) )
+			if ( readNode(nn, "dynTimeout", &b) )
 				pbldr->useSRPDynTimeout( b );
-			if ( readNode(nn, "RetryCount", &u) )
+			if ( readNode(nn, "retryCount", &u) )
 				pbldr->setSRPRetryCount( u );
 		}
 	}
@@ -1796,7 +1796,7 @@ ProtoPort port;
 	// since SRP V2 is the default we switch it OFF here; if SRP
 	// is chained after us they will re-enable
 	YAML::Node noSRP;
-	writeNode(noSRP, "ProtocolVersion", INetIODev::SRP_UDP_NONE);
+	writeNode(noSRP, "protocolVersion", INetIODev::SRP_UDP_NONE);
 	writeNode(node , "SRP",             noSRP                  );
 	for ( port = protoStack_; port; port = port->getUpstreamPort() ) {
 		port->dumpYaml( node );
