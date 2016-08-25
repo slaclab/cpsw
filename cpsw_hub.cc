@@ -260,7 +260,7 @@ void
 CAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	writeNode(node, "nelms",     nelms_    );
-	writeNode(node, "ByteOrder", byteOrder_);
+	writeNode(node, "byteOrder", byteOrder_);
 }
 
 void
