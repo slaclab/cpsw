@@ -92,9 +92,9 @@ yaml_cpp_DIR_linux_x86_64  =$(YAML_CPP_PATH)/rhel6-x86_64
 yaml_cpp_DIR_linuxRT_x86_64=$(YAML_CPP_PATH)/buildroot-2015.02-x86_64
 
 # Whether to build static libraries (YES/NO)
-WITH_STATIC_LIBRARIES=NO
+WITH_STATIC_LIBRARIES_default=NO
 # Whether to build shared libraries (YES/NO)
-WITH_SHARED_LIBRARIES=YES
+WITH_SHARED_LIBRARIES_default=YES
 
 # Whether to build the python wrapper (this requires boost/python and python >= 2.7).
 # The choice may be target specific, e.g.,

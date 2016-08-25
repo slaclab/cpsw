@@ -17,11 +17,23 @@ GIT_VERSION_STRING:=$(shell echo -n '"'`git describe --always --dirty`'"')
 #
 # For a host build this should be empty (since we assume the tools to be in PATH)
 # but the user may override by defining CROSS_host...
+#
+# arch2var(VARIABLE_PREFIX)
 define arch2var
-$(1)=$$(if $$(findstring undefined,$$(origin $(1)_$$(TARNM))),$$($(1)_default),$$($(1)_$$(TARNM)))
+$(1)=$$(or $$($(1)_$$(TARNM)),$$($(1)_default))
 endef
 
-$(foreach var,CROSS yaml_cpp_DIR boost_DIR,$(eval $(call arch2var,$(var))))
+ARCHSPECIFIC_VARS+=CROSS
+ARCHSPECIFIC_VARS+=yaml_cpp_DIR
+ARCHSPECIFIC_VARS+=boost_DIR
+ARCHSPECIFIC_VARS+=py_DIR
+ARCHSPECIFIC_VARS+=WITH_SHARED_LIBRARIES
+ARCHSPECIFIC_VARS+=WITH_STATIC_LIBRARIES
+ARCHSPECIFIC_VARS+=WITH_PYCPSW
+ARCHSPECIFIC_VARS+=BOOST_PYTHON_LIB
+ARCHSPECIFIC_VARS+=XXX_TEST
+
+$(foreach var,$(ARCHSPECIFIC_VARS),$(eval $(call arch2var,$(var))))
 
 CROSS_default=$(addsuffix -,$(filter-out $(HARCH),$(TARCH)))
 
@@ -72,11 +84,14 @@ cpswlib_DIRS=$(addsuffix /O.$(TARCH),$(CPSW_DIR))$(addprefix :,$(or $(boostlib_D
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
 CPSW_LIBS   = cpsw yaml-cpp pthread rt
 
+# Default values -- DO NOT OVERRIDE HERE but in config.mak or config.local.mak
+BOOST_PYTHON_LIB_default     =boost_python
+WITH_SHARED_LIBRARIES_default=YES
+WITH_STATIC_LIBRARIES_default=NO
+WITH_PYCPSW_default          =$(WITH_SHARED_LIBRARIES_default)
+
 COMMA__=,
 SPACE__= #
-
-WITH_SHARED_LIBRARIES=YES
-WITH_STATIC_LIBRARIES=NO
 
 # definitions
 include $(CPSW_DIR)/config.mak

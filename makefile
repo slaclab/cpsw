@@ -93,13 +93,13 @@ cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 
 # Python wrapper; only built if WITH_PYCPSW is set to YES (can be target specific)
 pycpsw_so_SRCS    = cpsw_python.cc
-pycpsw_so_LIBS    = boost_python-py34 $(CPSW_LIBS)
+pycpsw_so_LIBS    = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
 pycpsw_so_LDFLAGS = -shared
 pycpsw_so_CXXFLAGS= -fpic
 pycpsw_so_CPPFLAGS=$(addprefix -I,$(or $(pyinc_DIR_$(TARNM)),$(pyinc_DIR_default),$(pyinc_DIR)))
 
 PYCPSW_YES        = pycpsw.so
-PYCPSW            = $(PYCPSW_$(or $(WITH_PYCPSW_$(TARNM)),$(WITH_PYCPSW_default),$(WITH_CPSW)))
+PYCPSW            = $(PYCPSW_$(WITH_PYCPSW))
 
 PROGRAMS                += udpsrv cpsw_yaml_xpand $(PYCPSW)
 
@@ -218,3 +218,6 @@ rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
 
 
 cpsw_netio_tst: udpsrv
+
+xxx:
+	echo '>>>'$(XXX_TEST)'<<<'

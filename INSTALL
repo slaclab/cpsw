@@ -15,6 +15,38 @@ layered on top of CPSW (and do not share the CPSW source directory
 but may be located at an arbitrary location in the filesystem).
 Consult 'makefile.template' for further information.
 
+The makefiles consist of (you can skip this explanation if you
+want to proceed with a vanilla build)
+
+ - rules.mak:
+   generic rules; should NOT be modified; lives in the CPS source
+   directory (included by derived libraries and applications).
+
+ - defs.mak:
+   generic definitions; should NOT be modified; lives in the CPSW
+   source directory (included by derived libraries and applications). 
+
+ - config.mak:
+   site-specific settings of certain variables that affect the build
+   (AND the build of derived libraries and apps); lives in the CPSW
+   source directory.
+
+ - config.local.mak:
+   local tweaks of variables that affect the build (AND the build of
+   derived libraries and apps); lives in the CPSW source directory.
+   SEE BELOW for what this is for.
+
+ - makefile:
+   Defines application/library-specific variables, i.e., mostly
+   lists the targets to build and the files that are required
+   for them (see makefile.template). Can also contain app-specific
+   rules. Lives in the application source directory. Binaries
+   are built under 'O.<architecture>' directories.
+
+ - local.mak:
+   Local tweaks which are application/library-specific; lives
+   in the application source directory.
+
 2. config.mak
 -------------
 
