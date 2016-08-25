@@ -14,8 +14,6 @@ install: multi-do_install
 # run tests (on host)
 test: sub-$(HARCH)-run_tests
 
-multi-install_headers: install_headers
-
 multi-clean: clean
 
 # 'multi-target'; execute a target for all architectures:
@@ -30,7 +28,7 @@ multi-arch-%: $(patsubst %,sub-%-%,$(ARCHES))
 multi-subdir-%: $(patsubst %,sub-./%-%,$(SUBDIRS))
 	@true
 
-multi-%: multi-subdir-% multi-arch-%
+multi-%: generate_srcs install_headers multi-subdir-% multi-arch-%
 	@true
 
 # 'sub-x-y' builds target 'y' for architecture 'x'
@@ -227,10 +225,12 @@ endif
 	$(CC) $(CPPFLAGS) $(CFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
 
 clean: multi-subdir-clean
-	$(RM) deps git_version_string.h
+	$(RM) deps $(GENERATED_SRCS)
 	$(RM) -r O.*
 
-install_headers: git_version_string.h
+generate_srcs: $(GENERATED_SRCS)
+
+install_headers: 
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		echo "Installing Headers $(HEADERS)" ; \
 		if [ -n "$(HEADERS)" ] ; then \

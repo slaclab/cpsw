@@ -251,7 +251,7 @@ CDevImpl::addAtAddress(Field child, YamlState &ypath)
 {
 unsigned nelms = DFLT_NELMS;
 
-	readNode(ypath, "nelms", &nelms);
+	readNode(ypath, YAML_KEY_nelms, &nelms);
 
 	addAtAddress(child, nelms);
 }
@@ -259,8 +259,8 @@ unsigned nelms = DFLT_NELMS;
 void
 CAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
-	writeNode(node, "nelms",     nelms_    );
-	writeNode(node, "byteOrder", byteOrder_);
+	writeNode(node, YAML_KEY_nelms,     nelms_    );
+	writeNode(node, YAML_KEY_byteOrder, byteOrder_);
 }
 
 void
@@ -274,12 +274,12 @@ MyChildren::iterator it;
 		it->second->getEntryImpl()->dumpYaml( child_node );
         YAML::Node child_address;
 		it->second->dumpYamlPart( child_address );
-        writeNode(child_node, "at", child_address);
+        writeNode(child_node, YAML_KEY_at, child_address);
 		if ( it->second->getEntryImpl()->getCacheable() == getCacheable() )
-			child_node.remove("cacheable");
+			child_node.remove(YAML_KEY_cacheable);
 		writeNode(children, it->second->getName(), child_node );
 	}
-	writeNode( node, "children", children );
+	writeNode( node, YAML_KEY_children, children );
 }
 
 Dev IDev::create(const char *name, uint64_t size)
@@ -396,7 +396,7 @@ void CDevImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 
 			YAML::Node child(*it);
 
-			if ( 0 == std::string("value").compare( child.Tag() ) ) {
+			if ( 0 == std::string(YAML_KEY_value).compare( child.Tag() ) ) {
 				// If this node has a 'value' tag then that means that the
 				// node contains settings for *this* device (see above).
 				// A subclass of CDevImpl may want to load/save state here...

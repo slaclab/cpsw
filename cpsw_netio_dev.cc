@@ -406,11 +406,11 @@ CSRPAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CCommAddressImpl::dumpYamlPart( node );
 	YAML::Node srpParms;
-	writeNode(srpParms, "protocolVersion", protoVersion_      );
-	writeNode(srpParms, "timeoutUS"      , usrTimeout_.getUs());
-	writeNode(srpParms, "dynTimeout"     , useDynTimeout_     );
-	writeNode(srpParms, "retryCount"     , retryCnt_          );
-	writeNode(node, "SRP", srpParms);
+	writeNode(srpParms, YAML_KEY_protocolVersion, protoVersion_      );
+	writeNode(srpParms, YAML_KEY_timeoutUS      , usrTimeout_.getUs());
+	writeNode(srpParms, YAML_KEY_dynTimeout     , useDynTimeout_     );
+	writeNode(srpParms, YAML_KEY_retryCount     , retryCnt_          );
+	writeNode(node, YAML_KEY_SRP, srpParms);
 }
 
 CSRPAddressImpl::CSRPAddressImpl(AKey k, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
@@ -561,7 +561,7 @@ CNetIODevImpl::CNetIODevImpl(Key &k, const char *name, const char *ip)
 CNetIODevImpl::CNetIODevImpl(Key &k, YamlState &ypath)
 : CDevImpl(k, ypath)
 {
-	if ( readNode(ypath, "ipAddr", &ip_str_) ) {
+	if ( readNode(ypath, YAML_KEY_ipAddr, &ip_str_) ) {
 		if ( INADDR_NONE == ( d_ip_ = inet_addr( ip_str_.c_str() ) ) ) {
 			throw InvalidArgError( ip_str_.c_str() );
 		}
@@ -575,7 +575,7 @@ void
 CNetIODevImpl::dumpYamlPart(YAML::Node & node) const
 {
 	CDevImpl::dumpYamlPart( node );
-	writeNode(node, "ipAddr", ip_str_);
+	writeNode(node, YAML_KEY_ipAddr, ip_str_);
 }
 
 void CSRPAddressImpl::setTimeoutUs(unsigned timeoutUs)
@@ -1371,69 +1371,69 @@ bool                       b;
 INetIODev::ProtocolVersion proto_vers;
 
 	{
-		const YAML::PNode &nn( node.lookup("SRP") );
+		const YAML::PNode &nn( node.lookup(YAML_KEY_SRP) );
 		if( nn )
 		{
-			if ( readNode(nn, "protocolVersion", &proto_vers) )
+			if ( readNode(nn, YAML_KEY_protocolVersion, &proto_vers) )
 				pbldr->setSRPVersion( proto_vers );
-			if ( readNode(nn, "timeoutUS", &u64) )
+			if ( readNode(nn, YAML_KEY_timeoutUS, &u64) )
 				pbldr->setSRPTimeoutUS( u64 );
-			if ( readNode(nn, "dynTimeout", &b) )
+			if ( readNode(nn, YAML_KEY_dynTimeout, &b) )
 				pbldr->useSRPDynTimeout( b );
-			if ( readNode(nn, "retryCount", &u) )
+			if ( readNode(nn, YAML_KEY_retryCount, &u) )
 				pbldr->setSRPRetryCount( u );
 		}
 	}
 	{
-		const YAML::PNode &nn( node.lookup("UDP") );
+		const YAML::PNode &nn( node.lookup(YAML_KEY_UDP) );
 		if ( nn )
 		{
-			if ( readNode(nn, "port", &u) )
+			if ( readNode(nn, YAML_KEY_port, &u) )
 				pbldr->setUdpPort( u );
-			if ( readNode(nn, "outQueueDepth", &u) )
+			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				pbldr->setUdpOutQueueDepth( u );
-			if ( readNode(nn, "numRxThreads", &u) )
+			if ( readNode(nn, YAML_KEY_numRxThreads, &u) )
 				pbldr->setUdpNumRxThreads( u );
-			if ( readNode(nn, "pollSecs", &i) )
+			if ( readNode(nn, YAML_KEY_pollSecs, &i) )
 				pbldr->setUdpPollSecs( i );
 		}
 	}
 	{
-		if ( readNode(node, "RSSI", &b ) )
+		if ( readNode(node, YAML_KEY_RSSI, &b ) )
 			pbldr->useRssi( b );
 	}
 	{
-		const YAML::PNode &nn( node.lookup("depack") );
+		const YAML::PNode &nn( node.lookup(YAML_KEY_depack) );
 		if (nn )
 		{
 			pbldr->useDepack( true );
-			if ( readNode(nn, "outQueueDepth", &u) )
+			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				pbldr->setDepackOutQueueDepth( u );
-			if ( readNode(nn, "ldFrameWinSize", &u) )
+			if ( readNode(nn, YAML_KEY_ldFrameWinSize, &u) )
 				pbldr->setDepackLdFrameWinSize( u );
-			if ( readNode(nn, "ldFragWinSize", &u) )
+			if ( readNode(nn, YAML_KEY_ldFragWinSize, &u) )
 				pbldr->setDepackLdFragWinSize( u );
 		}
 	}
 	{
-		const YAML::PNode &nn( node.lookup("SRPMux") );
+		const YAML::PNode &nn( node.lookup(YAML_KEY_SRPMux) );
 		if (nn )
 		{
 			pbldr->useSRPMux( true );
-			if ( readNode(nn, "virtualChannel", &u) )
+			if ( readNode(nn, YAML_KEY_virtualChannel, &u) )
 				pbldr->setSRPMuxVirtualChannel( u );
 		}
 	}
 	{
-		const YAML::PNode &nn( node.lookup("TDESTMux") );
+		const YAML::PNode &nn( node.lookup(YAML_KEY_TDESTMux) );
 		if (nn )
 		{
 			pbldr->useTDestMux( true );
-			if ( readNode(nn, "TDEST", &u) )
+			if ( readNode(nn, YAML_KEY_TDEST, &u) )
 				pbldr->setTDestMuxTDEST( u );
-			if ( readNode(nn, "stripHeader", &b) )
+			if ( readNode(nn, YAML_KEY_stripHeader, &b) )
 				pbldr->setTDestMuxStripHeader( b );
-			if ( readNode(nn, "outQueueDepth", &u) )
+			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				pbldr->setTDestMuxOutQueueDepth( u );
 		}
 	}
@@ -1796,8 +1796,8 @@ ProtoPort port;
 	// since SRP V2 is the default we switch it OFF here; if SRP
 	// is chained after us they will re-enable
 	YAML::Node noSRP;
-	writeNode(noSRP, "protocolVersion", INetIODev::SRP_UDP_NONE);
-	writeNode(node , "SRP",             noSRP                  );
+	writeNode(noSRP, YAML_KEY_protocolVersion, INetIODev::SRP_UDP_NONE);
+	writeNode(node , YAML_KEY_SRP,             noSRP                  );
 	for ( port = protoStack_; port; port = port->getUpstreamPort() ) {
 		port->dumpYaml( node );
 	}

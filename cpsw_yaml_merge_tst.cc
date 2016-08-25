@@ -1,93 +1,94 @@
 #include <cpsw_api_user.h>
 #include <cpsw_api_builder.h>
 #include <cpsw_yaml.h>
+#include <cpsw_yaml_keydefs.h>
 #include <iostream>
 
 static const char *yaml=
 "default:\n"
 "  root: &default\n"
-"    children:\n"
+"    "_YAML_KEY_children":\n"
 "      main:\n"
-"        children:\n"
+"        "_YAML_KEY_children":\n"
 "          merge:\n"
-"            class: something\n"
-"            instantiate: false\n"
+"            "_YAML_KEY_class": something\n"
+"            "_YAML_KEY_instantiate": false\n"
 "          downmerge:\n"
-"            class: something\n"
-"            instantiate: false\n"
+"            "_YAML_KEY_class": something\n"
+"            "_YAML_KEY_instantiate": false\n"
 "          upmerge:\n"
-"            class: something\n"
-"            instantiate: false\n"
+"            "_YAML_KEY_class": something\n"
+"            "_YAML_KEY_instantiate": false\n"
 "          updownmerge:\n"
-"            class: something\n"
-"            instantiate: false\n"
+"            "_YAML_KEY_class": something\n"
+"            "_YAML_KEY_instantiate": false\n"
 "          upupmerge:\n"
-"            class: something\n"
-"            instantiate: false\n"
+"            "_YAML_KEY_class": something\n"
+"            "_YAML_KEY_instantiate": false\n"
 "          nomerge:\n"
-"            class: something\n"
-"            instantiate: false\n"
+"            "_YAML_KEY_class": something\n"
+"            "_YAML_KEY_instantiate": false\n"
 "\n"
 "root:\n"
-"  <<: *default\n"
-"  class: Dev\n"
-"  size: 1000\n"
-"  children:\n"
-"    <<:\n"
+"  "_YAML_KEY_MERGE": *default\n"
+"  "_YAML_KEY_class": Dev\n"
+"  "_YAML_KEY_size": 1000\n"
+"  "_YAML_KEY_children":\n"
+"    "_YAML_KEY_MERGE":\n"
 "      main:\n"
-"        <<:\n"
-"          at:\n"                    // main 'at'
-"            nelms: 1\n"
-"          children:\n"
-"            <<:\n"
+"        "_YAML_KEY_MERGE":\n"
+"          "_YAML_KEY_at":\n"                    // main 'at'
+"            "_YAML_KEY_nelms": 1\n"
+"          "_YAML_KEY_children":\n"
+"            "_YAML_KEY_MERGE":\n"
 "              upupmerge:\n"
-"                <<:\n"
-"                  at:\n"
-"                    nelms: 1\n"
-"        children:\n"
+"                "_YAML_KEY_MERGE":\n"
+"                  "_YAML_KEY_at":\n"
+"                    "_YAML_KEY_nelms": 1\n"
+"        "_YAML_KEY_children":\n"
 "          upupmerge:\n"
-"            class: Field\n"
+"            "_YAML_KEY_class": Field\n"
 "      secondchild:\n"
-"        class: Field\n"
-"        <<:\n"
-"          at:\n"                    // secondchild 'at'
-"            <<:\n"
-"              nelms: 1\n"
+"        "_YAML_KEY_class": Field\n"
+"        "_YAML_KEY_MERGE":\n"
+"          "_YAML_KEY_at":\n"                    // secondchild 'at'
+"            "_YAML_KEY_MERGE":\n"
+"              "_YAML_KEY_nelms": 1\n"
 "    main:\n"
-"      class: Dev\n"
-"      size:  100\n"
-"      <<:\n"
-"        children:\n"
-"          <<:\n"
+"      "_YAML_KEY_class": Dev\n"
+"      "_YAML_KEY_size":  100\n"
+"      "_YAML_KEY_MERGE":\n"
+"        "_YAML_KEY_children":\n"
+"          "_YAML_KEY_MERGE":\n"
 "            updownmerge:\n"
-"              class: Field\n"
-"              at:\n"                // updownmerge 'at'
-"                nelms: 1\n"
+"              "_YAML_KEY_class": Field\n"
+"              "_YAML_KEY_at":\n"                // updownmerge 'at'
+"                "_YAML_KEY_nelms": 1\n"
 "            merge:\n"
-"              at:\n"                // merge 'at'
-"                nelms: 44\n"
-"              size:  88\n"
-"              class: something\n"
+"              "_YAML_KEY_at":\n"                // merge 'at'
+"                "_YAML_KEY_nelms": 44\n"
+"              "_YAML_KEY_size":  88\n"
+"              "_YAML_KEY_class": something\n"
 "            upmerge:\n"
-"              at:\n"
-"                nelms: 1\n"
+"              "_YAML_KEY_at":\n"
+"                "_YAML_KEY_nelms": 1\n"
 "          upmerge:\n"
-"            class: Field\n"
-"      children:\n"
-"         <<: \n"
+"            "_YAML_KEY_class": Field\n"
+"      "_YAML_KEY_children":\n"
+"         "_YAML_KEY_MERGE": \n"
 "            merge:\n"
-"              class: Field\n"
-"              size:\n"
-"            <<:\n"
+"              "_YAML_KEY_class": Field\n"
+"              "_YAML_KEY_size":\n"
+"            "_YAML_KEY_MERGE":\n"
 "              downmerge:\n"
-"                class: Field\n"
-"                <<:\n"
-"                  at:\n"
-"                    nelms: 1\n"   // downmerge 'at'
+"                "_YAML_KEY_class": Field\n"
+"                "_YAML_KEY_MERGE":\n"
+"                  "_YAML_KEY_at":\n"
+"                    "_YAML_KEY_nelms": 1\n"   // downmerge 'at'
 "         nomerge:\n"
-"           class: Field\n"
-"           at:\n"                 // nomerge 'at'
-"             nelms: 1\n"
+"           "_YAML_KEY_class": Field\n"
+"           "_YAML_KEY_at":\n"                 // nomerge 'at'
+"             "_YAML_KEY_nelms": 1\n"
 ;
 
 class dumph: public IPathVisitor {
@@ -182,7 +183,7 @@ int i;
 		}
 
 		// remove merge of the default node
-		root["root"].remove( "<<" );
+		root["root"].remove( _YAML_KEY_MERGE );
 
 		// all fields should now be present
 		top = CYamlFieldFactoryBase::dispatchMakeField( root, "root" );
@@ -201,7 +202,7 @@ int i;
 
 		// if we set 'instantiate=false' then '/main/merge' must not
 		// be created - even though a default is merged upstream
-		root["root"]["children"]["main"]["children"]["<<"]["merge"]["instantiate"]=false;
+		root["root"][_YAML_KEY_children]["main"][_YAML_KEY_children][_YAML_KEY_MERGE]["merge"][_YAML_KEY_instantiate]=false;
 
 		top = CYamlFieldFactoryBase::dispatchMakeField( root, "root" );
 

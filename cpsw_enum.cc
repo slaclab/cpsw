@@ -158,8 +158,8 @@ unsigned    i;
 		std::string nam;
 		uint64_t    val;
 
-		mustReadNode(node_item, "name",  &nam);
-		mustReadNode(node_item, "value", &val);
+		mustReadNode(node_item, YAML_KEY_name,  &nam);
+		mustReadNode(node_item, YAML_KEY_value, &val);
 		enm->add( nam.c_str(), val );
 	}
 	return enm;
@@ -172,8 +172,8 @@ CEnumImpl::dumpYamlPart(YAML::Node &node) const
 
 	while ( it != end() ) {
 		YAML::Node item;
-		writeNode(item, "name", *(*it).first );
-		writeNode(item, "value", (*it).second); 
+		writeNode(item, YAML_KEY_name, *(*it).first );
+		writeNode(item, YAML_KEY_value, (*it).second); 
 		pushNode( node, 0, item );
 		++it;
 	}

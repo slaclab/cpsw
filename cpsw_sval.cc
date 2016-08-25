@@ -116,15 +116,15 @@ CIntEntryImpl::CIntEntryImpl(Key &key, YamlState &node)
 {
 MutableEnum e;
 
-	readNode(node, "isSigned",   &is_signed_ );
-	readNode(node, "lsBit",      &ls_bit_    );
-	readNode(node, "sizeBits",   &size_bits_ );
-	readNode(node, "mode",       &mode_      );
-	readNode(node, "wordSwap",   &wordSwap_  );
-	readNode(node, "encoding",   &encoding_  );
-	readNode(node, "configBase", &configBase_);
+	readNode(node, YAML_KEY_isSigned,   &is_signed_ );
+	readNode(node, YAML_KEY_lsBit,      &ls_bit_    );
+	readNode(node, YAML_KEY_sizeBits,   &size_bits_ );
+	readNode(node, YAML_KEY_mode,       &mode_      );
+	readNode(node, YAML_KEY_wordSwap,   &wordSwap_  );
+	readNode(node, YAML_KEY_encoding,   &encoding_  );
+	readNode(node, YAML_KEY_configBase, &configBase_);
 
-	YamlState enum_node( node.lookup( "enums" ) );
+	YamlState enum_node( node.lookup( YAML_KEY_enums ) );
 
 	if ( enum_node ) {
 		enum_ = IMutableEnum::create( enum_node );
@@ -142,24 +142,24 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 	CEntryImpl::dumpYamlPart(node);
 
 	if ( is_signed_ != DFLT_IS_SIGNED )
-		writeNode(node, "isSigned", is_signed_);
+		writeNode(node, YAML_KEY_isSigned, is_signed_);
 	if ( ls_bit_    != DFLT_LS_BIT    )
-		writeNode(node, "lsBit",    ls_bit_   );
+		writeNode(node, YAML_KEY_lsBit,    ls_bit_   );
 	if ( size_bits_ != DFLT_SIZE_BITS )
-		writeNode(node, "sizeBits", size_bits_);
+		writeNode(node, YAML_KEY_sizeBits, size_bits_);
 	if ( mode_      != DFLT_MODE      )
-		writeNode(node, "mode",     mode_     );
+		writeNode(node, YAML_KEY_mode,     mode_     );
 	if ( wordSwap_  != DFLT_WORD_SWAP )
-		writeNode(node, "wordSwap", wordSwap_ );
+		writeNode(node, YAML_KEY_wordSwap, wordSwap_ );
 	if ( encoding_  != DFLT_ENCODING )
-		writeNode(node, "encoding", encoding_ );
+		writeNode(node, YAML_KEY_encoding, encoding_ );
 	if ( configBase_ != DFLT_CONFIG_BASE )
-		writeNode(node, "configBase", configBase_ );
+		writeNode(node, YAML_KEY_configBase, configBase_ );
 
 	if ( enum_ ) {
 		YAML::Node enums;
 		enum_->dumpYaml( enums );
-		writeNode(node, "enums", enums);
+		writeNode(node, YAML_KEY_enums, enums);
 	}
 }
 

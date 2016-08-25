@@ -6,23 +6,26 @@
 #include <iostream>
 #include <stdio.h>
 
+#include <cpsw_yaml.h>
+#include <cpsw_yaml_keydefs.h>
+
 static void test_a53564754e5eaa9029ff(bool use_yaml)
 {
 const char *yaml=
 "root:\n"
-"  class: Dev\n"
-"  children:\n"
+"  "_YAML_KEY_class": Dev\n"
+"  "_YAML_KEY_children":\n"
 "    device:\n"
-"      class: Dev\n"
-"      size: 100\n"
-"      at:\n"
-"        nelms: 4\n"
-"      children:\n"
+"      "_YAML_KEY_class": Dev\n"
+"      "_YAML_KEY_size": 100\n"
+"      "_YAML_KEY_at":\n"
+"        "_YAML_KEY_nelms": 4\n"
+"      "_YAML_KEY_children":\n"
 "        reg:\n"
-"          class: Field\n"
-"          size: 1\n"
-"          at:\n"
-"            nelms: 16\n";
+"          "_YAML_KEY_class": Field\n"
+"          "_YAML_KEY_size": 1\n"
+"          "_YAML_KEY_at":\n"
+"            "_YAML_KEY_nelms": 16\n";
 
 Hub root;
 
@@ -113,29 +116,29 @@ static Hub build_yaml()
 {
 const char *yaml=
 "root:\n"
-"  class: Dev\n"
-"  children:\n"
+"  "_YAML_KEY_class": Dev\n"
+"  "_YAML_KEY_children":\n"
 "    outer:\n"
-"      class: Dev\n"
-"      at:\n"
-"        nelms: 2\n"
-"      children:\n"
+"      "_YAML_KEY_class": Dev\n"
+"      "_YAML_KEY_at":\n"
+"        "_YAML_KEY_nelms": 2\n"
+"      "_YAML_KEY_children":\n"
 "        inner:\n"
-"          class: Dev\n"
-"          cacheable: WT_CACHEABLE\n"
-"          at:\n"
-"            nelms: 4\n"
-"          children:\n"
+"          "_YAML_KEY_class": Dev\n"
+"          "_YAML_KEY_cacheable": WT_CACHEABLE\n"
+"          "_YAML_KEY_at":\n"
+"            "_YAML_KEY_nelms": 4\n"
+"          "_YAML_KEY_children":\n"
 "            leaf:\n"
-"              class: Field\n"
-"              size: 7\n"
-"              at:\n"
-"                nelms: 1\n"
+"              "_YAML_KEY_class": Field\n"
+"              "_YAML_KEY_size": 7\n"
+"              "_YAML_KEY_at":\n"
+"                "_YAML_KEY_nelms": 1\n"
 "            leaf1:\n"
-"              class: Field\n"
-"              size: 8\n"
-"              at:\n"
-"                nelms: 4\n";
+"              "_YAML_KEY_class": Field\n"
+"              "_YAML_KEY_size": 8\n"
+"              "_YAML_KEY_at":\n"
+"                "_YAML_KEY_nelms": 4\n";
 	return IHub::loadYamlStream( yaml, "root" );
 }
 

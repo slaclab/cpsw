@@ -115,10 +115,10 @@ unsigned  nelms     = DFLT_NELMS;
 uint64_t  stride    = DFLT_STRIDE;
 ByteOrder byteOrder = DFLT_BYTE_ORDER;
 
-	if ( readNode(ypath, "offset", &offset ) ) {
-		readNode    (ypath, "nelms",     &nelms);
-		readNode    (ypath, "stride",    &stride);
-		readNode    (ypath, "byteOrder", &byteOrder);
+	if ( readNode(ypath, YAML_KEY_offset, &offset ) ) {
+		readNode    (ypath, YAML_KEY_nelms,     &nelms);
+		readNode    (ypath, YAML_KEY_stride,    &stride);
+		readNode    (ypath, YAML_KEY_byteOrder, &byteOrder);
 
 		addAtAddress(child, offset, nelms, stride, byteOrder);
 	} else {
@@ -130,8 +130,8 @@ void
 CMMIOAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CAddressImpl::dumpYamlPart( node );
-	writeNode(node, "offset", offset_);
-	writeNode(node, "stride", stride_);
+	writeNode(node, YAML_KEY_offset, offset_);
+	writeNode(node, YAML_KEY_stride, stride_);
 }
 
 CMMIODevImpl::CMMIODevImpl(Key &key, YamlState &ypath)
@@ -142,12 +142,12 @@ CMMIODevImpl::CMMIODevImpl(Key &key, YamlState &ypath)
 		throw InvalidArgError("'size' zero or unset");
 	}
 
-	readNode( ypath, "byteOrder", &byteOrder_ );
+	readNode( ypath, YAML_KEY_byteOrder, &byteOrder_ );
 }
 
 void
 CMMIODevImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CDevImpl::dumpYamlPart(node);
-	writeNode(node, "byteOrder", byteOrder_);
+	writeNode(node, YAML_KEY_byteOrder, byteOrder_);
 }

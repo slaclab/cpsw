@@ -66,20 +66,20 @@ CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
 
 	{
 	std::string str;
-	if ( readNode( ypath, "description", &str ) )
+	if ( readNode( ypath, YAML_KEY_description, &str ) )
 		setDescription( str );
 	}
 
-	readNode( ypath, "size", &size_ );
+	readNode( ypath, YAML_KEY_size, &size_ );
 
 	{
 	IField::Cacheable cacheable;
-	if ( readNode( ypath, "cacheable", &cacheable ) )
+	if ( readNode( ypath, YAML_KEY_cacheable, &cacheable ) )
 		setCacheable( cacheable );
 	}
 
 	int configPrio;
-	if ( readNode( ypath, "configPrio", &configPrio ) )
+	if ( readNode( ypath, YAML_KEY_configPrio, &configPrio ) )
 		setConfigPrio( configPrio );
 
 	checkArgs();
@@ -106,17 +106,17 @@ const char *d = getDescription();
 	CYamlSupportBase::dumpYamlPart( node );
 
 	if ( d && strlen(d) > 0 ) {
-		writeNode(node, "description", d);
+		writeNode(node, YAML_KEY_description, d);
 	}
 
 	if ( getSize() != DFLT_SIZE )
-		writeNode(node, "size", getSize());
+		writeNode(node, YAML_KEY_size, getSize());
 
 	if ( getCacheable() != DFLT_CACHEABLE )
-		writeNode(node, "cacheable", getCacheable());
+		writeNode(node, YAML_KEY_cacheable, getCacheable());
 
 	if ( getConfigPrio() != getDefaultConfigPrio() )
-		writeNode(node, "configPrio", getConfigPrio());
+		writeNode(node, YAML_KEY_configPrio, getConfigPrio());
 
 }
 
@@ -164,7 +164,7 @@ void CEntryImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 		YAML::Node new_n = dumpMyConfigToYaml( p );
 		if ( new_n ) {
 			// attach a tag.
-			new_n.SetTag( "value" );
+			new_n.SetTag( YAML_KEY_value );
 		}
 		n = new_n;
 	} else {

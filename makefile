@@ -5,6 +5,8 @@ include $(CPSW_DIR)/defs.mak
 
 HEADERS = cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h
 
+GENERATED_SRCS += git_version_string.h
+
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
 cpsw_SRCS+= cpsw_sval.cc
@@ -28,6 +30,8 @@ cpsw_SRCS+= cpsw_proto_mod_tdestmux.cc
 cpsw_SRCS+= cpsw_proto_mod_rssi.cc
 cpsw_SRCS+= cpsw_thread.cc
 cpsw_SRCS+= cpsw_yaml.cc
+cpsw_SRCS+= cpsw_yaml_keys.cc
+GENERATED_SRCS += cpsw_yaml_keys.cc
 cpsw_SRCS+= cpsw_preproc.cc
 
 DEP_HEADERS  = $(HEADERS)
@@ -66,6 +70,9 @@ DEP_HEADERS += udpsrv_regdefs.h
 DEP_HEADERS += udpsrv_port.h
 DEP_HEADERS += udpsrv_rssi_port.h
 DEP_HEADERS += udpsrv_util.h
+DEP_HEADERS += cpsw_yaml_keydefs.h
+DEP_HEADERS += cpsw_yaml_keydecls.h
+GENERATED_SRCS += cpsw_yaml_keydecls.h
 
 STATIC_LIBRARIES_YES+=cpsw
 SHARED_LIBRARIES_YES+=cpsw
@@ -216,6 +223,18 @@ cpsw_command_tst_run:   RUN_OPTS='-y cpsw_command_tst.yaml' '-Y cpsw_command_tst
 
 rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
 
+cpsw_yaml_keys.cc: cpsw_yaml_keydefs.h cpsw_yaml_keydecls.h
+	$(RM) $@
+	echo '/* Do not edit -- generated automatically */' > $@
+	echo '#include <cpsw_yaml_keydefs.h>' >> $@
+	echo '#include <cpsw_yaml_keydecls.h>' >> $@
+	awk 'BEGIN{ FS="[ \t]+(_YAML_KEY_)?"}/_YAML_KEY_/{printf("const char * const YAML_KEY_%s = _YAML_KEY_%s;\n", $$2, $$2)}' $< >> $@
+
+cpsw_yaml_keydecls.h: cpsw_yaml_keydefs.h
+	$(RM) $@
+	echo '/* Do not edit    -- generated automatically */' > $@
+	echo '/* Do not include this header directly!      */' >> $@
+	awk 'BEGIN{ FS="[ \t]+(_YAML_KEY_)?"}/_YAML_KEY_/{printf("extern const char * const YAML_KEY_%s;\n", $$2)}' $< >> $@
 
 cpsw_netio_tst: udpsrv
 

@@ -96,7 +96,7 @@ CSRPPort::dumpYaml(YAML::Node &node) const
 {
 YAML::Node parms;
 
-	writeNode(parms, "virtualChannel", getDest());
+	writeNode(parms, YAML_KEY_virtualChannel, getDest());
 
-	writeNode(node, "SRPMux", parms);
+	writeNode(node, YAML_KEY_SRPMux, parms);
 }

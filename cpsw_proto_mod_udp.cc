@@ -263,11 +263,11 @@ void
 CProtoModUdp::dumpYaml(YAML::Node &node) const
 {
 	YAML::Node udpParms;
-	writeNode(udpParms, "port",          getDestPort()     );
-	writeNode(udpParms, "outQueueDepth", getQueueDepth()   );
-	writeNode(udpParms, "numRxThreads",  rxHandlers_.size());
-	writeNode(udpParms, "pollSecs",      poller_ ? poller_->getPollSecs() : 0);
-	writeNode(node, "UDP", udpParms);
+	writeNode(udpParms, YAML_KEY_port,          getDestPort()     );
+	writeNode(udpParms, YAML_KEY_outQueueDepth, getQueueDepth()   );
+	writeNode(udpParms, YAML_KEY_numRxThreads,  rxHandlers_.size());
+	writeNode(udpParms, YAML_KEY_pollSecs,      poller_ ? poller_->getPollSecs() : 0);
+	writeNode(node, YAML_KEY_UDP, udpParms);
 }
 
 CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)

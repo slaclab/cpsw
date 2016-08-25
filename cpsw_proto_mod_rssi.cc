@@ -48,7 +48,7 @@ CProtoModRssi::pushDown(BufChain bc, const CTimeout *rel_timeout)
 void
 CProtoModRssi::dumpYaml(YAML::Node &node) const
 {
-	writeNode(node, "RSSI", "TRUE");
+	writeNode(node, YAML_KEY_RSSI, "TRUE");
 }
 
 BufChain
@@ -124,7 +124,7 @@ CProtoModRssi::dumpInfo(FILE *f)
 const char *
 CProtoModRssi::getName() const
 {
-	return "RSSI";
+	return YAML_KEY_RSSI;
 }
 
 void

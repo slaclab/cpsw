@@ -757,7 +757,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Test if this Path is empty returning 'True'/'False'"
 		)
-		.def("size",         &IPath::size,
+		.def(YAML_KEY_size,         &IPath::size,
 			( arg("self") ),
 			"\n"
 			"Return the depth of this Path, i.e., how many '/' separated\n"
@@ -981,7 +981,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"If the ScalVal represents an array then the return value is the size\n"
 			"of each individual element."
 		)
-		.def("isSigned",     &IScalVal_Base::isSigned,
+		.def(YAML_KEY_isSigned,     &IScalVal_Base::isSigned,
 			( arg("self") ),
 			"\n"
 			"Return True if this ScalVal represents a signed number.\n"

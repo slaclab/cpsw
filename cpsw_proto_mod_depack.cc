@@ -163,10 +163,10 @@ void
 CProtoModDepack::dumpYaml(YAML::Node &node) const
 {
 YAML::Node parms;
-	writeNode(parms, "outQueueDepth" , getQueueDepth()    );
-	writeNode(parms, "ldFrameWinSize", ld( frameWinSize_ ));
-	writeNode(parms, "ldFragWinSize" , ld( fragWinSize_ ) );
-	writeNode(node, "depack", parms);
+	writeNode(parms, YAML_KEY_outQueueDepth , getQueueDepth()    );
+	writeNode(parms, YAML_KEY_ldFrameWinSize, ld( frameWinSize_ ));
+	writeNode(parms, YAML_KEY_ldFragWinSize , ld( fragWinSize_ ) );
+	writeNode(node, YAML_KEY_depack, parms);
 }
 
 void CProtoModDepack::modStartup()

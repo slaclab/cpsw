@@ -1,6 +1,8 @@
 #ifndef CPSW_YAML_H
 #define CPSW_YAML_H
 
+#include <cpsw_yaml_keydecls.h>
+
 #ifdef  NO_YAML_SUPPORT
 #include <cpsw_error.h>
 
@@ -242,7 +244,7 @@ class CYamlSupportBase : public virtual IYamlSupportBase {
 
 		// insert the classname into a node;
 		// e.g.,:
-		//   node["class"] = getClassName();
+		//   node[YAML_KEY_class] = getClassName();
 		// or
 		//   node.SetTag( getClassName() );
 		virtual void setClassName(YAML::Node &node) const;

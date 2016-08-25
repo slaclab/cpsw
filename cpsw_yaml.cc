@@ -201,7 +201,7 @@ Node nodes[path_nelms+1];
 	while ( i >= 0 ) {
 
 		// see comments in PNode::operator=(const Node &)
-		nodes[i].reset( fixInvalidNode( nodes[i]["<<"] ) );
+		nodes[i].reset( fixInvalidNode( nodes[i][YAML_KEY_MERGE] ) );
 		if ( nodes[i] ) {
 			const Node n( backtrack_mergekeys(path_head, path_nelms - i, nodes[i]) );
 			if ( n )
@@ -241,7 +241,7 @@ unsigned     nelms = 1;
 
 		// no need for 'fixInvalidNode()' since 'merged_node' is only
 		// operated on if it is not 'undefined'.
-		const YAML::Node &merged_node( (*top)["<<"] );
+		const YAML::Node &merged_node( (*top)[YAML_KEY_MERGE] );
 
 		if ( merged_node ) {
 			// try (backtracking) lookup from the node at the mergekey
@@ -305,7 +305,7 @@ void CYamlSupportBase::overrideNode(YamlState &node)
 void
 CYamlSupportBase::setClassName(YAML::Node &node) const
 {
-	node["class"] = getClassName();
+	node[YAML_KEY_class] = getClassName();
 }
 
 
@@ -378,7 +378,7 @@ CYamlTypeRegistry<T>::extractInstantiate(YamlState &node)
 {
 bool        instantiate    = true;
 
-	readNode( node, "instantiate", &instantiate );
+	readNode( node, YAML_KEY_instantiate, &instantiate );
 
 	return instantiate;
 }
@@ -386,9 +386,9 @@ bool        instantiate    = true;
 template <typename T> void
 CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlState &node)
 {
-	const YAML::PNode &class_node( node.lookup("class") );
+	const YAML::PNode &class_node( node.lookup(YAML_KEY_class) );
 	if ( ! class_node ) {
-		throw NotFoundError( std::string("property '") + std::string("class") + std::string("'") );
+		throw NotFoundError( std::string("property '") + std::string(YAML_KEY_class) + std::string("'") );
 	} else {
 		if( class_node.IsSequence() ) {
 			for ( YAML::const_iterator it=class_node.begin(); it != class_node.end(); ++it ) {
@@ -397,7 +397,7 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 		} else if (class_node.IsScalar() ) {
 			svec_p->push_back( class_node.as<std::string>() );
 		} else {
-			throw  InvalidArgError( std::string("property '") + std::string("class") + std::string("'") );
+			throw  InvalidArgError( std::string("property '") + std::string(YAML_KEY_class) + std::string("'") );
 		}
 	}
 }
@@ -489,7 +489,7 @@ public:
 
 				// skip merge node! But remember it and follow downstream
 				// after all other children are handled.
-				if ( 0 == strcmp( k, "<<" ) ) {
+				if ( 0 == strcmp( k, YAML_KEY_MERGE ) ) {
 					// see comments in PNode::operator=(const Node &)
 					downmerged_node.reset( it->second );
 				} else {
@@ -517,7 +517,7 @@ public:
 							// if 'instantiate' is 'false' then
 							// makeItem() returns a NULL pointer
 
-							const YAML::PNode child_address( child.lookup("at") );
+							const YAML::PNode child_address( child.lookup(YAML_KEY_at) );
 
 							if ( child_address ) {
 								d_->addAtAddress( c, child_address );
@@ -543,7 +543,7 @@ public:
 void
 CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState &node, IYamlTypeRegistry<Field> *registry)
 {
-YAML::PNode         children( node.lookup("children") );
+YAML::PNode         children( node.lookup(YAML_KEY_children) );
 AddChildrenVisitor  visitor( &d, registry );
 
 	if ( children ) {
