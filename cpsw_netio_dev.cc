@@ -1420,18 +1420,18 @@ INetIODev::ProtocolVersion proto_vers;
 		if (nn )
 		{
 			pbldr->useSRPMux( true );
-			if ( readNode(nn, "VirtualChannel", &u) )
+			if ( readNode(nn, "virtualChannel", &u) )
 				pbldr->setSRPMuxVirtualChannel( u );
 		}
 	}
 	{
-		const YAML::PNode &nn( node.lookup("TDestMux") );
+		const YAML::PNode &nn( node.lookup("TDESTMux") );
 		if (nn )
 		{
 			pbldr->useTDestMux( true );
 			if ( readNode(nn, "TDEST", &u) )
 				pbldr->setTDestMuxTDEST( u );
-			if ( readNode(nn, "StripHeader", &b) )
+			if ( readNode(nn, "stripHeader", &b) )
 				pbldr->setTDestMuxStripHeader( b );
 			if ( readNode(nn, "outQueueDepth", &u) )
 				pbldr->setTDestMuxOutQueueDepth( u );

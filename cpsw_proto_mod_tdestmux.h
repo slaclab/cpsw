@@ -23,7 +23,7 @@ protected:
 public:
 
 	CProtoModTDestMux(Key &k)
-	: CProtoModByteMux<TDestPort>(k, "TDest VC Demux")
+	: CProtoModByteMux<TDestPort>(k, "TDEST VC Demux")
 	{
 	}
 
@@ -41,7 +41,7 @@ public:
 
 	virtual const char *getName() const
 	{
-		return "TDest Demultiplexer";
+		return "TDEST Demultiplexer";
 	}
 
 	virtual ~CProtoModTDestMux() {}
