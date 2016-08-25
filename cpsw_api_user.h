@@ -626,13 +626,24 @@ public:
 	static Stream create(Path path);
 };
 
+/*!
+ * Interface for endpoints with support for executing arbitrary commands
+ */
 class ICommand;
 typedef shared_ptr<ICommand> Command;
 
 class ICommand: public virtual IEntry {
 public:
-        virtual void execute() = 0;
-        static Command create(Path p);
+	/*!
+	 * Execute the command in the context of the calling thread.
+	 * The semantics are defined by the underlying implementation.
+	 */
+	virtual void execute() = 0;
+
+   	/*!
+	 * Instantiate a 'Command' interface at the endpoint identified by 'path'
+	 */
+     static Command create(Path p);
 };
 
 
