@@ -490,7 +490,7 @@ public:
 class IScalVal_RO : public virtual IScalVal_Base {
 public:
 	/*!
-     * (possibly truncating, sign-extending) read into 64/32/16/8-bit (array)
+	 * (possibly truncating, sign-extending) read into 64/32/16/8-bit (array)
 	 *
 	 * NOTE: nelms must be large enough to hold ALL values addressed by the
 	 *       underlying Path. The range of indices may be reduced using the
@@ -527,7 +527,7 @@ public:
 class IScalVal_WO : public virtual IScalVal_Base {
 public:
 	/*!
-     * (possibly truncating) write from 64/32/16/8-bit (array)
+	 * (possibly truncating) write from 64/32/16/8-bit (array)
 	 * NOTE: nelms must be large enough to hold ALL values addressed by the
 	 *       underlying Path. The range of indices may be reduced using the
 	 *       'range' argument.
@@ -643,7 +643,7 @@ public:
 	/*!
 	 * Instantiate a 'Command' interface at the endpoint identified by 'path'
 	 */
-     static Command create(Path p);
+	 static Command create(Path p);
 };
 
 
