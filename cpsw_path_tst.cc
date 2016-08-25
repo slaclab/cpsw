@@ -15,12 +15,14 @@ const char *yaml=
 "    device:\n"
 "      class: Dev\n"
 "      size: 100\n"
-"      nelms: 4\n"
+"      at:\n"
+"        nelms: 4\n"
 "      children:\n"
 "        reg:\n"
 "          class: Field\n"
 "          size: 1\n"
-"          nelms: 16\n";
+"          at:\n"
+"            nelms: 16\n";
 
 Hub root;
 
@@ -115,20 +117,25 @@ const char *yaml=
 "  children:\n"
 "    outer:\n"
 "      class: Dev\n"
-"      nelms: 2\n"
+"      at:\n"
+"        nelms: 2\n"
 "      children:\n"
 "        inner:\n"
 "          class: Dev\n"
 "          cacheable: WT_CACHEABLE\n"
-"          nelms: 4\n"
+"          at:\n"
+"            nelms: 4\n"
 "          children:\n"
 "            leaf:\n"
 "              class: Field\n"
 "              size: 7\n"
+"              at:\n"
+"                nelms: 1\n"
 "            leaf1:\n"
 "              class: Field\n"
 "              size: 8\n"
-"              nelms: 4\n";
+"              at:\n"
+"                nelms: 4\n";
 	return IHub::loadYamlStream( yaml, "root" );
 }
 

@@ -272,7 +272,9 @@ MyChildren::iterator it;
 	for ( it = children_.begin(); it != children_.end(); ++it ) {
 		YAML::Node child_node;
 		it->second->getEntryImpl()->dumpYaml( child_node );
-		it->second->dumpYamlPart( child_node );
+        YAML::Node child_address;
+		it->second->dumpYamlPart( child_address );
+        writeNode(child_node, "at", child_address);
 		if ( it->second->getEntryImpl()->getCacheable() == getCacheable() )
 			child_node.remove("cacheable");
 		writeNode(children, it->second->getName(), child_node );

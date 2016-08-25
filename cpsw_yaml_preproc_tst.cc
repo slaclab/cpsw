@@ -30,7 +30,8 @@ const char *incyaml =
 "#\n"
 "\n"
 "leaf: &anchor\n"
-"  nelms: 5\n"
+"  at:\n"
+"    nelms: 5\n"
 "  class:\n"          // Ordered list of class hierarchy
 "    - MyField1\n"    
 "    - MyField2\n"
@@ -43,7 +44,8 @@ const char *noincincyaml =
 "#\n"
 "\n"
 "leaf:   &anchor\n"
-"  nelms: 5\n"
+"  at:\n"
+"    nelms: 5\n"
 "  class:\n"          // Ordered list of class hierarchy
 "    - MyField\n"    
 "    - Field\n"

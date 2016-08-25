@@ -516,7 +516,17 @@ public:
 						if ( c ) {
 							// if 'instantiate' is 'false' then
 							// makeItem() returns a NULL pointer
-							d_->addAtAddress( c, child );
+
+							const YAML::PNode child_address( child.lookup("at") );
+
+							if ( child_address ) {
+								d_->addAtAddress( c, child_address );
+							} else {
+								not_instantiated_.insert( k );
+								std::string errmsg =   std::string("Child '") + std::string(k)
+								                     + std::string("' attached but 'at' key missing");
+								throw InvalidArgError(errmsg);
+							}
 						} else {
 							not_instantiated_.insert( k );
 						}

@@ -93,6 +93,7 @@ class IAddress : public IChild {
 		virtual ByteOrder getByteOrder()     const = 0;
 
 		virtual void dumpYamlPart(YAML::Node &) const = 0;
+
 		// EVERY subclass 'XAddr' MUST implement
 		//
 		// private:

@@ -35,11 +35,24 @@ static const char *yaml=
 "  children:\n"
 "    <<:\n"
 "      main:\n"
+"        <<:\n"
+"          at:\n"                    // main 'at'
+"            nelms: 1\n"
+"          children:\n"
+"            <<:\n"
+"              upupmerge:\n"
+"                <<:\n"
+"                  at:\n"
+"                    nelms: 1\n"
 "        children:\n"
 "          upupmerge:\n"
 "            class: Field\n"
 "      secondchild:\n"
 "        class: Field\n"
+"        <<:\n"
+"          at:\n"                    // secondchild 'at'
+"            <<:\n"
+"              nelms: 1\n"
 "    main:\n"
 "      class: Dev\n"
 "      size:  100\n"
@@ -48,10 +61,16 @@ static const char *yaml=
 "          <<:\n"
 "            updownmerge:\n"
 "              class: Field\n"
+"              at:\n"                // updownmerge 'at'
+"                nelms: 1\n"
 "            merge:\n"
-"              nelms: 44\n"
+"              at:\n"                // merge 'at'
+"                nelms: 44\n"
 "              size:  88\n"
 "              class: something\n"
+"            upmerge:\n"
+"              at:\n"
+"                nelms: 1\n"
 "          upmerge:\n"
 "            class: Field\n"
 "      children:\n"
@@ -62,9 +81,58 @@ static const char *yaml=
 "            <<:\n"
 "              downmerge:\n"
 "                class: Field\n"
+"                <<:\n"
+"                  at:\n"
+"                    nelms: 1\n"   // downmerge 'at'
 "         nomerge:\n"
 "           class: Field\n"
+"           at:\n"                 // nomerge 'at'
+"             nelms: 1\n"
 ;
+
+class dumph: public IPathVisitor {
+public:
+	virtual bool visitPre(ConstPath here)
+	{
+		std::cout << here->toString() << "\n";
+		return true;
+	}
+	virtual void visitPost(ConstPath here)
+	{
+	}
+};
+
+static void pl(int l)
+{
+    for ( int i = 0; i < l; i++ )
+      std::cout << ' ';
+}
+
+void rec (const YAML::Node &n, int l)
+{
+const YAML::Node &p ( n/*["peripherals"]*/ );
+
+	if ( p ) {
+		if ( p.IsScalar() ) {
+            pl(l);
+			std::cout << "%" << p << "\n";
+		} else {
+			for ( YAML::const_iterator it = p.begin(); it != p.end(); ++it ) {
+                pl(l);
+				if ( p.IsScalar() ) {
+					std::cout << "scalar iteration\n";
+				} else if ( p.IsMap() ) {
+					std::cout << it->first << "-> " << "\n";
+					rec( it->second, l+1 );
+				} else {
+					std::cout << "---- \n";
+					rec( *it, l+1 );
+				}
+			}
+		}
+	}
+}
+
 
 class TestFailed {};
 
@@ -97,6 +165,14 @@ std::stringstream sstrm( str );
 
 
 		Hub top( CYamlFieldFactoryBase::dispatchMakeField( root, "root" ) );
+
+		dumph visi;
+
+		IPath::create( top )->explore( &visi );
+
+#ifdef DEBUG
+        rec( root, 0 );
+#endif
 int i;
 
 		// 'default' node sets 'instantiate: false' everywhere
