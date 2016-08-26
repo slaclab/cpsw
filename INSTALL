@@ -1,8 +1,6 @@
-Installation Instructions for the CPSW Package
-==============================================
+# Installation Instructions for the CPSW Package
 
-1. Makefiles
-------------
+## 1. Makefiles
 
 CPSW comes with its own makefile system which borrows ideas
 from the EPICS build system.
@@ -18,216 +16,219 @@ Consult 'makefile.template' for further information.
 The makefiles consist of (you can skip this explanation if you
 want to proceed with a vanilla build)
 
- - rules.mak:
-   generic rules; should NOT be modified; lives in the CPS source
-   directory (included by derived libraries and applications).
+ - `rules.mak`:<br> 
+     generic rules; should NOT be modified; lives in the CPSW source
+     directory (included by derived libraries and applications).
 
- - defs.mak:
-   generic definitions; should NOT be modified; lives in the CPSW
-   source directory (included by derived libraries and applications). 
+ - `defs.mak`:<br>
+     generic definitions; should NOT be modified; lives in the CPSW
+     source directory (included by derived libraries and applications). 
 
- - config.mak:
-   site-specific settings of certain variables that affect the build
-   (AND the build of derived libraries and apps); lives in the CPSW
-   source directory.
+ - `config.mak`:<br>
+     site-specific settings of certain variables that affect the build
+     (AND the build of derived libraries and apps); lives in the CPSW
+     source directory.
 
- - config.local.mak:
-   local tweaks of variables that affect the build (AND the build of
-   derived libraries and apps); lives in the CPSW source directory.
-   SEE BELOW for what this is for.
+ - `config.local.mak`:<br>
+     local tweaks of variables that affect the build (AND the build of
+     derived libraries and apps); lives in the CPSW source directory.
+     SEE BELOW for what this is for.
 
- - makefile:
-   Defines application/library-specific variables, i.e., mostly
-   lists the targets to build and the files that are required
-   for them (see makefile.template). Can also contain app-specific
-   rules. Lives in the application source directory. Binaries
-   are built under 'O.<architecture>' directories.
+ - `makefile`:<br>
+     Defines application/library-specific variables, i.e., mostly
+     lists the targets to build and the files that are required
+     for them (see makefile.template). Can also contain app-specific
+     rules. Lives in the application source directory. Binaries
+     are built under 'O.<architecture>' directories.
 
- - local.mak:
-   Local tweaks which are application/library-specific; lives
-   in the application source directory.
+ - `local.mak`:<br>
+     Local tweaks which are application/library-specific; lives
+     in the application source directory.
 
-2. config.mak
--------------
+## 2. `config.mak`
 
 This file may be edited to define
- A. the desired set of target architectures
- B. the name and location of the compiler toolchain for each
-    target architecture 
- C. the location of the dependent 'boost' and 'yaml-cpp' libraries.
- D. whether to build a static and/or dynamic CPSW library
- E. the installation location
+
+ 1. the desired set of target architectures
+ 2. the name and location of the compiler toolchain for each
+        target architecture 
+ 3. the location of the dependent 'boost' and 'yaml-cpp' libraries.
+ 4. whether to build a static and/or dynamic CPSW library
+ 5. the installation location
 
 The aforementioned definitions may also be overridden from a file
-'config.local.mak': in many cases 'config.mak' is maintained in git
+`config.local.mak`: in many cases `config.mak` is maintained in git
 and reflects the site-specific settings. However, a developer may
 occasionally want to build the package in a different environment
 (e.g., on a private laptop).
-This is when 'config.local.mak' is useful as it allows the developer
+This is when `config.local.mak` is useful as it allows the developer
 to define a 'private' configuration to override the 'normal' one.
-'config.local.mak' should not be maintained in 'git' but be reserved
+`config.local.mak` should not be maintained in 'git' but be reserved
 for such special cases.
 
 In the common case of
+
  - native-only build - no cross-compilation
  - 'boost' and 'yaml-cpp' packages natively available (e.g., installed
-   by your distro's package manager)
-there is no need for any settings in 'config.mak' -- an empty file will
-do. However, you may want to define the installation location (E. above).
+     by your distro's package manager)
 
-The following section discusses the settings A..E above:
+there is no need for any settings in `config.mak` -- an empty file will
+do. However, you may want to define the installation location (5. above).
 
-A. Select target architectures:
-- - - - - - - - - - - - - - - -
-Each desired target architecture must be added to the 'ARCHES' variable
-using the '+=' operator, e.g.:
+The following section discusses the settings 1..5 above:
 
-  ARCHES += linuxRT-x86_64
+### 2.1 Select target architectures:
 
-Binaries for all architectures are build in a 'O.<arch>' subdirectory,
-e.g., O.linuxRT-x86_64. Installation ('make install') also deposits
+Each desired target architecture must be added to the `ARCHES` variable
+using the `+=` operator, e.g.:
+
+        ARCHES += linuxRT-x86_64
+
+Binaries for all architectures are build in a `O.<arch>` subdirectory,
+e.g., `O.linuxRT-x86_64`. Installation (`make install`) also deposits
 binaries and libraries into a architecture-specific subdirectory, e.g.,
-'$(INSTALL_DIR)/lib/linuxRT-x86_64/'.
 
-Note that the host architecture is 'host' by default. This name may
-be changed by setting the HARCH variable, e.g.,
+        $(INSTALL_DIR)/lib/linuxRT-x86_64/
 
-  HARCH = linux-x86_64
+Note that the host architecture is `host` by default. This name may
+be changed by setting the `HARCH` variable, e.g.,
 
-HARCH is automatically added to ARCHES, so there is no need to do so.
+        HARCH = linux-x86_64
 
-B. Compiler Toolchain
-- - - - - - - - - - -
+`HARCH` is automatically added to `ARCHES`, so there is no need to do so.
+
+### 2.2 Compiler Toolchain
+
 The makefiles offer fine-grained control of the selection of tools.
 Only the most common cases are covered here.
 
 Tools are picked in the following way:
 
-  <architecture-specific-prefix><toolname>
+        <architecture-specific-prefix><toolname>
 
 Each of these components can be fine-tuned. The default toolnames are
-'gcc', 'ld', 'install' etc.
+`gcc`, `ld`, `install` etc.
 
 The architecture-specific prefix is (by default) empty for the host
-and identical to the architecture with a '-' appended for cross-builds.
+and identical to the architecture with a `-` appended for cross-builds.
 
-E.g., the compiler for the 'linuxRT-x86_64' architecture would be
+E.g., the compiler for the `linuxRT-x86_64` architecture would be
 
-  linuxRT-x86_64-gcc
+        linuxRT-x86_64-gcc
 
-If the such a compiler can indeed be found in the current PATH then
-no special setting in 'config.mak' is required. If the tool-prefix
+If the such a compiler can indeed be found in the current `PATH` then
+no special setting in `config.mak` is required. If the tool-prefix
 requires renaming then this can be achieved by setting
 
-  CROSS_<archname>=<architecture-specific-prefix>
+        CROSS_<archname>=<architecture-specific-prefix>
 
-Since makefile variables must not contain any '-' characters all
+Since makefile variables must not contain any `-` characters all
 hyphens present in an architecture must be replaced by underscores
-('_') on the left hand side of the above definition.
+(`_`) on the left hand side of the above definition.
 
-E.g., if the compiler for linuxRT-x86_64 is really named x86_64-linux-g++
+E.g., if the compiler for `linuxRT-x86_64` is really named `x86_64-linux-g++`
 then remapping of the tool-prefix woud be defined as follows:
 
-  CROSS_linuxRT_x86_64=x86_64-linux-
+        CROSS_linuxRT_x86_64=x86_64-linux-
 
-Note that this requires the compiler to be found in the PATH. If
+Note that this requires the compiler to be found in the `PATH`. If
 this is not desired then an absolute path prefix may simply be added
-to CROSS_<archname>
+to `CROSS_<archname>`.
 
-  CROSS_linuxRT_x86_64=/path/to/tools/x86_64-linux-
+        CROSS_linuxRT_x86_64=/path/to/tools/x86_64-linux-
 
-C. Dependent 'boost' and 'yaml-cpp' Packages
-- - - - - - - - - - - - - - - - - - - - - - -
+### 2.3 Dependent 'boost' and 'yaml-cpp' Packages
+
 If the 'boost' and 'yaml-cpp' packages are not installed in a standard
 location then the following variables must be defined and pointed to
 the correct location(s) for include files and libraries, respectively.
 
-boostinc_DIR=
-boostlib_DIR=
-yaml_cppinc_DIR=
-yaml_cpplib_DIR=
+        boostinc_DIR=
+        boostlib_DIR=
+        yaml_cppinc_DIR=
+        yaml_cpplib_DIR=
 
 If different architectures use different locations then you may set
 
-boostinc_DIR_xxx=/path/for/arch/xxx
-boostinc_DIR_default=/path/for/others
+        boostinc_DIR_xxx=/path/for/arch/xxx
+        boostinc_DIR_default=/path/for/others
 
-If includes and libraries are in 'include' and 'lib' subdirectories
-under a common parent then setting boost_DIR and yaml_cpp_DIR or their
+If includes and libraries are in `include` and `lib` subdirectories
+under a common parent then setting `boost_DIR` and `yaml_cpp_DIR` or their
 arch-specific variants is easier.
 
 Assume you have yaml-cpp installed natively (for the host) and
-under /usr/local/yaml-cpp/0.5.3/ for the linuxRT-x86_64 architecture
-(with includes under /usr/local/yaml-cpp/0.5.3/include and libraries
-under /usr/local/yaml-cpp/0.5.3/lib).
+under `/usr/local/yaml-cpp/0.5.3/` for the `linuxRT-x86_64` architecture
+(with includes under `/usr/local/yaml-cpp/0.5.3/include` and libraries
+under `/usr/local/yaml-cpp/0.5.3/lib`).
 
 You could then say
 
-  # no need to do anything for the host since it is installed natively
-  yaml_cpp_DIR_linuxRT_x86_64=/usr/local/yaml-cpp/0.5.3/
+        # no need to do anything for the host since it is installed natively
+        yaml_cpp_DIR_linuxRT_x86_64=/usr/local/yaml-cpp/0.5.3/
 
-Dont' forget to substitute '-' with '_' in gnumake variable names.
+Dont' forget to substitute `-` with `_` in gnumake variable names.
 
-D. Building Static and Shared Libraries.
-- - - - - - - - - - - - - - - - - - - - 
+### 2.4 Building Static and Shared Libraries.
+
 The makefile system can build either static or shared libraries or
 both. You can tune by explicitly setting
 
-  WITH_SHARED_LIBRARIES=YES # or 'NO'
-  WITH_STATIC_LIBRARIES=YES # or 'NO'
+        WITH_SHARED_LIBRARIES=YES # or 'NO'
+        WITH_STATIC_LIBRARIES=YES # or 'NO'
 
-E. The Installation Location
-- - - - - - - - - - - - - - -
-'make install' installs headers into
+### 2.5 The Installation Location
 
-  $(INSTALL_DIR)/include
+`make install` installs headers into
+
+        $(INSTALL_DIR)/include
 
 libraries into
 
-  $(INSTALL_DIR)/lib/<architecture>
+        $(INSTALL_DIR)/lib/<architecture>
 
 and binaries into
 
-  $(INSTALL_DIR)/bin/<architecture>
+        $(INSTALL_DIR)/bin/<architecture>
 
-3. Running 'make'
------------------
-The makefiles understand the standard goals 'all', 'clean' and 'install'
-and 'test' with 'all' being the default goal.
+## 3. Running `make`
+
+The makefiles understand the standard goals `all`, `clean`, `install`
+and `test` with `all` being the default goal.
 
 However, since the makefile system is designed to build recursively for
 multiple target architectures and subsystem directories it is possible
 and sometimes necessary to specify goals in a more fine-grained way.
 
-Any target for which a rule is defined (either in 'rules.mak' or in the
-'makefile') - when used as a 'goal' - must be supplied with a prefix
+Any target for which a rule is defined (either in `rules.mak` or in the
+`makefile`) - when used as a 'goal' - must be supplied with a prefix
 which indicates the set of architectures for which the goal should
 be built. The most common cases are
 
-   multi-<goal>      => builds <goal> for all architectures
-   sub-<arch>-<goal> => builds <goal> for <arch> only
+        multi-<goal>            => builds <goal> for all architectures
+        sub-<arch>-<goal> => builds <goal> for <arch> only
 
-Thus, e.g., the aforementioned 'all' target is actually an alias for
-'multi-build'. Since the test programs can only be executed by make
+Thus, e.g., the aforementioned `all` target is actually an alias for
+`multi-build`. Since the test programs can only be executed by make
 on the host system, the 'test' goal is actually an alias for
-'sub-$(HARCH)-run_tests'.
+`sub-$(HARCH)-run_tests`.
 
 For building the CPSW package it is sufficient to execute
 
-   make
+        make
 
 and optionally 
 
-   make install
+        make install
 
-Note that the latter requires INSTALL_DIR to be defined either in
+Note that the latter requires `INSTALL_DIR` to be defined either in
 config.mak or on the command line.
 
-4. Further Information
-----------------------
-The 'config.mak' file contains comments which explain in a little
+## 4. Further Information
+
+The `config.mak` file contains comments which explain in a little
 more detail how to configure the package.
 
-'makefile.template' explains how to use the CPSW makefiles for
+`makefile.template` explains how to use the CPSW makefiles for
 building software which are layered on top of CPSW. Of course, the
 use of CPSW makefiles for this purpose is entirely optional.
