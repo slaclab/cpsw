@@ -248,6 +248,31 @@ Thus, the basic node is defined by
     myname:
       YAML_KEY_class: <className>
 
+The value of this key may also be a sequence of class names.
+In this case, CPSW tries to locate a class in the specified
+order. E.g., 
+
+    myname:
+      YAML_KEY_class:
+        - myClass
+        - MMIODev
+
+CPSW would then try to locate 'myClass' first and if that fails
+'MMIODev' would be used as a fallback.
+
+The typical use case is a device for which a driver is initially
+not available. At least its registers could be made available by
+MMIODev.
+
+2.1.1.1 Dynamic Class Loading
+
+CPSW implements dynamic loading of classes. If it doesn't find
+a class in its registry it tries to load "<className>.so".
+
+A properly written class contains initialization code which would
+register the class with CPSW so that the ensuing second attempt
+to find the class will succeed.
+
 2.1.2 'YAML_KEY_instantiate' Property
 . . . . . . . . . . . . . . . . . . .
 

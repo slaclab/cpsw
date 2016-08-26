@@ -158,6 +158,11 @@ cpsw_command_tst_SRCS      = cpsw_command_tst.cc
 cpsw_command_tst_LIBS      = $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_command_tst
 
+MyCommand_so_SRCS          = cpsw_myCommand.cc
+MyCommand_so_LDFLAGS       = -shared
+MyCommand_so_CXXFLAGS      = -fpic
+TESTPROGRAMS              += MyCommand.so
+
 cpsw_yaml_preproc_tst_SRCS = cpsw_yaml_preproc_tst.cc
 cpsw_yaml_preproc_tst_LIBS = $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_yaml_preproc_tst

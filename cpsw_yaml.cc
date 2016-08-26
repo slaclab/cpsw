@@ -22,6 +22,7 @@
 #include <cpsw_command.h>
 #include <cpsw_preproc.h>
 
+#include <dlfcn.h>
 
 using boost::dynamic_pointer_cast;
 using boost::unordered_set;
@@ -29,6 +30,44 @@ using boost::unordered_set;
 using YAML::PNode;
 using YAML::Node;
 using std::cout;
+
+// Helper operations
+struct CStrOps {
+	struct Hash {
+		size_t operator() (const char *str) const
+		{
+		size_t hash = 5381;
+		size_t c;
+			while ( (c = *str++) ) {
+				hash = (hash << 5) + hash + c;
+			}
+			return hash;
+		}
+	};
+
+	struct Eq {
+		bool operator() (const char *a, const char *b) const
+		{
+			return 0 == ::strcmp(a, b);
+		}
+	};
+
+	struct Cmp {
+		bool operator () (const char *a, const char *b) const {
+			return ::strcmp(a,b) < 0 ? true : false;
+		}
+	};
+};
+
+template <typename T>
+struct CStrMap : public CStrOps {
+	typedef std::pair<const char *, T>      Member;
+	typedef std::map <const char *, T, Cmp> Map;
+};
+
+struct CStrSet : public CStrOps {
+	typedef unordered_set<const char *, Hash, Eq> Set;
+};
 
 // PNode Implementation
 
@@ -329,24 +368,27 @@ CYamlSupportBase::dumpYamlPart(YAML::Node &node) const
 class RegistryImpl : public IRegistry {
 	public:
 
-	struct StrCmp {
-		bool operator () (const char *a, const char *b) const {
-			return ::strcmp(a,b) < 0 ? true : false;
-		}
-	};
-
-	typedef std::map <const char *, void *, StrCmp> Map;
-	typedef std::pair<const char *, void *>         Member;
+	typedef CStrMap<void*>::Map    Map;
+	typedef CStrMap<void*>::Member Member;
+    typedef CStrSet::Set           Set;
 
 private:
-	Map map_;
+	Map  map_;
+    Set  failed_;
+	bool dynLoad_;
 
 public:
+    RegistryImpl(bool dynLoad)
+	: dynLoad_(dynLoad)
+	{
+	}
+
 	virtual void  addItem(const char *name, void *item)
 	{
 	std::pair< Map::iterator, bool > ret = map_.insert( Member(name, item) );
-	if ( ! ret.second )
-		throw DuplicateNameError( name );
+		if ( ! ret.second ) {
+			throw DuplicateNameError( name );
+		}
 	}
 
 	virtual void  delItem(const char *name)
@@ -364,6 +406,40 @@ public:
 		if ( (it = map_.find( name )) != map_.end() )
 			found = it->second;
 
+		if ( found || ! dynLoad_ || failed_.count( name ) )
+			return found;
+
+		// should try dynamic loading and has not failed yet
+
+		std::string nam = std::string(name) + std::string(".so");
+
+		if ( dlopen( nam.c_str(), RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD ) ) {
+			// This object is already loaded but did not register
+			// 'name' ??
+			std::cerr << "Warning: '" << nam <<"' already loaded but it didn't register '" << name << "'!\n";
+			goto bail;
+		}
+
+		// Now try for real
+
+		if ( ! dlopen( nam.c_str(), RTLD_LAZY | RTLD_GLOBAL ) ) {
+			std::cerr << "Warning: unable to load '" << nam <<"': " << dlerror() << "\n";
+			goto bail;
+		}
+
+		// and try again
+		if ( (it = map_.find( name )) != map_.end() )
+			found = it->second;
+
+		if ( ! found ) {
+			std::cerr << "Warning: '" << nam <<"' loaded successfully but it didn't register '" << name << "'!\n";
+			goto bail;
+		}
+
+	bail:
+		if ( ! found ) {
+			failed_.insert( name );
+		}
 		return found;
 	}
 
@@ -380,9 +456,9 @@ public:
 };
 
 IRegistry *
-IRegistry::create()
+IRegistry::create(bool dynLoad)
 {
-	return new RegistryImpl();
+	return new RegistryImpl(dynLoad);
 }
 
 template <typename T> bool
@@ -456,29 +532,11 @@ private:
 	CDevImpl                *d_;
 	IYamlTypeRegistry<Field> *registry_;
 
-	struct StrHash {
-		size_t operator() (const char *str) const
-		{
-		size_t hash = 5381;
-		size_t c;
-			while ( (c = *str++) ) {
-				hash = (hash << 5) + hash + c;
-			}
-			return hash;
-		}
-	};
-
-	struct StrCmp {
-		bool operator() (const char *a, const char *b) const
-		{
-			return 0 == ::strcmp(a, b);
-		}
-	};
 
 	// record children that were not created because 'instantiated' is false
 	// we need to remember this when going through merge keys upstream
 	// (which may contain the same child marked as instantiated = true).
-	unordered_set<const char*, StrHash, StrCmp>  not_instantiated_;
+	CStrSet::Set            not_instantiated_;
 
 public:
 	AddChildrenVisitor(CDevImpl *d, IYamlTypeRegistry<Field> *registry)

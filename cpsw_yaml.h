@@ -443,7 +443,9 @@ public:
 
 	virtual      ~IRegistry() {}
 
-	static IRegistry *create();
+    // If 'dynLoad' is 'true' then 'getItem("xxx")' (on failure)
+	// shall try to load "xxx.so" and try again.
+	static IRegistry *create(bool dynLoad);
 };
 
 template <typename T> class IYamlFactoryBase {
@@ -475,8 +477,8 @@ private:
 	CYamlTypeRegistry operator=(const CYamlTypeRegistry &);
 
 public:
-	CYamlTypeRegistry()
-	: registry_( IRegistry::create() )
+	CYamlTypeRegistry(bool dynLoadSupport = true)
+	: registry_( IRegistry::create(dynLoadSupport) )
 	{
 	}
 

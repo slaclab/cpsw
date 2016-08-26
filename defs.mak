@@ -82,7 +82,7 @@ cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(or $(boostinc_DIR_$(TARNM)),$(boostinc_D
 cpswlib_DIRS=$(addsuffix /O.$(TARCH),$(CPSW_DIR))$(addprefix :,$(or $(boostlib_DIR_$(TARNM)),$(boostlib_DIR_default),$(boostlib_DIR)))$(addprefix :,$(or $(yaml_cpplib_DIR_$(TARNM)),$(yaml_cpplib_DIR_default),$(yaml_cpplib_DIR)))
 
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
-CPSW_LIBS   = cpsw yaml-cpp pthread rt
+CPSW_LIBS   = cpsw yaml-cpp pthread rt dl
 
 # Default values -- DO NOT OVERRIDE HERE but in config.mak or config.local.mak
 BOOST_PYTHON_LIB_default     =boost_python
