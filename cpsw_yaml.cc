@@ -59,11 +59,11 @@ PNode::operator=(const Node &orig_node)
 	//   assign(NODE **p, NODE *rhs) {
 	//	   if ( *p )
 	//        **p = *rhs; // if pointer already in use copy contents
-	//     else 
+	//     else
 	//        *p  = rhs;  // if pointer NULL then assign pointer
 	//   }
 	//
-	// The above is not what we really want. It seems that 'reset()' 
+	// The above is not what we really want. It seems that 'reset()'
 	// just transfers 'references' (rather than contents)
 	//
 	if ( this != &orig_node ) {
@@ -131,7 +131,7 @@ PNode::PNode( const PNode *parent, const char *key, const Node &node)
 // somewhere between 0.5.1 and 0.5.3 two 'flavors' of undefined nodes
 // were introduced (without the user being able to tell the difference :-()
 // 'valid' nodes which are 'undefined' and 'invalid' nodes (which have no
-// memory behind them). Both of these return 'IsDefined()' ==> false 
+// memory behind them). Both of these return 'IsDefined()' ==> false
 // or 'operator!()' ==> true.
 // Breaking 0.5.1, 'undefined' nodes now may throw exceptions when
 // operation are attempted and the node is 'invalid'. 'invalid' nodes
@@ -175,7 +175,7 @@ PNode::~PNode()
 }
 
 
-Node 
+Node
 PNode::backtrack_mergekeys(const PNode *path_head, unsigned path_nelms, const Node &top)
 {
 int  i;
@@ -186,7 +186,7 @@ Node nodes[path_nelms+1];
 
 	i=0;
 
-	// search right 
+	// search right
 	while ( path_head && (nodes[i+1].reset( fixInvalidNode( nodes[i][path_head->key_] ) ), nodes[i+1]) ) {
 		path_head = path_head->child_;
 		i++;
@@ -267,7 +267,6 @@ class LookupVisitor : public PNode::MergekeyVisitor {
 public:
 	virtual bool visit(PNode *merged_node)
 	{
-		// 
 		return false;
 	}
 };
@@ -292,7 +291,7 @@ LookupVisitor visitor;
 */
 	return node;
 }
- 
+
 void pushNode(YAML::Node &node, const char *fld, const YAML::Node &child)
 {
 	if ( fld )
@@ -441,7 +440,7 @@ CYamlFieldFactoryBase::addChildren(CEntryImpl &e, YamlState &node, IYamlTypeRegi
 //         sibling1:
 //         <<:
 //           sibling2:
-// 
+//
 // i.e., in addition to 'child', 'sibling1' and 'sibling2' are
 // created.
 class AddChildrenVisitor : public PNode::MergekeyVisitor {
@@ -667,7 +666,7 @@ YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h)
 	Children ch = h->getChildren();
 	for( unsigned i = 0; i < ch->size(); i++ )
 	{
-		//       out << ch[i]; 
+		//       out << ch[i];
 	}
 	return out;
 }
