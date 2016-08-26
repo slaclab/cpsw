@@ -990,7 +990,7 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 	bool merge_first = headbytes      || msk1;
 	bool merge_last  = ( ! byteResolution_ && (totbytes & (sizeof(SRPWord)-1)) ) || mskn;
 
-	if ( (merge_first || merge_last) && cacheable < IField::WT_CACHEABLE ) {
+	if ( (merge_first || merge_last) && cacheable < IField::WB_CACHEABLE ) {
 		throw IOError("Cannot merge bits/bytes to non-cacheable area");
 	}
 

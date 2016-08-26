@@ -237,13 +237,13 @@ CDevImpl::CDevImpl(Key &k, const char *name, uint64_t size)
 : CEntryImpl(k, name, size)
 {
 	// by default - mark containers as write-through cacheable; user may still override
-	setCacheable( WT_CACHEABLE );
+	setCacheable( WB_CACHEABLE );
 }
 
 CDevImpl::CDevImpl(Key &key, YamlState &ypath)
 : CEntryImpl(key, ypath)
 {
-	setCacheable(WT_CACHEABLE); // default for containers
+	setCacheable( WB_CACHEABLE ); // default for containers
 }
 
 void

@@ -59,7 +59,7 @@ uintptr_t  srcStride = node->getNelmsRight() * args->nbytes_;
 
 CWriteArgs nargs = *args;
 
-	if ( nargs.nbytes_ == getStride()  && getEntryImpl()->getCacheable() >= IField::WT_CACHEABLE ) {
+	if ( nargs.nbytes_ == getStride()  && getEntryImpl()->getCacheable() >= IField::WB_CACHEABLE ) {
 		// if strides == size then we can try to read all in one chunk
 		nargs.nbytes_ *= (*node)->idxt_ - (*node)->idxf_ + 1;
 		to             = (*node)->idxf_;
