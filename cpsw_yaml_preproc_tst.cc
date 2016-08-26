@@ -6,7 +6,6 @@
 #include <iostream>
 
 #include <cpsw_yaml.h>
-#include <cpsw_yaml_keydefs.h>
 
 #define TOP "cpsw_yaml_preproc_tst_1.yaml"
 #define INC "cpsw_yaml_preproc_tst_2.yaml"
@@ -18,10 +17,10 @@ const char *topyaml =
 "#\n"
 "\n"
 "root:\n"
-"  "_YAML_KEY_class": Dev\n"
-"  "_YAML_KEY_children":\n"
+"  "YAML_KEY_class": Dev\n"
+"  "YAML_KEY_children":\n"
 "    overridename:\n"
-"      "_YAML_KEY_MERGE": *anchor\n"
+"      "YAML_KEY_MERGE": *anchor\n"
 ;
 
 const char *incyaml =
@@ -31,9 +30,9 @@ const char *incyaml =
 "#\n"
 "\n"
 "leaf: &anchor\n"
-"  "_YAML_KEY_at":\n"
-"    "_YAML_KEY_nelms": 5\n"
-"  "_YAML_KEY_class":\n"          // Ordered list of class hierarchy
+"  "YAML_KEY_at":\n"
+"    "YAML_KEY_nelms": 5\n"
+"  "YAML_KEY_class":\n"          // Ordered list of class hierarchy
 "    - MyField1\n"    
 "    - MyField2\n"
 "    - Field\n"
@@ -45,9 +44,9 @@ const char *noincincyaml =
 "#\n"
 "\n"
 "leaf:   &anchor\n"
-"  "_YAML_KEY_at":\n"
-"    "_YAML_KEY_nelms": 5\n"
-"  "_YAML_KEY_class":\n"          // Ordered list of class hierarchy
+"  "YAML_KEY_at":\n"
+"    "YAML_KEY_nelms": 5\n"
+"  "YAML_KEY_class":\n"          // Ordered list of class hierarchy
 "    - MyField\n"    
 "    - Field\n"
 ;

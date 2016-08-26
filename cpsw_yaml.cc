@@ -523,13 +523,12 @@ public:
 							// makeItem() returns a NULL pointer
 
 							const YAML::PNode child_address( child.lookup(YAML_KEY_at) );
-
 							if ( child_address ) {
 								d_->addAtAddress( c, child_address );
 							} else {
 								not_instantiated_.insert( k );
 								std::string errmsg =   std::string("Child '") + std::string(k)
-								                     + std::string("' attached but 'at' key missing");
+								                     + std::string("' attached but '"YAML_KEY_at"' key missing");
 								throw InvalidArgError(errmsg);
 							}
 						} else {

@@ -1,102 +1,11 @@
 #ifndef CPSW_YAML_H
 #define CPSW_YAML_H
 
-#include <cpsw_yaml_keydecls.h>
-
-#ifdef  NO_YAML_SUPPORT
-#include <cpsw_error.h>
-
-namespace YAML {
-	class Node;
-
-	typedef Node *const_iterator;
-
-	class Node {
-	public:
-		bool IsSequence()      const     { throw NoYAMLSupportError(); }
-		bool IsScalar()        const     { throw NoYAMLSupportError(); }
-		bool IsMap()           const     { throw NoYAMLSupportError(); }
-		void SetTag(const std::string &) { throw NoYAMLSupportError(); }
-		const_iterator begin() const     { return 0; }
-		const_iterator end()   const     { return 0; }
-
-		bool operator!()       const     { return true; }
-	};
-};
-
-template <typename T> class IYamlTypeRegistry {
-public:
-	virtual T    makeItem(YamlState &) = 0;
-};
-
-template <typename T> class CYamlTypeRegistry : public IYamlTypeRegistry<T> {
-public:
-	virtual T    makeItem(YamlState &)
-	{
-		throw NoYAMLSupportError();
-	}
-	virtual void extractClassName(std::vector<std::string> *svec_p, YamlState &)
-	{
-		throw NoYAMLSupportError();
-	}
-	virtual bool extractInstantiate(YamlState &node)
-	{
-		throw NoYAMLSupportError();
-	}
-};
-
-template <typename T> class IYamlFactoryBase {
-public:
-	IYamlFactoryBase(const char *className, IYamlTypeRegistry<T> *r)
-	{}
-	virtual T makeItem(YamlState &node, IYamlTypeRegistry<T> *)
-	{
-		throw NoYAMLSupportError();
-	}
-};
-
-class CYamlSupportBase : public virtual IYamlSupportBase {
-public:
-	virtual void dumpYamlPart(YAML::Node &n) const {}
-	virtual void dumpYaml(YAML::Node &n)     const {}
-};
-
-template <typename T> static void mustReadNode(YamlState &node, const char *fld, T *val)
-{
-	throw NoYAMLSupportError();
-}
-
-template <typename T> static bool readNode(YamlState &node, const char *fld, T *val)
-{
-	return false;
-}
-
-template <typename T> static void writeNode(YAML::Node &node, const char *fld, const T &val)
-{
-	throw NoYAMLSupportError();
-}
-
-static inline void
-pushNode(YAML::Node &node, const char *fld, const YAML::Node &child)
-{
-	throw NoYAMLSupportError();
-}
-
-static inline const YAML::Node
-getNode(YamlState &n, const char *fld)
-{
-	throw NoYAMLSupportError();
-}
-
-template <typename T> class CYamlFieldFactory {
-};
-
-#else
-
 #include <cpsw_api_builder.h>
 #include <cpsw_shared_obj.h>
-#include <stdio.h>
+#include <cpsw_yaml_keydefs.h>
 
+#include <stdio.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -660,7 +569,6 @@ public:
 	}
 
 };
-#endif
 
 // For adding YAML support to a subclass of CYamlSupportBase:
 //
