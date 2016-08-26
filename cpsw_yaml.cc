@@ -282,9 +282,14 @@ LookupVisitor visitor;
 	if ( ! node ) {
 		node.visitMergekeys( &visitor, maxlevel );
 	}
+/* FIXME?? Don't remember why I thought a Null node (which
+   passes ! operator!(), i.e., is 'true') should be resolved
+   to an undefined one.
+   For what I know Null nodes should be 'legal'.
 	if ( node.IsNull() ) {
 		node.merge( Node( YAML::NodeType::Undefined ) );
 	}
+*/
 	return node;
 }
  

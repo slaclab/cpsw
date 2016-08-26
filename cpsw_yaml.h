@@ -479,6 +479,9 @@ template <typename T> static void mustReadNode(YamlState &node, const char *fld,
 	if ( ! n ) {
 		throw NotFoundError( std::string("property '") + std::string(fld) + std::string("'") );
 	} else {
+        if ( n.IsNull() ) {
+		   throw InvalidArgError( std::string("property '") + std::string(fld) + std::string("' is NULL") );
+        }
 		*val = n.as<T>();
 	}
 }
@@ -486,7 +489,7 @@ template <typename T> static void mustReadNode(YamlState &node, const char *fld,
 template <typename T> static bool readNode(YamlState &node, const char *fld, T *val)
 {
 	const YAML::Node &n( node.lookup(fld) );
-	if ( n ) {
+	if ( n && ! n.IsNull() ) {
 		*val = n.as<T>();
 		return true;
 	}
