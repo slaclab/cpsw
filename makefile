@@ -227,4 +227,4 @@ rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
 cpsw_netio_tst: udpsrv
 
 README.yamlDefinition:README.yamlDefinition.in
-	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%%s/%%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
+	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
