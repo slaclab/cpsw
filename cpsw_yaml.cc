@@ -356,7 +356,15 @@ public:
 
 	virtual void *getItem(const char *name)
 	{
-		return map_[name];
+	void                *found = 0;
+	Map::const_iterator  it;
+
+		// operator [] inserts into the map if the key is not found !
+
+		if ( (it = map_.find( name )) != map_.end() )
+			found = it->second;
+
+		return found;
 	}
 
 	virtual void  dumpItems()
