@@ -1405,8 +1405,9 @@ int                        i;
 		}
 	}
 	{
-		if ( readNode(node, YAML_KEY_RSSI, &b ) )
-			pbldr->useRssi( b );
+        const YAML::PNode &nn( node.lookup(YAML_KEY_RSSI) );
+
+        pbldr->useRssi( !!nn );
 	}
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_depack) );
