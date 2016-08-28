@@ -229,6 +229,12 @@ PNode::backtrack_mergekeys(const PNode *path_head, unsigned path_nelms, const No
 int  i;
 Node nodes[path_nelms+1];
 
+	if ( ! top.IsMap() )
+		throw   ConfigurationError(std::string("Value of merge key (in: ")
+			  + path_head->toString()
+			  + std::string(") is not a Map")
+			    );
+
 	// see comments in PNode::operator=(const Node &)
 	nodes[0].reset( top );
 
@@ -577,6 +583,13 @@ public:
 				// skip merge node! But remember it and follow downstream
 				// after all other children are handled.
 				if ( 0 == strcmp( k, YAML_KEY_MERGE ) ) {
+					if ( it->second && ! it->second.IsMap() ) {
+						throw ConfigurationError(
+							  std::string("Value of merge key (in: ")
+							+ merged_node->toString()
+							+ std::string(") is not a Map")
+							  );
+					}
 					// see comments in PNode::operator=(const Node &)
 					downmerged_node.reset( it->second );
 				} else {
