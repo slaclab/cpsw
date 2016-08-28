@@ -161,10 +161,18 @@ $(1): $$($(2)_OBJS) $$(wildcard $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$
 SRCS+=$$($(2)_SRCS)
 
 $(1):LDFLAGS +=$$($(2)_LDFLAGS)  $$($(2)_LDFLAGS_$$(TARNM))
+
 # when computing dependencies (.dp) for source files we want to add target_specific CPPFLAGS (-I)
 $(1) $(addsuffix .dp, $(basename $($(2)_SRCS))):CPPFLAGS+=$$($(2)_CPPFLAGS) $$($(2)_CPPFLAGS_$$(TARNM))
 $(1):CXXFLAGS+=$$($(2)_CXXFLAGS) $$($(2)_CXXFLAGS_$$(TARNM))
 $(1):CFLAGS  +=$$($(2)_CFLAGS)   $$($(2)_CFLAGS_$$(TARNM))
+
+# special flags for shared objects
+ifneq ($$(filter %.so,$(1)),)
+$(1):LDFLAGS  += -shared
+$(1):CXXFLAGS += -fpic
+$(1):CFLAGS   += -fpic
+endif
 
 $(2)_CPPFLAGS_$$(TARNM)?= $$($(2)_CPPFLAGS_default)
 $(2)_CXXFLAGS_$$(TARNM)?= $$($(2)_CXXFLAGS_default)
