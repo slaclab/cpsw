@@ -104,7 +104,7 @@ CPSW_LIBS   = cpsw yaml-cpp pthread rt dl
 BOOST_PYTHON_LIB_default     =boost_python
 WITH_SHARED_LIBRARIES_default=YES
 WITH_STATIC_LIBRARIES_default=NO
-WITH_PYCPSW_default          =$(WITH_SHARED_LIBRARIES_default)
+WITH_PYCPSW_default          =$(or $(and $(pyinc_DIR),$(WITH_SHARED_LIBRARIES)),NO)
 
 COMMA__=,
 SPACE__= #

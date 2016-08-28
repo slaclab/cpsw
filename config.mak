@@ -99,7 +99,7 @@ WITH_SHARED_LIBRARIES_default=YES
 # Whether to build the python wrapper (this requires boost/python and python >= 2.7).
 # The choice may be target specific, e.g.,
 #
-WITH_PYCPSW_default   = NO
+#WITH_PYCPSW_default   = NO
 # WITH_PYCPSW_host    = YES
 #
 # You may also have to set boost_DIR_<arch> or boostinc_DIR_<arch>
