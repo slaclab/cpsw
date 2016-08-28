@@ -758,26 +758,16 @@ DECLARE_YAML_FIELD_FACTORY(MMIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(NetIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(SequenceCommandImpl);
 
-#endif
-
 Hub
 IHub::loadYamlFile(const char *file_name, const char *root_name, const char *yaml_dir)
 {
-#ifdef NO_YAML_SUPPORT
-	throw NoYAMLSupportError();
-#else
 	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name, yaml_dir ), root_name );
-#endif
 }
 
 Hub
 IHub::loadYamlStream(std::istream &in, const char *root_name, const char *yaml_dir)
 {
-#ifdef NO_YAML_SUPPORT
-	throw NoYAMLSupportError();
-#else
 	return CYamlFieldFactoryBase::dispatchMakeField( CYamlFieldFactoryBase::loadPreprocessedYaml( in, yaml_dir ), root_name );
-#endif
 }
 
 Hub
@@ -787,11 +777,3 @@ std::string  str( yaml );
 std::stringstream sstrm( str );
 	return loadYamlStream( sstrm, root_name, yaml_dir );
 }
-
-#ifdef NO_YAML_SUPPORT
-void
-IYamlSupport::dumpYamlFile(Entry top, const char *file_name, const char *root_name)
-{
-	throw NoYAMLSupportError();
-}
-#endif
