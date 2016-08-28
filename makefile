@@ -7,6 +7,9 @@ HEADERS = cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h
 
 GENERATED_SRCS += git_version_string.h
 GENERATED_SRCS += README.yamlDefinition
+GENERATED_SRCS += README.yamlDefinition.html
+GENERATED_SRCS += README.configData.html
+GENERATED_SRCS += INSTALL.html
 
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
@@ -228,3 +231,6 @@ cpsw_netio_tst: udpsrv
 
 README.yamlDefinition:README.yamlDefinition.in
 	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
+
+%.html: %
+	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@
