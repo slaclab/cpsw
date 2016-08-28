@@ -205,7 +205,7 @@ Any target for which a rule is defined (either in `rules.mak` or in the
 which indicates the set of architectures for which the goal should
 be built. The most common cases are
 
-        multi-<goal>            => builds <goal> for all architectures
+        multi-<goal>      => builds <goal> for all architectures
         sub-<arch>-<goal> => builds <goal> for <arch> only
 
 Thus, e.g., the aforementioned `all` target is actually an alias for

@@ -113,8 +113,8 @@ which we want to use in our map 'mymap':
 
         mymap: *default_tag
         
-However, what if we want to override (just) 'setting_2' in 'mymap' with let's
-say 'my_value_2'.
+However, what if we want to override (just) `setting_2` in `mymap` with let's
+say `my_value_2`.
 
 In standard YAML that would not be possible because a key must be present
 at most *once* in a map. Thus we might try:
@@ -124,7 +124,7 @@ at most *once* in a map. Thus we might try:
         
 but this would not be valid YAML code. (mymap already has the 'default' node
 as its value and there is no way to add additional entries to that node. And
-even if there were, it would be illegal to use the 'setting_2' key again.)
+even if there were, it would be illegal to use the `setting_2` key again.)
 
 This is where the merge key comes in:
 
@@ -133,17 +133,18 @@ This is where the merge key comes in:
          setting_2: my_value_2
 
 Thus 'mymap has now two keys:
-   "<<" with the default node (itself a map) as its value
-   "setting_2" with 'my_value_2' as its value
+
+ * `<<` with the default node (itself a map) as its value
+ * `setting_2` with `my_value_2` as its value
 
 The idea of the merge key defines semantics for key lookup in a map:
 
-  lookup_key:
+        lookup_key:
 
-        if ( map["key"] )
-          return map["key"]
-        else if ( map["<<"] )
-          return map["<<"]["key"]
+          if ( map["key"] )
+            return map["key"]
+          else if ( map["<<"] )
+            return map["<<"]["key"]
 
 I.e.: look for the key in the map. If it is not found then check if there
 is a merge key and if there is then look for the original key in the
@@ -175,8 +176,8 @@ a setting located at a deeper level.
           <<       : *default_tag
           setting_2: my_value_2
 
-no longer works, since 'setting_2' is not at the same hierarchy level
-as 'setting_2' inside 'nested_map'.
+no longer works, since `setting_2` is not at the same hierarchy level
+as `setting_2` inside `nested_map`.
 
 What we mean is
             
@@ -186,8 +187,8 @@ What we mean is
             setting_2: my_value_2
 
 but in this case the simple lookup algorithm presented above no longer
-works ('setting_2' is not found in mymap["nested_map"] but there is also
-no merge key in mymap["nested_map"]).
+works (`setting_2` is not found in `mymap["nested_map"]` but there is also
+no merge key in `mymap["nested_map"]`).
 
 As a result, the merging algorithm implemented by CPSW is much more
 sophisticated and actually supports the notation just presented in the
@@ -338,7 +339,7 @@ After the `YAML_KEY_children` key all children are listed
 
 Note that the Dev class also requires for each child
 a map with *addressing information* to be attached to
-the child. The properties in the <child_address_entry>
+the child. The properties in the `<child_address_entry>`
 are interpreted and used by the *Dev* class and not
 by the child itself. However, the information is specific
 to each child and is needed for communication between
@@ -413,8 +414,8 @@ Regarding the `YAML_KEY_nelms` key it is important to realize
 that the definition of arrays of elements does *not* rest in
 the definition of the element itself but with the 'address'
 where the element is attached. (Similar to the 'C' language:
-an array is usually an 'array of element_types' and not an
-'array_of_element type'.
+an array is usually an 'array of element-types' and not an
+'array-of-element type'.
 
 ### 2.4 The 'SequenceCommand' Class
 
@@ -464,7 +465,7 @@ named 'usleep'.
 ### 2.5 The 'IntField' Class
 
 IntField is derived from Field and is a 'leaf' class. It implements
-the 'ScalVal' and 'ScalVal_RO' user-APIs.
+the `ScalVal` and `ScalVal_RO` user-APIs.
 
 IntField supports signed or unsigned integer numerical values of
 arbitrary length in bits (up to 64). IntField also supports arbitrary
@@ -485,7 +486,7 @@ Depending on an IntField's signed-ness numbers are sign-extended to
 the size requested by the user.
 
 IntField can be configured to a 'read-only' mode (statically defined by
-YAML - cannot be switched later) in which only ScalVal_RO is supported
+YAML - cannot be switched later) in which only `ScalVal_RO` is supported
 and values cannot be changed.
 
 An optional 'string-encoding' attribute can be defined for IntField
@@ -556,7 +557,7 @@ strings if the underlying entity actually represents a character.
             # Defaults to 16.
           YAML_KEY_wordSwap: <int>           # optional
 
-The YAML_KEY_wordSwap parameter can e.g., be used to handle
+The `YAML_KEY_wordSwap` parameter can e.g., be used to handle
 the case of a 64-bit word in 'mixed format':
 
 Assume a 32-bit system with little-endian byte-addressing
@@ -721,7 +722,7 @@ are usually stacked:
                               port of the peer.
 
 All modules above UDP are optional but some depend on each other:
-The TDEST (De)Muxer requires the Packetizer to be present and SRP_VC
+The `TDEST` (De)Muxer requires the Packetizer to be present and `SRP_VC`
 requires SRP.
 
 Of course, the setup of these layers must match the peer's configuration
