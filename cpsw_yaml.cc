@@ -198,7 +198,10 @@ PNode::PNode( const PNode *parent, const char *key )
   key_(key)
 {
 	if ( parent->child_ )
-		throw "Parent has a child!";
+		throw   InternalError(std::string("Parent ")
+			  + parent->toString()
+			  + std::string(" asready has a child!")
+			    );
 	parent_->child_ = this;
 }
 
@@ -482,7 +485,10 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 {
 	const YAML::PNode &class_node( node.lookup(YAML_KEY_class) );
 	if ( ! class_node ) {
-		throw NotFoundError( std::string("property '") + std::string(YAML_KEY_class) + std::string("'") );
+		throw   NotFoundError( std::string("No property '")
+			  + std::string(YAML_KEY_class)
+			  + std::string("' in: ") + node.toString()
+			    );
 	} else {
 		if( class_node.IsSequence() ) {
 			for ( YAML::const_iterator it=class_node.begin(); it != class_node.end(); ++it ) {
@@ -491,7 +497,12 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 		} else if (class_node.IsScalar() ) {
 			svec_p->push_back( class_node.as<std::string>() );
 		} else {
-			throw  InvalidArgError( std::string("property '") + std::string(YAML_KEY_class) + std::string("'") );
+			throw   InvalidArgError( std::string("property '")
+				  + std::string(YAML_KEY_class)
+				  + std::string("' in: ")
+				  + node.toString()
+				  + std::string(" is not a Sequence nor Scalar")
+				    );
 		}
 	}
 }
@@ -598,8 +609,9 @@ public:
 								d_->addAtAddress( c, child_address );
 							} else {
 								not_instantiated_.insert( k );
-								std::string errmsg =   std::string("Child '") + std::string(k)
-								                     + std::string("' attached but '"YAML_KEY_at"' key missing");
+								std::string errmsg =   std::string("Child '")
+								                     + child.toString()
+								                     + std::string("' found but missing '"YAML_KEY_at"' key");
 								throw InvalidArgError(errmsg);
 							}
 						} else {
