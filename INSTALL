@@ -99,7 +99,46 @@ be changed by setting the `HARCH` variable, e.g.,
 
 #### 2.1.1 Target Architecture-Specific Makefile Variables
 
-For a set of variables (look for `ARCHSPECIFIC_VARS` in `defs.mak`
+This subsection contains detailed information - you may skip it if you
+are just want to build CPSW.
+
+An entire set of variables (look for `ARCHSPECIFIC_VARS` in `defs.mak`)
+is defined in a way so that during expansion a few variants are
+tried:
+
+        FOO = $(or $(FOO_$(TARNM)),$(FOO_default))
+
+This means that when building for architecture `bar`, `FOO` expands
+to the value of `FOO_bar` if such a variable is defined (non-empty).
+If `$(FOO_bar)` is empty then `FOO` evaluates to the value of
+`FOO_default`. 
+
+This scheme allows for precise control over the value `FOO` should
+have when building for a specific architecture.
+
+When working with external packages then usually the build process
+requires access to headers and libraries. The makefiles provide
+a mechanism to define variables which point to architecture-specific
+locations where such headers and libraries can be found.
+
+Respective variables are defined, based on stems listed in
+`ARCHSPECIFIC_LIBVARS`. For each `stem` listed there, definitions
+
+        stem_DIR=$(or $(stem_DIR_$(TARNM)),$(stem_DIR_default))
+        steminc_DIR=$(or $(steminc_DIR_$(TARNM),$(steminc_DIR_default),$(addsuffix /include,$(stem_DIR))))
+        stemlib_DIR=$(or $(stemlib_DIR_$(TARNM),$(stemlib_DIR_default),$(addsuffix /lib,$(stem_DIR))))
+
+are emitted. These definitions cause e.g., `$(steminc_DIR)` to evaluate
+to the first non-empty value of
+
+  1. `steminc_DIR_<arch>`
+  2. `steminc_DIR_default`
+  3. `stem_DIR_<arch>/include`
+  4. `stem_DIR_default/include`
+
+It is possible to add your own variables and stems to `ARCHSPECIFIC_VARS`
+and `ARCHSPECIFIC_LIBVARS`, respectively. You should do so in your 
+`makefile` *before* including `defs.mak`.
 
 ### 2.2 Compiler Toolchain
 
@@ -191,7 +230,7 @@ python bindings require shared libraries.
 CPSW comes with python bindings for python 2.7 or 3.4 (other versions
 may work but have not been tested). You need the `boost_python` library
 and headers for building the python bindings as well as the python
-headers. Defining the location of 'boost' has already been discussed.
+headers. Defining the location of `boost` has already been discussed.
 
 Analogous variables for python (headers) are employed:
 
@@ -208,18 +247,19 @@ python3.4 is called `boost_python-py34`) then you can modify
         BOOST_PYTHON_LIB_<architecture>
         BOOST_PYTHON_LIB_default
 
-Finally, you need to define a variant of `WITH_PYCPSW` to `YES` or `NO`
+Finally, you may have to define a variant of `WITH_PYCPSW` to `YES` or `NO`
 in order to instruct the makefiles to actually build the python bindings:
 
         WITH_PYCPSW_<architecture> = NO  # or YES
         WITH_PYCPSW_default        = YES # or NO
 
-By default the make process tries to build the python bindings if
+However, the default setting already tries to 'guess the right thing':
+it will cause python bindings to be built if and only if
 
- 1. `pyinc_DIR evaluates` to a nonempty string for the target architecture
+ 1. `pyinc_DIR` evaluates to a nonempty string for the target architecture
     (i.e., any of `pyinc_DIR_<arch>`, `pyinc_DIR_default`, `py_DIR_<arch>`,
-    `py_DIR_default` is set)
- 1. `WITH_SHARED_LIBRARIES` evaluates to `YES` for the target architecture
+    `py_DIR_default` is set).
+ 2. `WITH_SHARED_LIBRARIES` evaluates to `YES` for the target architecture
 
 *Note*: the python bindings require cpsw and dependent *shared libraries*.
 
