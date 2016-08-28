@@ -122,6 +122,11 @@ public:
 	: CPSWError(s)
 	{
 	}
+
+	ConfigurationError(const std::string &s)
+	: CPSWError(s)
+	{
+	}
 };
 
 class ErrnoError: public CPSWError {
@@ -133,7 +138,14 @@ public:
 	}
 
 	ErrnoError(const std::string &s)
-	: CPSWError( s )
+	: CPSWError( s ),
+	  err_(0)
+	{
+	}
+
+	ErrnoError(const std::string &s, int err)
+	: CPSWError( (s + std::string(": ")).append(strerror(err)) ),
+	  err_( err )
 	{
 	}
 
@@ -157,6 +169,17 @@ public:
 	: ErrnoError(s)
 	{
 	}
+
+	InternalError(const std::string &s)
+	: ErrnoError(s)
+	{
+	}
+
+	InternalError(const std::string &s, int err)
+	: ErrnoError(s, err)
+	{
+	}
+
 
 	InternalError(const char*s, int err)
 	: ErrnoError(s, err)
@@ -200,6 +223,12 @@ public:
 	: ErrnoError( s )
 	{
 	}
+
+	IOError( std::string &s, int err )
+	: ErrnoError( s, err )
+	{
+	}
+
 
 	IOError( const char *s, int err)
 	: ErrnoError( s, err )
