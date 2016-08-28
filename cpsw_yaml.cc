@@ -10,8 +10,6 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_yaml.h>
 
-#ifndef NO_YAML_SUPPORT
-
 #include <cpsw_entry.h>
 #include <cpsw_hub.h>
 #include <cpsw_error.h>
@@ -130,7 +128,7 @@ PNode::operator=(const PNode &orig)
 {
 	if ( this != &orig ) {
 		if ( orig.child_ )
-			throw "can only copy a PNode at the tail of a chain";
+			throw InternalError("can only copy a PNode at the tail of a chain");
 		static_cast<YAML::Node &>(*this) = static_cast<const YAML::Node &>(orig);
 		parent_ = orig.parent_;
 		child_  = orig.child_;
@@ -164,6 +162,14 @@ PNode::PNode( const PNode *parent, const char *key, const Node &node)
 {
 	if ( parent_ )
 		parent_->child_ = this;
+}
+
+std::string
+PNode::toString() const
+{
+	if ( parent_ )
+		return parent_->toString() + std::string("/") + std::string(key_);
+	return std::string("key_");
 }
 
 

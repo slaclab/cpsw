@@ -65,6 +65,10 @@ namespace YAML {
 		// backing up through sequences!
 		PNode( const PNode *parent, unsigned index );
 
+        // Build a string from all the ancestors to this PNode.
+		// Generations are separated by '/'.
+		std::string toString() const;
+
 		~PNode();
 
 		class MergekeyVisitor {
