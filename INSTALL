@@ -97,6 +97,10 @@ be changed by setting the `HARCH` variable, e.g.,
 
 `HARCH` is automatically added to `ARCHES`, so there is no need to do so.
 
+#### 2.1.1 Target Architecture-Specific Makefile Variables
+
+For a set of variables (look for `ARCHSPECIFIC_VARS` in `defs.mak`
+
 ### 2.2 Compiler Toolchain
 
 The makefiles offer fine-grained control of the selection of tools.
@@ -175,9 +179,57 @@ The makefile system can build either static or shared libraries or
 both. You can tune by explicitly setting
 
         WITH_SHARED_LIBRARIES=YES # or 'NO'
-        WITH_STATIC_LIBRARIES=YES # or 'NO'
+        WITH_STATIC_LIBRARIES=NO  # or 'YES'
 
-### 2.5 The Installation Location
+*Note*: It is recommended to build shared libraries (exclusively).
+Otherwise, run-time loading of drivers/classes may not work unless
+the application is linked with special linker flags. Also, the
+python bindings require shared libraries.
+
+### 2.5 Python Bindings
+
+CPSW comes with python bindings for python 2.7 or 3.4 (other versions
+may work but have not been tested). You need the `boost_python` library
+and headers for building the python bindings as well as the python
+headers. Defining the location of 'boost' has already been discussed.
+
+Analogous variables for python (headers) are employed:
+
+        $(pyinc_DIR_<architecture>)
+        $(pyinc_DIR_default)
+        $(py_DIR_<architecture>)/include
+        $(py_DIR_default)/include
+
+are searched in that order. The default name for the `boost_python` 
+library (without pre- and suffix) is `boost_python`. If you need
+to change this name (e.g., on ubuntu the respective library for
+python3.4 is called `boost_python-py34`) then you can modify
+
+        BOOST_PYTHON_LIB_<architecture>
+        BOOST_PYTHON_LIB_default
+
+Finally, you need to define a variant of `WITH_PYCPSW` to `YES` or `NO`
+in order to instruct the makefiles to actually build the python bindings:
+
+        WITH_PYCPSW_<architecture> = NO  # or YES
+        WITH_PYCPSW_default        = YES # or NO
+
+By default the make process tries to build the python bindings if
+
+ 1. `pyinc_DIR evaluates` to a nonempty string for the target architecture
+    (i.e., any of `pyinc_DIR_<arch>`, `pyinc_DIR_default`, `py_DIR_<arch>`,
+    `py_DIR_default` is set)
+ 1. `WITH_SHARED_LIBRARIES` evaluates to `YES` for the target architecture
+
+*Note*: the python bindings require cpsw and dependent *shared libraries*.
+
+The resulting python module is called `pycpsw` and may be imported as
+such into python. Note that the dynamic/run-time linker must be able to locate
+`libcpsw` and other dependent libraries, e.g., in the environment variable
+`LD_LIBRARY_PATH` or by some other means (consult `man ld.so` for more
+information).
+
+### 2.6 The Installation Location
 
 `make install` installs headers into
 
