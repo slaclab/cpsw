@@ -23,28 +23,44 @@ define arch2var
 $(1)=$$(or $$($(1)_$$(TARNM)),$$($(1)_default))
 endef
 
+# arch2libvar(VARIABLE_PREFIX)
+define arch2libvar
+$(1)_DIR=$$(or $$($(1)_DIR_$$(TARNM)),$$($(1)_DIR_default))
+$(1)inc_DIR=$$(or $$($(1)inc_DIR_$$(TARNM)),$$($(1)inc_DIR_default),$$(addsuffix /include,$$($(1)_DIR)))
+$(1)lib_DIR=$$(or $$($(1)lib_DIR_$$(TARNM)),$$($(1)lib_DIR_default),$$(addsuffix /lib,$$($(1)_DIR)))
+endef
+
+# When expanding any of the ARCHSPECIFIC_VARS
+# we'll try $(var_$(TARNM)) and $(var_default)
 ARCHSPECIFIC_VARS+=CROSS
-ARCHSPECIFIC_VARS+=yaml_cpp_DIR
-ARCHSPECIFIC_VARS+=boost_DIR
-ARCHSPECIFIC_VARS+=py_DIR
 ARCHSPECIFIC_VARS+=WITH_SHARED_LIBRARIES
 ARCHSPECIFIC_VARS+=WITH_STATIC_LIBRARIES
 ARCHSPECIFIC_VARS+=WITH_PYCPSW
 ARCHSPECIFIC_VARS+=BOOST_PYTHON_LIB
+ARCHSPECIFIC_VARS+=USR_CPPFLAGS
+ARCHSPECIFIC_VARS+=USR_CXXFLAGS
+ARCHSPECIFIC_VARS+=USR_CFLAGS
+ARCHSPECIFIC_VARS+=USR_LDFLAGS
 ARCHSPECIFIC_VARS+=XXX_TEST
+
+# For all of the ARCHSPECIFIC_LIBVARS
+# we'll construct
+# var_DIR, varinc_DIR, varlib_DIR
+# and let each one try e.g.,
+#
+# $(<var>inc_DIR_$(TARNM)), $(<var>inc_DIR_default), $(<var>_DIR)/include
+#
+# (with $(<var>_DIR) also trying $(<var>_DIR_$(TARNM)), $(<var>_DIR_default))
+#
+ARCHSPECIFIC_LIBVARS+=yaml_cpp
+ARCHSPECIFIC_LIBVARS+=boost
+ARCHSPECIFIC_LIBVARS+=py
 
 $(foreach var,$(ARCHSPECIFIC_VARS),$(eval $(call arch2var,$(var))))
 
+$(foreach var,$(ARCHSPECIFIC_LIBVARS),$(eval $(call arch2libvar,$(var))))
+
 CROSS_default=$(addsuffix -,$(filter-out $(HARCH),$(TARCH)))
-
-boostinc_DIR=$(if $(boost_DIR),$(boost_DIR)/include,)
-boostlib_DIR=$(if $(boost_DIR),$(boost_DIR)/lib,)
-
-yaml_cppinc_DIR=$(if $(yaml_cpp_DIR),$(yaml_cpp_DIR)/include,)
-yaml_cpplib_DIR=$(if $(yaml_cpp_DIR),$(yaml_cpp_DIR)/lib,)
-
-pyinc_DIR=$(if $(py_DIR),$(py_DIR)/include,)
-
 
 # Tools
 CC     =$(CROSS)$(or $(CC_$(TARNM)),$(CC_default),gcc)
@@ -59,13 +75,13 @@ OPT_CFLAGS  =-g -Wall -O2
 
 CPPFLAGS+= $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
 CPPFLAGS+= $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
-CPPFLAGS+= $(USR_CPPFLAGS) $(or $(USR_CPPFLAGS_$(TARNM)),$(USR_CPPFLAGS_default))
+CPPFLAGS+= $(USR_CPPFLAGS)
 CXXFLAGS+= $(OPT_CXXFLAGS)
-CXXFLAGS+= $(USR_CXXFLAGS) $(or $(USR_CXXFLAGS_$(TARNM)),$(USR_CXXFLAGS_default))
+CXXFLAGS+= $(USR_CXXFLAGS)
 CFLAGS  += $(OPT_CFLAGS)
-CFLAGS  += $(USR_CFLAGS)   $(or $(USR_CFLAGS_$(TARNM)),$(USR_CFLAGS_default))
+CFLAGS  += $(USR_CFLAGS)
 
-LDFLAGS  = $(USR_LDFLAGS)  $(or $(USR_LDFLAGS_$(TARNM)), $(USR_LDFLAGS_default))
+LDFLAGS += $(USR_LDFLAGS)
 
 VPATH=$(SRCDIR)
 
@@ -77,9 +93,9 @@ RUN_OPTS=''
 
 # colon separated dirlist
 # Note: += adds a whitespace
-cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(or $(boostinc_DIR_$(TARNM)),$(boostinc_DIR_default),$(boostinc_DIR)))$(addprefix :,$(or $(yaml_cppinc_DIR_$(TARNM)),$(yaml_cppinc_DIR_default),$(yaml_cppinc_DIR)))
+cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(boostinc_DIR))$(addprefix :,$(yaml_cppinc_DIR))
 # colon separated dirlist
-cpswlib_DIRS=$(addsuffix /O.$(TARCH),$(CPSW_DIR))$(addprefix :,$(or $(boostlib_DIR_$(TARNM)),$(boostlib_DIR_default),$(boostlib_DIR)))$(addprefix :,$(or $(yaml_cpplib_DIR_$(TARNM)),$(yaml_cpplib_DIR_default),$(yaml_cpplib_DIR)))
+cpswlib_DIRS=$(addsuffix /O.$(TARCH),$(CPSW_DIR))$(addprefix :,$(boostlib_DIR))$(addprefix :,$(yaml_cpplib_DIR))
 
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
 CPSW_LIBS   = cpsw yaml-cpp pthread rt dl

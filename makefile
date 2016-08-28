@@ -100,9 +100,7 @@ cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 # Python wrapper; only built if WITH_PYCPSW is set to YES (can be target specific)
 pycpsw_so_SRCS    = cpsw_python.cc
 pycpsw_so_LIBS    = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
-pycpsw_so_LDFLAGS = -shared
-pycpsw_so_CXXFLAGS= -fpic
-pycpsw_so_CPPFLAGS=$(addprefix -I,$(or $(pyinc_DIR_$(TARNM)),$(pyinc_DIR_default),$(pyinc_DIR)))
+pycpsw_so_CPPFLAGS= $(addprefix -I,$(pyinc_DIR))
 
 PYCPSW_YES        = pycpsw.so
 PYCPSW            = $(PYCPSW_$(WITH_PYCPSW))
