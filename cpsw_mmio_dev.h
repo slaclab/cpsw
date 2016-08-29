@@ -22,11 +22,18 @@ class CMMIOAddressImpl : public CAddressImpl {
 			uint64_t stride   = IMMIODev::STRIDE_AUTO,
 			ByteOrder byteOrder = UNKNOWN );
 
+		CMMIOAddressImpl(const CMMIOAddressImpl &orig, AKey k)
+		: CAddressImpl(orig, k),
+		  offset_(orig.offset_),
+		  stride_(orig.stride_)
+		{
+		}
+
 		virtual uint64_t getOffset() const   { return offset_; }
 		virtual uint64_t getStride() const   { return stride_; }
 
 		// ANY subclass must implement clone(AKey) !
-		virtual CMMIOAddressImpl *clone(AKey k) { return new CMMIOAddressImpl( *this ); }
+		virtual CMMIOAddressImpl *clone(AKey k) { return new CMMIOAddressImpl( *this, k ); }
 		virtual void dump(FILE *f) const;
 		virtual uint64_t  read(CompositePathIterator *node, CReadArgs  *args) const;
 		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;

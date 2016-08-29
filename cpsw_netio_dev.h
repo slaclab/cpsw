@@ -73,8 +73,8 @@ public:
 
 	CCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 
-	CCommAddressImpl(CCommAddressImpl &orig)
-	: CAddressImpl(orig)
+	CCommAddressImpl(CCommAddressImpl &orig, AKey k)
+	: CAddressImpl(orig, k)
 	{
 		throw InternalError("Clone not implemented"); /* need to clone protocols, ... */
 	}
@@ -83,6 +83,12 @@ public:
 	getProtoStack() const
 	{
 		return protoStack_;
+	}
+
+	// any subclass must implement 'clone'
+	virtual CCommAddressImpl *clone(AKey k)
+	{
+		return new CCommAddressImpl( *this, k );
 	}
 
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
@@ -126,8 +132,8 @@ public:
 
 	CSRPAddressImpl(AKey key, INetIODev::PortBuilder, ProtoPort);
 
-	CSRPAddressImpl(CSRPAddressImpl &orig)
-	: CCommAddressImpl(orig),
+	CSRPAddressImpl(CSRPAddressImpl &orig, AKey k)
+	: CCommAddressImpl(orig, k),
 	  dynTimeout_(orig.dynTimeout_.get()),
 	  nRetries_(0)
 	{
@@ -140,7 +146,7 @@ public:
 	virtual void dump(FILE *f) const;
 
 	// ANY subclass must implement clone(AKey) !
-	virtual CSRPAddressImpl *clone(AKey k) { return new CSRPAddressImpl( *this ); }
+	virtual CSRPAddressImpl *clone(AKey k) { return new CSRPAddressImpl( *this, k ); }
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
 	virtual unsigned getTimeoutUs()                      const { return usrTimeout_.getUs(); }

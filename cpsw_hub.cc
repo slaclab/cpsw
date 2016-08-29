@@ -34,17 +34,12 @@ CAddressImpl::CAddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
 // copy references. But that might change in the
 // future if we decide to build a full copy of
 // everything.
-CAddressImpl::CAddressImpl(CAddressImpl &orig)
-:owner_(orig.owner_),
- child_(orig.child_),
+CAddressImpl::CAddressImpl(const CAddressImpl &orig, AKey new_owner)
+:owner_(new_owner),
+ //child_(orig.child_), has no new child yet!
  nelms_(orig.nelms_),
  byteOrder_(orig.byteOrder_)
 {
-}
-
-CAddressImpl & CAddressImpl::operator=(CAddressImpl &orig)
-{
-	return (*this = orig);
 }
 
 Address CAddressImpl::clone(DevImpl new_owner)

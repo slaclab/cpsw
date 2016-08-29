@@ -12,8 +12,13 @@ class CMemAddressImpl : public CAddressImpl {
 	public:
 		CMemAddressImpl(AKey key, unsigned nelms = 1);
 
+		CMemAddressImpl(const CMemAddressImpl &orig, AKey k)
+		: CAddressImpl(orig, k)
+		{
+		}
+
 		// ANY subclass must implement clone(AKey) !
-		virtual CMemAddressImpl *clone(AKey k) { return new CMemAddressImpl( *this ); }
+		virtual CMemAddressImpl *clone(AKey k) { return new CMemAddressImpl( *this, k ); }
 
 		virtual uint64_t read(CompositePathIterator *node, CReadArgs *args)   const;
 		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;

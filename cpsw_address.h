@@ -120,8 +120,11 @@ class CAddressImpl : public IAddress {
 
 	protected:
 
-		CAddressImpl(CAddressImpl&);
-		CAddressImpl & operator=(CAddressImpl &);
+		CAddressImpl(const CAddressImpl&, AKey new_owner);
+
+	private:
+		CAddressImpl & operator=(const CAddressImpl &);
+		CAddressImpl(const CAddressImpl&);
 
 	public:
 		CAddressImpl(AKey owner, unsigned nelms = 1, ByteOrder byteOrder = UNKNOWN);
@@ -174,7 +177,7 @@ class CAddressImpl : public IAddress {
 		virtual Hub     getOwner()          const;
 		virtual DevImpl getOwnerAsDevImpl() const;
 
-		virtual CAddressImpl *clone(AKey k) { return new CAddressImpl( *this ); }
+		virtual CAddressImpl *clone(AKey k) { return new CAddressImpl( *this, k ); }
 
 		// This should NOT be overridden unless you know what you are doing!
 		virtual Address clone(DevImpl);
