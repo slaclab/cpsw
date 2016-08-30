@@ -91,7 +91,7 @@ public:
 			pri( p );
 		indent_--;
 	}
-}; 
+};
 
 struct TestFailed {};
 
@@ -103,7 +103,7 @@ Hub      hh;
 	printf("%*s%s\n", l, "", h->getName());
 	l++;
 	for ( i=0; i<cc->size(); i++ ) {
-		if ( (hh = (*cc)[i]->isHub()) ) { 
+		if ( (hh = (*cc)[i]->isHub()) ) {
 			recurse( hh, l );
 		} else {
 			printf("%*s%s\n", l, "", (*cc)[i]->getName());
@@ -193,9 +193,9 @@ Hub     r  = use_yaml ? build_yaml() : build();
 	DumpNameVisitor v;
 	p = IPath::create(r);
 	v.setPre( false );
-	p->explore( &v );	
+	p->explore( &v );
 	v.setPre( true );
-	p->explore( &v );	
+	p->explore( &v );
 	}
 
 	p = r->findByName("outer/inner/leaf");
@@ -214,6 +214,41 @@ Hub     r  = use_yaml ? build_yaml() : build();
 {
 	IYamlSupport::dumpYamlFile( r, 0, 0 );
 }
+
+	{
+		Path pa = r->findByName("outer[0]/inner/leaf1");
+		Path pb = r->findByName("outer[1]/inner/leaf1");
+		Path pi;
+		if ( pa->intersect(pb) )
+			throw TestFailed();
+		pa = r->findByName("outer/inner[0-1]/leaf1");
+		pb = r->findByName("outer/inner[2-3]/leaf1");
+		if ( pa->intersect(pb) )
+			throw TestFailed();
+		pb = r->findByName("outer/inner/leaf1[1-3]");
+		pa = r->findByName("outer/inner/leaf1[0]");
+		if ( pa->intersect(pb) )
+			throw TestFailed();
+
+		pb = r->findByName("outer[0]/inner[0-1]/leaf1");
+		pa = r->findByName("outer/inner[1-3]/leaf1[0]");
+
+		if ( ! (pi = pa->intersect(pb)) || pi->getNelms() != 1 )
+			throw TestFailed();
+
+		pb = r->findByName("outer/inner/leaf1");
+		pa = r->findByName("outer/inner[1-2]/leaf1");
+
+		if ( ! (pi = pa->intersect(pb)) || pi->getNelms() != 16 )
+			throw TestFailed();
+
+		pb = r->findByName("outer/inner[0-2]/leaf1[1-3]");
+		pa = r->findByName("outer/inner[1-3]/leaf1[0-2]");
+
+		if ( ! (pi = pa->intersect(pb)) || pi->getNelms() != 8 ) {
+			throw TestFailed();
+		}
+	}
 
 	r.reset();
 	p.reset();
@@ -261,7 +296,7 @@ Hub     r  = use_yaml ? build_yaml() : build();
 		throw TestFailed();
 	}
 
-	CompositePathIterator it( &p1 );
+	CompositePathIterator it( p1 );
 	if ( it.getNelmsRight() != 1 || it.getNelmsLeft() != 3*5*2 ) {
 		throw TestFailed();
 	}
@@ -304,8 +339,8 @@ Hub     r  = use_yaml ? build_yaml() : build();
 	p3 = c->findByName("d");
 
 
-	Path els[] = {p3, p2, p1, Path((IPath *)0)};
-	it = CompositePathIterator(&p1,&p2,&p3,0);
+	ConstPath els[] = {p3, p2, p1, Path((IPath *)0)};
+	it = CompositePathIterator(p1).append(p2).append(p3);
 	unsigned nleft  = 1;
 	unsigned nright = 1;
 	for ( int i=0; els[i]; i++ ) {

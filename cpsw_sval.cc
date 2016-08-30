@@ -203,7 +203,7 @@ public:
 
 	virtual int64_t read(uint8_t *buf, uint64_t size, const CTimeout timeout, uint64_t off)
 	{
-		CompositePathIterator it( &p_);
+		CompositePathIterator it( p_);
 		Address cl = it->c_p_;
 		CReadArgs args;
 
@@ -217,7 +217,7 @@ public:
 
 	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeout)
 	{
-		CompositePathIterator it( &p_);
+		CompositePathIterator it( p_);
 		Address cl = it->c_p_;
 		CWriteArgs args;
 
@@ -407,8 +407,8 @@ public:
 	// 'suffix' (if used) must live for as long as this object is used
 	Path suffix;
 	
-	SlicedPathIterator(Path p, IndexRange *range)
-	:CompositePathIterator( &p )
+	SlicedPathIterator(ConstPath p, IndexRange *range)
+	:CompositePathIterator( p )
 	{
 		if ( range && range->size() > 0 ) {
 			int f = (*this)->idxf_;
@@ -759,14 +759,14 @@ Enum     enm = getEnum();
 	return setVal(buf, nelms, range);
 }
 
-static unsigned nelmsFromIdx(IndexRange *r, Path p, unsigned nelms)
+static unsigned nelmsFromIdx(IndexRange *r, ConstPath p, unsigned nelms)
 {
 	if ( r ) {
 		int f = r->getFrom();
 		int t = r->getTo();
 
 		if ( f >= 0 || t >= 0 ) {
-			CompositePathIterator it( &p );
+			CompositePathIterator it( p );
 			if ( f < 0 )
 				f = it->idxf_; 
 			else

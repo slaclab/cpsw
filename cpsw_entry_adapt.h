@@ -11,7 +11,7 @@ using boost::dynamic_pointer_cast;
 class IEntryAdapt : public virtual IEntry, public CShObj {
 protected:
 	shared_ptr<const CEntryImpl> ie_;
-	Path                         p_;
+	ConstPath                    p_;
 
 
 protected:
@@ -31,7 +31,7 @@ public:
 		if ( p->empty() )
 			throw InvalidArgError("Empty Path");
 
-		Address a = CompositePathIterator( &p )->c_p_;
+		Address a = CompositePathIterator( p )->c_p_;
 		shared_ptr<const typename IMPL::element_type> e = dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
 		if ( e ) {
 			ADAPT rval = CShObj::template create<ADAPT>(p, e);
