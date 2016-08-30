@@ -77,6 +77,7 @@ main(int argc, char **argv)
 {
 struct stat sb;
 try {
+    fprintf(stderr,"Note: Warning messages about MyFieldXX.so not being found are normal and expected\n");
 	wrf(noincincyaml, INC);
 	unlink(TOP);
 	if ( 0 == stat(TOP, &sb) ) {

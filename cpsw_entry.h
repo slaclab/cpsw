@@ -39,6 +39,9 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		mutable bool        configPrioSet_;
 		mutable bool        locked_;
 
+		CEntryImpl(const CEntryImpl &);
+		CEntryImpl &operator=(const CEntryImpl&);
+
 
 	private:
 
@@ -47,8 +50,8 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 	protected:
 		// prevent public copy construction -- cannot copy the 'self'
 		// member. This constructor is intended to be used by the 'clone'
-		// template which takes care of setting 'self'.
-		CEntryImpl(CEntryImpl &ei, Key &k);
+		// member which takes care of setting 'self'.
+		CEntryImpl(const CEntryImpl &ei, Key &k);
 
 		// subclasses may want to define their default configuration priority.
 		// This just helps to reduce the size of the YAML file since default
@@ -122,7 +125,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 			return locked_;
 		}
 
-		virtual void postHook();
+		virtual void postHook( ConstShObj );
 
 		virtual void accept(IVisitor    *v, RecursionOrder order, int recursionDepth);
 

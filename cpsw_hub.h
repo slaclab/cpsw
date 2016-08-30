@@ -32,8 +32,8 @@ struct StrCmp {
 
 class CDevImpl : public CEntryImpl, public virtual IDev {
 	protected:
-		typedef  std::map<const char*, Address, StrCmp> MyChildren;
-		typedef  std::list<Address>                     PrioList;
+		typedef  std::map<const char*, AddressImpl, StrCmp> MyChildren;
+		typedef  std::list<AddressImpl>                     PrioList;
 
 
 	private:
@@ -46,13 +46,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual IAddress::AKey getAKey()  { return IAddress::AKey( getSelfAs<DevImpl>() );       }
 
 		// this must recursively clone all children.
-		CDevImpl(CDevImpl &orig, Key &k):CEntryImpl(orig, k) { throw InternalError("Clone NotImplemented"); }
-
-		// hubs should be dumped by default
-		virtual int getDefaultConfigPrio() const
-		{
-			return 1;
-		}
+		CDevImpl(const CDevImpl &orig, Key &k);
 
 	public:
 
@@ -70,6 +64,8 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual ~CDevImpl();
 
 		virtual CDevImpl *clone(Key &k) { return new CDevImpl( *this, k ); }
+
+		virtual void postHook(ConstShObj orig);
 
 		// template: each (device-specific) address must be instantiated
 		// by it's creator device and then added.

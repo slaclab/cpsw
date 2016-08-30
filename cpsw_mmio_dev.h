@@ -47,14 +47,16 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 		ByteOrder byteOrder_;
 
 	protected:
-		CMMIODevImpl(CMMIODevImpl &orig, Key &k)
-		:CDevImpl(orig,k),
-		 byteOrder_(orig.byteOrder_)
+		CMMIODevImpl(const CMMIODevImpl &orig, Key &k)
+		: CDevImpl(orig,k),
+		  byteOrder_(orig.byteOrder_)
 		{
 		}
 
 	public:
-		CMMIODevImpl(Key &k, const char *name, uint64_t size, ByteOrder byteOrder) : CDevImpl(k, name, size), byteOrder_(byteOrder)
+		CMMIODevImpl(Key &k, const char *name, uint64_t size, ByteOrder byteOrder)
+		: CDevImpl(k, name, size),
+		  byteOrder_(byteOrder)
 		{
 		}
 
@@ -66,7 +68,10 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 		static  const char *_getClassName()       { return "MMIODev";       }
 		virtual const char * getClassName() const { return _getClassName(); }
 
-		virtual CMMIODevImpl *clone(Key &k) { return new CMMIODevImpl( *this, k ); }
+		virtual CMMIODevImpl *clone(Key &k)
+		{
+			return new CMMIODevImpl( *this, k );
+		}
 
 		virtual ByteOrder getByteOrder() const { return byteOrder_; }
 

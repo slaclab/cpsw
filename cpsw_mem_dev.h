@@ -28,7 +28,7 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	private:
 		uint8_t * buf_;
 	protected:
-		CMemDevImpl(CMemDevImpl &orig, Key &k);
+		CMemDevImpl(const CMemDevImpl &orig, Key &k);
 
 	public:
 		CMemDevImpl(Key &k, const char *name, uint64_t size);
@@ -38,13 +38,14 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 		static  const char *_getClassName()       { return "MemDev";        }
 		virtual const char * getClassName() const { return _getClassName(); }
 
-		CMemDevImpl & operator=(CMemDevImpl &orig);
-
 		virtual void addAtAddress(Field child, unsigned nelms = 1);
 
 		virtual uint8_t * const getBufp() const { return buf_; }
 
-		virtual CMemDevImpl *clone(Key &k) { return new CMemDevImpl( *this, k ); }
+		virtual CMemDevImpl *clone(Key &k)
+		{
+			return new CMemDevImpl( *this, k );
+		}
 
 		virtual ~CMemDevImpl();
 };

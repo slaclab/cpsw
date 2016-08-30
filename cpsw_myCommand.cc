@@ -40,13 +40,13 @@ public:
 
 class CMyCommandImpl : public CCommandImpl, public IMyCommandImpl {
 private:
-    std::string connectTo_;
+    CString connectTo_;
 public:
 
 	// make a new CMyContext
 	virtual CommandImplContext createContext(Path pParent) const
 	{
-		return make_shared<CMyContext>(pParent, connectTo_.c_str());
+		return make_shared<CMyContext>(pParent, connectTo_->c_str());
 	}
 
 	// execute the command using the ScalVal stored
@@ -65,7 +65,7 @@ public:
 	// constructor
 	CMyCommandImpl(Key &k, const char *name, const char *connectTo)
 	: CCommandImpl(k, name),
-	  connectTo_(connectTo)
+	  connectTo_( make_shared<const std::string>(connectTo) )
 	{
 	}
 
@@ -73,7 +73,21 @@ public:
 	CMyCommandImpl(Key &k, YamlState &node)
 	: CCommandImpl(k, node)
 	{
-		mustReadNode( node, "connectTo", &connectTo_ );
+	std::string connectTo;
+		mustReadNode( node, "connectTo", &connectTo );
+		connectTo_ = make_shared< const std::string >(connectTo);
+	}
+
+	// copy constructor (for cloning)
+	CMyCommandImpl(const CMyCommandImpl &orig, Key &k)
+	: CCommandImpl(orig, k),
+	  connectTo_(orig.connectTo_)
+	{
+	}
+
+	virtual CMyCommandImpl *clone(Key &k)
+	{
+		return new CMyCommandImpl( *this, k );
 	}
 
 
@@ -82,7 +96,7 @@ public:
 	{
 		// normally only save if current value is different from
 		// the default -- but there is no default for this one.
-		node["connectTo"] = connectTo_;
+		node["connectTo"] = connectTo_->c_str();
 	}
 
 	// Every class MUST implement these and use a unique name!

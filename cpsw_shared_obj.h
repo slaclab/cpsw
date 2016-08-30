@@ -22,7 +22,8 @@ public:
 
 protected:
 
-	typedef shared_ptr<CShObj> ShObj;
+	typedef shared_ptr<CShObj>       ShObj;
+	typedef shared_ptr<const CShObj> ConstShObj;
 
 	// Key object; only we
 	class Key {
@@ -68,7 +69,9 @@ protected:
 	// postHook is invoked after construction. It allows
 	// base-classes to do initialization steps that use
 	// sub-class virtual functions...
-	virtual void postHook()
+	// If 'orig' is non-'NULL' then this is invoked as a
+	// result of cloning...
+	virtual void postHook( ConstShObj orig )
 	{
 	}
 
@@ -110,10 +113,10 @@ private:
 	}
 
 	template <typename P>
-	static shared_ptr<P> postConstruct(P *p)
+	static shared_ptr<P> postConstruct(P *p, ConstShObj orig=ConstShObj() )
 	{
 	shared_ptr<P> me( setSelf(p) );
-		me->postHook();
+		me->postHook( orig );
 		return me;
 	}
 
@@ -171,7 +174,7 @@ public:
 			// some subclass of '*in' does not implement virtual clone
 			throw CloneNotImplementedError();
 		}
-		return setSelf( p );
+		return postConstruct( p, in );
 	}
 
 	template <typename T>
@@ -179,7 +182,7 @@ public:
 	{
 	Key k;
 	typename T::element_type *p = in->clone( k );
-		return setSelf( p );
+		return postConstruct( p, in );
 	}
 
 	template <typename T>

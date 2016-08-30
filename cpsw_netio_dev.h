@@ -163,10 +163,12 @@ private:
 	in_addr_t        d_ip_;
 	std::string      ip_str_;
 protected:
-	CNetIODevImpl(CNetIODevImpl &orig, Key &k)
-	: CDevImpl(orig, k)
+	CNetIODevImpl(const CNetIODevImpl &orig, Key &k)
+	: CDevImpl(orig, k),
+	  d_ip_(orig.d_ip_),
+	  ip_str_(orig.ip_str_)
 	{
-		throw InternalError("Cloning of CNetIODevImpl not yet implemented");
+		/* The real work is in cloning the protocols -  which is not supported */
 	}
 
 	virtual ProtoPort findProtoPort(ProtoPortMatchParams *);

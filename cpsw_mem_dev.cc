@@ -21,7 +21,7 @@ CMemDevImpl::CMemDevImpl(Key &key, YamlState &node)
 }
 
 
-CMemDevImpl::CMemDevImpl(CMemDevImpl &orig, Key &k)
+CMemDevImpl::CMemDevImpl(const CMemDevImpl &orig, Key &k)
 : CDevImpl(orig, k),
   buf_( new uint8_t[orig.getSize()] )
 {
@@ -31,15 +31,6 @@ CMemDevImpl::CMemDevImpl(CMemDevImpl &orig, Key &k)
 CMemDevImpl::~CMemDevImpl()
 {
 	delete [] buf_;
-}
-
-CMemDevImpl & CMemDevImpl::operator=(CMemDevImpl &orig)
-{
-	delete [] buf_;
-	*this = orig;
-	buf_ = new uint8_t[orig.getSize()];
-	memcpy( buf_, orig.buf_, orig.getSize() );
-	return *this;
 }
 
 void CMemDevImpl::addAtAddress(Field child, unsigned nelms)

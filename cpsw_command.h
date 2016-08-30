@@ -93,6 +93,16 @@ public:
 		{
 		}
 
+		CCommandImpl(const CCommandImpl &orig, Key &k)
+		: CEntryImpl(orig, k)
+		{
+		}
+
+		virtual CCommandImpl *clone(Key &k)
+		{
+			return new CCommandImpl( *this, k );
+		}
+
 		virtual YAML::Node dumpMyConfigToYaml(Path)                 const;
 		virtual void       loadMyConfigFromYaml(Path, YAML::Node &) const;
 };
@@ -125,6 +135,17 @@ public:
 	CSequenceCommandImpl(Key &k, const char *name, const Items *items_p);
 	virtual void executeCommand(CommandImplContext context) const;
 	CSequenceCommandImpl(Key &k, YamlState &node);
+
+	CSequenceCommandImpl(const CSequenceCommandImpl &orig, Key &k)
+	: CCommandImpl( orig, k ),
+	  items_( orig.items_ )
+	{
+	}
+
+	virtual CSequenceCommandImpl *clone(Key &k)
+	{
+		return new CSequenceCommandImpl( *this, k );
+	}
 
 	virtual void dumpYamlPart(YAML::Node &) const;
 

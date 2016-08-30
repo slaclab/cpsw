@@ -41,14 +41,14 @@ CEntryImpl::CEntryImpl(Key &k, const char *name, uint64_t size)
 	++ocnt();
 }
 
-CEntryImpl::CEntryImpl(CEntryImpl &ei, Key &k)
+CEntryImpl::CEntryImpl(const CEntryImpl &ei, Key &k)
 : CShObj(ei,k),
   name_(ei.name_),
   description_(ei.description_),
   size_(ei.size_),
-  cacheable_(ei.cacheable_),
-  configPrio_(ei.configPrio_),
-  configPrioSet_(ei.configPrioSet_),
+  cacheable_( DFLT_CACHEABLE ),      // reset copy to default
+  configPrio_( DFLT_CONFIG_PRIO ),   // reset copy to default
+  configPrioSet_( false ),           // reset copy to default
   locked_( false )
 {
 	++ocnt();
@@ -88,7 +88,7 @@ CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
 }
 
 void
-CEntryImpl::postHook()
+CEntryImpl::postHook( ConstShObj orig )
 {
 	// executed once the object is fully constructed;
 	// we may thus use polymorphic function here...

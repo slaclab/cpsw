@@ -94,15 +94,6 @@ class IAddress : public IChild {
 
 		virtual void dumpYamlPart(YAML::Node &) const = 0;
 
-		// EVERY subclass 'XAddr' MUST implement
-		//
-		// private:
-		//    virtual XAddr *clone() { return new XAddr( *this ); }
-		//
-		virtual IAddress * clone(AKey) = 0;
-
-		virtual Address clone(DevImpl) = 0;
-
 		virtual ~IAddress() {}
 };
 
@@ -180,7 +171,7 @@ class CAddressImpl : public IAddress {
 		virtual CAddressImpl *clone(AKey k) { return new CAddressImpl( *this, k ); }
 
 		// This should NOT be overridden unless you know what you are doing!
-		virtual Address clone(DevImpl);
+		virtual AddressImpl clone(DevImpl);
 
 	protected:
 		template <typename T> T getOwnerAs() const

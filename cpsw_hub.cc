@@ -42,14 +42,14 @@ CAddressImpl::CAddressImpl(const CAddressImpl &orig, AKey new_owner)
 {
 }
 
-Address CAddressImpl::clone(DevImpl new_owner)
+AddressImpl CAddressImpl::clone(DevImpl new_owner)
 {
-IAddress *p = clone( AKey( new_owner ) );
+CAddressImpl *p = clone( AKey( new_owner ) );
 	if ( typeid(*p) != typeid(*this) ) {
 		delete ( p );
-		throw InternalError("Some subclass of IAddress doesn't implement 'clone(AKey)'");
+		throw InternalError("Some subclass of CAddressImpl doesn't implement 'clone(AKey)'");
 	}
-	return Address(p);
+	return AddressImpl(p);
 }
 
 Hub CAddressImpl::isHub() const
@@ -179,6 +179,12 @@ public:
 void CDevImpl::add(AddressImpl a, Field child)
 {
 EntryImpl e = child->getSelf();
+
+	if ( e->getLocked() ) {
+		child = e = CShObj::clone( e );
+fprintf(stderr, "Cloned child %s of %s\n", child->getName(), getName());
+	}
+
 int       prio;
 
 	AddChildVisitor propagateAttributes( getSelfAs<DevImpl>(), child );
@@ -239,6 +245,38 @@ CDevImpl::CDevImpl(Key &key, YamlState &ypath)
 : CEntryImpl(key, ypath)
 {
 	setCacheable( WB_CACHEABLE ); // default for containers
+}
+
+
+CDevImpl::CDevImpl(const CDevImpl &orig, Key &k)
+: CEntryImpl(orig, k)
+{
+	setCacheable( WB_CACHEABLE );
+
+}
+
+void
+CDevImpl::postHook( ConstShObj orig )
+{
+	CEntryImpl::postHook( orig );
+
+	/* can recreate the children only *after* the object is fully
+	 * constructed (self pointer set)
+	 */
+	if ( orig ) {
+		ConstDevImpl origDev( static_pointer_cast<ConstDevImpl::element_type>( orig ) );
+
+		MyChildren::iterator it ( origDev->children_.begin() );
+		MyChildren::iterator ite( origDev->children_.end()   );
+
+		while ( it != ite ) {
+			add(
+					it->second->clone( getSelfAs<DevImpl>() ), 
+					CShObj::clone( it->second->getEntryImpl() )
+			   );
+			++it;
+		}
+	}
 }
 
 void

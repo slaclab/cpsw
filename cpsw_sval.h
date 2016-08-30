@@ -113,7 +113,7 @@ public:
 	virtual YAML::Node dumpMyConfigToYaml(Path p)                  const;
 	virtual void       loadMyConfigFromYaml(Path p, YAML::Node &n) const;
 
-	CIntEntryImpl(CIntEntryImpl &orig, Key &k)
+	CIntEntryImpl(const CIntEntryImpl &orig, Key &k)
 	:CEntryImpl(orig, k),
 	 is_signed_(orig.is_signed_),
 	 ls_bit_(orig.ls_bit_),

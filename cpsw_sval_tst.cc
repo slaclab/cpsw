@@ -182,6 +182,8 @@ int opt;
 		}
 	}
 
+bool        use_hier = !!use_yaml;
+
 try {
 
 {
@@ -193,11 +195,16 @@ MMIODev mmio_le;
 MMIODev mmio_be;
 
 ConstMemDev cmm;
+MemDev       mm;
 
 int  bits[] = { 4, 13, 16, 22, 32, 44, 64 };
 int  shft[] = { 0, 3, 4, 7 };
 bool sign[] = { true, false };
 unsigned bits_idx, shft_idx, sign_idx;
+
+int run = !use_yaml ? 3 : 2;
+
+while ( --run > 0 ) {
 
 	if ( use_yaml ) {
 		root = IHub::loadYamlFile(use_yaml, "root");
@@ -209,16 +216,27 @@ unsigned bits_idx, shft_idx, sign_idx;
 		}
 
 	} else {
-	MemDev  mm      = IMemDev::create("mem",2048);
-	MMIODev mmio    = IMMIODev::create("mmio",2048, UNKNOWN);
+		if ( run > 1 ) {
+			        mm      = IMemDev::create("mem",2048);
+			MMIODev mmio    = IMMIODev::create("mmio",2048, UNKNOWN);
 			mmio_le = IMMIODev::create("le", 1024, LE);
 			mmio_be = IMMIODev::create("be", 1024, BE);
 
-		mm->addAtAddress( mmio );
-		mmio->addAtAddress( mmio_le,    0);
-		mmio->addAtAddress( mmio_be,    0);
+			mm->addAtAddress( mmio );
+			mmio->addAtAddress( mmio_le,    0);
+			mmio->addAtAddress( mmio_be,    0);
 
-		root     = cmm = mm;
+			root     = cmm = mm;
+		} else {
+			/* test cloning entire hierarchy */
+			EntryImpl ei = CShObj::clone( mm->getSelf() );
+			root = ei->isHub();
+			cmm  = dynamic_pointer_cast<ConstMemDev::element_type>( root );
+			mmio_le.reset();
+			mmio_be.reset();
+			mm.reset();
+			use_hier = true;
+		}
 	}
 
 	membuf   = cmm->getBufp();
@@ -263,13 +281,14 @@ unsigned bits_idx, shft_idx, sign_idx;
 
 						sprintf(nm,"i%i-%i-%c-%i", bits[bits_idx], shft[shft_idx], sign[sign_idx] ? 's' : 'u', wswap);
 
+						if ( ! use_hier ) {
 						IntField e = bldr->build( nm );
-
-						if ( ! use_yaml ) {
 							mmio_le->addAtAddress( e, 0, NELMS, STRIDE );
 							mmio_be->addAtAddress( e, 0, NELMS, STRIDE );
-						}
 printf("%s\n", e->getName());
+						}
+else
+printf("%s\n", nm);
 
 						ScalVal_RO v_le, v_be;
 						try {
@@ -426,6 +445,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 		}
 	}
 
+}
 
 
 }
