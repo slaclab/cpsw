@@ -816,6 +816,23 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"Note: 'append()' modifies the original path whereas 'concat' returns\n"
 			"      a new copy."
 		)
+		.def("intersect",    &IPath::concat,
+			( arg("self"), arg("path") ),
+			"\n"
+			"Return a new Path which covers the intersection of this path and 'path'\n"
+			"\n"
+			"The new path contains all array elements common to both paths. Returns\n"
+			"an empty path if there are no common elements or if the depth of the\n"
+			"paths differs"
+		)
+		.def("isIntersecting",&IPath::concat,
+			( arg("self"), arg("path") ),
+			"\n"
+			"A slightly more efficient version of 'intersect'\n"
+			"\n"
+			"If you only want to know if the intersection is (not)empty then isIntersecting\n"
+			"is more efficent"
+		)
 		.def("clone",        &IPath::clone,
 			( arg("self") ),
 			"\n"

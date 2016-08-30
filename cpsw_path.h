@@ -28,18 +28,16 @@ typedef std::vector<PathEntry>  PathEntryContainer;
 // and unmodified (at least from the beginning up to the node which
 // was at the tail at the time this iterator was created) while an
 // iterator is in use!
-class CompositePathIterator : public PathEntryContainer::reverse_iterator {
+class CompositePathIterator : public PathEntryContainer::const_reverse_iterator {
 	private:
 		bool                                  at_end_;
-		std::vector<PathEntryContainer::reverse_iterator> l_;
+		std::vector<PathEntryContainer::const_reverse_iterator> l_;
 		unsigned                              nelmsRight_;
 		unsigned                              nelmsLeft_;
 
 	public:
 		// construct from a single path
-		CompositePathIterator(Path *p);
-		// construct from a NULL-terminated list of paths
-		CompositePathIterator(Path *p0, Path *p, ...);
+		CompositePathIterator(ConstPath p);
 
 		unsigned getNelmsRight()
 		{
@@ -59,9 +57,9 @@ class CompositePathIterator : public PathEntryContainer::reverse_iterator {
 		// can path 'p' be concatenated with this one, i.e.,
 		// is the origin of 'p' identical with the element
 		// this iterator points to?
-		bool validConcatenation(Path p);
+		bool validConcatenation(ConstPath p);
 
-		void append(Path p);
+		CompositePathIterator & append(ConstPath p);
 
 		CompositePathIterator & operator++();
 		CompositePathIterator   operator++(int);

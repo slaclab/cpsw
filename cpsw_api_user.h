@@ -183,6 +183,15 @@ public:
 	// make a copy of this path
 	virtual Path        clone()                 const = 0;
 
+	// Compute a new path which is the intersection of this path and p
+	// (I.e., it contains all array elements (if any) common to both
+	// paths). Returns an empty path if there are no common elements.
+	virtual Path        intersect(Path p)       const = 0;
+
+	// Slightly more efficient version if you only are interested
+	// in whether paths intersect or not
+	virtual bool        isIntersecting(Path p)  const = 0;
+
 	// count number of array elements addressed by this path
 	virtual unsigned    getNelms()              const = 0;
 

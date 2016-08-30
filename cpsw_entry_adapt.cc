@@ -12,7 +12,7 @@ IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
 	if ( p->empty() )
 		throw InvalidPathError("<EMPTY>");
 
-	Address  a = CompositePathIterator( &p )->c_p_;
+	Address  a = CompositePathIterator( p )->c_p_;
 
 	if ( a->getEntryImpl() != ie )
 		throw InternalError("inconsistent args passed to IEntryAdapt");

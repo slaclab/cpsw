@@ -58,10 +58,13 @@ public:
 	virtual Path     clone()                      const;
 	virtual PathImpl cloneAsPathImpl()            const;
 
+	virtual Path     intersect(Path p)            const;
+	virtual bool     isIntersecting(Path p)       const;
+
 	static bool hasParent(CPathImpl::const_reverse_iterator &i);
 	static bool hasParent(CPathImpl::reverse_iterator &i);
 
-	virtual Child up() 
+	virtual Child up()
 	{
 	Child rval = NULLCHILD;
 		if ( ! empty() ) {
@@ -75,7 +78,7 @@ public:
 	{
 		if ( ! empty() )
 			return back();
-		
+
 		return PathEntry( NULLADDR, 0, -1 );
 	}
 
@@ -179,6 +182,12 @@ static CPathImpl *_toPathImpl(Path p)
 {
 	return static_cast<CPathImpl*>( p.get() );
 }
+
+static const CPathImpl *_toConstPathImpl(ConstPath p)
+{
+	return static_cast<const CPathImpl*>( p.get() );
+}
+
 
 IPathImpl * IPathImpl::toPathImpl(Path p)
 {
@@ -297,12 +306,88 @@ div_t d;
 		i = -i;
 	}
 	std::string::iterator here = s->end();
-	do { 
+	do {
 		d = div(i, 10);
 		s->insert(here, d.rem + '0');
 		i = d.quot;
 	} while ( i );
 }
+
+Path
+CPathImpl::intersect(Path p) const
+{
+	if ( !p || p->empty() || originAsDevImpl() != _toPathImpl(p)->originAsDevImpl() )
+		return Path();
+
+CPathImpl::const_iterator a  ( begin()    );
+CPathImpl::const_iterator a_e( end()      );
+CPathImpl::const_iterator b  ( _toPathImpl(p)->begin() );
+CPathImpl::const_iterator b_e( _toPathImpl(p)->end()   );
+
+PathImpl rval( make_shared<CPathImpl>( originAsDevImpl() ) );
+
+
+	while ( a != a_e ) {
+	int      f,t;
+
+		if ( b == b_e)
+			return Path();
+
+		// a != a_e && b != b_e
+		if ( a->c_p_ != b->c_p_ )
+			return Path();
+
+		if ( b->idxf_ > (f = a->idxf_) )
+			f = b->idxf_;
+
+		if ( b->idxt_ < (t = a->idxt_) )
+			t = b->idxt_;
+
+		if ( f > t )
+			return Path();
+
+		rval->append( a->c_p_, f, t );
+
+		++a; ++b;
+	}
+	return (b == b_e) ? rval : Path();
+}
+
+bool
+CPathImpl::isIntersecting(Path p) const
+{
+	if ( !p || p->empty() || originAsDevImpl() != _toPathImpl(p)->originAsDevImpl() )
+		return false;
+
+CPathImpl::const_iterator a  ( begin()    );
+CPathImpl::const_iterator a_e( end()      );
+CPathImpl::const_iterator b  ( _toPathImpl(p)->begin() );
+CPathImpl::const_iterator b_e( _toPathImpl(p)->end()   );
+
+	while ( a != a_e ) {
+	int      f,t;
+
+		if ( b == b_e)
+			return false;
+
+		// a != a_e && b != b_e
+		if ( a->c_p_ != b->c_p_ )
+			return false;
+
+		if ( b->idxf_ > (f = a->idxf_) )
+			f = b->idxf_;
+
+		if ( b->idxt_ < (t = a->idxt_) )
+			t = b->idxt_;
+
+		if ( f > t )
+			return false;
+
+		++a; ++b;
+	}
+	return (b == b_e);
+}
+
 
 std::string CPathImpl::toString() const
 {
@@ -376,7 +461,7 @@ cout<<"using origin\n";
 #endif
 		} else {
 			throw InternalError();
-		} 
+		}
 	} else {
 		tailp = back().c_p_->getEntryImpl();
 #ifdef PATH_DEBUG
@@ -430,7 +515,7 @@ cout<<"starting at: "<<found->getName() << "\n";
 						|| (  cl <= op + 1)
 						|| (  sl && (sl < cl || sl != cl+1))
 						|| ( !sl && *(cl+1) )
-						|| (  mi && (mi >= cl-1 || mi <= op + 1) ) 
+						|| (  mi && (mi >= cl-1 || mi <= op + 1) )
 				   ) {
 					throw InvalidPathError( s );
 				}
@@ -497,7 +582,7 @@ bool CPathImpl::verifyAtTail(ConstDevImpl h)
 	if ( empty() ) {
 		originDev_ = h;
 		return true;
-	} 
+	}
 	return (    static_pointer_cast<Entry::element_type, ConstDevImpl::element_type>( h )
 	         == static_pointer_cast<Entry::element_type, EntryImpl::element_type>( back().c_p_->getEntryImpl() ) );
 }
@@ -641,7 +726,7 @@ CPathImpl::processYamlConfig(YAML::Node &template_node, bool doDump) const
 	}
 }
 
-bool CompositePathIterator::validConcatenation(Path p)
+bool CompositePathIterator::validConcatenation(ConstPath p)
 {
 	if ( atEnd() )
 		return true;
@@ -651,16 +736,16 @@ bool CompositePathIterator::validConcatenation(Path p)
 	         == static_pointer_cast<Entry::element_type, EntryImpl::element_type>( (*this)->c_p_->getEntryImpl() ) );
 }
 
-static CPathImpl::reverse_iterator rbegin(Path p)
+static CPathImpl::const_reverse_iterator rbegin(ConstPath p)
 {
-	return _toPathImpl(p)->rbegin();
+	return _toConstPathImpl(p)->rbegin();
 }
 
 
-void CompositePathIterator::append(Path p)
+CompositePathIterator & CompositePathIterator::append(ConstPath p)
 {
 	if ( p->empty() )
-		return;
+		return *this;
 	if ( ! validConcatenation( p ) ) {
 		throw InvalidPathError( p->toString() );
 	}
@@ -671,32 +756,17 @@ void CompositePathIterator::append(Path p)
 		if ( nelmsLeft_ != 1 )
 			throw InternalError("assertion failed: nelmsLeft should == 1 at this point");
 	}
-	CPathImpl::reverse_iterator::operator=( rbegin(p) );
+	CPathImpl::const_reverse_iterator::operator=( rbegin(p) );
 	at_end_     = false;
 	nelmsRight_ = 1;
+	return *this;
 }
 
-CompositePathIterator::CompositePathIterator(Path *p0, Path *p, ...)
-{
-	va_list ap;
-	va_start(ap, p);
-	nelmsLeft_ = 1;
-	if ( ! (at_end_ = (*p0)->empty()) ) {
-		CPathImpl::reverse_iterator::operator=( rbegin(*p0) );
-	}
-	while ( p ) {
-		append( *p );
-		p = va_arg(ap, Path*);
-	}
-	va_end(ap);
-	nelmsRight_ = 1;
-}
-
-CompositePathIterator::CompositePathIterator(Path *p)
+CompositePathIterator::CompositePathIterator(ConstPath p)
 {
 	nelmsLeft_  = 1;
-	if ( ! (at_end_ = (*p)->empty()) ) {
-		CPathImpl::reverse_iterator::operator=( rbegin(*p) );
+	if ( ! (at_end_ = p->empty()) ) {
+		CPathImpl::const_reverse_iterator::operator=( rbegin( p ) );
 	}
 	nelmsRight_ = 1;
 }
@@ -704,10 +774,10 @@ CompositePathIterator::CompositePathIterator(Path *p)
 CompositePathIterator & CompositePathIterator::operator++()
 {
 	nelmsRight_ *= ((*this)->idxt_ - (*this)->idxf_) + 1;
-	CPathImpl::reverse_iterator::operator++();
+	CPathImpl::const_reverse_iterator::operator++();
 	if ( ! CPathImpl::hasParent(*this) ) {
 		if ( ! l_.empty() ) {
-			CPathImpl::reverse_iterator::operator=(l_.back());
+			CPathImpl::const_reverse_iterator::operator=(l_.back());
 			l_.pop_back();
 			nelmsLeft_ /= (*this)->nelmsLeft_;
 		} else {
