@@ -58,8 +58,8 @@ public:
 	virtual Path     clone()                      const;
 	virtual PathImpl cloneAsPathImpl()            const;
 
-	virtual Path     intersect(Path p)            const;
-	virtual bool     isIntersecting(Path p)       const;
+	virtual Path     intersect(ConstPath p)            const;
+	virtual bool     isIntersecting(ConstPath p)       const;
 
 	static bool hasParent(CPathImpl::const_reverse_iterator &i);
 	static bool hasParent(CPathImpl::reverse_iterator &i);
@@ -93,14 +93,14 @@ public:
 		return tailAsPathEntry().nelmsLeft_;
 	}
 
-	virtual bool verifyAtTail(Path p);
+	virtual bool verifyAtTail(ConstPath p);
 	virtual bool verifyAtTail(ConstDevImpl c);
 
-	virtual void append(Path p);
+	virtual void append(ConstPath p);
 	virtual void append(Address);
 	virtual void append(Address, int, int);
 
-	virtual Path concat(Path p) const;
+	virtual Path concat(ConstPath p) const;
 
 	virtual ConstDevImpl parentAsDevImpl() const;
 
@@ -314,15 +314,15 @@ div_t d;
 }
 
 Path
-CPathImpl::intersect(Path p) const
+CPathImpl::intersect(ConstPath p) const
 {
-	if ( !p || p->empty() || originAsDevImpl() != _toPathImpl(p)->originAsDevImpl() )
+	if ( !p || p->empty() || originAsDevImpl() != _toConstPathImpl(p)->originAsDevImpl() )
 		return Path();
 
 CPathImpl::const_iterator a  ( begin()    );
 CPathImpl::const_iterator a_e( end()      );
-CPathImpl::const_iterator b  ( _toPathImpl(p)->begin() );
-CPathImpl::const_iterator b_e( _toPathImpl(p)->end()   );
+CPathImpl::const_iterator b  ( _toConstPathImpl(p)->begin() );
+CPathImpl::const_iterator b_e( _toConstPathImpl(p)->end()   );
 
 PathImpl rval( make_shared<CPathImpl>( originAsDevImpl() ) );
 
@@ -354,15 +354,15 @@ PathImpl rval( make_shared<CPathImpl>( originAsDevImpl() ) );
 }
 
 bool
-CPathImpl::isIntersecting(Path p) const
+CPathImpl::isIntersecting(ConstPath p) const
 {
-	if ( !p || p->empty() || originAsDevImpl() != _toPathImpl(p)->originAsDevImpl() )
+	if ( !p || p->empty() || originAsDevImpl() != _toConstPathImpl(p)->originAsDevImpl() )
 		return false;
 
 CPathImpl::const_iterator a  ( begin()    );
 CPathImpl::const_iterator a_e( end()      );
-CPathImpl::const_iterator b  ( _toPathImpl(p)->begin() );
-CPathImpl::const_iterator b_e( _toPathImpl(p)->end()   );
+CPathImpl::const_iterator b  ( _toConstPathImpl(p)->begin() );
+CPathImpl::const_iterator b_e( _toConstPathImpl(p)->end()   );
 
 	while ( a != a_e ) {
 	int      f,t;
@@ -571,9 +571,9 @@ Hub CPathImpl::parent() const
 	return parentAsDevImpl();
 }
 
-bool CPathImpl::verifyAtTail(Path p)
+bool CPathImpl::verifyAtTail(ConstPath p)
 {
-CPathImpl *pi = _toPathImpl( p );
+const CPathImpl *pi = _toConstPathImpl( p );
 	return verifyAtTail( pi->originAsDevImpl() );
 }
 
@@ -588,12 +588,12 @@ bool CPathImpl::verifyAtTail(ConstDevImpl h)
 }
 
 
-static void append2(CPathImpl *h, CPathImpl *t)
+static void append2(CPathImpl *h, const CPathImpl *t)
 {
 	if ( ! h->verifyAtTail( t->originAsDevImpl() ) )
 		throw InvalidPathError( t->toString() );
 
-	CPathImpl::iterator it = t->begin();
+	CPathImpl::const_iterator it = t->begin();
 
 	unsigned nelmsLeft = h->getNelms();
 	for ( ;  it != t->end(); ++it ) {
@@ -613,13 +613,13 @@ PathImpl CPathImpl::cloneAsPathImpl() const
 	return make_shared<CPathImpl>( *this );
 }
 
-Path CPathImpl::concat(Path p) const
+Path CPathImpl::concat(ConstPath p) const
 {
 PathImpl rval = cloneAsPathImpl();
 
 	if ( ! p->empty() ) {
-		CPathImpl *h = rval.get();
-		CPathImpl *t = _toPathImpl(p);
+		CPathImpl       *h = rval.get();
+		const CPathImpl *t = _toConstPathImpl(p);
 
 		append2(h, t);
 	}
@@ -627,10 +627,10 @@ PathImpl rval = cloneAsPathImpl();
 	return rval;
 }
 
-void CPathImpl::append(Path p)
+void CPathImpl::append(ConstPath p)
 {
 	if ( ! p->empty() )
-		append2(this, _toPathImpl(p));
+		append2(this, _toConstPathImpl(p));
 }
 
 void CPathImpl::append(Address a, int f, int t)

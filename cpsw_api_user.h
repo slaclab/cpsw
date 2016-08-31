@@ -46,6 +46,9 @@ namespace YAML {
 class IYamlSupportBase {
 public:
 	virtual void dumpYaml(YAML::Node &n) const = 0;
+
+	static const int MIN_SUPPORTED_SCHEMA = 3;
+	static const int MAX_SUPPORTED_SCHEMA = 3;
 };
 
 
@@ -152,55 +155,55 @@ public:
 	// lookup 'name' under this path and return new 'full' path
 	virtual Path        findByName(const char *name) const = 0;
 	// strip last element off this path and return child at tail (or NULL if none)
-	virtual Child       up()                          = 0;
+	virtual Child       up()                               = 0;
 	// test if this path is empty
-	virtual bool        empty()                 const = 0;
+	virtual bool        empty()                      const = 0;
 
 	// return depth of the path, i.e., how many '/' separated
 	// "levels" there are
-	virtual int         size()                  const = 0;
+	virtual int         size()                       const = 0;
 
-	virtual void        clear()                       = 0; // absolute; reset to root
-	virtual void        clear(Hub)                    = 0; // relative; reset to passed arg
+	virtual void        clear()                            = 0; // absolute; reset to root
+	virtual void        clear(Hub)                         = 0; // relative; reset to passed arg
 	// return Hub at the tip of this path (if any -- NULL otherwise)
-	virtual       Hub   origin()                const = 0;
+	virtual       Hub   origin()                     const = 0;
 	// return parent Hub (if any -- NULL otherwise )
-	virtual       Hub   parent()                const = 0;
+	virtual       Hub   parent()                     const = 0;
 	// return Child at the end of this path (if any -- NULL otherwise)
-	virtual Child       tail()                  const = 0;
-	virtual std::string toString()              const = 0;
-	virtual void        dump(FILE *)            const = 0;
+	virtual Child       tail()                       const = 0;
+	virtual std::string toString()                   const = 0;
+	virtual void        dump(FILE *)                 const = 0;
 	// verify the 'head' of 'p' is identical with the tail of this path
-	virtual bool        verifyAtTail(Path p)          = 0;
+	virtual bool        verifyAtTail(ConstPath p)          = 0;
 	// append a copy of another path to this one.
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
-	virtual void        append(Path p)                = 0;
+	virtual void        append(ConstPath p)                = 0;
 
 	// append a copy of another path to a copy of this one and return the new copy
 	// Note: an exception is thrown if this->verifyAtTail( p->origin() ) evaluates to 'false'.
-	virtual Path        concat(Path p)          const = 0;
+	virtual Path        concat(ConstPath p)          const = 0;
 
 	// make a copy of this path
-	virtual Path        clone()                 const = 0;
+	virtual Path        clone()                      const = 0;
 
 	// Compute a new path which is the intersection of this path and p
 	// (I.e., it contains all array elements (if any) common to both
 	// paths). Returns an empty path if there are no common elements.
-	virtual Path        intersect(Path p)       const = 0;
+	virtual Path        intersect(ConstPath p)       const = 0;
 
 	// Slightly more efficient version if you only are interested
 	// in whether paths intersect or not
-	virtual bool        isIntersecting(Path p)  const = 0;
+	virtual bool        isIntersecting(ConstPath p)  const = 0;
 
 	// count number of array elements addressed by this path
-	virtual unsigned    getNelms()              const = 0;
+	virtual unsigned    getNelms()                   const = 0;
 
 	// 'from' and 'to' indices addressed by the tail of this path
-	virtual unsigned    getTailFrom()           const = 0;
-	virtual unsigned    getTailTo()             const = 0;
+	virtual unsigned    getTailFrom()                const = 0;
+	virtual unsigned    getTailTo()                  const = 0;
 
 	// recurse through the hierarchy
-	virtual void        explore(IPathVisitor *) const = 0;
+	virtual void        explore(IPathVisitor *)      const = 0;
 
 	/*!
 	 * Recurse through hierarchy (underneath this path), and let
