@@ -11,6 +11,7 @@
 static void test_a53564754e5eaa9029ff(bool use_yaml)
 {
 const char *yaml=
+"#schemaversion 3.0.0\n"
 "root:\n"
 "  "YAML_KEY_class": Dev\n"
 "  "YAML_KEY_children":\n"
@@ -114,6 +115,7 @@ Hub      hh;
 static Hub build_yaml()
 {
 const char *yaml=
+"#schemaversion 3.0.0\n"
 "root:\n"
 "  "YAML_KEY_class": Dev\n"
 "  "YAML_KEY_children":\n"

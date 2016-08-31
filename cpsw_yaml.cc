@@ -137,13 +137,19 @@ PNode::operator=(const PNode &orig)
 			parent_->child_ = this;
 		orig.parent_ = 0;
 		orig.child_  = 0;
+		maj_ = orig.maj_;
+		min_ = orig.min_;
+		rev_ = orig.rev_;
 	}
 	return *this;
 }
 
 // 'copy constructor'; moves parent/child from the original to the destination
 PNode::PNode(const PNode &orig)
-: Node( static_cast<const YAML::Node&>(orig) )
+: Node( static_cast<const YAML::Node&>(orig) ),
+  maj_( orig.maj_ ),
+  min_( orig.min_ ),
+  rev_( orig.rev_ )
 {
 	parent_ = orig.parent_;
 	child_  = orig.child_;
@@ -158,10 +164,43 @@ PNode::PNode( const PNode *parent, const char *key, const Node &node)
 : Node( node ),
   parent_( parent ),
   child_ ( 0 ),
-  key_( key )
+  key_( key ),
+  maj_( -1 ),
+  min_( -1 ),
+  rev_( -1 )
 {
-	if ( parent_ )
+	if ( parent_ ) {
 		parent_->child_ = this;
+		maj_ = parent->maj_;
+		min_ = parent->min_;
+		rev_ = parent->rev_;
+	}
+}
+
+PNode::PNode( const char *key, const Node &node )
+: Node( node ),
+  parent_( 0 ),
+  child_( 0 ),
+  key_( key ),
+  maj_( -1 ),
+  min_( -1 ),
+  rev_( -1 )
+{
+	{
+	YAML::Node n(node[ YAML_KEY_schemaVersionMajor    ]);
+	if ( n )
+		maj_ = n.as<int>();
+	}
+	{
+	YAML::Node n(node[ YAML_KEY_schemaVersionMinor    ]);
+	if ( n )
+		min_ = n.as<int>();
+	}
+	{
+	YAML::Node n(node[ YAML_KEY_schemaVersionRevision ]);
+	if ( n )
+		rev_ = n.as<int>();
+	}
 }
 
 std::string
@@ -203,6 +242,9 @@ PNode::PNode( const PNode *parent, const char *key )
 			  + std::string(" asready has a child!")
 			    );
 	parent_->child_ = this;
+	maj_            = parent->maj_;
+	min_            = parent->min_;
+	rev_            = parent->rev_;
 }
 
 // Construct a PNode by sequence lookup while remembering
@@ -214,6 +256,9 @@ PNode::PNode( const PNode *parent, unsigned index)
   key_(0)
 {
 	parent_->child_ = this;
+	maj_            = parent->maj_;
+	min_            = parent->min_;
+	rev_            = parent->rev_;
 }
 
 PNode::~PNode()
@@ -659,7 +704,7 @@ AddChildrenVisitor  visitor( &d, registry );
 Dev
 CYamlFieldFactoryBase::dispatchMakeField(const YAML::Node &node, const char *root_name)
 {
-YamlState root( 0, root_name, root_name ? node[root_name] : node );
+YamlState root( root_name, root_name ? node[root_name] : node );
 	/* Root node must be a Dev */
 	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry()->makeItem( root ) );
 }
@@ -671,11 +716,27 @@ StreamMuxBuf         muxer;
 
 YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
 
-		preprocessor.process();
+	preprocessor.process();
 
-		std::istream top_preprocessed_stream( &muxer );
+	std::istream top_preprocessed_stream( &muxer );
 
-		return YAML::Load( top_preprocessed_stream );
+	YAML::Node rootNode( YAML::Load( top_preprocessed_stream ) );
+
+	int vers;
+	if ( (vers = preprocessor.getSchemaVersionMajor()) >= 0 ) {
+		rootNode[ YAML_KEY_schemaVersionMajor ] = vers;
+	}
+
+	if ( (vers = preprocessor.getSchemaVersionMinor()) >= 0 ) {
+		rootNode[ YAML_KEY_schemaVersionMinor ] = vers;
+	}
+
+	if ( (vers = preprocessor.getSchemaVersionRevision()) >= 0 ) {
+		rootNode[ YAML_KEY_schemaVersionRevision ] = vers;
+	}
+			
+
+	return rootNode;
 }
 
 class NoOpDeletor {
@@ -741,8 +802,10 @@ shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const Entry
 
 	if ( file_name ) {
 		std::ofstream os( file_name );
+		os        << "#schemaversion " << IYamlSupportBase::MAX_SUPPORTED_SCHEMA << ".0.0\n";
 		os        << emit.c_str() << "\n";
 	} else {
+		std::cout << "#schemaversion " << IYamlSupportBase::MAX_SUPPORTED_SCHEMA << ".0.0\n";
 		std::cout << emit.c_str() << "\n";
 	}
 }

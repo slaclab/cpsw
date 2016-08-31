@@ -3,7 +3,9 @@
 #ifndef CPSW_YAML_KEYDEFS_H
 #define CPSW_YAML_KEYDEFS_H
 
-/* Use leading underscore for macros; C++ symbols don't have it */
+#define YAML_KEY_schemaVersionMajor    "schemaVersionMajor"
+#define YAML_KEY_schemaVersionMinor    "schemaVersionMinor"
+#define YAML_KEY_schemaVersionRevision "schemaVersionRevision"
 #define YAML_KEY_MERGE  "<<"
 #define YAML_KEY_at  "at"
 #define YAML_KEY_byteOrder  "byteOrder"

@@ -4,6 +4,7 @@
 #include <iostream>
 
 static const char *yaml=
+"#schemaversion 3.0.0\n"
 "default:\n"
 "  root: &default\n"
 "    "YAML_KEY_children":\n"

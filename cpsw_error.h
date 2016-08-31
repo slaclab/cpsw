@@ -305,4 +305,30 @@ public:
 	}
 };
 
+class MultipleInstantiationError : public CPSWError {
+public:
+	MultipleInstantiationError(const char *s)
+	: CPSWError(s)
+	{
+	}
+
+	MultipleInstantiationError(const std::string &s)
+	: CPSWError(s)
+	{
+	}
+};
+
+class BadSchemaVersionError : public CPSWError {
+public:
+	BadSchemaVersionError(const char *s)
+	: CPSWError(s)
+	{
+	}
+
+	BadSchemaVersionError(const std::string &s)
+	: CPSWError(s)
+	{
+	}
+};
+
 #endif

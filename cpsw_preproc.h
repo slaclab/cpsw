@@ -64,9 +64,13 @@ class YamlPreprocessor {
 private:
 	typedef unordered_set<std::string>  Map;
 	StreamMuxBuf::Stream                main_;
+	std::string                         mainName_;
 	StreamMuxBuf                       *mux_;
 	Map                                 tags_;
 	std::string                         path_;
+	int                                 major_;
+	int                                 minor_;
+	int                                 revision_;
 
 	// no copying
 	YamlPreprocessor(const YamlPreprocessor &);
@@ -92,6 +96,21 @@ public:
 	//
 	YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux, const char *yaml_dir);
 
+	int getSchemaVersionMajor() const
+	{
+		return major_;
+	}
+
+	int getSchemaVersionMinor() const
+	{
+		return minor_;
+	}
+
+	int getSchemaVersionRevision() const
+	{
+		return revision_;
+	}
+
 
 	// helper which creates the main Stream
 	YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, const char *yaml_dir);
@@ -102,7 +121,7 @@ protected:
 	virtual bool check_exists(const std::string &key);
 
 	// process a Stream
-	virtual void process(StreamMuxBuf::Stream current);
+	virtual void process(StreamMuxBuf::Stream current, const std::string &name);
 
 public:
 

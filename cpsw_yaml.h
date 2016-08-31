@@ -28,6 +28,9 @@ namespace YAML {
 		const PNode mutable * parent_;
 		const PNode mutable * child_;
 		const char          * key_;
+		int                   maj_;
+		int                   min_;
+		int                   rev_;
 
 	public:
 		void dump() const;
@@ -57,7 +60,7 @@ namespace YAML {
 		PNode( const PNode *parent, const char *key );
 
 		// A PNode from a Node
-		PNode( const PNode *parent, const char *key, const Node &node);
+		PNode( const PNode *parent, const char *key, const Node &node );
 
 		// Construct a PNode by sequence lookup while remembering
 		// the parent.
@@ -65,9 +68,27 @@ namespace YAML {
 		// backing up through sequences!
 		PNode( const PNode *parent, unsigned index );
 
+		// Root node constructor
+		PNode( const char *key, const Node &node );
+
         // Build a string from all the ancestors to this PNode.
 		// Generations are separated by '/'.
 		std::string toString() const;
+
+		int getSchemaVersionMajor() const
+		{
+			return maj_;
+		}
+
+		int getSchemaVersionMinor() const
+		{
+			return min_;
+		}
+
+		int getSchemaVersionRevision() const
+		{
+			return rev_;
+		}
 
 		~PNode();
 

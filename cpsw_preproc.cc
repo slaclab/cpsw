@@ -1,4 +1,5 @@
 
+#include <cpsw_api_user.h>
 #include <cpsw_preproc.h>
 
 #include <iostream>
@@ -94,7 +95,11 @@ size_t l = yaml_dir ? strlen(yaml_dir) : 0;
 
 YamlPreprocessor::YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux, const char *yaml_dir)
 : main_(inp),
-  mux_(mux)
+  mainName_("<stream>"),
+  mux_(mux),
+  major_(-1),
+  minor_(-1),
+  revision_(-1)
 {
 	set_path( &path_, yaml_dir );
 	if ( inp->fail() ) {
@@ -104,7 +109,11 @@ YamlPreprocessor::YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux, 
 
 YamlPreprocessor::YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, const char *yaml_dir)
 : main_( StreamMuxBuf::mkstrm( main_name ) ),
-  mux_(mux)
+  mainName_( main_name ),
+  mux_(mux),
+  major_(-1),
+  minor_(-1),
+  revision_(-1)
 {
 const char  *sep;
 std::string  main_dir;
@@ -124,15 +133,21 @@ std::pair< Map::iterator, bool > ret = tags_.insert( key );
 }
 
 void
-YamlPreprocessor::process(StreamMuxBuf::Stream current)
+YamlPreprocessor::process(StreamMuxBuf::Stream current, const std::string &name)
 {
+int maj = -1;
+int min, rev;
+
 	while ( '#' == current->peek() ) {
 		std::string line;
 		std::getline(*current, line );
 
 		if ( 0 == line.compare(1, 5, "once ") ) {
-			if ( line.size() < 7 )
-				throw MissingOnceTagError("YamlPreprocessor: #once line lacks a 'tag'");
+			if ( line.size() < 7 ) {
+				MissingOnceTagError e("YamlPreprocessor: #once line lacks a 'tag' -- in: ");
+				e.append( name );
+				throw e;
+			}
 
 			// if tag exist already then ignore rest of file
 			if ( check_exists( line.substr(6) ) )
@@ -141,7 +156,9 @@ YamlPreprocessor::process(StreamMuxBuf::Stream current)
 		} else if ( 0 == line.compare(1, 8, "include ") ) {
 			size_t beg = line.find_first_not_of(" \t", 8);
 			if ( beg == std::string::npos ) {
-				throw MissingIncludeFileNameError("YamlPreprocessor: #include line lacks a 'filename'");
+				MissingIncludeFileNameError e("YamlPreprocessor: #include line lacks a 'filename' -- in: ");
+				e.append( name );
+				throw e;
 			}
 			size_t len = line.find_first_of(" \t",beg);
 
@@ -150,8 +167,44 @@ YamlPreprocessor::process(StreamMuxBuf::Stream current)
 
 			// recursively process included file
 			// in same directory
-			process( StreamMuxBuf::mkstrm( ( path_ + line.substr(beg, len) ).c_str() ) );
+			std::string incFnam( path_ + line.substr(beg, len) );
+			process( StreamMuxBuf::mkstrm( incFnam.c_str() ), incFnam );
+		} else if ( 0 == line.compare(1, 14, "schemaversion ") ) {
+			if ( 3 != ::sscanf( line.c_str() + 15, "%d.%d.%d", &maj, &min, &rev  ) ) {
+				BadSchemaVersionError e("YamlPreprocessor: #schemaversion lacks <major>.<minor>.<revision> triple -- in: "); 
+				e.append( name );
+				throw e;
+			}
+			if ( major_ < 0 ) {
+				major_    = maj;
+				minor_    = min;
+				revision_ = rev;
+			} else {
+				if ( major_ != maj ) {
+					BadSchemaVersionError e("YamlPreprocessor: mismatch of major versions among files -- in: ");
+					e.append( name );
+					throw e;
+				}
+				if (    major_ < IYamlSupportBase::MIN_SUPPORTED_SCHEMA
+				     || major_ > IYamlSupportBase::MAX_SUPPORTED_SCHEMA ) {
+					BadSchemaVersionError e("YamlPreprocessor: major version of this file not supported -- in: ");
+					e.append( name );
+					throw e;
+				}
+				if ( min < minor_ ) {
+					minor_    = min;
+					revision_ = rev;
+				} else if ( min == minor_ && rev < revision_ ) {
+					revision_ = rev;
+				}
+			}
 		}
+	}
+
+	if ( maj < 0 ) {
+		BadSchemaVersionError e("YamlPreprocessor: no #schemaversion -- in: ");
+		e.append( name );
+		throw e;
 	}
 
 	if ( current->good() ) {
@@ -165,5 +218,5 @@ YamlPreprocessor::process(StreamMuxBuf::Stream current)
 void
 YamlPreprocessor::process()
 {
-	process( main_ );
+	process( main_, mainName_ );
 }

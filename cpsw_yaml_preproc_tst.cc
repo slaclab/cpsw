@@ -12,6 +12,7 @@
 
 const char *topyaml =
 "#\n"
+"#schemaversion 3.0.0\n"
 "#once main\n"
 "#include "INC"\n"
 "#\n"
@@ -25,6 +26,7 @@ const char *topyaml =
 
 const char *incyaml =
 "#\n"
+"#schemaversion 3.0.0\n"
 "#once include\n"
 "#include "TOP"\n"
 "#\n"
@@ -40,6 +42,7 @@ const char *incyaml =
 
 const char *noincincyaml =
 "#\n"
+"#schemaversion 3.0.0\n"
 "#once include\n"
 "#\n"
 "\n"
