@@ -4,6 +4,7 @@
 #include <cpsw_error.h>
 #include <pthread.h>
 #include <errno.h>
+#include <boost/atomic.hpp>
 
 class CMtx {
 	pthread_mutex_t m_;
@@ -124,6 +125,64 @@ public:
 	}
 
 	pthread_mutex_t *getp() { return &m_; }
+};
+
+// mutex with lazy initialization
+class CMtxLazy {
+private:
+	boost::atomic<CMtx *> theMtx_;
+	bool                  recursive_;
+    const char           *name_;
+
+private:
+	CMtxLazy(const CMtxLazy &);
+	CMtxLazy & operator=(const CMtxLazy &);
+
+public:
+
+	CMtxLazy(bool recursive = false, const char *name = "<none>")
+	: recursive_(recursive),
+	  name_(name)
+	{
+		theMtx_.store( 0, boost::memory_order_release );
+	}
+
+	CMtx * getMtx()
+	{
+		CMtx *mtx = theMtx_.load( boost::memory_order_acquire );
+		if ( ! mtx ) {
+			CMtx *nmtx = recursive_ ? new CMtx( CMtx::AttrRecursive(), name_ ) : new CMtx( name_ );
+			do {
+				if ( theMtx_.compare_exchange_weak( mtx,  nmtx, boost::memory_order_acq_rel ) )
+					// successfully exchanged; 'nmtx' installed
+					return nmtx;
+			} while ( ! mtx );
+            // if we get here then exchange was not performed AND mtx installed by someone else
+			delete nmtx;
+		}
+		return mtx;
+	}
+
+	CMtx & operator*()
+	{
+		return *getMtx();
+	}
+	
+	// Nobody must hold the mutex when it is being destroyed!
+	~CMtxLazy()
+	{
+		CMtx *mtx = theMtx_.load( boost::memory_order_acquire );
+		if ( mtx )
+			delete( mtx );
+	}
+
+	class lg : public CMtx::lg {
+		public:
+			lg(CMtxLazy &m, bool block = true)
+			: CMtx::lg( m.getMtx(), block )
+			{
+			}
+	};
 };
 
 #endif
