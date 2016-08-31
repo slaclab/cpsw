@@ -3,6 +3,7 @@
 
 #include <cpsw_api_builder.h>
 #include <cpsw_shared_obj.h>
+#include <cpsw_mutex.h>
 
 #include <boost/weak_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -15,15 +16,20 @@ using boost::make_shared;
 class   Visitor;
 
 class   CEntryImpl;
-typedef shared_ptr<CEntryImpl>      EntryImpl;
+typedef shared_ptr<CEntryImpl>        EntryImpl;
 
 class   CDevImpl;
-typedef shared_ptr<const CDevImpl>  ConstDevImpl;
+typedef shared_ptr<const CDevImpl>    ConstDevImpl;
+
+class IEntryAdapterKey;
 
 class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase {
 	public:
 		static const int CONFIG_PRIO_OFF = 0;
 		static const int DFLT_CONFIG_PRIO = CONFIG_PRIO_OFF;
+
+		class                              CUniqueHandle;
+		typedef shared_ptr<CUniqueHandle>   UniqueHandle;
 
 	private:
 		// WARNING -- when modifying fields you might need to
@@ -34,10 +40,36 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 	protected:
 		uint64_t    	    size_;
 	private:
-		mutable Cacheable   cacheable_;
-		mutable int         configPrio_;
-		mutable bool        configPrioSet_;
-		mutable bool        locked_;
+
+		class CUniqueListHead {
+		protected:
+			CUniqueHandle *n_;
+
+		public:
+			CUniqueListHead()
+			: n_(0)
+			{
+			}
+
+			CUniqueHandle *getNext()
+			{
+				return n_;
+			}
+
+			void setNext(CUniqueHandle *n)
+			{
+				n_ = n;
+			}
+
+			~CUniqueListHead();
+		};
+
+		mutable Cacheable       cacheable_;
+		mutable int             configPrio_;
+		mutable bool            configPrioSet_;
+		mutable bool            locked_;
+		mutable CMtxLazy        uniqueListMtx_;
+		mutable CUniqueListHead uniqueListHead_;
 
 		CEntryImpl(const CEntryImpl &);
 		CEntryImpl &operator=(const CEntryImpl&);
@@ -134,6 +166,13 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 
 		virtual Hub isHub()                   const { return Hub();          }
 		virtual ConstDevImpl isConstDevImpl() const { return ConstDevImpl(); }
+
+		// obtain a unique handle. No other EntryAdapt can be created
+		// for a path that intersects with 'adapt's path until
+		// the handle goes out of scope.
+
+		// This member is not for general use (therefore the key argument)
+		virtual UniqueHandle getUniqueHandle(IEntryAdapterKey &key, ConstPath p) const;
 };
 
 #endif

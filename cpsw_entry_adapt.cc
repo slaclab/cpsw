@@ -20,3 +20,9 @@ IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
 		throw ConfigurationError("Configuration Error: byte-order not set");
 	}
 }
+
+void
+IEntryAdapt::setUnique(CEntryImpl::UniqueHandle uniqueHandle)
+{
+	uniq_ = uniqueHandle;
+}

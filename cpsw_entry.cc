@@ -1,6 +1,7 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_path.h>
 #include <cpsw_entry.h>
+#include <cpsw_entry_adapt.h>
 #include <cpsw_hub.h>
 #include <ctype.h>
 
@@ -11,6 +12,7 @@
 #include <cpsw_yaml.h>
 
 using boost::dynamic_pointer_cast;
+using boost::make_shared;
 
 const int CEntryImpl::CONFIG_PRIO_OFF;
 const int CEntryImpl::DFLT_CONFIG_PRIO;
@@ -197,4 +199,82 @@ void CEntryImpl::accept(IVisitor *v, RecursionOrder order, int depth)
 Field IField::create(const char *name, uint64_t size)
 {
 	return CShObj::create<EntryImpl>(name, size);
+}
+
+CEntryImpl::CUniqueListHead::~CUniqueListHead()
+{
+	if ( n_ )
+		throw InternalError("UniqueListHead not empty on destruction!");
+}
+
+class CEntryImpl::CUniqueHandle : public CEntryImpl::CUniqueListHead {
+private:
+	CUniqueListHead  *p_;
+	CMtx             *mtx_;
+	ConstPath         path_;
+
+public:
+	CUniqueHandle(CMtx *m, ConstPath path)
+	: CUniqueListHead(),
+	  p_(0),
+	  mtx_(m),
+	  path_(path)
+	{
+	}
+
+	// MUST be called from mutex - guarded code!
+	void add_unguarded(CUniqueListHead *h)
+	{
+		if ( (n_ = h->getNext()) )
+			n_->p_ = this;
+		p_    = h;
+		h->setNext( this );
+	}
+
+	void del_unguarded()
+	{
+		if ( p_ )
+			p_->setNext( n_ );
+		if ( n_ )
+			n_->p_ = p_;
+		n_ = 0;
+		p_ = 0;
+	}
+
+	ConstPath getConstPath()
+	{
+		return path_;
+	}
+
+	~CUniqueHandle()
+	{
+	CMtx::lg guard( mtx_ );
+		del_unguarded();
+	}
+};
+
+CEntryImpl::UniqueHandle
+CEntryImpl::getUniqueHandle(IEntryAdapterKey &k, ConstPath path) const
+{
+CMtx *mtx = uniqueListMtx_.getMtx();
+
+CMtx::lg guard( mtx );
+
+CUniqueHandle *nod = uniqueListHead_.getNext();
+
+	while ( nod ) {
+		if ( nod->getConstPath()->isIntersecting( path ) ) {
+			// must not instantiate this interface multiple times
+			throw MultipleInstantiationError( path->toString() );
+		}
+
+		nod = nod->getNext();
+	}
+
+	UniqueHandle h = make_shared<CUniqueHandle>( mtx, path );
+
+	// still protected by the guard (see above)
+	h->add_unguarded( &uniqueListHead_ );
+
+	return h;
 }
