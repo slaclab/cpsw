@@ -30,12 +30,9 @@ namespace YAML {
 
 class IProtoPort {
 public:
+
 	static const bool         ABS_TIMEOUT = true;
 	static const bool         REL_TIMEOUT = false;
-
-	// returns NULL shared_ptr on timeout; throws on error
-	virtual BufChain pop(const CTimeout *, bool abs_timeout) = 0;
-	virtual BufChain tryPop()                                = 0;
 
 	// If a port is taken offline then all traffic is dropped
 
@@ -48,9 +45,14 @@ public:
 	virtual bool      isOffline()                      const = 0;
 	virtual void      setOffline(bool)                       = 0;
 
+	// returns NULL shared_ptr on timeout; throws on error
+	virtual BufChain pop(const CTimeout *, bool abs_timeout) = 0;
+	virtual BufChain tryPop()                                = 0;
+
 	// Successfully pushed buffers are unlinked from the chain
 	virtual bool push(BufChain , const CTimeout *, bool abs_timeout) = 0;
 	virtual bool tryPush(BufChain)                           = 0;
+
 
 	virtual ProtoMod  getProtoMod()                          = 0;
 	virtual ProtoPort getUpstreamPort()                      = 0;
@@ -65,6 +67,10 @@ public:
 	virtual void      dumpYaml(YAML::Node &)     const       = 0;
 
 	virtual int       match(ProtoPortMatchParams*)           = 0;
+
+	virtual ~IProtoPort()
+	{
+	}
 };
 
 // find a protocol stack based on parameters
@@ -215,38 +221,13 @@ public:
 	virtual int iMatch(ProtoPortMatchParams *cmp) = 0;
 
 public:
-	IPortImpl()
-	{
-		offline_.store( true, boost::memory_order_release );
-	}
+	IPortImpl();
 
-	virtual int match(ProtoPortMatchParams *cmp)
-	{
-		int rval = iMatch(cmp);
+	virtual int match(ProtoPortMatchParams *cmp);
 
-		ProtoPort up( getUpstreamPort() );
+	virtual bool isOffline() const;
 
-		if ( up ) {
-			rval += up->match(cmp);
-		}
-
-		return rval;
-	}
-
-	virtual bool isOffline() const
-	{
-		return offline_.load( boost::memory_order_acquire );
-	}
-
-	virtual void setOffline(bool offline)
-	{
-		offline_.store( offline, boost::memory_order_release );
-		if ( offline ) {
-			// drain what might be there
-			while ( tryPop() )
-				;
-		}
-	}
+	virtual void setOffline(bool offline);
 };
 
 class CPortImpl : public IPortImpl {
@@ -278,224 +259,82 @@ protected:
 	virtual ProtoPort getSelfAsProtoPort()              = 0;
 
 public:
-	CPortImpl(unsigned n)
-	: outputQueue_( n > 0 ? IBufQueue::create( n ) : BufQueue() ),
-	  depth_(n)
-	{
-	}
+	CPortImpl(unsigned n);
 
-	virtual unsigned getQueueDepth() const
-	{
-		return depth_;
-	}
+	virtual unsigned getQueueDepth() const;
 
-	virtual IEventSource *getReadEventSource()
-	{
-		return outputQueue_ ? outputQueue_->getReadEventSource() : NULL;
-	}
+	virtual IEventSource *getReadEventSource();
 
-	virtual ProtoPort mustGetUpstreamPort()
-	{
-	ProtoPort rval = getUpstreamPort();
-		if ( ! rval )
-			throw InternalError("mustGetUpstreamPort() received NIL pointer\n");
-		return rval;
-	}
+	virtual ProtoPort mustGetUpstreamPort();
 
-	virtual void addAtPort(ProtoMod downstream)
-	{
-		if ( ! downstream_.expired() )
-			throw ConfigurationError("Already have a downstream module");
-		downstream_ = downstream;
-		downstream->attach( getSelfAsProtoPort() );
-		setOffline( false );
-	}
+	virtual void addAtPort(ProtoMod downstream);
 
-	virtual BufChain pop(const CTimeout *timeout, bool abs_timeout)
-	{
-		if ( ! outputQueue_ ) {
-			return processInput( mustGetUpstreamPort()->pop(timeout, abs_timeout) );
-		} else {
-			if ( ! timeout || timeout->isIndefinite() )
-				return outputQueue_->pop( 0 );
-			else if ( timeout->isNone() )
-				return outputQueue_->tryPop();
+	virtual BufChain pop(const CTimeout *timeout, bool abs_timeout);
 
-			if ( ! abs_timeout ) {
-				// arg is rel-timeout
-				CTimeout abst( getAbsTimeoutPop( timeout ) );
-				return outputQueue_->pop( &abst );
-			} else {
-				return outputQueue_->pop( timeout );
-			}
-		}
-	}
+	virtual bool pushDownstream(BufChain bc, const CTimeout *rel_timeout);
 
-	virtual bool pushDownstream(BufChain bc, const CTimeout *rel_timeout)
-	{
-		if ( isOffline() )
-			return true;
-
-		if ( outputQueue_ ) {
-			bool rval;
-			if ( !rel_timeout || rel_timeout->isIndefinite() ) {
-				rval = outputQueue_->push( bc, 0 );
-			} else if ( rel_timeout->isNone() ) {
-				rval = outputQueue_->tryPush( bc );
-			} else {
-				CTimeout abst( outputQueue_->getAbsTimeoutPush( rel_timeout ) );
-				rval = outputQueue_->push( bc, &abst );
-			}
-
-			if ( rval && isOffline() ) {
-				// just went offline - drain 
-				while ( tryPop() )
-					;
-			}
-
-			return rval;
-		} else {
-			throw InternalError("cannot push downstream without a queue");
-		}
-	}
 	// getAbsTimeout is not a member of the CTimeout class:
 	// the clock to be used is implementation dependent.
 	// ProtoMod uses a semaphore which uses CLOCK_REALTIME.
 	// The conversion to abs-time should be a member
 	// of the same class which uses the clock-dependent
 	// resource...
+	virtual CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout);
 
-	virtual CTimeout getAbsTimeoutPop(const CTimeout *rel_timeout)
-	{
-		if ( ! outputQueue_ )
-			return mustGetUpstreamPort()->getAbsTimeoutPop( rel_timeout );
-		return outputQueue_->getAbsTimeoutPop( rel_timeout );
-	}
+	virtual CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout);
 
-	virtual CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout)
-	{
-		return mustGetUpstreamPort()->getAbsTimeoutPush( rel_timeout );
-	}
+	virtual BufChain tryPop();
 
-	virtual BufChain tryPop()
-	{
-		if ( ! outputQueue_ ) {
-			return processInput( mustGetUpstreamPort()->tryPop() );
-		} else {
-			return outputQueue_->tryPop();
-		}
-	}
+	virtual bool push(BufChain bc, const CTimeout *timeout, bool abs_timeout);
 
-	virtual bool push(BufChain bc, const CTimeout *timeout, bool abs_timeout)
-	{
-		if ( isOffline() )
-			return false;
-		return mustGetUpstreamPort()->push( processOutput( bc ), timeout, abs_timeout );
-	}
+	virtual bool tryPush(BufChain bc);
 
-	virtual bool tryPush(BufChain bc)
-	{
-		if ( isOffline() )
-			return true;
-		return mustGetUpstreamPort()->tryPush( processOutput( bc ) );
-	}
-
-	virtual ProtoPort getUpstreamPort()
-	{
-		return getProtoMod()->getUpstreamPort();
-	}
+	virtual ProtoPort getUpstreamPort();
 
 	virtual ~CPortImpl()
 	{
 	}
-
 };
 
 class CProtoModImpl : public IProtoMod {
 protected:
 	ProtoPort  upstream_;
-	CProtoModImpl(const CProtoModImpl &orig)
-	{
-		// leave upstream_ NULL
-	}
+	CProtoModImpl(const CProtoModImpl &orig);
 
 public:
-	CProtoModImpl()
-	{
-	}
+	CProtoModImpl();
 
 	// subclasses may want to start threads
 	// once the module is attached
-	virtual void modStartup()
-	{
-	}
+	virtual void modStartup();
 
-	virtual void modShutdown()
-	{
-	}
+	virtual void modShutdown();
 
-	virtual void attach(ProtoPort upstream)
-	{
-		if ( upstream_ )
-			throw ConfigurationError("Already have an upstream module");
-		upstream_ = upstream;
-	}
+	virtual void attach(ProtoPort upstream);
 
-	virtual ProtoPort getUpstreamPort()
-	{
-		return upstream_;
-	}
+	virtual ProtoPort getUpstreamPort();
 
-	virtual ProtoMod  getUpstreamProtoMod()
-	{
-		ProtoPort p = getUpstreamPort();
-		ProtoMod  rval;
-		if ( p )
-			rval = p->getProtoMod();
-		return rval;
-	}
+	virtual ProtoMod  getUpstreamProtoMod();
 
-	virtual void dumpInfo(FILE *f)
-	{
-	}
+	virtual void dumpInfo(FILE *f);
 };
 
 // protocol module with single downstream port
 class CProtoMod : public CShObj, public CProtoModImpl, public CPortImpl {
 
 protected:
-	CProtoMod(const CProtoMod &orig, Key &k)
-	: CShObj(k),
-	  CProtoModImpl(orig),
-	  CPortImpl(orig)
-	{
-	}
+	CProtoMod(const CProtoMod &orig, Key &k);
 
-	virtual ProtoPort getSelfAsProtoPort()
-	{
-		return getSelfAs< shared_ptr<CProtoMod> >();
-	}
+	virtual ProtoPort getSelfAsProtoPort();
 
 public:
-	CProtoMod(Key &k, unsigned n)
-	: CShObj(k),
-	  CPortImpl(n)
-	{
-	}
+	CProtoMod(Key &k, unsigned n);
 
-	virtual bool pushDown(BufChain bc, const CTimeout *rel_timeout)
-	{
-		// out of downstream port
-		return pushDownstream( bc, rel_timeout );
-	}
-
+	virtual bool pushDown(BufChain bc, const CTimeout *rel_timeout);
 
 public:
 
-	virtual ProtoMod getProtoMod()
-	{
-		return getSelfAs< shared_ptr<CProtoMod> >();
-	}
+	virtual ProtoMod getProtoMod();
 
 	virtual ~CProtoMod()
 	{

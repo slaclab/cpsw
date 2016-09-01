@@ -27,6 +27,7 @@ cpsw_SRCS+= cpsw_rssi_proto.cc
 cpsw_SRCS+= cpsw_rssi.cc
 cpsw_SRCS+= cpsw_rssi_states.cc
 cpsw_SRCS+= cpsw_rssi_timer.cc
+cpsw_SRCS+= cpsw_proto_mod.cc
 cpsw_SRCS+= cpsw_proto_mod_depack.cc
 cpsw_SRCS+= cpsw_proto_mod_udp.cc
 cpsw_SRCS+= cpsw_proto_mod_srpmux.cc
