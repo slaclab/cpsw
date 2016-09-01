@@ -20,6 +20,9 @@ CProtoModRssi::pop(const CTimeout *timeout, bool abs_timeout)
 bool
 CProtoModRssi::push(BufChain bc, const CTimeout *timeout, bool abs_timeout)
 {
+	if ( isOffline() )
+		return false;
+
 	if ( ! timeout || timeout->isIndefinite() ) {
 		return inpQ_->push( bc, NULL );
 	} else if ( timeout->isNone() ) {
@@ -35,14 +38,22 @@ CProtoModRssi::push(BufChain bc, const CTimeout *timeout, bool abs_timeout)
 bool
 CProtoModRssi::pushDown(BufChain bc, const CTimeout *rel_timeout)
 {
+bool rval;
+	if ( isOffline() )
+		return true;
 	if ( ! rel_timeout || rel_timeout->isIndefinite() ) {
-		return outQ_->push( bc, NULL );
+		rval = outQ_->push( bc, NULL );
 	} else if ( rel_timeout->isNone() ) {
-		return outQ_->tryPush( bc );
+		rval = outQ_->tryPush( bc );
 	} else {
 		CTimeout abst( outQ_->getAbsTimeoutPush( rel_timeout ) );
-		return outQ_->push( bc, &abst );
+		rval = outQ_->push( bc, &abst );
 	}	
+	if ( rval && isOffline() ) {
+		while ( tryPop() )
+			;
+	}
+	return rval;
 }
 
 void
@@ -113,6 +124,7 @@ void
 CProtoModRssi::addAtPort(ProtoMod downstreamMod)
 {
 	downstreamMod->attach( getSelfAs<ProtoModRssi>() );
+	setOffline( false );
 }
 
 void

@@ -413,6 +413,7 @@ CSRPAddressImpl::dumpYamlPart(YAML::Node &node) const
 	writeNode(node, YAML_KEY_SRP, srpParms);
 }
 
+#ifdef TSILL
 CSRPAddressImpl::CSRPAddressImpl(AKey k, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 :CCommAddressImpl(k,ProtoPort()),
  protoVersion_(version),
@@ -543,6 +544,7 @@ unsigned             depackQDepth = 32;
 	nbits   = srpMuxMod->getTidNumBits();
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
 }
+#endif
 
 CSRPAddressImpl::~CSRPAddressImpl()
 {
@@ -1301,7 +1303,6 @@ void CCommAddressImpl::dump(FILE *f) const
 void CSRPAddressImpl::dump(FILE *f) const
 {
 	fprintf(f,"CSRPAddressImpl:\n");
-	CCommAddressImpl::dump(f);
 	fprintf(f,"SRP Info:\n");
 	fprintf(f,"  Protocol Version  : %8u\n",   protoVersion_);
 	fprintf(f,"  Timeout (user)    : %8"PRIu64"us\n", usrTimeout_.getUs());
@@ -1316,6 +1317,7 @@ void CSRPAddressImpl::dump(FILE *f) const
 	fprintf(f,"  # of writes (OK)  : %8u\n",   nWrites_);
 	fprintf(f,"  # of reads  (OK)  : %8u\n",   nReads_);
 	fprintf(f,"  Virtual Channel   : %8u\n",   vc_);
+	CCommAddressImpl::dump(f);
 }
 
 bool CNetIODevImpl::portInUse(unsigned port)
@@ -1810,7 +1812,27 @@ ProtoPort port;
 	}
 }
 
-uint64_t CCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+int
+CCommAddressImpl::open(CompositePathIterator *node)
+{
+int rval = CAddressImpl::open( node );
+	if ( 0 == rval ) {
+		getProtoStack()->setOffline( false );
+	}
+	return rval;
+}
+
+int
+CCommAddressImpl::close(CompositePathIterator *node)
+{
+int rval = CAddressImpl::close( node );
+	if ( 1 == rval )
+		getProtoStack()->setOffline( true );
+	return rval;
+}
+
+uint64_t
+CCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 BufChain bch;
 
@@ -1822,7 +1844,8 @@ BufChain bch;
 	return bch->extract( args->dst_, args->off_, args->nbytes_ );
 }
 
-uint64_t CCommAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+uint64_t
+CCommAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 BufChain bch = IBufChain::create();
 uint64_t rval;

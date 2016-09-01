@@ -4,6 +4,7 @@
 #include <cpsw_api_user.h>
 
 #include <boost/weak_ptr.hpp>
+#include <boost/atomic.hpp>
 #include <stdio.h>
 
 #include <cpsw_buf.h>
@@ -34,25 +35,36 @@ public:
 
 	// returns NULL shared_ptr on timeout; throws on error
 	virtual BufChain pop(const CTimeout *, bool abs_timeout) = 0;
-	virtual BufChain tryPop()                          = 0;
+	virtual BufChain tryPop()                                = 0;
+
+	// If a port is taken offline then all traffic is dropped
+
+	// NOTE: the 'offline' feature is a late addition and
+	//       ugly. We should really have a proper 'open' which
+	//       gives back a handle to an interface with methods
+	//       possible on an open port (push/pop).
+	//       This would imply a minor redesign of the ProtoPort
+	//       which I can't afford ATM.
+	virtual bool      isOffline()                      const = 0;
+	virtual void      setOffline(bool)                       = 0;
 
 	// Successfully pushed buffers are unlinked from the chain
 	virtual bool push(BufChain , const CTimeout *, bool abs_timeout) = 0;
-	virtual bool tryPush(BufChain)                        = 0;
+	virtual bool tryPush(BufChain)                           = 0;
 
-	virtual ProtoMod  getProtoMod()                       = 0;
-	virtual ProtoPort getUpstreamPort()                   = 0;
+	virtual ProtoMod  getProtoMod()                          = 0;
+	virtual ProtoPort getUpstreamPort()                      = 0;
 
-	virtual void      addAtPort(ProtoMod downstreamMod)   = 0;
+	virtual void      addAtPort(ProtoMod downstreamMod)      = 0;
 
-	virtual IEventSource *getReadEventSource()            = 0;
+	virtual IEventSource *getReadEventSource()               = 0;
 
-	virtual CTimeout  getAbsTimeoutPop (const CTimeout *) = 0;
-	virtual CTimeout  getAbsTimeoutPush(const CTimeout *) = 0;
+	virtual CTimeout  getAbsTimeoutPop (const CTimeout *)    = 0;
+	virtual CTimeout  getAbsTimeoutPush(const CTimeout *)    = 0;
 
-	virtual void      dumpYaml(YAML::Node &)     const    = 0;
+	virtual void      dumpYaml(YAML::Node &)     const       = 0;
 
-	virtual int       match(ProtoPortMatchParams*)        = 0;
+	virtual int       match(ProtoPortMatchParams*)           = 0;
 };
 
 // find a protocol stack based on parameters
@@ -196,10 +208,18 @@ public:
 };
 
 class IPortImpl : public IProtoPort {
+private:
+	boost::atomic<bool> offline_;
+
 public:
 	virtual int iMatch(ProtoPortMatchParams *cmp) = 0;
 
 public:
+	IPortImpl()
+	{
+		offline_.store( true, boost::memory_order_release );
+	}
+
 	virtual int match(ProtoPortMatchParams *cmp)
 	{
 		int rval = iMatch(cmp);
@@ -211,6 +231,21 @@ public:
 		}
 
 		return rval;
+	}
+
+	virtual bool isOffline() const
+	{
+		return offline_.load( boost::memory_order_acquire );
+	}
+
+	virtual void setOffline(bool offline)
+	{
+		offline_.store( offline, boost::memory_order_release );
+		if ( offline ) {
+			// drain what might be there
+			while ( tryPop() )
+				;
+		}
 	}
 };
 
@@ -273,6 +308,7 @@ public:
 			throw ConfigurationError("Already have a downstream module");
 		downstream_ = downstream;
 		downstream->attach( getSelfAsProtoPort() );
+		setOffline( false );
 	}
 
 	virtual BufChain pop(const CTimeout *timeout, bool abs_timeout)
@@ -297,15 +333,27 @@ public:
 
 	virtual bool pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 	{
+		if ( isOffline() )
+			return true;
+
 		if ( outputQueue_ ) {
+			bool rval;
 			if ( !rel_timeout || rel_timeout->isIndefinite() ) {
-				return outputQueue_->push( bc, 0 );
+				rval = outputQueue_->push( bc, 0 );
 			} else if ( rel_timeout->isNone() ) {
-				return outputQueue_->tryPush( bc );
+				rval = outputQueue_->tryPush( bc );
 			} else {
 				CTimeout abst( outputQueue_->getAbsTimeoutPush( rel_timeout ) );
-				return outputQueue_->push( bc, &abst );
+				rval = outputQueue_->push( bc, &abst );
 			}
+
+			if ( rval && isOffline() ) {
+				// just went offline - drain 
+				while ( tryPop() )
+					;
+			}
+
+			return rval;
 		} else {
 			throw InternalError("cannot push downstream without a queue");
 		}
@@ -340,11 +388,15 @@ public:
 
 	virtual bool push(BufChain bc, const CTimeout *timeout, bool abs_timeout)
 	{
+		if ( isOffline() )
+			return false;
 		return mustGetUpstreamPort()->push( processOutput( bc ), timeout, abs_timeout );
 	}
 
 	virtual bool tryPush(BufChain bc)
 	{
+		if ( isOffline() )
+			return true;
 		return mustGetUpstreamPort()->tryPush( processOutput( bc ) );
 	}
 

@@ -91,7 +91,9 @@ public:
 		return new CCommAddressImpl( *this, k );
 	}
 
-	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
+	virtual int      open (CompositePathIterator *node);
+	virtual int      close(CompositePathIterator *node);
+	virtual uint64_t read (CompositePathIterator *node,  CReadArgs *args)  const;
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
 	virtual void dump(FILE *f) const;
@@ -128,7 +130,7 @@ protected:
 	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 
 public:
-	CSRPAddressImpl(AKey key, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
+//	CSRPAddressImpl(AKey key, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
 
 	CSRPAddressImpl(AKey key, INetIODev::PortBuilder, ProtoPort);
 
@@ -172,7 +174,9 @@ protected:
 	}
 
 	virtual ProtoPort findProtoPort(ProtoPortMatchParams *);
-	friend CSRPAddressImpl::CSRPAddressImpl(IAddress::AKey, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
+#ifdef TSILL
+//	friend CSRPAddressImpl::CSRPAddressImpl(IAddress::AKey, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
+#endif
 	friend CCommAddressImpl::CCommAddressImpl(IAddress::AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 
 	ProtoPort makeProtoStack(PortBuilder bldr);

@@ -26,6 +26,8 @@ void _setHostByteOrder(ByteOrder o) { _hostByteOrder = o; }
 CAddressImpl::CAddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
 :owner_(owner), child_( static_cast<CEntryImpl*>(NULL) ), nelms_(nelms), byteOrder_(byteOrder)
 {
+	openCount_.store(0, boost::memory_order_release);
+
 	if ( UNKNOWN == byteOrder )
 		this->byteOrder_ = hostByteOrder();
 }
@@ -88,6 +90,37 @@ uint64_t CAddressImpl::getSize() const
 		throw InternalError("CAddressImpl: child pointer not set");
 	return child_->getSize();
 }
+
+
+int  CAddressImpl::open(CompositePathIterator *node)
+{
+Address c;
+	/* make sure parent is open */
+	++(*node);
+	if ( ! node->atEnd() ) {
+		Address c = (*node)->c_p_;
+		c->open( node );
+	}
+
+	/* return 'our' count */
+	return openCount_.fetch_add(1, boost::memory_order_acq_rel );
+}
+
+int  CAddressImpl::close(CompositePathIterator *node)
+{
+int rval = openCount_.fetch_sub(1, boost::memory_order_acq_rel );
+
+	/* make sure parent is closed */
+	++(*node);
+	if ( ! node->atEnd() ) {
+		Address c = (*node)->c_p_;
+		c->close( node );
+	}
+
+	/* return 'our' count */
+	return rval;
+}
+
 
 uint64_t  CAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {

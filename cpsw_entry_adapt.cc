@@ -12,17 +12,30 @@ IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
 	if ( p->empty() )
 		throw InvalidPathError("<EMPTY>");
 
-	Address  a = CompositePathIterator( p )->c_p_;
+	CompositePathIterator it( p );
+
+	Address  a = it->c_p_;
 
 	if ( a->getEntryImpl() != ie )
 		throw InternalError("inconsistent args passed to IEntryAdapt");
 	if ( UNKNOWN == a->getByteOrder() ) {
 		throw ConfigurationError("Configuration Error: byte-order not set");
 	}
+
+	a->open( &it );
 }
 
 void
 IEntryAdapt::setUnique(CEntryImpl::UniqueHandle uniqueHandle)
 {
 	uniq_ = uniqueHandle;
+}
+
+IEntryAdapt::~IEntryAdapt()
+{
+	CompositePathIterator it( p_ );
+
+	Address  a = it->c_p_;
+
+	a->close( &it );
 }

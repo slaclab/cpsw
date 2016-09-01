@@ -8,6 +8,7 @@
 //#include <cpsw_hub.h>
 
 #include <boost/weak_ptr.hpp>
+#include <boost/atomic.hpp>
 using boost::weak_ptr;
 
 class   CDevImpl;
@@ -79,6 +80,8 @@ class IAddress : public IChild {
 
 		virtual void attach(EntryImpl child) = 0;
 
+		virtual int      open (CompositePathIterator *node)                         = 0;
+		virtual int      close(CompositePathIterator *node)                         = 0;
 		virtual uint64_t read (CompositePathIterator *node, CReadArgs *args)  const = 0;
 		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const = 0;
 
@@ -106,6 +109,7 @@ class CAddressImpl : public IAddress {
 	private:
 		mutable EntryImpl  child_;
 		unsigned           nelms_;
+		boost::atomic<int> openCount_;
 	protected:
 		ByteOrder      byteOrder_;
 
@@ -153,8 +157,15 @@ class CAddressImpl : public IAddress {
 			return byteOrder_;
 		}
 
+		virtual int      open (CompositePathIterator *);
+		virtual int      close(CompositePathIterator *);
 		virtual uint64_t read (CompositePathIterator *node, CReadArgs *args) const;
 		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
+
+		virtual int  getOpenCount()
+		{
+			return openCount_.load( boost::memory_order_acquire );
+		}
 
 		virtual void dump(FILE *f) const;
 

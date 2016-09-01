@@ -31,6 +31,8 @@ public:
 	virtual Path        getPath()        const { return p_->clone();             }
 	virtual ConstPath   getConstPath()   const { return p_;                      }
 
+	virtual            ~IEntryAdapt();
+
     // If a subclass wishes to prohibit an interface to be created more
     // than once for a given path (= device instance array) then it should
     // override 'singleInterfaceOnly()' and return 'true'.
