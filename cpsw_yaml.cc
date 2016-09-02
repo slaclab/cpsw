@@ -546,7 +546,7 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 	if ( ! class_node ) {
 		throw   NotFoundError( std::string("No property '")
 			  + std::string(YAML_KEY_class)
-			  + std::string("' in: ") + node.toString()
+			  + std::string("' in: ") + node.getName()
 			    );
 	} else {
 		if( class_node.IsSequence() ) {
