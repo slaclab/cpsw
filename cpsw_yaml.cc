@@ -343,7 +343,6 @@ unsigned     nelms = 1;
 	while ( top && maxlevel ) {
 
 		if ( ! top->IsMap() ) {
-			std::cerr << "WARNING: Cannot backtrack merge keys across sequences!";
 			return; // cannot handle merge keys across sequences
 		}
 
