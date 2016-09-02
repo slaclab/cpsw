@@ -194,12 +194,6 @@ int min, rev;
 					e.append( name );
 					throw e;
 				}
-				if (    major_ < IYamlSupportBase::MIN_SUPPORTED_SCHEMA
-				     || major_ > IYamlSupportBase::MAX_SUPPORTED_SCHEMA ) {
-					BadSchemaVersionError e("YamlPreprocessor: major version of this file not supported -- in: ");
-					e.append( name );
-					throw e;
-				}
 				if ( min < minor_ ) {
 					minor_    = min;
 					revision_ = rev;
@@ -207,7 +201,13 @@ int min, rev;
 					revision_ = rev;
 				}
 			}
-		}
+			if (    major_ < IYamlSupportBase::MIN_SUPPORTED_SCHEMA
+			     || major_ > IYamlSupportBase::MAX_SUPPORTED_SCHEMA ) {
+				BadSchemaVersionError e("YamlPreprocessor: major version of this file not supported -- in: ");
+				e.append( name );
+				throw e;
+			}
+}
 	}
 
 	if ( maj < 0 ) {
