@@ -272,6 +272,21 @@ public:
 	virtual Children   getChildren()               const = 0;
 
 	/*!
+	 * A IYamlFixup object may be passed to the methods which
+	 * load YAML files. They can fix-up the YAML tree before
+	 * CPSW creates its hierarchy.
+	 *
+	 * The fixup is executed on the root node (as specified
+	 * by 'root_name' in the loader methods)
+	 */
+	class IYamlFixup {
+	public:
+		virtual void operator()(YAML::Node &)            = 0;
+
+		virtual ~IYamlFixup() {}
+	};
+
+	/*!
 	 * Load a hierarchy definition in YAML format from a file.
 	 * The hierarchy is built from the node with name 'rootName'.
 	 *
@@ -286,7 +301,8 @@ public:
 	static Hub loadYamlFile(
 					const char *fileName,
 					const char *rootName = "root",
-					const char *yamlDir  = 0
+					const char *yamlDir  = 0,
+					IYamlFixup *fixup    = 0
 	);
 
 	/*!
@@ -303,7 +319,8 @@ public:
 	static Hub loadYamlStream(
 					std::istream &yaml,
 					const char *rootName = 0,
-					const char *yamlDir  = 0
+					const char *yamlDir  = 0,
+					IYamlFixup *fixup    = 0
 	);
 
 	/*!
@@ -313,7 +330,8 @@ public:
 	static Hub loadYamlStream(
 					const char *yaml,
 					const char *rootName = "root",
-					const char *yamlDir  = 0
+					const char *yamlDir  = 0,
+					IYamlFixup *fixup    = 0
 	);
 };
 
