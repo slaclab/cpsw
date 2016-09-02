@@ -18,7 +18,7 @@ typedef shared_ptr<CProtoModRssi> ProtoModRssi;
 
 class CProtoModRssi: public CShObj, public IPortImpl, public IProtoMod, public CRssi {
 private:
-	ProtoPort upstream_;
+	ProtoDoor upstream_;
 
 protected:
 	virtual int           iMatch(ProtoPortMatchParams *cmp);
@@ -40,7 +40,8 @@ public:
 
 	virtual ProtoMod      getProtoMod();
 	virtual ProtoMod      getUpstreamProtoMod();
-	virtual ProtoPort     getUpstreamPort();
+	virtual ProtoDoor     getUpstreamDoor();
+	virtual ProtoPort     getSelfAsProtoPort();
 
 	virtual void          modStartup();
 	virtual void          modShutdown();
@@ -52,7 +53,7 @@ public:
 
 
 	virtual void          addAtPort(ProtoMod downstreamMod);
-	virtual void          attach(ProtoPort upstream);
+	virtual void          attach(ProtoDoor upstream);
 
 	virtual bool          tryPushUpstream(BufChain);
 	virtual BufChain      tryPopUpstream();

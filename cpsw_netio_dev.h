@@ -71,6 +71,10 @@ class CCommAddressImpl : public CAddressImpl {
 protected:
 	ProtoPort      protoStack_;
 	bool           running_;
+	ProtoDoor      door_;
+
+private:
+	CMtx           doorMtx_;
 
 public:
 	CCommAddressImpl(AKey k, ProtoPort protoStack)

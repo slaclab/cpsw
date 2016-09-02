@@ -8,6 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #define __STDC_FORMAT_MACROS
+
 #include <cpsw_netio_dev.h>
 #include <inttypes.h>
 
@@ -757,13 +758,13 @@ struct timespec retry_then;
 			throw IOError("clock_gettime(then) failed", errno);
 		}
 
-		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
+		door_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
 		do {
-			rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
+			rchn = door_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
 #ifdef NETIO_DEBUG
-				time_retry( &retry_then, attempt, "READ", protoStack_ );
+				time_retry( &retry_then, attempt, "READ", door_ );
 #endif
 				goto retry;
 			}
@@ -1182,13 +1183,13 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 			throw IOError("clock_gettime(then) failed", errno);
 		}
 
-		protoStack_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
+		door_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
 		do {
-			rchn = protoStack_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
+			rchn = door_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
 #ifdef NETIO_DEBUG
-				time_retry( &retry_then, attempt, "WRITE", protoStack_ );
+				time_retry( &retry_then, attempt, "WRITE", door_ );
 #endif
 				goto retry;
 			}
@@ -1824,19 +1825,27 @@ ProtoPort port;
 int
 CCommAddressImpl::open(CompositePathIterator *node)
 {
+CMtx::lg guard( & doorMtx_ );
+
 int rval = CAddressImpl::open( node );
+
 	if ( 0 == rval ) {
-		getProtoStack()->setOffline( false );
+		door_ = getProtoStack()->open();
 	}
+
 	return rval;
 }
 
 int
 CCommAddressImpl::close(CompositePathIterator *node)
 {
+CMtx::lg guard( & doorMtx_ );
+
 int rval = CAddressImpl::close( node );
+
 	if ( 1 == rval )
-		getProtoStack()->setOffline( true );
+		door_.reset();
+
 	return rval;
 }
 
@@ -1845,7 +1854,7 @@ CCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 BufChain bch;
 
-	bch = protoStack_->pop( &args->timeout_, IProtoPort::REL_TIMEOUT  );
+	bch = door_->pop( &args->timeout_, IProtoPort::REL_TIMEOUT  );
 
 	if ( ! bch )
 		return 0;
@@ -1863,7 +1872,7 @@ uint64_t rval;
 
 	rval = bch->getSize();
 
-	if ( ! protoStack_->push( bch, &args->timeout_, IProtoPort::REL_TIMEOUT ) )
+	if ( ! door_->push( bch, &args->timeout_, IProtoPort::REL_TIMEOUT ) )
 		return 0;
 	return rval;
 }

@@ -25,6 +25,9 @@ using boost::weak_ptr;
 class IProtoPort;
 typedef shared_ptr<IProtoPort> ProtoPort;
 
+class IProtoDoor;
+typedef shared_ptr<IProtoDoor> ProtoDoor;
+
 class IProtoMod;
 typedef shared_ptr<IProtoMod> ProtoMod;
 
@@ -43,27 +46,13 @@ public:
 	static const bool         ABS_TIMEOUT = true;
 	static const bool         REL_TIMEOUT = false;
 
-	// If a port is taken offline then all traffic is dropped
-
-	// NOTE: the 'offline' feature is a late addition and
-	//       ugly. We should really have a proper 'open' which
-	//       gives back a handle to an interface with methods
-	//       possible on an open port (push/pop).
-	//       This would imply a minor redesign of the ProtoPort
-	//       which I can't afford ATM.
-	virtual bool      isOffline()                      const = 0;
-	virtual void      setOffline(bool)                       = 0;
-
-	// returns NULL shared_ptr on timeout; throws on error
-	virtual BufChain pop(const CTimeout *, bool abs_timeout) = 0;
-	virtual BufChain tryPop()                                = 0;
-
-	// Successfully pushed buffers are unlinked from the chain
-	virtual bool push(BufChain , const CTimeout *, bool abs_timeout) = 0;
-	virtual bool tryPush(BufChain)                           = 0;
-
+	// An 'open' ProtoPort
+	virtual ProtoDoor open()                                 = 0;
 
 	virtual ProtoMod  getProtoMod()                          = 0;
+	virtual ProtoDoor getUpstreamDoor()                      = 0;
+	// use getUpstreamPort() if you don't need an 'open door'.
+	// This ensures the door is not kept open unnecessarily
 	virtual ProtoPort getUpstreamPort()                      = 0;
 
 	virtual void      addAtPort(ProtoMod downstreamMod)      = 0;
@@ -80,6 +69,26 @@ public:
 	virtual ~IProtoPort()
 	{
 	}
+};
+
+class IProtoDoor : public IProtoPort {
+public:
+	// returns NULL shared_ptr on timeout; throws on error
+	virtual BufChain pop(const CTimeout *, bool abs_timeout) = 0;
+	virtual BufChain tryPop()                                = 0;
+
+	// Successfully pushed buffers are unlinked from the chain
+	virtual bool push(BufChain , const CTimeout *, bool abs_timeout) = 0;
+	virtual bool tryPush(BufChain)                           = 0;
+
+	// To 'close' a 'Door' interface (and continue using
+	// the 'Port' base interface) hold on to the return
+	// value and reset the 'Door' pointer:
+	//
+	//  ProtoPort demoted = door->close();
+	//                      door.reset();
+	//
+	virtual ProtoPort close()                                = 0;
 };
 
 // find a protocol stack based on parameters
@@ -207,9 +216,9 @@ class IProtoMod {
 public:
 	// to be called by the upstream module's addAtPort() method
 	// (which is protocol specific)
-	virtual void attach(ProtoPort upstream)            = 0;
+	virtual void attach(ProtoDoor upstream)            = 0;
 
-	virtual ProtoPort getUpstreamPort()                = 0;
+	virtual ProtoDoor getUpstreamDoor()                = 0;
 	virtual ProtoMod  getUpstreamProtoMod()            = 0;
 
 	virtual void dumpInfo(FILE *)                      = 0;
@@ -222,9 +231,14 @@ public:
 	virtual ~IProtoMod() {}
 };
 
-class IPortImpl : public IProtoPort {
+class IPortImpl : public IProtoDoor {
 private:
-	boost::atomic<bool> offline_;
+	boost::atomic<bool>    spinlock_;
+	ProtoPort              forcedSelfReference_;
+    boost::atomic<int>     openCount_;
+
+protected:
+	virtual ProtoPort getSelfAsProtoPort()        = 0;
 
 public:
 	virtual int iMatch(ProtoPortMatchParams *cmp) = 0;
@@ -234,9 +248,15 @@ public:
 
 	virtual int match(ProtoPortMatchParams *cmp);
 
-	virtual bool isOffline() const;
+	virtual ProtoDoor open();
 
-	virtual void setOffline(bool offline);
+	virtual ProtoPort close();
+
+	virtual ProtoPort getUpstreamPort();
+
+	virtual int isOpen() const;
+
+	friend class CloseManager;
 };
 
 class CPortImpl : public IPortImpl {
@@ -265,20 +285,16 @@ protected:
 		throw InternalError("processInput() not implemented!\n");
 	}
 
-	virtual ProtoPort getSelfAsProtoPort()              = 0;
 
 public:
+
 	CPortImpl(unsigned n);
 
 	virtual unsigned getQueueDepth() const;
 
 	virtual IEventSource *getReadEventSource();
 
-	virtual ProtoPort mustGetUpstreamPort();
-
-	virtual void addAtPort(ProtoMod downstream);
-
-	virtual BufChain pop(const CTimeout *timeout, bool abs_timeout);
+	virtual void      addAtPort(ProtoMod downstream);
 
 	virtual bool pushDownstream(BufChain bc, const CTimeout *rel_timeout);
 
@@ -292,13 +308,16 @@ public:
 
 	virtual CTimeout getAbsTimeoutPush(const CTimeout *rel_timeout);
 
+	virtual BufChain pop(const CTimeout *, bool abs_timeout);
 	virtual BufChain tryPop();
 
-	virtual bool push(BufChain bc, const CTimeout *timeout, bool abs_timeout);
+	// Successfully pushed buffers are unlinked from the chain
+	virtual bool push(BufChain , const CTimeout *, bool abs_timeout);
+	virtual bool tryPush(BufChain);
 
-	virtual bool tryPush(BufChain bc);
+	virtual ProtoDoor getUpstreamDoor();
 
-	virtual ProtoPort getUpstreamPort();
+	virtual ProtoDoor mustGetUpstreamDoor();
 
 	virtual ~CPortImpl()
 	{
@@ -307,7 +326,8 @@ public:
 
 class CProtoModImpl : public IProtoMod {
 protected:
-	ProtoPort  upstream_;
+	ProtoDoor  upstream_;
+
 	CProtoModImpl(const CProtoModImpl &orig);
 
 public:
@@ -319,10 +339,9 @@ public:
 
 	virtual void modShutdown();
 
-	virtual void attach(ProtoPort upstream);
+	virtual void attach(ProtoDoor upstream);
 
-	virtual ProtoPort getUpstreamPort();
-
+	virtual ProtoDoor getUpstreamDoor();
 	virtual ProtoMod  getUpstreamProtoMod();
 
 	virtual void dumpInfo(FILE *f);

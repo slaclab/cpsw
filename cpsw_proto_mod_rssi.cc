@@ -29,7 +29,7 @@ CProtoModRssi::pop(const CTimeout *timeout, bool abs_timeout)
 bool
 CProtoModRssi::push(BufChain bc, const CTimeout *timeout, bool abs_timeout)
 {
-	if ( isOffline() )
+	if ( ! isOpen() )
 		return false;
 
 	if ( ! timeout || timeout->isIndefinite() ) {
@@ -48,7 +48,7 @@ bool
 CProtoModRssi::pushDown(BufChain bc, const CTimeout *rel_timeout)
 {
 bool rval;
-	if ( isOffline() )
+	if ( ! isOpen() )
 		return true;
 	if ( ! rel_timeout || rel_timeout->isIndefinite() ) {
 		rval = outQ_->push( bc, NULL );
@@ -58,9 +58,11 @@ bool rval;
 		CTimeout abst( outQ_->getAbsTimeoutPush( rel_timeout ) );
 		rval = outQ_->push( bc, &abst );
 	}	
-	if ( rval && isOffline() ) {
-		while ( tryPop() )
+	if ( rval ) {
+		while ( ! isOpen() && tryPop() ) {
+			/* was just closed; drain - but stop if someone else reopens... */
 			;
+		}
 	}
 	return rval;
 }
@@ -95,8 +97,8 @@ CProtoModRssi::getUpstreamProtoMod()
 	return upstream_ ? upstream_->getProtoMod() : ProtoMod();
 }
 
-ProtoPort
-CProtoModRssi::getUpstreamPort()
+ProtoDoor
+CProtoModRssi::getUpstreamDoor()
 {
 	return upstream_;
 }
@@ -120,7 +122,7 @@ CProtoModRssi::getAbsTimeoutPush(const CTimeout *rel_timeout)
 }
 
 void
-CProtoModRssi::attach(ProtoPort upstream)
+CProtoModRssi::attach(ProtoDoor upstream)
 {
 IEventSource *src = upstream->getReadEventSource();
 	upstream_ = upstream;
@@ -129,11 +131,16 @@ IEventSource *src = upstream->getReadEventSource();
 	CRssi::attach( upstream->getReadEventSource() );
 }
 
+ProtoPort
+CProtoModRssi::getSelfAsProtoPort()
+{
+	return getSelfAs<ProtoModRssi>();
+}
+
 void
 CProtoModRssi::addAtPort(ProtoMod downstreamMod)
 {
-	downstreamMod->attach( getSelfAs<ProtoModRssi>() );
-	setOffline( false );
+	downstreamMod->attach( getSelfAsProtoPort()->open() );
 }
 
 void
@@ -174,7 +181,7 @@ int              connOpen;
 BufChain
 CProtoModRssi::tryPopUpstream()
 {
-	return getUpstreamPort()->tryPop();
+	return getUpstreamDoor()->tryPop();
 }
 
 int CProtoModRssi::iMatch(ProtoPortMatchParams *cmp)
@@ -194,7 +201,7 @@ CProtoModRssi::~CProtoModRssi()
 bool
 CProtoModRssi::tryPushUpstream(BufChain bc)
 {
-	return getUpstreamPort()->tryPush( bc );
+	return getUpstreamDoor()->tryPush( bc );
 }
 
 

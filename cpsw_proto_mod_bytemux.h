@@ -102,7 +102,7 @@ public:
 
 	virtual void * threadBody()
 	{
-		ProtoPort up = getUpstreamPort();
+		ProtoDoor up = getUpstreamDoor();
 		while ( 1 ) {
 			BufChain bc = up->pop( NULL, true );
 
@@ -192,12 +192,12 @@ public:
 		m->attach( getSelfAs< shared_ptr<CByteMuxPort> >() );
 	}
 
-	virtual ProtoPort getUpstreamPort()
+	virtual ProtoDoor getUpstreamDoor()
 	{
 	ProtoMod  owner = getProtoMod();
-	ProtoPort rval;
+	ProtoDoor rval;
 		if ( owner )
-			rval = owner->getUpstreamPort();
+			rval = owner->getUpstreamDoor();
 		return rval;
 	}
 
