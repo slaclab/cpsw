@@ -1,3 +1,6 @@
 O.*
 *.local.mak
 git_version_string.h
+INSTALL.html
+README.configData.html
+README.yamlDefinition.html
