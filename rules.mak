@@ -17,7 +17,7 @@
 all: multi-build
 	@true
 
-install: multi-do_install
+install: multi-build multi-do_install
 	@true
 
 # run tests (on host)
