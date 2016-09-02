@@ -1,5 +1,13 @@
 # CPSW "Configuration" Data
 
+## Copyright Notice
+This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
+file found in the top-level directory of this distribution and
+[at](https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html).
+
+No part of CPSW, including this file, may be copied, modified, propagated, or
+distributed except according to the terms contained in the LICENSE.txt file.
+
 ## Serializing Configuration Data
 
 The current run-time state of a CPSW hierarchy or sub-hierarchy can be

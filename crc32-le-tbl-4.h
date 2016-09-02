@@ -1,3 +1,4 @@
+/*
  //@C Copyright Notice
  //@C ================
  //@C This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
@@ -6,6 +7,7 @@
  //@C
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
+*/
 
 #ifndef CRC32_LE_TBL_4
 #define CRC32_LE_TBL_4
