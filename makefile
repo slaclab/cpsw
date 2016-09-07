@@ -90,9 +90,6 @@ tstaux_SRCS+= crc32-le-tbl-4.c
 STATIC_LIBRARIES_YES+=tstaux
 SHARED_LIBRARIES_YES+=tstaux
 
-STATIC_LIBRARIES=$(STATIC_LIBRARIES_$(WITH_STATIC_LIBRARIES))
-SHARED_LIBRARIES=$(SHARED_LIBRARIES_$(WITH_SHARED_LIBRARIES))
-
 udpsrv_SRCS = udpsrv.c
 udpsrv_SRCS+= udpsrv_port.cc
 udpsrv_SRCS+= udpsrv_util.cc
