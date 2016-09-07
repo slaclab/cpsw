@@ -106,6 +106,7 @@ YamlPreprocessor::YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux, 
 : main_(inp),
   mainName_("<stream>"),
   mux_(mux),
+  versionSet_(false),
   major_(-1),
   minor_(-1),
   revision_(-1)
@@ -120,6 +121,7 @@ YamlPreprocessor::YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, con
 : main_( StreamMuxBuf::mkstrm( main_name ) ),
   mainName_( main_name ),
   mux_(mux),
+  versionSet_(false),
   major_(-1),
   minor_(-1),
   revision_(-1)
@@ -145,7 +147,8 @@ void
 YamlPreprocessor::process(StreamMuxBuf::Stream current, const std::string &name)
 {
 int maj = -1;
-int min, rev;
+int min = -1;
+int rev = -1;
 
 	while ( '#' == current->peek() ) {
 		std::string line;
@@ -184,36 +187,31 @@ int min, rev;
 				e.append( name );
 				throw e;
 			}
-			if ( major_ < 0 ) {
-				major_    = maj;
-				minor_    = min;
-				revision_ = rev;
-			} else {
-				if ( major_ != maj ) {
-					BadSchemaVersionError e("YamlPreprocessor: mismatch of major versions among files -- in: ");
-					e.append( name );
-					throw e;
-				}
-				if ( min < minor_ ) {
-					minor_    = min;
-					revision_ = rev;
-				} else if ( min == minor_ && rev < revision_ ) {
-					revision_ = rev;
-				}
+			if ( ! versionSet_ ) {
+				major_      = maj;
+				minor_      = min;
+				revision_   = rev;
+				versionSet_ = true;
 			}
-			if (    major_ < IYamlSupportBase::MIN_SUPPORTED_SCHEMA
-			     || major_ > IYamlSupportBase::MAX_SUPPORTED_SCHEMA ) {
-				BadSchemaVersionError e("YamlPreprocessor: major version of this file not supported -- in: ");
-				e.append( name );
-				throw e;
-			}
-}
+		}
 	}
 
-	if ( maj < 0 ) {
-		BadSchemaVersionError e("YamlPreprocessor: no #schemaversion -- in: ");
+	if ( ! versionSet_ ) {
+		// a version has not been set yet and we don't have
+		// a schemaversion either. Thus leave the version numbet at -1
+		// but declare the version as set
+		versionSet_ = true;
+	}
+
+	if ( major_ != maj ) {
+		BadSchemaVersionError e("YamlPreprocessor: mismatch of major versions among files -- in: ");
 		e.append( name );
 		throw e;
+	} else if ( min < minor_ ) {
+		minor_    = min;
+		revision_ = rev;
+	} else if ( min == minor_ && rev < revision_ ) {
+		revision_ = rev;
 	}
 
 	if ( current->good() ) {

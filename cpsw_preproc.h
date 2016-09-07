@@ -77,6 +77,7 @@ private:
 	StreamMuxBuf                       *mux_;
 	Map                                 tags_;
 	std::string                         path_;
+	bool                                versionSet_;
 	int                                 major_;
 	int                                 minor_;
 	int                                 revision_;

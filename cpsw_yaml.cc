@@ -732,6 +732,12 @@ YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
 
 	int vers;
 	if ( (vers = preprocessor.getSchemaVersionMajor()) >= 0 ) {
+		if (   vers < IYamlSupportBase::MIN_SUPPORTED_SCHEMA
+		    || vers > IYamlSupportBase::MAX_SUPPORTED_SCHEMA ) {
+  			BadSchemaVersionError e("Yaml Schema: major version not supported");
+			
+			throw e;
+		}
 		rootNode[ YAML_KEY_schemaVersionMajor ] = vers;
 	}
 
