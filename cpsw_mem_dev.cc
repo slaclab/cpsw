@@ -68,7 +68,7 @@ printf("off %lu, dbytes %lu, size %lu\n", args->off_, args->nbytes_, owner->getS
 	}
 	memcpy(args->dst_, owner->getBufp() + args->off_, toget);
 #ifdef MEMDEV_DEBUG
-printf("MemDev read from off %lli", args->off_);
+printf("MemDev read from off %lli to %p:", args->off_, args->dst_);
 for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->dst_[ii]); printf("\n");
 #endif
 	return toget;
@@ -90,7 +90,7 @@ uint8_t *src  = args->src_;
 	}
 
 #ifdef MEMDEV_DEBUG
-printf("MemDev write to off %lli", args->off_);
+printf("MemDev write to off %lli from %p:", args->off_, args->src_);
 for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->src_[ii]); printf("\n");
 #endif
 
