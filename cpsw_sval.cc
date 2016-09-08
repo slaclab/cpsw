@@ -426,7 +426,7 @@ int              lsb          = getLsBit();
 ByteOrder        hostEndian   = hostByteOrder();
 ByteOrder        targetEndian = cl->getByteOrder();
 unsigned         ibuf_nchars;
-unsigned         nelmsOnPath  = it->nelmsLeft_;
+unsigned         nelmsOnPath  = it.getNelmsLeft();
 
 	if ( nelms >= nelmsOnPath ) {
 		nelms = nelmsOnPath;
@@ -591,7 +591,7 @@ ByteOrder        hostEndian= hostByteOrder();
 ByteOrder        targetEndian = cl->getByteOrder();
 uint8_t          msk1     = 0x00;
 uint8_t          mskn     = 0x00;
-unsigned         nelmsOnPath = it->nelmsLeft_;
+unsigned         nelmsOnPath = it.getNelmsLeft();
 
 	if ( nelms >= nelmsOnPath )
 		nelms = nelmsOnPath;
