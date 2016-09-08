@@ -38,6 +38,8 @@ uint64_t CMMIOAddressImpl::read(CompositePathIterator *node, CReadArgs *args) co
 {
 int        rval      = 0, to;
 uintptr_t  dstStride = node->getNelmsRight() * args->nbytes_;
+IndexRange singleElement(0); // IndexRange operates 'inside' the array bounds defined by the path
+IndexRange *range_p;
 
 #ifdef MMIODEV_DEBUG
 	printf("MMIO read; nelmsRight: %d, nbytes_ %d, stride %d, idxf %d, idxt %d\n", node->getNelmsRight(), args->nbytes_, getStride(), (*node)->idxf_, (*node)->idxt_);
@@ -49,17 +51,19 @@ CReadArgs  nargs = *args;
 		// if strides == size then we can try to read all in one chunk
 		nargs.nbytes_ *= (*node)->idxt_ - (*node)->idxf_ + 1;
 		to      = (*node)->idxf_;
+		range_p = &singleElement;
 	} else {
 		to      = (*node)->idxt_;
+		range_p = 0;
 	}
 
-	nargs.off_ += this->offset_ + (*node)->idxf_ * stride_;
+	nargs.off_ += this->offset_ + (*node)->idxf_ * getStride();
 
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
-		CompositePathIterator it = *node;
+		SlicedPathIterator it( *node, range_p );
 		rval += CAddressImpl::read(&it, &nargs);
 
-		nargs.off_ += stride_;
+		nargs.off_ += getStride();
 
 		nargs.dst_ += dstStride;
 	}
@@ -71,6 +75,8 @@ uint64_t CMMIOAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) 
 {
 int        rval      = 0, to;
 uintptr_t  srcStride = node->getNelmsRight() * args->nbytes_;
+IndexRange singleElement(0); // IndexRange operates 'inside' the array bounds defined by the path
+IndexRange *range_p;
 
 #ifdef MMIODEV_DEBUG
 	printf("MMIO write; nelmsRight: %d, nbytes_ %d\n", node->getNelmsRight(), args->nbytes_);
@@ -82,16 +88,18 @@ CWriteArgs nargs = *args;
 		// if strides == size then we can try to read all in one chunk
 		nargs.nbytes_ *= (*node)->idxt_ - (*node)->idxf_ + 1;
 		to             = (*node)->idxf_;
+		range_p        = &singleElement;
 	} else {
 		to             = (*node)->idxt_;
+		range_p        = 0;
 	}
-	nargs.off_ += this->offset_ + (*node)->idxf_ * stride_;
+	nargs.off_ += this->offset_ + (*node)->idxf_ * getStride();
 
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
-		CompositePathIterator it = *node;
+		SlicedPathIterator it( *node, range_p );
 		rval += CAddressImpl::write(&it, &nargs);
 	
-		nargs.off_ += stride_;
+		nargs.off_ += getStride();
 
 		nargs.src_ += srcStride;
 	}

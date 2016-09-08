@@ -11,6 +11,8 @@
 #include <cpsw_hub.h>
 #include <cpsw_obj_cnt.h>
 
+#include <cpsw_mem_dev.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #define __STDC_FORMAT_MACROS
@@ -24,9 +26,11 @@ extern void _setHostByteOrder(ByteOrder);
 #define BITS16 12
 #define SHFT16 2
 
+#define MEMSIZE  2048
+#define MMIOSIZE 1024
+
 class TestFailed {
-public:
-	const char *info;
+public: const char *info;
 	TestFailed(const char *info):info(info){}
 };
 
@@ -226,14 +230,14 @@ while ( --run > 0 ) {
 
 	} else {
 		if ( run > 1 ) {
-			        mm      = IMemDev::create("mem",2048);
-			MMIODev mmio    = IMMIODev::create("mmio",2048, UNKNOWN);
-			mmio_le = IMMIODev::create("le", 1024, LE);
-			mmio_be = IMMIODev::create("be", 1024, BE);
+			        mm      = IMemDev::create("mem",MEMSIZE);
+			MMIODev mmio    = IMMIODev::create("mmio",MEMSIZE, UNKNOWN);
+			mmio_le = IMMIODev::create("le", MMIOSIZE, LE);
+			mmio_be = IMMIODev::create("be", MMIOSIZE, BE);
 
 			mm->addAtAddress( mmio );
-			mmio->addAtAddress( mmio_le,    0);
-			mmio->addAtAddress( mmio_be,    0);
+			mmio->addAtAddress( mmio_le,    0, 2);
+			mmio->addAtAddress( mmio_be,    0, 2);
 
 			root     = cmm = mm;
 		} else {
@@ -251,8 +255,8 @@ while ( --run > 0 ) {
 	membuf   = cmm->getBufp();
 	membufsz = cmm->getSize();
 
-	Path p_be( root->findByName("mmio/be") );
-	Path p_le( root->findByName("mmio/le") );
+	Path p_be( root->findByName("mmio/be[0]") );
+	Path p_le( root->findByName("mmio/le[0]") );
 
 	try {
 
@@ -452,6 +456,88 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 				throw TestFailed("writing sliced array failed");
 			}
 		}
+	}
+
+	// test two-dimensional array
+	std::cout << "2D-TEST\n";
+	{
+
+	ConstMemDevImpl memDev = boost::dynamic_pointer_cast<ConstMemDevImpl::element_type>( root );
+		if ( ! memDev )
+			throw TestFailed("Memory Device not found");
+		uint8_t *bufp=memDev->getBufp();
+
+		// test for shft == 0 (stride > size -> individual MMIO) and shft == 4 (stride == size == 9 -> chunked MMIO)
+		for ( unsigned shft = 0; shft <= 4; shft += 4 ) {
+
+			char nam[200];
+			sprintf(nam, "mmio/le/i64-%d-u-0", shft);
+
+			v_arr = IScalVal::create( root->findByName( nam ) );
+
+
+			memset(bufp, 0, memDev->getSize());
+
+			uint64_t v = 0;
+
+			unsigned elsz = ((v_arr->getSizeBits() + shft) + 7) / 8;
+
+			for ( unsigned off=0; off < MEMSIZE; off += MMIOSIZE) {
+
+				for ( unsigned i=0; i<STRIDE*NELMS; i+= STRIDE ) {
+					uint64_t vv = v << shft;
+					for ( unsigned k = 0; k < elsz; k++ ) {
+						bufp[off+i+k] = vv;
+						vv >>= 8;
+					}
+					v++;
+				}
+			}
+
+
+			unsigned nelms = v_arr->getNelms();
+
+			if ( nelms != 2*NELMS )
+				throw TestFailed("2-D Array size mismatch");
+
+			uint64_t dat[ nelms ];
+
+			v_arr->getVal(dat, nelms);
+
+			for ( unsigned i=0; i < nelms; i++ ) {
+				if ( dat[i] != i ) {
+					char buf[200];
+					snprintf(buf,sizeof(buf),"2-D Array readback mismatch (i=%d) -- got %"PRId64"", i, dat[i]);
+					throw TestFailed(buf);
+				}
+			}
+
+			for ( unsigned i=0; i < nelms; i++ ) {
+				dat[i] = ~dat[i];
+			}
+
+			v_arr->setVal(dat, nelms);
+
+			v = 0;
+			for ( unsigned off=0; off < MEMSIZE; off += MMIOSIZE) {
+				for ( unsigned i=0; i<STRIDE*NELMS; i+= STRIDE ) {
+					uint16_t vs = bufp[off+i+elsz-1];
+					uint64_t vv = vs >> shft;
+					for ( int  k = elsz - 2; k >= 0; k-- ) {
+						vs = (vs<<8) | bufp[off+i+k];
+						vv = (vv<<8) | ((vs >> shft) & 0xff);
+					}
+					if ( ~v != vv ) {
+						char buf[200];
+						snprintf(buf,sizeof(buf),"2-D Array write-check mismatch (v=%"PRId64") -- got 0x%"PRIx64", expected 0x%"PRIx64, v, vv, ~v);
+						throw TestFailed(buf);
+					}
+					v++;
+				}
+			}
+
+		}
+
 	}
 
 }
