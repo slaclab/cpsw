@@ -186,8 +186,8 @@ PNode::PNode( const PNode *parent, const char *key, const Node &node)
 	}
 }
 
-PNode::PNode( const char *key, const Node &node )
-: Node( node ),
+PNode::PNode( const char *key, const Node &top )
+: Node( top[key] ),
   parent_( 0 ),
   child_( 0 ),
   key_( key ),
@@ -196,17 +196,17 @@ PNode::PNode( const char *key, const Node &node )
   rev_( -1 )
 {
 	{
-	YAML::Node n(node[ YAML_KEY_schemaVersionMajor    ]);
+	YAML::Node n(top[ YAML_KEY_schemaVersionMajor    ]);
 	if ( n )
 		maj_ = n.as<int>();
 	}
 	{
-	YAML::Node n(node[ YAML_KEY_schemaVersionMinor    ]);
+	YAML::Node n(top[ YAML_KEY_schemaVersionMinor    ]);
 	if ( n )
 		min_ = n.as<int>();
 	}
 	{
-	YAML::Node n(node[ YAML_KEY_schemaVersionRevision ]);
+	YAML::Node n(top[ YAML_KEY_schemaVersionRevision ]);
 	if ( n )
 		rev_ = n.as<int>();
 	}
@@ -712,7 +712,18 @@ AddChildrenVisitor  visitor( &d, registry );
 Dev
 CYamlFieldFactoryBase::dispatchMakeField(const YAML::Node &node, const char *root_name)
 {
-YamlState root( root_name, root_name ? node[root_name] : node );
+YamlState root( root_name, node );
+int       vers = root.getSchemaVersionMajor();
+
+	if (   vers < IYamlSupportBase::MIN_SUPPORTED_SCHEMA
+	    || vers > IYamlSupportBase::MAX_SUPPORTED_SCHEMA ) {
+		char buf[50];
+		BadSchemaVersionError e("Yaml Schema: major version ");
+		snprintf(buf, sizeof(buf), "%d not supported", vers);
+		e.append( std::string(buf) );
+		throw e;
+	}
+
 	/* Root node must be a Dev */
 	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry()->makeItem( root ) );
 }
@@ -732,12 +743,6 @@ YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
 
 	int vers;
 	if ( (vers = preprocessor.getSchemaVersionMajor()) >= 0 ) {
-		if (   vers < IYamlSupportBase::MIN_SUPPORTED_SCHEMA
-		    || vers > IYamlSupportBase::MAX_SUPPORTED_SCHEMA ) {
-  			BadSchemaVersionError e("Yaml Schema: major version not supported");
-			
-			throw e;
-		}
 		rootNode[ YAML_KEY_schemaVersionMajor ] = vers;
 	}
 
