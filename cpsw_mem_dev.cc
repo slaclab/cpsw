@@ -15,6 +15,8 @@
 
 #include <cpsw_yaml.h>
 
+#undef  MEMDEV_DEBUG
+
 CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size)
 : CDevImpl(k, name, size), buf_( new uint8_t[size] )
 {
@@ -57,14 +59,18 @@ CMemAddressImpl::CMemAddressImpl(AKey k, unsigned nelms)
 uint64_t CMemAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
-int toget = args->nbytes_;
+unsigned toget = args->nbytes_;
 	if ( args->off_ + toget > owner->getSize() ) {
-//printf("off %lu, dbytes %lu, size %lu\n", off, dbytes, owner->getSize());
+#ifdef MEMDEV_DEBUG
+printf("off %lu, dbytes %lu, size %lu\n", args->off_, args->nbytes_, owner->getSize());
+#endif
 		throw ConfigurationError("MemAddress: read out of range");
 	}
 	memcpy(args->dst_, owner->getBufp() + args->off_, toget);
-//printf("MemDev read from off %lli", off);
-//for ( int ii=0; ii<dbytes; ii++) printf(" 0x%02x", dst[ii]); printf("\n");
+#ifdef MEMDEV_DEBUG
+printf("MemDev read from off %lli", args->off_);
+for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->dst_[ii]); printf("\n");
+#endif
 	return toget;
 }
 
@@ -82,6 +88,11 @@ uint8_t *src  = args->src_;
 	if ( off + put > owner->getSize() ) {
 		throw ConfigurationError("MemAddress: write out of range");
 	}
+
+#ifdef MEMDEV_DEBUG
+printf("MemDev write to off %lli", args->off_);
+for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->src_[ii]); printf("\n");
+#endif
 
 	if ( (msk1 || mskn) && put == 1 ) {
 		msk1 |= mskn;
