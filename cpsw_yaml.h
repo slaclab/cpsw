@@ -219,8 +219,10 @@ namespace YAML {
 					rhs = LE;
 				else if (str.compare( "BE" ) == 0 )
 					rhs = BE;
-				else
+				else if (str.compare( "UNKNOWN" ) == 0 )
 					rhs = UNKNOWN;
+				else
+					return false;
 
 				return true;
 			}
@@ -251,8 +253,10 @@ namespace YAML {
 					rhs = IField::WT_CACHEABLE;
 				else if (str.compare( "WB_CACHEABLE" ) == 0 )
 					rhs = IField::WB_CACHEABLE;
-				else
+				else if (str.compare( "UNKNOWN_CACHEABLE" ) == 0 )
 					rhs = IField::UNKNOWN_CACHEABLE;
+				else
+					return false;
 
 				return true;
 			}
@@ -298,7 +302,7 @@ namespace YAML {
 				else if ( 1 == ::sscanf( str.c_str(), "CUSTOM_%i", &num ) )
 					rhs = static_cast<IScalVal_Base::Encoding>( IScalVal_Base::CUSTOM + num );
 				else
-					rhs = IScalVal_Base::NONE;
+					return false;
 
 				return true;
 			}
