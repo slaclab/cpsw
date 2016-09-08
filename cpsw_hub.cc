@@ -17,6 +17,8 @@
 
 #include <cpsw_yaml.h>
 
+#undef HUB_DEBUG
+
 using boost::static_pointer_cast;
 using boost::make_shared;
 
@@ -135,15 +137,15 @@ uint64_t  CAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 	Address c;
 #ifdef HUB_DEBUG
-	printf("Reading %s", getName());
+	printf("Reading %d bytes from %s", args->nbytes_, getName());
 	if ( getNelms() > 1 ) {
 		printf("[%i", (*node)->idxf_);
 		if ( (*node)->idxt_ > (*node)->idxf_ )
 			printf("-%i", (*node)->idxt_);
 		printf("]");
 	}
-	printf(" @%"PRIx64, off);
-	printf(" --> %p ", dst);
+	printf(" @%"PRIx64, args->off_);
+	printf(" --> %p ", args->dst_);
 	dump(); printf("\n");
 #endif
 
