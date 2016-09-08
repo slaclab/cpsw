@@ -13,7 +13,8 @@
 #include <cpsw_hub.h>
 
 class CMemDevImpl;
-typedef shared_ptr<CMemDevImpl> MemDevImpl;
+typedef shared_ptr<CMemDevImpl>            MemDevImpl;
+typedef shared_ptr<const CMemDevImpl> ConstMemDevImpl;
 
 // pseudo-device with memory backing (for testing)
 
