@@ -20,6 +20,8 @@
 
 #include <cpsw_yaml.h>
 
+//#define SVAL_DEBUG
+
 using std::string;
 
 const int CIntEntryImpl::DFLT_CONFIG_PRIO_RW;
@@ -406,38 +408,6 @@ public:
 				tmp16_1 = bufp[j];
 				tmp16_2 = (tmp16_2>>8) | (tmp16_1 << shift);
 				bufp[j] = tmp16_2;
-			}
-		}
-	}
-};
-
-class SlicedPathIterator : public CompositePathIterator {
-public:
-	// 'suffix' (if used) must live for as long as this object is used
-	Path suffix;
-	
-	SlicedPathIterator(ConstPath p, IndexRange *range)
-	:CompositePathIterator( p )
-	{
-		if ( range && range->size() > 0 ) {
-			int f = (*this)->idxf_;
-			int t = (*this)->idxt_;
-			if ( range->size() != 1 ) {
-				throw InvalidArgError("Currently only 1-level of indices supported, sorry");
-			}
-			if ( range->getTo() >= 0 )
-				t = f + range->getTo();
-			if ( range->getFrom() >= 0 )
-				f += range->getFrom();
-			if ( f < (*this)->idxf_ || t > (*this)->idxt_ || t < f ) {
-				throw InvalidArgError("Array indices out of range");
-			}
-			if ( f != (*this)->idxf_ || t != (*this)->idxt_ ) {
-				suffix = IPath::create();
-				Address cl = (*this)->c_p_;
-				++(*this);
-				IPathImpl::toPathImpl( suffix )->append( cl, f, t );
-				(*this).append(suffix);
 			}
 		}
 	}

@@ -91,5 +91,61 @@ public:
 
 };
 
+class SlicedPathIterator : public CompositePathIterator {
+public:
+	// 'suffix' (if used) must live for as long as this object is used
+	Path suffix;
+
+	void clip(const IndexRange *range)
+	{
+		if ( range && range->size() > 0 ) {
+			int f = (*this)->idxf_;
+			int t = (*this)->idxt_;
+			if ( range->size() != 1 ) {
+				throw InvalidArgError("Currently only 1-level of indices supported, sorry");
+			}
+			if ( range->getTo() >= 0 )
+				t = f + range->getTo();
+			if ( range->getFrom() >= 0 )
+				f += range->getFrom();
+			if ( f < (*this)->idxf_ || t > (*this)->idxt_ || t < f ) {
+				throw InvalidArgError("Array indices out of range");
+			}
+			if ( f != (*this)->idxf_ || t != (*this)->idxt_ ) {
+				suffix = IPath::create();
+				Address cl = (*this)->c_p_;
+				++(*this);
+				IPathImpl::toPathImpl( suffix )->append( cl, f, t );
+				(*this).append(suffix);
+			}
+		}
+	}
+
+	SlicedPathIterator(ConstPath p, const IndexRange *range = 0)
+	:CompositePathIterator( p )
+	{
+		clip(range);
+	}
+
+	SlicedPathIterator(ConstPath p, const IndexRange &range)
+	:CompositePathIterator( p )
+	{
+		clip( &range );
+	}
+
+	SlicedPathIterator(const CompositePathIterator &it, const IndexRange &range)
+	:CompositePathIterator(it)
+	{
+		clip( &range );
+	}
+
+	SlicedPathIterator(const CompositePathIterator &it, const IndexRange *range = 0)
+	:CompositePathIterator(it)
+	{
+		clip( range );
+	}
+
+};
+
 
 #endif
