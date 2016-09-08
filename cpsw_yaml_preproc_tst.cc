@@ -18,6 +18,45 @@
 
 #define TOP "cpsw_yaml_preproc_tst_1.yaml"
 #define INC "cpsw_yaml_preproc_tst_2.yaml"
+#define INC_V00 "cpsw_yaml_preproc_tst_inc_00.yaml"
+#define INC_V30 "cpsw_yaml_preproc_tst_inc_30.yaml"
+#define INC_V20 "cpsw_yaml_preproc_tst_inc_20.yaml"
+#define INC_V31 "cpsw_yaml_preproc_tst_inc_31.yaml"
+
+const char *v00 = "#\n";
+const char *v30 = "#schemaversion 3.0.0\n";
+const char *v20 = "#schemaversion 2.0.0\n";
+const char *v31 = "#schemaversion 3.1.0\n";
+
+const char *top00=
+"#\n"
+"#include "INC_V00"\n"
+"root:\n"
+"  "YAML_KEY_class": Dev\n";
+
+const char *top03=
+"#\n"
+"#include "INC_V00"\n"
+"#schemaversion 3.0.0\n"
+"root:\n"
+"  "YAML_KEY_class": Dev\n";
+
+const char *top23=
+"#\n"
+"#include "INC_V20"\n"
+"#schemaversion 3.0.0\n"
+"root:\n"
+"  "YAML_KEY_class": Dev\n";
+
+const char *top33=
+"#\n"
+"#include "INC_V31"\n"
+"#schemaversion 3.0.0\n"
+"root:\n"
+"  "YAML_KEY_class": Dev\n";
+
+
+
 
 const char *topyaml =
 "#\n"
@@ -122,6 +161,40 @@ try {
 	if ( p->getNelms() != 5 )
 		throw TestFailed();
 	}
+
+	wrf( v00, INC_V00 );
+	wrf( v30, INC_V30 );
+	wrf( v31, INC_V31 );
+	wrf( v20, INC_V20 );
+
+	// test combinations of schemaversions
+	try {
+		// No schemaversion should fail
+		Hub h( IHub::loadYamlStream(top00, "root") );
+		throw TestFailed();
+	} catch (BadSchemaVersionError) {
+	}
+
+	try {
+		// No no version and major should fail
+		Hub h( IHub::loadYamlStream(top03, "root") );
+		throw TestFailed();
+	} catch (BadSchemaVersionError) {
+	}
+
+	try {
+		// No mismatching major should fail
+		Hub h( IHub::loadYamlStream(top23, "root") );
+		throw TestFailed();
+	} catch (BadSchemaVersionError) {
+	}
+
+	{
+		// No matching majors should pass
+		Hub h( IHub::loadYamlStream(top33, "root") );
+	}
+
+
 	printf("%s - success\n", argv[0]);
 
 } catch (CPSWError &e) {
