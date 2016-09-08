@@ -512,8 +512,17 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 				}
 			}
 
+			memset(dat, 0xee, sizeof(dat[0])*nelms);
+
+			// test IndexRange
+
+			IndexRange rng(2,3);
+			v_arr->getVal(dat, nelms, &rng);
+			if ( dat[0] != 2 || dat[1] != 3 || dat[2] != NELMS+2 || dat[3] != NELMS+3 )
+				throw TestFailed("Testing IndexRange on 2D array failed");
+
 			for ( unsigned i=0; i < nelms; i++ ) {
-				dat[i] = ~dat[i];
+				dat[i] = ~(uint64_t)i;
 			}
 
 			v_arr->setVal(dat, nelms);
