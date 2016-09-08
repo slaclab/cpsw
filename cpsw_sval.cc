@@ -1113,12 +1113,12 @@ IndexRange::IndexRange(int fromto)
 	setFromTo( fromto );
 }
 
-int IndexRange::getFrom()
+int IndexRange::getFrom() const
 {
 	return (*this)[0].first;
 }
 
-int IndexRange::getTo()
+int IndexRange::getTo() const
 {
 	return (*this)[0].second;
 }

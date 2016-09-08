@@ -515,8 +515,8 @@ public:
 	/*!
 	 * getters/setters
 	 */
-	virtual int  getFrom();
-	virtual int  getTo();
+	virtual int  getFrom() const;
+	virtual int  getTo()   const;
 	virtual void setFrom(int);
 	virtual void setTo(int);
 	virtual void setFromTo(int);
