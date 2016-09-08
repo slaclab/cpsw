@@ -13,6 +13,8 @@
 
 #include <cpsw_yaml.h>
 
+#undef  MMIODEV_DEBUG
+
 CMMIOAddressImpl::CMMIOAddressImpl(
 			AKey      key,
 			uint64_t  offset,
@@ -36,6 +38,10 @@ uint64_t CMMIOAddressImpl::read(CompositePathIterator *node, CReadArgs *args) co
 {
 int        rval      = 0, to;
 uintptr_t  dstStride = node->getNelmsRight() * args->nbytes_;
+
+#ifdef MMIODEV_DEBUG
+	printf("MMIO read; nelmsRight: %d, nbytes_ %d, stride %d, idxf %d, idxt %d\n", node->getNelmsRight(), args->nbytes_, getStride(), (*node)->idxf_, (*node)->idxt_);
+#endif
 
 CReadArgs  nargs = *args;
 
@@ -65,6 +71,10 @@ uint64_t CMMIOAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) 
 {
 int        rval      = 0, to;
 uintptr_t  srcStride = node->getNelmsRight() * args->nbytes_;
+
+#ifdef MMIODEV_DEBUG
+	printf("MMIO write; nelmsRight: %d, nbytes_ %d\n", node->getNelmsRight(), args->nbytes_);
+#endif
 
 CWriteArgs nargs = *args;
 
