@@ -56,6 +56,7 @@
 #define V2PORT_DEF        8192
 #define V3PORT_DEF        8190
 #define V3BPORT_DEF       8189
+#define V3RSSIPORT_DEF    8188
 #define V2RSSIPORT_DEF    8202
 #define SPORT_DEF         8193
 #define SRSSIPORT_DEF     8203
@@ -104,6 +105,7 @@ static void usage(const char *nm)
 	fprintf(stderr, " Defaults: -a %s -P %d -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, V2PORT_DEF, V1PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
 	fprintf(stderr, "           V3 (norssi                 ) is listening at  %d\n", V3PORT_DEF);
 	fprintf(stderr, "           V3 (norssi, byte-resolution) is listening at %d\n",  V3BPORT_DEF);
+	fprintf(stderr, "           V3 (rssi                   ) is listening at %d\n",  V3RSSIPORT_DEF);
 	fprintf(stderr, "           V3 (rssi,   stream         ) is listening at %d\n",  SRSSIPORT_V3_DEF);
 }
 
@@ -696,6 +698,7 @@ struct srpvariant srpvars[] = {
 	{ V2RSSIPORT_DEF, 2, WITH_RSSI,                  0 },
 	{ V3PORT_DEF,     3, WITHOUT_RSSI,               0 },
 	{ V3BPORT_DEF,    3, WITHOUT_RSSI, SRP_OPT_BYTERES },
+	{ V3RSSIPORT_DEF, 3, WITH_RSSI,                  0 },
 };
 
 #define STRM_NORSSI 0
