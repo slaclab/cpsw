@@ -215,7 +215,7 @@ long old_size = getSize();
 long beg      = (long)beg_;
 BufChainImpl c;
 
-	if ( delta > beg || delta > old_size )
+	if ( delta + beg < 0 || delta > old_size )
 		return false;
 
 	beg_ += delta;
@@ -563,9 +563,8 @@ Buf      b, nxtb;
 	// add dummy buffers
 	while ( off > 0 ) {
 		// off > 0 implies !b (and !nextb)
-		uint64_t delta;
 		b = createAtTail( off, true );
-		delta = b->getCapacity();
+		delta = b->getAvail();
 		if ( off < delta )
 			delta = off;
 		b->setSize(delta);

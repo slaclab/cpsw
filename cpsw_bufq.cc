@@ -62,8 +62,6 @@ public:
 
 	virtual void getAbsTimeout(CTimeout *abs_timeout, const CTimeout *rel_timeout)
 	{
-		if ( ! evSet_ )
-			throw InternalError("No event set");
 		evSet_->getAbsTimeout(abs_timeout, rel_timeout);
 	}
 
