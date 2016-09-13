@@ -326,12 +326,21 @@ IndexRange rng(from, to);
 
 		got = val->getVal( &v64[0], nelms, &rng );
 		if ( 1 == got ) {
-			return boost::python::object( v64[0] );
+			if ( val->isSigned() )
+				return boost::python::object( (int64_t)v64[0] );
+			else
+				return boost::python::object( v64[0] );
 		}
 
 		boost::python::list l;
-		for ( unsigned i = 0; i<got; i++ ) {
-			l.append( v64[i] );
+		if ( val->isSigned() ) {
+			for ( unsigned i = 0; i<got; i++ ) {
+				l.append( (int64_t)v64[i] );
+			}
+		} else {
+			for ( unsigned i = 0; i<got; i++ ) {
+				l.append( v64[i] );
+			}
 		}
 		return l;
 	}
@@ -399,7 +408,10 @@ bool enumScalar = false;
 
 	if ( ! PySequence_Check( op ) ) {
 		// a single string (attempt to set enum) is also a sequence
-		return val->setVal( extract<uint64_t>( o ), &rng );
+		if ( val->isSigned() )
+			return val->setVal( (uint64_t)extract<int64_t>( o ), &rng );
+		else
+			return val->setVal( extract<uint64_t>( o ), &rng );
 	}
 
 	unsigned nelms = enumScalar ? 1 : len(o);
@@ -424,8 +436,14 @@ bool enumScalar = false;
 		return val->setVal( &vcstr[0], nelms, &rng );
 	} else {
 		std::vector<uint64_t> v64;
-		for ( unsigned i = 0; i < nelms; ++i ) {
-			v64.push_back( extract<uint64_t>( o[i] ) );
+		if ( val->isSigned() ) {
+			for ( unsigned i = 0; i < nelms; ++i ) {
+				v64.push_back( (uint64_t)extract<int64_t>( o[i] ) );
+			}
+		} else {
+			for ( unsigned i = 0; i < nelms; ++i ) {
+				v64.push_back( extract<uint64_t>( o[i] ) );
+			}
 		}
 		return val->setVal( &v64[0], nelms, &rng );
 	}
