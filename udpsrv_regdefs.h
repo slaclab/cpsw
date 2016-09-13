@@ -34,6 +34,27 @@
 
 #define AXI_SPI_EEPROM_SIZE (1024)
 
+#define PENDULUM_SIMULATOR_ADDR (AXI_SPI_EEPROM_ADDR + AXI_SPI_EEPROM_SIZE) /* 0x00100400 */
+/* Parameters; */
+#define PENDULUM_SIMULATOR_AV_OFF       0x00   /* fractional * 2^32 */
+#define PENDULUM_SIMULATOR_AF_OFF       0x04   /* fractional * 2^32 */
+#define PENDULUM_SIMULATOR_W2_OFF       0x08   /* fractional * 2^24 */
+#define PENDULUM_SIMULATOR_NU_OFF       0x0c   /* fractional * 2^16 */
+#define PENDULUM_SIMULATOR_LE_OFF       0x10   /* fractional * 2^32 */
+
+/* setpoints; simulator restarted when PH is written */
+#define PENDULUM_SIMULATOR_DX_OFF       0x20   /* fractional * 2^31 (signed) */
+#define PENDULUM_SIMULATOR_PH_OFF       0x24   /* fractional * 2^31 (signed); normalized to 2PI */
+#define PENDULUM_SIMULATOR_VE_OFF       0x28   /* fractional * 2^16 */
+#define PENDULUM_SIMULATOR_FE_OFF       0x2c   /* fractional * 2^16 */
+
+/* readbacks; latched when PH is read */
+#define PENDULUM_SIMULATOR_DX_RB_OFF    0x30   /* see DX_OFF */
+#define PENDULUM_SIMULATOR_PH_RB_OFF    0x34   /* see PH_OFF */
+#define PENDULUM_SIMULATOR_T_RB_OFF     0x38   /* fractional * 2^8 */
+
+#define PENDULUM_SIMULATOR_SIZE (0x400)
+
 #define DEBUG
 
 #define __STDC_FORMAT_MACROS
