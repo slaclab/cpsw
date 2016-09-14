@@ -26,9 +26,6 @@ using std::string;
 
 const int CIntEntryImpl::DFLT_CONFIG_PRIO_RW;
 
-class CStreamAdapt;
-typedef shared_ptr<CStreamAdapt> StreamAdapt;
-
 static uint64_t b2B(uint64_t bits)
 {
 	return (bits + 7)/8;
@@ -174,104 +171,69 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 	}
 }
 
+EntryAdapt
+CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
+{
+	if ( interfaceType == typeid(ScalVal::element_type) ) {
+		if ( getMode() != RW ) {
+			throw InterfaceNotImplementedError("ScalVal interface not supported");
+		}
+		return CShObj::template create<ScalValAdapt>(p, getSelfAsConst< shared_ptr<const IntEntryImpl::element_type> >());
+	} else if ( interfaceType == typeid(ScalVal_RO::element_type) ) {
+		if ( getMode() == WO ) {
+			throw InterfaceNotImplementedError("ScalVal_RO interface not supported by write-only entry");
+		}
+		return CShObj::template create<ScalVal_ROAdapt>(p, getSelfAsConst< shared_ptr<const IntEntryImpl::element_type> >());
+	}
+#if 0
+			// without caching and bit-level access at the SRP protocol level we cannot
+			// support write-only yet.
+	else if ( interfaceType == typeid(ScalVal_WO::element_type) ) {
+		if ( getMode() != RO ) {
+			throw InterfaceNotImplementedError("ScalVal_WO interface not supported by read-only entry");
+		}
+		return CShObj::template create<ScalVal_WOAdapt>(p, getSelfAsConst< shared_ptr<const IntEntryImpl::element_type> >());
+	}
+#endif
+	// maybe the superclass knows about this interface?
+	return CEntryImpl::createAdapter(key, p, interfaceType);
+}
+
+
 IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
 {
 	return CShObj::create<IntEntryImpl>(name, sizeBits, is_signed, lsBit, mode, wordSwap);
 }
 
-CScalVal_Adapt::CScalVal_Adapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+CScalValAdapt::CScalValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(k, p, ie), CScalVal_ROAdapt(k, p, ie), CScalVal_WOAdapt(k, p, ie)
+{
+}
+
+CScalVal_ROAdapt::CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+	: IIntEntryAdapt(k, p, ie)
 {
 }
 
 CScalVal_WOAdapt::CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(k, p, ie)
 {
-	// merging a word-swapped entity with a bit-size that is
-	// not a multiple of 8 would require more complex bitmasks
-	// than what our current 'write' method supports.
-	if ( (ie->getSizeBits() % 8) && ie->getWordSwap() )
-		throw InvalidArgError("Word-swap only supported if size % 8 == 0");
 }
 
 
 ScalVal_RO IScalVal_RO::create(Path p)
 {
-ScalVal_ROAdapt rval = IEntryAdapt::check_interface<ScalVal_ROAdapt, IntEntryImpl>( p );
-	if ( rval ) {
-		if ( ! (rval->getMode() & IIntField::RO) ) 
-			throw InterfaceNotImplementedError( p->toString() );
-	}
-	return rval;
+return IEntryAdapt::check_interface<ScalVal_RO>( p );
 }
 
-class CStreamAdapt : public IEntryAdapt, public virtual IStream {
-public:
-	CStreamAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
-	: IEntryAdapt(k, p, ie)
-	{
-	}
-
-	virtual int64_t read(uint8_t *buf, uint64_t size, const CTimeout timeout, uint64_t off)
-	{
-		CompositePathIterator it( p_);
-		Address cl = it->c_p_;
-		CReadArgs args;
-
-		args.cacheable_ = ie_->getCacheable();
-		args.dst_       = buf;
-		args.nbytes_    = size;
-		args.off_       = off;
-		args.timeout_   = timeout;
-		return cl->read( &it, &args );
-	}
-
-	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeout)
-	{
-		CompositePathIterator it( p_);
-		Address cl = it->c_p_;
-		CWriteArgs args;
-
-		args.cacheable_ = ie_->getCacheable();
-		args.off_       = 0;
-		args.src_       = buf;
-		args.nbytes_    = size;
-		args.msk1_      = 0;
-		args.mskn_      = 0;
-		args.timeout_   = timeout;
-		return cl->write( &it, &args );
-	}
-
-};
-
-Stream IStream::create(Path p)
-{
-StreamAdapt rval = IEntryAdapt::check_interface<StreamAdapt, EntryImpl>( p );
-	return rval;
-}
-
-#if 0
-// without caching and bit-level access at the SRP protocol level we cannot
-// support write-only yet.
 ScalVal_WO IScalVal_WO::create(Path p)
 {
-ScalVal_WOAdapt rval = IEntryAdapt::check_interface<ScalVal_WOAdapt, IntEntryImpl>( p );
-	if ( rval ) {
-		if ( ! (rval->getMode() & IIntField::WO) ) 
-			throw InterfaceNotImplementedError( p->toString() );
-	}
-	return rval;
+return IEntryAdapt::check_interface<ScalVal_WO>( p );
 }
-#endif
 
 ScalVal IScalVal::create(Path p)
 {
-ScalVal_Adapt rval = IEntryAdapt::check_interface<ScalVal_Adapt, IntEntryImpl>( p );
-	if ( rval ) {
-		if ( rval->getMode() != IIntField::RW )
-			throw InterfaceNotImplementedError( p->toString() );
-	}
-	return rval;
+return IEntryAdapt::check_interface<ScalVal>( p );
 }
 
 
@@ -1049,7 +1011,14 @@ IntField CIntEntryImpl::CBuilder::build()
 
 IntField CIntEntryImpl::CBuilder::build(const char *name)
 {
-IntEntryImpl rval = CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_, enum_);
+	// merging a word-swapped entity with a bit-size that is
+	// not a multiple of 8 would require more complex bitmasks
+	// than what our current 'write' method supports.
+	if ( (sizeBits_ % 8) && wordSwap_ && mode_ != RO ) {
+		throw InvalidArgError("Word-swap only supported if size % 8 == 0 or mode == RO");
+	}
+
+	IntEntryImpl rval = CShObj::create<IntEntryImpl>(name, sizeBits_, isSigned_, lsBit_, mode_, wordSwap_, enum_);
 	rval->setEncoding  ( encoding_   );
 	rval->setConfigPrio( configPrio_ );
 	rval->setConfigBase( configBase_ );

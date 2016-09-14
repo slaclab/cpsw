@@ -295,7 +295,18 @@ while ( --run > 0 ) {
 						sprintf(nm,"i%i-%i-%c-%i", bits[bits_idx], shft[shft_idx], sign[sign_idx] ? 's' : 'u', wswap);
 
 						if ( ! use_hier ) {
-						IntField e = bldr->build( nm );
+							IntField e;
+							try {
+								e = bldr->build( nm );
+							} catch ( InvalidArgError &exc ) {
+								if ( wswap && (bits[bits_idx] % 8) ) {
+									IIntField::Builder bldrClone( bldr->clone() );
+									bldrClone->mode( IIntField::RO );
+									e = bldrClone->build( nm );
+								} else {
+									throw;
+								}
+							}
 							mmio_le->addAtAddress( e, 0, NELMS, STRIDE );
 							mmio_be->addAtAddress( e, 0, NELMS, STRIDE );
 printf("%s\n", e->getName());
@@ -308,7 +319,7 @@ printf("%s\n", nm);
 							v_le = IScalVal::create( p_le->findByName( nm ) );
 							v_be = IScalVal::create( p_be->findByName( nm ) );
 v_be->getPath()->dump(stdout); std::cout << "\n";
-						} catch ( InvalidArgError &e ) {
+						} catch ( InterfaceNotImplementedError &e ) {
 							// cannot be writable if word-swap and bits % 8 != 0
 							if ( wswap && (bits[bits_idx] & 7) ) {
 								v_le = IScalVal_RO::create( p_le->findByName( nm ) );

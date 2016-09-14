@@ -23,8 +23,8 @@ class CScalVal_ROAdapt;
 typedef shared_ptr<CScalVal_ROAdapt> ScalVal_ROAdapt;
 class CScalVal_WOAdapt;
 typedef shared_ptr<CScalVal_WOAdapt> ScalVal_WOAdapt;
-class CScalVal_Adapt;
-typedef shared_ptr<CScalVal_Adapt>   ScalVal_Adapt;
+class CScalValAdapt;
+typedef shared_ptr<CScalValAdapt>    ScalValAdapt;
 
 
 class CIntEntryImpl : public CEntryImpl, public virtual IIntField {
@@ -148,6 +148,8 @@ public:
 
 	virtual void     setConfigBase(int);
 	virtual void     setEncoding(Encoding);
+
+	virtual EntryAdapt createAdapter(IEntryAdapterKey &, Path, const std::type_info&) const;
 };
 
 class IIntEntryAdapt : public IEntryAdapt, public virtual IScalVal_Base {
@@ -173,10 +175,7 @@ protected:
 
 class CScalVal_ROAdapt : public virtual IScalVal_RO, public virtual IIntEntryAdapt {
 public:
-	CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
-	: IIntEntryAdapt(k, p, ie)
-	{
-	}
+	CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 
 	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0 );
 
@@ -189,8 +188,6 @@ public:
 	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0) { return getVal<uint16_t>(p,n,r); }
 	virtual unsigned getVal(uint8_t  *p, unsigned n, IndexRange *r=0) { return getVal<uint8_t> (p,n,r); }
 	virtual unsigned getVal(CString  *p, unsigned n, IndexRange *r=0);
-
-	static ScalVal_ROAdapt create(Path);
 };
 
 class CScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {
@@ -211,14 +208,11 @@ public:
 
 	virtual unsigned setVal(uint64_t     v, IndexRange *r=0);
 	virtual unsigned setVal(const char*  v, IndexRange *r=0);
-
-	static ScalVal_WOAdapt create(Path);
 };
 
-class CScalVal_Adapt : public virtual CScalVal_ROAdapt, public virtual CScalVal_WOAdapt, public virtual IScalVal {
+class CScalValAdapt : public virtual CScalVal_ROAdapt, public virtual CScalVal_WOAdapt, public virtual IScalVal {
 public:
-	CScalVal_Adapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
-	static ScalVal_Adapt create(Path);
+	CScalValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 };
 
 #endif

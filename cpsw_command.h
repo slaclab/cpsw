@@ -34,7 +34,7 @@ typedef shared_ptr<CCommandImplContext> CommandImplContext;
 //           functions of CCommandImpl are 'const' (unable
 //           to alter the state of CCommandImpl).
 //
-//           The CCommand_Adapt object, OTOH is specifically
+//           The CCommandAdapt object, OTOH is specifically
 //           created for a given 'Path' and may thus hold
 //           related context. The Adapter does not have to
 //           know about the semantics nor contents of the
@@ -114,17 +114,19 @@ public:
 
 		virtual YAML::Node dumpMyConfigToYaml(Path)                 const;
 		virtual void       loadMyConfigFromYaml(Path, YAML::Node &) const;
+
+		virtual EntryAdapt createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const;
 };
 
-class CCommand_Adapt;
-typedef shared_ptr<CCommand_Adapt> Command_Adapt;
+class CCommandAdapt;
+typedef shared_ptr<CCommandAdapt> CommandAdapt;
 
-class CCommand_Adapt: public virtual ICommand, public virtual IEntryAdapt {
+class CCommandAdapt: public virtual ICommand, public virtual IEntryAdapt {
 private:
 		CommandImplContext pContext_;
 
 public:
-		CCommand_Adapt(Key &k, Path p, shared_ptr<const CCommandImpl> ie);
+		CCommandAdapt(Key &k, Path p, shared_ptr<const CCommandImpl> ie);
 
 		static Command create(Path p);
 

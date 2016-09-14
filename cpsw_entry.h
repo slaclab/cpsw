@@ -19,6 +19,8 @@
 
 #include <cpsw_yaml.h>
 
+#include <typeinfo>
+
 using boost::weak_ptr;
 using boost::make_shared;
 
@@ -31,6 +33,9 @@ class   CDevImpl;
 typedef shared_ptr<const CDevImpl>    ConstDevImpl;
 
 class IEntryAdapterKey;
+
+class IEntryAdapt;
+typedef shared_ptr<IEntryAdapt>       EntryAdapt;
 
 class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase {
 	public:
@@ -182,6 +187,9 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 
 		// This member is not for general use (therefore the key argument)
 		virtual UniqueHandle getUniqueHandle(IEntryAdapterKey &key, ConstPath p) const;
+
+		// This member is not for general use (therefore the key argument)
+		virtual EntryAdapt createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const;
 };
 
 #endif

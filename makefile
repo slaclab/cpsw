@@ -21,6 +21,7 @@ GENERATED_SRCS += INSTALL.html
 
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
+cpsw_SRCS+= cpsw_stream_adapt.cc
 cpsw_SRCS+= cpsw_sval.cc
 cpsw_SRCS+= cpsw_command.cc
 cpsw_SRCS+= cpsw_mmio_dev.cc
@@ -50,6 +51,7 @@ DEP_HEADERS += cpsw_address.h
 DEP_HEADERS += cpsw_buf.h
 DEP_HEADERS += cpsw_event.h
 DEP_HEADERS += cpsw_entry_adapt.h
+DEP_HEADERS += cpsw_stream_adapt.h
 DEP_HEADERS += cpsw_entry.h
 DEP_HEADERS += cpsw_enum.h
 DEP_HEADERS += cpsw_freelist.h

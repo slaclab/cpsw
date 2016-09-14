@@ -22,11 +22,7 @@ DECLARE_OBJ_COUNTER( CCommandImplContext::sh_ocnt_, "CommandImplContext", 0 )
 
 Command ICommand::create(Path p)
 {
-Command_Adapt rval = IEntryAdapt::check_interface<Command_Adapt, CommandImpl>( p );
-	if ( !rval ) {
-		throw InterfaceNotImplementedError( p->toString() );
-	}
-	return rval;
+	return IEntryAdapt::check_interface<Command>( p );
 }
 
 CCommandImpl::CCommandImpl(Key &k, const char *name):
@@ -61,7 +57,17 @@ void CCommandImpl::executeCommand(CommandImplContext ctxt) const
 	throw InterfaceNotImplementedError( ctxt->getParent()->toString() );
 }
 
-CCommand_Adapt::CCommand_Adapt(Key &k,  Path p, shared_ptr<const CCommandImpl> ie):
+EntryAdapt
+CCommandImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
+{
+	if ( interfaceType == typeid(Command::element_type) ) {
+        return CShObj::template create<CommandAdapt>(p, getSelfAsConst< shared_ptr<const CommandImpl::element_type> >());
+
+	}
+	return CEntryImpl::createAdapter(key, p, interfaceType);
+}
+
+CCommandAdapt::CCommandAdapt(Key &k,  Path p, shared_ptr<const CCommandImpl> ie):
 	IEntryAdapt(k, p, ie)
 {
 	p = p->clone();
@@ -69,16 +75,11 @@ CCommand_Adapt::CCommand_Adapt(Key &k,  Path p, shared_ptr<const CCommandImpl> i
 	pContext_ = ie->createContext( p );
 }
 
+
 void
-CCommand_Adapt::execute()
+CCommandAdapt::execute()
 {
 	asCommandImpl()->executeCommand( pContext_ );
-}
-
-Command CCommand_Adapt::create(Path p)
-{
-	Command_Adapt comm = IEntryAdapt::check_interface<Command_Adapt, CommandImpl>( p );
-	return comm;
 }
 
 SequenceCommand ISequenceCommand::create(const char* name, const Items *items_p)

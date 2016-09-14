@@ -17,6 +17,9 @@
 
 using boost::dynamic_pointer_cast;
 
+class IEntryAdapt;
+typedef shared_ptr<IEntryAdapt> EntryAdapt;
+
 class IEntryAdapt : public virtual IEntry, public CShObj {
 protected:
 	shared_ptr<const CEntryImpl> ie_;
@@ -26,6 +29,9 @@ protected:
 
 protected:
 	IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie);
+
+	// initialize after object is created
+    virtual void        postCreateHook() {}
 
 	// clone not implemented (should not be needed)
 
@@ -49,7 +55,7 @@ public:
 	// information, for example cached values.
     static  bool        singleInterfaceOnly()  { return false;          }
 
-	template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p);
+	template <typename INTERF> static INTERF check_interface(Path p);
 };
 
 class IEntryAdapterKey
@@ -59,30 +65,34 @@ class IEntryAdapterKey
 		IEntryAdapterKey(const IEntryAdapterKey&);
 		IEntryAdapterKey &operator=(const IEntryAdapterKey&);
 
-		template <typename A, typename I> friend A IEntryAdapt::check_interface(Path p);
+		template <typename I> friend I IEntryAdapt::check_interface(Path p);
 };
 
-template <typename ADAPT, typename IMPL> ADAPT IEntryAdapt::check_interface(Path p)
+template <typename INTERF> INTERF IEntryAdapt::check_interface(Path p)
 {
 	if ( p->empty() )
 		throw InvalidArgError("Empty Path");
 
-	Address a = CompositePathIterator( p )->c_p_;
-	shared_ptr<const typename IMPL::element_type> e = dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
-	if ( e ) {
+	Address   a ( CompositePathIterator( p )->c_p_ );
+    EntryImpl ei( a->getEntryImpl() );
+
+	IEntryAdapterKey key;
+
+	EntryAdapt adapter( ei->createAdapter( key, p, typeid(typename INTERF::element_type) ) );
+	INTERF     rval;
+	if ( adapter && (rval = dynamic_pointer_cast<typename INTERF::element_type>( adapter )) ) {
 		CEntryImpl::UniqueHandle uniq;
 
 		if ( singleInterfaceOnly() ) {
-			IEntryAdapterKey key;
 			// getUniqueHandle throws "MultipleInstantiationError" if  Path 'p'
 			// overlaps with the path of an existing interface to Entry 'e'
-			uniq = e->getUniqueHandle( key, p );
+			uniq = ei->getUniqueHandle( key, p );
 		}
 
-		ADAPT rval = CShObj::template create<ADAPT>(p, e);
-
 		if ( uniq )
-			rval->setUnique( uniq );
+			adapter->setUnique( uniq );
+
+		adapter->postCreateHook();
 
 		return rval;
 	}

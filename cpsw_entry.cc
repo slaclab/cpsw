@@ -11,6 +11,7 @@
 #include <cpsw_path.h>
 #include <cpsw_entry.h>
 #include <cpsw_entry_adapt.h>
+#include <cpsw_stream_adapt.h>
 #include <cpsw_hub.h>
 #include <ctype.h>
 
@@ -286,4 +287,14 @@ CUniqueHandle *nod = uniqueListHead_.getNext();
 	h->add_unguarded( &uniqueListHead_ );
 
 	return h;
+}
+
+EntryAdapt
+CEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
+{
+	if ( interfaceType == typeid(Stream::element_type) ) {
+		std::cout << "Stream created at " << p->toString() << "\n";
+		return CShObj::template create<StreamAdapt>(p, getSelfAsConst< shared_ptr<const EntryImpl::element_type> >());
+	}
+	return EntryAdapt();
 }
