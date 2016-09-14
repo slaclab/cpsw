@@ -178,12 +178,13 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 		if ( getMode() != RW ) {
 			throw InterfaceNotImplementedError("ScalVal interface not supported");
 		}
-		return CShObj::template create<ScalValAdapt>(p, getSelfAsConst< shared_ptr<const IntEntryImpl::element_type> >());
+		return _createAdapter<ScalValAdapt>(this, p);
+//		return CShObj::template create<ScalValAdapt>(p, getSelfAsConst< shared_ptr<const IntEntryImpl::element_type> >());
 	} else if ( interfaceType == typeid(ScalVal_RO::element_type) ) {
 		if ( getMode() == WO ) {
 			throw InterfaceNotImplementedError("ScalVal_RO interface not supported by write-only entry");
 		}
-		return CShObj::template create<ScalVal_ROAdapt>(p, getSelfAsConst< shared_ptr<const IntEntryImpl::element_type> >());
+		return _createAdapter<ScalVal_ROAdapt>(this, p);
 	}
 #if 0
 			// without caching and bit-level access at the SRP protocol level we cannot
@@ -192,7 +193,7 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 		if ( getMode() != RO ) {
 			throw InterfaceNotImplementedError("ScalVal_WO interface not supported by read-only entry");
 		}
-		return CShObj::template create<ScalVal_WOAdapt>(p, getSelfAsConst< shared_ptr<const IntEntryImpl::element_type> >());
+		return _createAdapter<ScalVal_WOAdapt>(this, p);
 	}
 #endif
 	// maybe the superclass knows about this interface?
