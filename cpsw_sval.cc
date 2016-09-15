@@ -29,6 +29,72 @@ const int CIntEntryImpl::DFLT_CONFIG_PRIO_RW;
 class CStreamAdapt;
 typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
+template <typename EL, typename VL> class Vals {
+private:
+	EL          *vals_;
+	unsigned     nelms_;
+
+	static const unsigned STACK_BREAK = 1024*100;
+
+public:
+	Vals(unsigned nelms)
+	: vals_( nelms*sizeof(EL) > STACK_BREAK ? new EL[nelms] : NULL ),
+	  nelms_( nelms )
+	{
+	}
+
+	unsigned setVal(CScalVal_WOAdapt *scalValAdapt, IndexRange *r, VL v)
+	{
+	EL onStack[ vals_ ? 0 : nelms_ ];
+	EL *valp = vals_ ? vals_ : onStack;
+
+		for ( unsigned i = 0; i<nelms_; i++ )
+			valp[i] = (EL)v;
+		return scalValAdapt->setVal( valp, nelms_, r );
+	}
+
+	unsigned getVal(CScalVal_ROAdapt *scalValAdapt, VL *v_p, IndexRange *r);
+	unsigned setVal(CScalVal_WOAdapt *scalValAdapt, IndexRange *r, VL *v_p);
+
+	~Vals()
+	{
+		delete [] vals_;
+	}
+};
+
+template <> unsigned Vals<uint64_t, double>::getVal(CScalVal_ROAdapt *scalValAdapt, double *v_p, IndexRange *r)
+{
+	uint64_t onStack[ vals_ ? 0 : nelms_ ];
+	uint64_t *valp = vals_ ? vals_ : onStack;
+	unsigned got;
+
+	got = scalValAdapt->getVal( valp, nelms_, r );
+
+	if ( scalValAdapt->isSigned() ) {
+		for ( unsigned i = 0; i<got; i++ )
+			v_p[i] = (int64_t)valp[i];
+	} else {
+		for ( unsigned i = 0; i<got; i++ )
+			v_p[i] = valp[i];
+	}
+	return got;
+}
+
+template <> unsigned Vals<uint64_t, double>::setVal(CScalVal_WOAdapt *scalValAdapt, IndexRange *r, double *v_p)
+{
+uint64_t onStack[ vals_ ? 0 : nelms_ ];
+uint64_t *valp = vals_ ? vals_ : onStack;
+
+	if ( scalValAdapt->isSigned() ) {
+		for ( unsigned i = 0; i<nelms_; i++ )
+			valp[i] = (int64_t)v_p[i];
+	} else {
+		for ( unsigned i = 0; i<nelms_; i++ )
+			valp[i] = (uint64_t)v_p[i];
+	}
+	return scalValAdapt->setVal( valp, nelms_, r );
+}
+
 static uint64_t b2B(uint64_t bits)
 {
 	return (bits + 7)/8;
@@ -205,6 +271,17 @@ ScalVal_ROAdapt rval = IEntryAdapt::check_interface<ScalVal_ROAdapt, IntEntryImp
 	return rval;
 }
 
+DoubleVal_RO IDoubleVal_RO::create(Path p)
+{
+ScalVal_ROAdapt rval = IEntryAdapt::check_interface<ScalVal_ROAdapt, IntEntryImpl>( p );
+	if ( rval ) {
+		if ( ! (rval->getMode() & IIntField::RO) ) 
+			throw InterfaceNotImplementedError( p->toString() );
+	}
+	return rval;
+}
+
+
 class CStreamAdapt : public IEntryAdapt, public virtual IStream {
 public:
 	CStreamAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
@@ -274,11 +351,52 @@ ScalVal_Adapt rval = IEntryAdapt::check_interface<ScalVal_Adapt, IntEntryImpl>( 
 	return rval;
 }
 
+DoubleVal IDoubleVal::create(Path p)
+{
+ScalVal_Adapt rval = IEntryAdapt::check_interface<ScalVal_Adapt, IntEntryImpl>( p );
+	if ( rval ) {
+		if ( rval->getMode() != IIntField::RW )
+			throw InterfaceNotImplementedError( p->toString() );
+	}
+	return static_pointer_cast<DoubleVal::element_type>( rval );
+}
 
-unsigned IIntEntryAdapt::getNelms()
+
+
+
+unsigned
+IIntEntryAdapt::getNelms()
 {
 	return p_->getNelms();
 }
+
+unsigned
+IIntEntryAdapt::nelmsFromIdx(IndexRange *r)
+{
+	if ( r ) {
+		int f = r->getFrom();
+		int t = r->getTo();
+
+		if ( f >= 0 || t >= 0 ) {
+			CompositePathIterator it( p_ );
+			if ( f < 0 )
+				f = it->idxf_; 
+			else
+				f = it->idxf_ + f;
+			if ( t < 0 )
+				t = it->idxt_; 
+			else
+				t = it->idxf_ + t;
+			t = t - f + 1;
+			int d = it.getNelmsRight();
+			if ( t >= 0 && t < d )
+				d = t;
+			return it.getNelmsLeft() * d;
+		}
+	}
+	return getNelms();
+}
+
 
 class SignExtender {
 private:
@@ -439,6 +557,8 @@ unsigned         nelmsOnPath  = it.getNelmsLeft();
 	else
 		ibuf_nchars = 0;
 
+	// FIXME: allocating temp. buffer on the stack is efficient
+	//        but very large requests should be broken up
 	uint8_t ibuf[ibuf_nchars];
 
 	uint8_t *ibufp = ibuf_nchars ? ibuf : buf;
@@ -540,6 +660,8 @@ unsigned         nelmsOnPath  = it.getNelmsLeft();
 
 unsigned CScalVal_ROAdapt::getVal(CString *strs, unsigned nelms, IndexRange *range)
 {
+// FIXME: allocating temp. buffer on the stack is efficient
+//        but very large requests should be broken up
 uint64_t buf[nelms];
 unsigned got,i;
 Enum     enm = getEnum();
@@ -564,6 +686,12 @@ Enum     enm = getEnum();
 		strs[i].reset();
 
 	return got;
+}
+
+unsigned CScalVal_ROAdapt::getVal(double *buf, unsigned nelms, IndexRange *range)
+{
+Vals<uint64_t, double> vals( nelms );
+	return vals.getVal( this, buf, range );
 }
 
 #ifdef SVAL_DEBUG
@@ -609,6 +737,9 @@ unsigned         nelmsOnPath = it.getNelmsLeft();
 		              || wlen               >  0;
 
 	size_t  obuf_nchars = need_work ? dbytes * nelms : 0;
+
+	// FIXME: allocating temp. buffer on the stack is efficient
+	//        but very large requests should be broken up
 	uint8_t obuf[obuf_nchars];
 
 	uint8_t *ibufp = buf;
@@ -717,6 +848,8 @@ prib("byte-swapped", obufp + oidx);
 
 unsigned CScalVal_WOAdapt::setVal(const char* *strs, unsigned nelms, IndexRange *range)
 {
+// FIXME: allocating temp. buffer on the stack is efficient
+//        but very large requests should be broken up
 uint64_t buf[nelms];
 unsigned i;
 Enum     enm = getEnum();
@@ -738,89 +871,42 @@ Enum     enm = getEnum();
 	return setVal(buf, nelms, range);
 }
 
-static unsigned nelmsFromIdx(IndexRange *r, ConstPath p, unsigned nelms)
-{
-	if ( r ) {
-		int f = r->getFrom();
-		int t = r->getTo();
 
-		if ( f >= 0 || t >= 0 ) {
-			CompositePathIterator it( p );
-			if ( f < 0 )
-				f = it->idxf_; 
-			else
-				f = it->idxf_ + f;
-			if ( t < 0 )
-				t = it->idxt_; 
-			else
-				t = it->idxf_ + t;
-			t = t - f + 1;
-			int d = it.getNelmsRight();
-			if ( t >= 0 && t < d )
-				d = t;
-			nelms = it.getNelmsLeft() * d;
-		}
-	}
-	return nelms;
+unsigned CScalVal_WOAdapt::setVal(const char *v, IndexRange *range)
+{
+unsigned nelms = nelmsFromIdx( range );
+Vals<const char*, const char *> vals(nelms);
+	return vals.setVal(this, range, v);
 }
 
-unsigned CScalVal_WOAdapt::setVal(const char *v, IndexRange *r)
+unsigned CScalVal_WOAdapt::setVal(double *buf, unsigned nelms, IndexRange *range)
 {
-unsigned nelms = nelmsFromIdx(r, p_, getNelms());
-const char *arg[nelms];
-unsigned i;
-	for (i=0; i<nelms; i++ )
-		arg[i] = v;
-
-	return setVal(arg, nelms, r);
+Vals<uint64_t, double> vals( nelms );
+	return vals.setVal(this, range, buf);
 }
 
-template <typename EL> class Vals {
-private:
-	EL          *vals_;
-	unsigned     nelms_;
+unsigned CScalVal_WOAdapt::setVal(double v, IndexRange *range)
+{
+Vals<uint64_t, double> vals( nelmsFromIdx(range) );
+	return vals.setVal(this, range, v);
+}
 
-	static const unsigned STACK_BREAK = 1024*100;
-
-public:
-	Vals(unsigned nelms)
-	: vals_( nelms*sizeof(EL) > STACK_BREAK ? new EL[nelms] : NULL ),
-	  nelms_( nelms )
-	{
-	}
-
-	unsigned setVal(CScalVal_WOAdapt *scalValAdapt, IndexRange *r, uint64_t v)
-	{
-	EL onStack[ vals_ ? 0 : nelms_ ];
-	EL *valp = vals_ ? vals_ : onStack;
-
-		for ( unsigned i = 0; i<nelms_; i++ )
-			valp[i] = (EL)v;
-		return scalValAdapt->setVal( valp, nelms_, r );
-	}
-	
-	~Vals()
-	{
-		delete [] vals_;
-	}
-};
-	
 unsigned CScalVal_WOAdapt::setVal(uint64_t  v, IndexRange *r)
 {
-unsigned nelms = nelmsFromIdx(r, p_, getNelms());
+unsigned nelms = nelmsFromIdx(r);
 
 	// since writes may be collapsed at a lower layer we simply build an array here
 	if ( getSize() <= sizeof(uint8_t) ) {
-		Vals<uint8_t> vals( nelms );
+		Vals<uint8_t, uint64_t> vals( nelms );
 		return vals.setVal( this, r, v );
 	} else if ( getSize() <= sizeof(uint16_t) ) {
-		Vals<uint16_t> vals( nelms );
+		Vals<uint16_t, uint64_t> vals( nelms );
 		return vals.setVal( this, r, v );
 	} else if ( getSize() <= sizeof(uint32_t) ) {
-		Vals<uint32_t> vals( nelms );
+		Vals<uint32_t, uint64_t> vals( nelms );
 		return vals.setVal( this, r, v );
 	} else {
-		Vals<uint64_t> vals( nelms );
+		Vals<uint64_t, uint64_t> vals( nelms );
 		return vals.setVal( this, r, v );
 	}
 }

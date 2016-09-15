@@ -31,6 +31,9 @@ class IEnum;
 class IEventListener;
 class IEventSource;
 class IStream;
+class IDoubleVal_RO;
+class IDoubleVal_WO;
+class IDoubleVal;
 
 typedef shared_ptr<const IEntry>         Entry;
 typedef shared_ptr<const IHub>           Hub;
@@ -45,6 +48,9 @@ typedef shared_ptr<const std::string>    CString;
 typedef shared_ptr<IEventSource>         EventSource;
 typedef shared_ptr<IStream>              Stream;
 typedef shared_ptr< std::vector<Child> > Children;
+typedef shared_ptr<IDoubleVal_RO>        DoubleVal_RO;
+typedef shared_ptr<IDoubleVal_WO>        DoubleVal_WO;
+typedef shared_ptr<IDoubleVal>           DoubleVal;
 
 #include <cpsw_error.h>
 
@@ -400,19 +406,30 @@ public:
 	virtual ~IEnum() {}
 };
 
-/*!
- * Base interface to integral values
- */
-class IScalVal_Base : public virtual IEntry {
+class IVal_Base : public virtual IEntry {
 public:
 	/*!
-	 * Return number of elements addressed by this ScalVal.
+	 * Return number of elements addressed by this Val.
 	 *
-	 * The Path used to instantiate a ScalVal may address an array
-	 * of scalar values. This method returns the number of array elements
+	 * The Path used to instantiate a Val may address an array
+	 * of values. This method returns the number of array elements.
 	 */
 	virtual unsigned getNelms()               = 0;
 
+	/*!
+	 * Return a copy of the Path which was used to create this Val.
+	 */
+	virtual Path     getPath()          const = 0;
+
+
+	virtual ~IVal_Base() {}
+};
+
+/*!
+ * Base interface to integral values
+ */
+class IScalVal_Base : public virtual IVal_Base {
+public:
 	/*!
 	 * Return the size in bits of this ScalVal.
 	 *
@@ -428,11 +445,6 @@ public:
 	 * then automatic sign-extension is performed (for signed ScalVals).
 	 */
 	virtual bool     isSigned()         const = 0;
-
-	/*!
-	 * Return a copy of the Path which was used to create this ScalVal.
-	 */
-	virtual Path     getPath()          const = 0;
 
 	/*!
 	 * Return 'Enum' object associated with this ScalVal (if any).
@@ -703,5 +715,57 @@ public:
 	 static Command create(Path p);
 };
 
+
+/*!
+ * Interface for endpoints with support for floating-point numbers (read-only)
+ */
+class IDoubleVal_RO : public virtual IVal_Base {
+public:
+
+	/*!
+	 * Read values -- see ScalVal_RO::getVal().
+	 */
+	virtual unsigned getVal(double *p, unsigned nelms = 1, IndexRange *range = 0)      = 0;
+
+	virtual ~IDoubleVal_RO(){}
+
+	/*!
+	 * Instantiate a 'DoubleVal_RO' interface at the endpoint identified by 'path'
+	 */
+	static DoubleVal_RO create(Path path);
+};
+
+/*!
+ * Interface for endpoints with support for floating-point numbers (write-only)
+ */
+class IDoubleVal_WO : public virtual IVal_Base {
+public:
+
+	/*!
+	 * Write values -- see ScalVal_WO::setVal().
+	 */
+	virtual unsigned setVal(double    *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
+	virtual unsigned setVal(double     v, IndexRange *range = 0) = 0; // set all elements to same value
+
+	virtual ~IDoubleVal_WO(){}
+
+	/*!
+	 * Instantiate a 'DoubleVal_WO' interface at the endpoint identified by 'path'
+	 */
+	static DoubleVal_WO create(Path path);
+};
+
+/*!
+ * Interface for endpoints with support for floating-point numbers (read-write)
+ */
+class IDoubleVal: public virtual IDoubleVal_RO, public virtual IDoubleVal_WO {
+public:
+	virtual ~IDoubleVal(){}
+
+	/*!
+	 * Instantiate a 'DoubleVal' interface at the endpoint identified by 'path'
+	 */
+	static DoubleVal create(Path path);
+};
 
 #endif

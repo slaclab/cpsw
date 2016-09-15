@@ -548,6 +548,48 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 		}
 
 	}
+	std::cout << "double-TEST\n";
+	{
+		char nam[200];
+			sprintf(nam, "mmio/le/i16-0-u-0");
+
+			v_arr = IScalVal::create( root->findByName( nam ) );
+			DoubleVal d_arr = IDoubleVal::create( root->findByName( nam ) );
+
+			unsigned nelms = v_arr->getNelms();
+			unsigned got;
+
+			uint16_t u16[nelms];
+			double   dbl[nelms];
+
+			for ( unsigned i=0; i<nelms; i++ )
+				u16[i]=(uint16_t)(i-4);
+
+			v_arr->setVal(u16, nelms);
+
+			got = d_arr->getVal(dbl, nelms);
+
+			if ( got != nelms )
+				throw TestFailed("double readback -- got less elements than expected");
+
+			for ( int i=0; i<(int)nelms; i++ ) {
+				if ( fabs( dbl[i] - (double)( (i-4) < 0 ? 65536 + i - 4 : i - 4) ) > .000001 )
+					throw TestFailed("unsigned <-> double mismatch");
+			}
+
+			sprintf(nam, "mmio/le/i16-0-s-0");
+			d_arr = IDoubleVal::create( root->findByName( nam ) );
+
+			got = d_arr->getVal(dbl, nelms);
+
+			if ( got != nelms )
+				throw TestFailed("double readback -- got less elements than expected");
+
+			for ( int i=0; i<(int)nelms; i++ ) {
+				if ( fabs( dbl[i] - (double)(i-4)) > .000001 )
+					throw TestFailed("unsigned <-> double mismatch");
+			}
+	}
 
 }
 
