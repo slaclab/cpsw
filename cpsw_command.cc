@@ -60,8 +60,8 @@ void CCommandImpl::executeCommand(CommandImplContext ctxt) const
 EntryAdapt
 CCommandImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
 {
-	if ( interfaceType == typeid(Command::element_type) ) {
-        return CShObj::template create<CommandAdapt>(p, getSelfAsConst< shared_ptr<const CommandImpl::element_type> >());
+	if ( isInterface<Command>( interfaceType ) ) {
+        return _createAdapter<CommandAdapt>(this, p);
 
 	}
 	return CEntryImpl::createAdapter(key, p, interfaceType);

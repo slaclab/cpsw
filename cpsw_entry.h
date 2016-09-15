@@ -198,6 +198,11 @@ protected:
 		{
 			return CShObj::template create<ADAPT>(p, getSelfAsConst<shared_ptr<const IMPL> >());
 		}
+
+		template <typename INTRF> static bool isInterface(const std::type_info &interfaceType)
+		{
+			return typeid(typename INTRF::element_type) == interfaceType;
+		}
 };
 
 #endif

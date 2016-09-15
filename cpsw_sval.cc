@@ -174,22 +174,22 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 EntryAdapt
 CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
 {
-	if ( interfaceType == typeid(ScalVal::element_type) ) {
+	if ( isInterface<ScalVal>(interfaceType) ) {
 		if ( getMode() != RW ) {
 			throw InterfaceNotImplementedError("ScalVal interface not supported");
 		}
 		return _createAdapter<ScalValAdapt>(this, p);
 //		return CShObj::template create<ScalValAdapt>(p, getSelfAsConst< shared_ptr<const IntEntryImpl::element_type> >());
-	} else if ( interfaceType == typeid(ScalVal_RO::element_type) ) {
+	} else if ( isInterface<ScalVal_RO>(interfaceType) ) {
 		if ( getMode() == WO ) {
 			throw InterfaceNotImplementedError("ScalVal_RO interface not supported by write-only entry");
 		}
 		return _createAdapter<ScalVal_ROAdapt>(this, p);
 	}
 #if 0
-			// without caching and bit-level access at the SRP protocol level we cannot
-			// support write-only yet.
-	else if ( interfaceType == typeid(ScalVal_WO::element_type) ) {
+	// without caching and bit-level access at the SRP protocol level we cannot
+	// support write-only yet.
+	else if ( isInterface<ScalVal_WO>(interfaceType) ) {
 		if ( getMode() != RO ) {
 			throw InterfaceNotImplementedError("ScalVal_WO interface not supported by read-only entry");
 		}

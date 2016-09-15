@@ -292,9 +292,9 @@ CUniqueHandle *nod = uniqueListHead_.getNext();
 EntryAdapt
 CEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
 {
-	if ( interfaceType == typeid(Stream::element_type) ) {
+	if ( isInterface<Stream>(interfaceType) ) {
 		std::cout << "Stream created at " << p->toString() << "\n";
-		return CShObj::template create<StreamAdapt>(p, getSelfAsConst< shared_ptr<const EntryImpl::element_type> >());
+		_createAdaptor<StreamAdapt>(this, p);
 	}
 	return EntryAdapt();
 }
