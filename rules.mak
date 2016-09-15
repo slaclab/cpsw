@@ -165,7 +165,7 @@ define PROG_template
 
 $(2)_OBJS=$$(patsubst %.cpp,%.o,$$(patsubst %.cc,%.o,$$(patsubst %.c,%.o,$$($(2)_SRCS))))
 
-$(1): $$($(2)_OBJS) $$(wildcard $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst .,_,$$(subst -,_,$$(lib)))_DIR_$$(TARNM))/lib$$(lib).a $$($$(subst .,_,$$(subst -,_,$$(lib)))_DIR)/lib$$(lib).a),) $$(foreach lib,$$($(2)_LIBS),lib$$(lib).a))
+$(1): $$($(2)_OBJS) $$(wildcard $$(foreach suff,.a .so .so.*,$$(addsuffix $$(suff), $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst .,_,$$(subst -,_,$$(lib)))_DIR_$$(TARNM))/lib$$(lib) $$($$(subst .,_,$$(subst -,_,$$(lib)))_DIR)/lib$$(lib)),) $$(foreach lib,$$($(2)_LIBS),lib$$(lib)))))
 
 SRCS+=$$($(2)_SRCS)
 
