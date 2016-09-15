@@ -56,7 +56,10 @@ public:
     static  bool        singleInterfaceOnly()  { return false;          }
 
 	template <typename INTERF> static INTERF check_interface(Path p);
+
+	template <typename ADAPT, typename IMPL> static ADAPT check_interface_legacy(Path p);
 };
+
 
 class IEntryAdapterKey
 {
@@ -66,6 +69,7 @@ class IEntryAdapterKey
 		IEntryAdapterKey &operator=(const IEntryAdapterKey&);
 
 		template <typename I> friend I IEntryAdapt::check_interface(Path p);
+		template <typename A, typename I> friend A IEntryAdapt::check_interface_legacy(Path p);
 };
 
 template <typename INTERF> INTERF IEntryAdapt::check_interface(Path p)
@@ -98,5 +102,33 @@ template <typename INTERF> INTERF IEntryAdapt::check_interface(Path p)
 	}
 	throw InterfaceNotImplementedError( p->toString() );
 }
+
+template <typename ADAPT, typename IMPL> ADAPT IEntryAdapt::check_interface_legacy(Path p)
+{
+	if ( p->empty() )
+		throw InvalidArgError("Empty Path");
+
+	Address a = CompositePathIterator( p )->c_p_;
+	shared_ptr<const typename IMPL::element_type> e = dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
+	if ( e ) {
+		CEntryImpl::UniqueHandle uniq;
+
+		if ( singleInterfaceOnly() ) {
+			IEntryAdapterKey key;
+			// getUniqueHandle throws "MultipleInstantiationError" if  Path 'p'
+			// overlaps with the path of an existing interface to Entry 'e'
+			uniq = e->getUniqueHandle( key, p );
+		}
+
+		ADAPT rval = CShObj::template create<ADAPT>(p, e);
+
+		if ( uniq )
+			rval->setUnique( uniq );
+
+		return rval;
+	}
+	throw InterfaceNotImplementedError( p->toString() );
+}
+
 
 #endif
