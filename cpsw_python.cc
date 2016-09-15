@@ -484,6 +484,51 @@ Py_buffer view;
 	return val->write( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 }
 
+static boost::python::object wrap_DoubleVal_RO_getVal(DoubleVal_RO val, int from, int to)
+{
+unsigned   nelms = val->getNelms();
+unsigned   got;
+IndexRange rng(from, to);
+
+	std::vector<double> v64;
+
+	v64.reserve(nelms);
+
+	got = val->getVal( &v64[0], nelms, &rng );
+	if ( 1 == got ) {
+		return boost::python::object( v64[0] );
+	}
+
+	boost::python::list l;
+	for ( unsigned i = 0; i<got; i++ ) {
+		l.append( v64[i] );
+	}
+	return l;
+}
+
+static unsigned wrap_DoubleVal_setVal(DoubleVal val, object &o, int from, int to)
+{
+PyObject  *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
+IndexRange rng(from, to);
+
+	// if the object is not a python sequence then 'len()' cannot be used.
+	// Thus, we have to handle this case separately...
+
+	if ( ! PySequence_Check( op ) ) {
+		// a single string (attempt to set enum) is also a sequence
+		return val->setVal( extract<double>( o ), &rng );
+	}
+
+	unsigned nelms = len(o);
+
+	std::vector<double> v64;
+	for ( unsigned i = 0; i < nelms; ++i ) {
+		v64.push_back( extract<double>( o[i] ) );
+	}
+	return val->setVal( &v64[0], nelms, &rng );
+}
+
+
 // wrap IPathVisitor to call back into python (assuming the visitor
 // is implemented there, of course)
 class WrapPathVisitor : public IPathVisitor {
@@ -569,9 +614,12 @@ BOOST_PYTHON_MODULE(pycpsw)
 	register_ptr_to_python<Path                           >();
 	register_ptr_to_python<ConstPath                      >();
 	register_ptr_to_python<Enum                           >();
+	register_ptr_to_python< shared_ptr<IVal_Base>         >();
 	register_ptr_to_python< shared_ptr<IScalVal_Base>     >();
 	register_ptr_to_python<ScalVal_RO                     >();
 	register_ptr_to_python<ScalVal                        >();
+	register_ptr_to_python<DoubleVal_RO                   >();
+	register_ptr_to_python<DoubleVal                      >();
 	register_ptr_to_python<Command                        >();
 	register_ptr_to_python<Stream                         >();
 
@@ -999,8 +1047,33 @@ BOOST_PYTHON_MODULE(pycpsw)
 		)
 	;
 
+	// wrap 'IVal_Base' interface
+	class_<IVal_Base, bases<IEntry>, boost::noncopyable>
+	Val_BaseClazz(
+		"Val_Base",
+		"\n"
+		"Base class for Val variants.\n",
+		no_init
+	);
+
+	Val_BaseClazz
+		.def("getNelms",     &IVal_Base::getNelms,
+			( arg("self") ),
+			"\n"
+			"Return number of elements addressed by this ScalVal.\n"
+			"\n"
+			"The Path used to instantiate a ScalVal may address an array\n"
+			"of scalar values. This method returns the number of array elements"
+		)
+		.def("getPath",      &IScalVal_Base::getPath,
+			( arg("self") ),
+			"\n"
+			"Return a copy of the Path which was used to create this ScalVal."
+		)
+	;
+
 	// wrap 'IScalVal_Base' interface
-	class_<IScalVal_Base, bases<IEntry>, boost::noncopyable>
+	class_<IScalVal_Base, bases<IVal_Base>, boost::noncopyable>
 	ScalVal_BaseClazz(
 		"ScalVal_Base",
 		"\n"
@@ -1009,14 +1082,6 @@ BOOST_PYTHON_MODULE(pycpsw)
 	);
 
 	ScalVal_BaseClazz
-		.def("getNelms",     &IScalVal_Base::getNelms,
-			( arg("self") ),
-			"\n"
-			"Return number of elements addressed by this ScalVal.\n"
-			"\n"
-			"The Path used to instantiate a ScalVal may address an array\n"
-			"of scalar values. This method returns the number of array elements"
-		)
 		.def("getSizeBits",  &IScalVal_Base::getSizeBits,
 			( arg("self") ),
 			"\n"
@@ -1032,11 +1097,6 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"If the ScalVal is read into a wider number than its native bitSize\n"
 			"then automatic sign-extension is performed (for signed ScalVals)."
-		)
-		.def("getPath",      &IScalVal_Base::getPath,
-			( arg("self") ),
-			"\n"
-			"Return a copy of the Path which was used to create this ScalVal."
 		)
 		.def("getEncoding", wrap_ScalVal_Base_getEncoding,
 			( arg("self") ),
@@ -1199,6 +1259,117 @@ BOOST_PYTHON_MODULE(pycpsw)
 		)
 		.staticmethod("create")
 	;
+
+	// wrap 'IDoubleVal_RO' interface
+	class_<IDoubleVal_RO, bases<IVal_Base>, boost::noncopyable>
+	DoubleVal_ROClazz(
+		"DoubleVal_RO",
+		"\n"
+		"Read-Only interface for endpoints which support 'double' values.\n"
+		"\n"
+		"This interface is analogous to ScalVal_RO but reads from an\n"
+		"interface which supplies floating-point numbers.\n"
+		"\n"
+		"NOTE: If no write operations are required then it is preferable\n"
+		"      to use the DoubleVal_RO interface (as opposed to DoubleVal)\n"
+		"      since the underlying endpoint may be read-only.",
+		no_init
+	);
+
+	DoubleVal_ROClazz
+		.def("getVal",       wrap_DoubleVal_RO_getVal,
+			( arg("self"), arg("fromIdx") = -1, arg("toIdx") = -1 ),
+			"\n"
+			"Read one or multiple values, return as a scalar or a list.\n"
+			"\n"
+			"If no indices (fromIdx, toIdx) are specified then all elements addressed by\n"
+			"the path object from which the DoubleVal_RO was created are retrieved. All\n"
+			"values are represented by a 'c-style flattened' list:\n"
+			"\n"
+			"  /some/dev[0-1]/item[0-9]\n"
+			"\n"
+			"would return\n"
+			"\n"
+			"  [dev0_item0_value, dev0_item1_value, ..., dev0_item9_value, dev1_item0_value, ...].\n"
+			"\n"
+			"The indices may be used to 'slice' the rightmost index in the path which\n"
+			"was used when creating the DoubleVal interface. Enumerating these slices\n"
+			"starts at 'fromIdx' up to and including 'toIdx'. Note that fromIdx/toIdx\n"
+			"**are based off the index contained in the path**!\n"
+			"E.g., if a DoubleVal_RO created from the above path is read with:\n"
+			"\n"
+			"  DoubleVal_RO.create( root.findByName('/some/dev[0-1]/item[4-9]') )->getVal( 1, 2 )\n"
+			"\n"
+			"then [ dev0_item5, dev0_item6, dev1_item5, dev1_item6 ] would be returned.\n"
+			"Note how 'fromIdx==1' is added to the starting index '4' from the path.\n"
+			"If both 'fromIdx' and 'toIdx' are negative then all elements are included.\n"
+			"A negative 'toIdx' is equivalent to 'toIdx' == 'fromIdx' and results in only\n"
+			"the single element at 'fromIdx' to be read.\n"
+		)
+		.def(			"create",       &IDoubleVal_RO::create,
+			( arg("path") ),
+			"\n"
+			"Instantiate a 'DoubleVal_RO' interface at the endpoint identified by 'path'\n"
+			"\n"
+			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"      not support this interface."
+		)
+		.staticmethod(			"create")
+	;
+
+	// wrap 'IDoubleVal' interface
+	class_<IDoubleVal, bases<IDoubleVal_RO>, boost::noncopyable>
+	DoubleVal_Clazz(
+		"DoubleVal",
+		"\n"
+		"Interface for endpoints which support 'double' values.\n"
+		"\n"
+		"This interface is analogous to ScalVal but accesses an\n"
+		"interface which expects/supplies floating-point numbers.",
+		no_init
+	);
+
+	DoubleVal_Clazz
+		.def(			"setVal",       wrap_DoubleVal_setVal,
+		    ( arg(			"self"), arg("values"), arg("fromIdx") = -1, arg("toIdx") = -1 ),
+			"\n"
+			"Write one or multiple values, return the number of elements written."
+			"\n"
+			"If no indices (fromIdx, toIdx) are specified then all elements addressed by\n"
+			"the path object from which the DoubleVal was created are written. All values\n"
+			"represented by a 'c-style flattened' list or array:\n"
+			"\n"
+			"  /some/dev[0-1]/item[0-9]\n"
+			"\n"
+			"would expect\n"
+			"\n"
+			"  [dev0_item0_value, dev0_item1_value, ..., dev0_item9_value, dev1_item0_value, ...].\n"
+			"\n"
+			"The indices may be used to 'slice' the rightmost index in the path which\n"
+			"was used when creating the DoubleVal interface. Enumerating these slices\n"
+			"starts at 'fromIdx' up to and including 'toIdx'. Note that fromIdx/toIdx\n"
+			"**are based off the index contained in the path**!\n"
+			"E.g., if a DoubleVal created from the above path is written with:\n"
+			"\n"
+			"  DoubleVal.create( root.findByName('/some/dev[0-1]/item[4-9]') )->setVal( [44,55], 1, 1 )\n"
+			"\n"
+			"then dev[0]/item[5] would be written with 44 and dev[1]/item[5] with 55.\n"
+			"Note how 'fromIdx==1' is added to the starting index '4' from the path.\n"
+			"If both 'fromIdx' and 'toIdx' are negative then all elements are included.\n"
+			"A negative 'toIdx' is equivalent to 'toIdx' == 'fromIdx' and results in only\n"
+			"the single element at 'fromIdx' to be written.\n"
+		)
+		.def("create",       &IDoubleVal::create,
+			( arg("path") ),
+			"\n"
+			"Instantiate a 'DoubleVal' interface at the endpoint identified by 'path'\n"
+			"\n"
+			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"      not support this interface."
+		)
+		.staticmethod("create")
+	;
+
 
 	// wrap 'IStream' interface
 	class_<IStream, boost::noncopyable>

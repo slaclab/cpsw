@@ -168,12 +168,14 @@ public:
 
 	virtual Enum     getEnum()     const { return asIntEntry()->getEnum(); }
 
+	virtual unsigned nelmsFromIdx(IndexRange *r);
+
 protected:
 	virtual shared_ptr<const CIntEntryImpl> asIntEntry() const { return static_pointer_cast<const CIntEntryImpl, const CEntryImpl>(ie_); }
 
 };
 
-class CScalVal_ROAdapt : public virtual IScalVal_RO, public virtual IIntEntryAdapt {
+class CScalVal_ROAdapt : public virtual IDoubleVal_RO, public virtual IScalVal_RO, public virtual IIntEntryAdapt {
 public:
 	CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 
@@ -187,10 +189,11 @@ public:
 	virtual unsigned getVal(uint32_t *p, unsigned n, IndexRange *r=0) { return getVal<uint32_t>(p,n,r); }
 	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0) { return getVal<uint16_t>(p,n,r); }
 	virtual unsigned getVal(uint8_t  *p, unsigned n, IndexRange *r=0) { return getVal<uint8_t> (p,n,r); }
+	virtual unsigned getVal(double   *p, unsigned n, IndexRange *r=0);
 	virtual unsigned getVal(CString  *p, unsigned n, IndexRange *r=0);
 };
 
-class CScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {
+class CScalVal_WOAdapt : public virtual IDoubleVal_WO, public virtual IScalVal_WO, public virtual IIntEntryAdapt {
 public:
 	CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 
@@ -205,12 +208,14 @@ public:
 	virtual unsigned setVal(uint16_t    *p, unsigned n, IndexRange *r=0) { return setVal<uint16_t>(p,n,r); }
 	virtual unsigned setVal(uint8_t     *p, unsigned n, IndexRange *r=0) { return setVal<uint8_t> (p,n,r); }
 	virtual unsigned setVal(const char* *p, unsigned n, IndexRange *r=0);
+	virtual unsigned setVal(double      *p, unsigned n, IndexRange *r=0);
 
 	virtual unsigned setVal(uint64_t     v, IndexRange *r=0);
+	virtual unsigned setVal(double       v, IndexRange *r=0);
 	virtual unsigned setVal(const char*  v, IndexRange *r=0);
 };
 
-class CScalValAdapt : public virtual CScalVal_ROAdapt, public virtual CScalVal_WOAdapt, public virtual IScalVal {
+class CScalValAdapt : public virtual CScalVal_ROAdapt, public virtual CScalVal_WOAdapt, public virtual IScalVal, public virtual IDoubleVal {
 public:
 	CScalValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 };
