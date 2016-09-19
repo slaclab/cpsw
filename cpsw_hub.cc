@@ -527,12 +527,14 @@ const char *job = doDump ? "'dump'" : "'load'";
 				} catch ( NotFoundError e ) {
 					// descendant not found; not a big deal but spit out a warning
 					fprintf(stderr,"WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (key %s not found) -- IGNORING\n", job, mrk.line, mrk.column, key);
+					child.remove( key );
 				}
 			}
 
 			// if the child has cleared 'its' node then we also remove the sequence entry
-			if ( child && child.begin() == child.end() )
+			if ( child && child.begin() == child.end() ) {
 				child = YAML::Node( YAML::NodeType::Undefined );
+			}
 		}
 	}
 }
