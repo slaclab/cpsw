@@ -243,9 +243,30 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 EntryAdapt
 CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
 {
-	if ( isInterface<ScalVal>(interfaceType) ) {
+	if ( isInterface<ScalVal>(interfaceType) || isInterface<DoubleVal>(interfaceType) ) {
 		if ( getMode() != RW ) {
-			throw InterfaceNotImplementedError("ScalVal interface not supported");
+			throw InterfaceNotImplementedError("ScalVal/Double interface not supported (read- or write-only)");
+		}
+		return _createAdapter<ScalValAdapt>(this, p);
+	} else if ( isInterface<ScalVal_RO>(interfaceType) || isInterface<DoubleVal_RO>(interfaceType) ) {
+		if ( getMode() == WO ) {
+			throw InterfaceNotImplementedError("ScalVal_RO/Double_RO interface not supported (write-only)");
+		}
+		return _createAdapter<ScalVal_ROAdapt>(this, p);
+	}
+#if 0
+	// without caching and bit-level access at the SRP protocol level we cannot
+	// support write-only yet.
+	else if ( isInterface<ScalVal_WO>(interfaceType) || isInterface<DoubleVal_WO>(interfaceType) ) {
+		if ( getMode() == RO ) {
+			throw InterfaceNotImplementedError("ScalVal_WO/Double_WO interface not supported (read-only)");
+		}
+		return _createAdapter<ScalVal_WOAdapt>(this, p);
+	}
+#endif
+	else if ( isInterface<DoubleVal>(interfaceType) ) {
+		if ( getMode() != RW ) {
+			throw InterfaceNotImplementedError("DoubleVal interface not supported");
 		}
 		return _createAdapter<ScalValAdapt>(this, p);
 	} else if ( isInterface<ScalVal_RO>(interfaceType) ) {
@@ -254,16 +275,6 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 		}
 		return _createAdapter<ScalVal_ROAdapt>(this, p);
 	}
-#if 0
-	// without caching and bit-level access at the SRP protocol level we cannot
-	// support write-only yet.
-	else if ( isInterface<ScalVal_WO>(interfaceType) ) {
-		if ( getMode() != RO ) {
-			throw InterfaceNotImplementedError("ScalVal_WO interface not supported by read-only entry");
-		}
-		return _createAdapter<ScalVal_WOAdapt>(this, p);
-	}
-#endif
 	// maybe the superclass knows about this interface?
 	return CEntryImpl::createAdapter(key, p, interfaceType);
 }
