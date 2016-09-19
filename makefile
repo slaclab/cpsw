@@ -180,6 +180,11 @@ cpsw_yaml_merge_tst_SRCS = cpsw_yaml_merge_tst.cc
 cpsw_yaml_merge_tst_LIBS = $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_yaml_merge_tst
 
+cpsw_yaml_config_tst_SRCS = cpsw_yaml_config_tst.cc
+cpsw_yaml_config_tst_LIBS = $(CPSW_LIBS)
+TESTPROGRAMS              += cpsw_yaml_config_tst
+
+
 TEST_AXIV_YES=
 TEST_AXIV_NO =cpsw_axiv_udp_tst
 TEST_AXIV    =NO
