@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string>
 #include <getopt.h>
+#include <yaml-cpp/yaml.h>
 
 class TestFailed {
 public:
@@ -111,8 +112,28 @@ try {
 			}
 		}
 
-		if ( 0 == pass )
-			top->dumpConfigToYaml( cnfg );
+		top->dumpConfigToYaml( cnfg );
+		if ( 1 == pass ) {
+			// 'val2' should not be present
+			YAML::const_iterator it( cnfg[0]["mmio"].begin() );
+			YAML::const_iterator ite( cnfg[0]["mmio"].end() );
+			bool v1Found = false;
+			bool v2Found = false;
+			while ( it != ite ) {
+				if ( (*it)["val1"] )
+					v1Found = true;
+				else if ( (*it)["val2"] )
+					v2Found = true;
+				++it;
+			}
+			YAML::Emitter e;
+			e << cnfg;
+			std::cout << e.c_str() << "\n";
+			if ( ! v1Found )
+				throw TestFailed("val1 not found in config dump");
+			if ( v2Found )
+				throw TestFailed("val2 still found in config dump");
+		}
 	}
 
 		
