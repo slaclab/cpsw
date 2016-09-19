@@ -57,6 +57,8 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		// this must recursively clone all children.
 		CDevImpl(const CDevImpl &orig, Key &k);
 
+		virtual int getDefaultConfigPrio() const;
+
 	public:
 
 		typedef MyChildren::const_iterator const_iterator;

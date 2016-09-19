@@ -34,8 +34,9 @@ class IEntryAdapterKey;
 
 class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase {
 	public:
-		static const int CONFIG_PRIO_OFF = 0;
-		static const int DFLT_CONFIG_PRIO = CONFIG_PRIO_OFF;
+		static const int CONFIG_PRIO_OFF      = 0;
+		static const int DFLT_CONFIG_PRIO     = CONFIG_PRIO_OFF;
+		static const int DFLT_CONFIG_PRIO_DEV = 1; // on for containers
 
 		class                              CUniqueHandle;
 		typedef shared_ptr<CUniqueHandle>   UniqueHandle;

@@ -299,6 +299,12 @@ CDevImpl::CDevImpl(const CDevImpl &orig, Key &k)
 
 }
 
+int
+CDevImpl::getDefaultConfigPrio() const
+{
+	return DFLT_CONFIG_PRIO_DEV;
+}
+
 void
 CDevImpl::postHook( ConstShObj orig )
 {
