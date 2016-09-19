@@ -133,6 +133,13 @@ unsigned byteSize = b2B(size_bits_);
 		}
 	}
 
+	// merging a word-swapped entity with a bit-size that is
+	// not a multiple of 8 would require more complex bitmasks
+	// than what our current 'write' method supports.
+	if ( (size_bits_ % 8) && wordSwap_ && mode_ != RO ) {
+		throw InvalidArgError("Word-swap only supported if size % 8 == 0");
+	}
+
 	/* Encoding is not currently used by CPSW itself; just a hint for others;
 	 * thus, don't check.
 	 */

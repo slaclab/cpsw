@@ -295,10 +295,23 @@ while ( --run > 0 ) {
 						sprintf(nm,"i%i-%i-%c-%i", bits[bits_idx], shft[shft_idx], sign[sign_idx] ? 's' : 'u', wswap);
 
 						if ( ! use_hier ) {
-						IntField e = bldr->build( nm );
-							mmio_le->addAtAddress( e, 0, NELMS, STRIDE );
-							mmio_be->addAtAddress( e, 0, NELMS, STRIDE );
-printf("%s\n", e->getName());
+						IntField entry;
+							try {
+								entry = bldr->build( nm );
+							} catch (InvalidArgError &e) {
+								if ( wswap && (bits[bits_idx] & 7) ) {
+									IIntField::Builder bldrRO = bldr->clone();
+
+									bldrRO->mode( IIntField::RO );
+
+									entry = bldrRO->build( nm );
+								} else {
+									throw;
+								}
+							}
+							mmio_le->addAtAddress( entry, 0, NELMS, STRIDE );
+							mmio_be->addAtAddress( entry, 0, NELMS, STRIDE );
+printf("%s\n", entry->getName());
 						}
 else
 printf("%s\n", nm);
