@@ -418,6 +418,8 @@ MyChildren::iterator it;
 
 void CDevImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 {
+const char *job = doDump ? "'dump'" : "'load'";
+
 	if ( !n || n.IsNull() ) {
 		// new node, i.e., first time config
 
@@ -491,11 +493,11 @@ void CDevImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 				// a descendant of ours and a value which is to be interpreted
 				// by the descendant.
 				if ( ! child.IsMap() ) {
-					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node @line %d, col %d (Map expected) -- IGNORING\n", mrk.line, mrk.column);
+					fprintf(stderr,"WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (Map expected) -- IGNORING\n", job, mrk.line, mrk.column);
 					continue;
 				}
 				if ( child.size() != 1 ) {
-					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node @line %d, col %d (Map with more than 1 element) -- IGNORING\n", mrk.line, mrk.column);
+					fprintf(stderr,"WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (Map with more than 1 element) -- IGNORING\n", job, mrk.line, mrk.column);
 					continue;
 				}
 
@@ -524,7 +526,7 @@ void CDevImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 
 				} catch ( NotFoundError e ) {
 					// descendant not found; not a big deal but spit out a warning
-					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node @line %d, col %d (key %s not found) -- IGNORING\n", mrk.line, mrk.column, key);
+					fprintf(stderr,"WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (key %s not found) -- IGNORING\n", job, mrk.line, mrk.column, key);
 				}
 			}
 
