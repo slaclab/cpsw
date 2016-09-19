@@ -485,16 +485,17 @@ void CDevImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 				// A subclass of CDevImpl may want to load/save state here...
 				CEntryImpl::processYamlConfig( p, child, doDump );
 			} else {
+				YAML::Mark mrk( child.Mark() );
 				// no 'value' tag; this means that the child must be a map
 				// with a single entry: a path element (key) which identifies
 				// a descendant of ours and a value which is to be interpreted
 				// by the descendant.
 				if ( ! child.IsMap() ) {
-					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node '%s' (Map expected) -- IGNORING\n", child.as<std::string>().c_str());
+					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node @line %d, col %d (Map expected) -- IGNORING\n", mrk.line, mrk.column);
 					continue;
 				}
 				if ( child.size() != 1 ) {
-					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node '%s' (Map with more than 1 element) -- IGNORING\n", child.as<std::string>().c_str());
+					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node @line %d, col %d (Map with more than 1 element) -- IGNORING\n", mrk.line, mrk.column);
 					continue;
 				}
 
@@ -523,7 +524,7 @@ void CDevImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 
 				} catch ( NotFoundError e ) {
 					// descendant not found; not a big deal but spit out a warning
-					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node '%s' (key %s not found) -- IGNORING\n", child.as<std::string>().c_str(), key);
+					fprintf(stderr,"WARNING CDevImpl::dumpConfigToYaml -- unexpected YAML node @line %d, col %d (key %s not found) -- IGNORING\n", mrk.line, mrk.column, key);
 				}
 			}
 
