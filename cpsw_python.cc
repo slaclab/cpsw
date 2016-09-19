@@ -157,35 +157,31 @@ YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) )
 	p->loadConfigFromYaml( conf );
 }
 
-// raii for file stream
-class ofs : public std::fstream {
-public:
-	ofs(const char *filename)
-	: std::fstream( filename, out )
-	{
-	}
-
-	~ofs()
-	{
-		close();
-	}
-};
-
-static void wrap_Path_dumpConfigToYamlFile(Path p, const char *filename)
+static void wrap_Path_dumpConfigToYamlFile(Path p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0)
 {
 YAML::Node conf;
+
+	if ( templFilename ) {
+		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
+	}
+
 	p->dumpConfigToYaml( conf );
 
 YAML::Emitter emit;
 	emit << conf;
 
-ofs strm( filename );
+std::fstream strm( filename, std::fstream::out );
 	strm << emit.c_str() << "\n";
 }
 
-static std::string wrap_Path_dumpConfigToYaml(Path p)
+static std::string wrap_Path_dumpConfigToYamlString(Path p, const char *templFilename = 0, const char *yaml_dir = 0)
 {
 YAML::Node conf;
+
+	if ( templFilename ) {
+		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
+	}
+
 	p->dumpConfigToYaml( conf );
 
 YAML::Emitter emit;
@@ -606,6 +602,14 @@ BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadConfigFromYamlString_ol,
                                  wrap_Path_loadConfigFromYamlString,
                                  2, 3 )
 
+BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_dumpConfigToYamlFile_ol,
+                                 wrap_Path_dumpConfigToYamlFile,
+                                 2, 4 )
+BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_dumpConfigToYamlString_ol,
+                                 wrap_Path_dumpConfigToYamlString,
+                                 1, 3 )
+
+
 BOOST_PYTHON_MODULE(pycpsw)
 {
 	register_ptr_to_python<Child                          >();
@@ -966,15 +970,29 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"Defaults to the directory where the YAML file is located.\n"
 			)
 		)
-		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYamlFile,
-			( arg("self"), arg("fileName") ),
+		.def("dumpConfigToYamlFile", wrap_Path_dumpConfigToYamlFile,
+			wrap_Path_dumpConfigToYamlFile_ol(
+			args( "self", "fileName", "templFileName", "yamlIncDirname" ),
 			"\n"
-			"Read a configuration from hardware and save to a file in YAML format."
+			"Read a configuration from hardware and save to a file in YAML format.\n"
+			"If 'templFileName' is given then the paths listed in there (and only those)\n"
+			"are used in the order defined in 'templFileName'. Otherwise, the 'configPrio'\n"
+			"property of each field in the hierarchy is honored (see README.configData).\n"
+			"'yamlIncDirname' can be used to specify where additional YAML files are\n"
+			"stored."
+			)
 		)
-		.def("dumpConfigToYaml",   wrap_Path_dumpConfigToYaml,
-			( arg("self") ),
+		.def("dumpConfigToYamlString", wrap_Path_dumpConfigToYamlString,
+			wrap_Path_dumpConfigToYamlString_ol(
+			args( "self", "templFileName", "yamlIncDirname" ),
 			"\n"
 			"Read a configuration from hardware and return as a string in YAML format."
+			"If 'templFileName' is given then the paths listed in there (and only those)\n"
+			"are used in the order defined in 'templFileName'. Otherwise, the 'configPrio'\n"
+			"property of each field in the hierarchy is honored (see README.configData).\n"
+			"'yamlIncDirname' can be used to specify where additional YAML files are\n"
+			"stored."
+			)
 		)
 		.def("create",       wrap_Path_create,
 			( arg("hub") ),
