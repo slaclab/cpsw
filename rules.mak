@@ -37,7 +37,13 @@ multi-arch-%: $(patsubst %,sub-%-%,$(ARCHES))
 multi-subdir-%: $(patsubst %,sub-./%-%,$(SUBDIRS))
 	@true
 
-multi-%: generate_srcs install_headers multi-subdir-% multi-arch-%
+# 'multi-target'; execute a target for all subdirs:
+# If the user has a target 'xxx' defined in his/her makefile
+# then 'multi-postsubdir-xxx' builds that target in all subdirs.
+multi-postsubdir-%: $(patsubst %,sub-./%-%,$(POSTBUILD_SUBDIRS))
+	@true
+
+multi-%: generate_srcs install_headers multi-arch-% multi-postsubdir-%
 	@true
 
 # 'sub-x-y' builds target 'y' for architecture 'x'
@@ -241,7 +247,7 @@ endif
 %.dp:%.c $(DEP_HEADERS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
 
-clean: multi-subdir-clean
+clean: multi-subdir-clean multi-postsubdir-clean
 	$(RM) deps $(GENERATED_SRCS)
 	$(RM) -r O.*
 
