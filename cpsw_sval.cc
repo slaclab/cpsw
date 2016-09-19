@@ -1075,7 +1075,7 @@ IIntField::Builder CIntEntryImpl::CBuilder::mode(Mode mode)
 {
 	mode_     = mode;
 	if ( RW != mode )
-		configPrio( 0 );
+		configPrio( CONFIG_PRIO_OFF );
 	return getSelfAs<BuilderImpl>();
 }
 
@@ -1122,7 +1122,7 @@ void CIntEntryImpl::CBuilder::init()
 	lsBit_      = DFLT_LS_BIT;
 	isSigned_   = DFLT_IS_SIGNED;
 	mode_       = DFLT_MODE;
-	configPrio_ = RW == DFLT_MODE ? DFLT_CONFIG_PRIO_RW : 0;
+	configPrio_ = RW == DFLT_MODE ? DFLT_CONFIG_PRIO_RW : CONFIG_PRIO_OFF;
 	configBase_ = DFLT_CONFIG_BASE;
 	wordSwap_   = DFLT_WORD_SWAP;
 	encoding_   = DFLT_ENCODING;
