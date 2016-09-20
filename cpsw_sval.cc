@@ -133,6 +133,13 @@ unsigned byteSize = b2B(size_bits_);
 		}
 	}
 
+	// merging a word-swapped entity with a bit-size that is
+	// not a multiple of 8 would require more complex bitmasks
+	// than what our current 'write' method supports.
+	if ( (size_bits_ % 8) && wordSwap_ && mode_ != RO ) {
+		throw InvalidArgError("Word-swap only supported if size % 8 == 0");
+	}
+
 	/* Encoding is not currently used by CPSW itself; just a hint for others;
 	 * thus, don't check.
 	 */
@@ -1036,7 +1043,7 @@ IIntField::Builder CIntEntryImpl::CBuilder::mode(Mode mode)
 {
 	mode_     = mode;
 	if ( RW != mode )
-		configPrio( 0 );
+		configPrio( CONFIG_PRIO_OFF );
 	return getSelfAs<BuilderImpl>();
 }
 
@@ -1083,7 +1090,7 @@ void CIntEntryImpl::CBuilder::init()
 	lsBit_      = DFLT_LS_BIT;
 	isSigned_   = DFLT_IS_SIGNED;
 	mode_       = DFLT_MODE;
-	configPrio_ = RW == DFLT_MODE ? DFLT_CONFIG_PRIO_RW : 0;
+	configPrio_ = RW == DFLT_MODE ? DFLT_CONFIG_PRIO_RW : CONFIG_PRIO_OFF;
 	configBase_ = DFLT_CONFIG_BASE;
 	wordSwap_   = DFLT_WORD_SWAP;
 	encoding_   = DFLT_ENCODING;
