@@ -49,7 +49,7 @@ multi-subdir-%: $(patsubst %,sub-./%$(TSEP)%,$(SUBDIRS))
 multi-postsubdir-%: $(patsubst %,sub-./%$(TSEP)%,$(POSTBUILD_SUBDIRS))
 	@true
 
-multi-%: generate_srcs install_headers multi-arch-% multi-postsubdir-%
+multi-%: generate_srcs install_headers multi-subdir-% multi-arch-% multi-postsubdir-%
 	@true
 
 # convert '.' and '-' in a name to '_' since the former must not
@@ -187,7 +187,7 @@ endef
 
 # Try to actually locate the library
 define searchlib
-$(wildcard $(addsuffix /$(2),$($(call libvarnam,$(1))lib_DIR) $(subst :, ,$(cpswlib_DIRS)) .))
+$(wildcard $(addsuffix /$(2),$($(call nam2varnam,$(1))lib_DIR) $(subst :, ,$(cpswlib_DIRS)) .))
 endef
 
 
@@ -234,7 +234,7 @@ $(PROGRAMS) $(TESTPROGRAMS):OBJS=$($(call nam2varnam,$@)_OBJS)
 $(PROGRAMS) $(TESTPROGRAMS):LIBS=$($(call nam2varnam,$@)_LIBS)
 
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS  = -L.
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(call nam2varnam,$(lib))_DIR) $($(call nam2varnam,$(lib))_DIR_$(TARNM)),)))
+$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$($(call nam2varnam,$(lib))lib_DIR)))
 # don't apply ADD_updir to cpswlib_DIRS because CPSW_DIR already was 'upped'.
 # This means that e.g. yaml_cpplib_DIR must be absolute or relative to CPSW_DIR
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
@@ -250,7 +250,7 @@ run_tests: $(addsuffix _run,$(FILTERED_TBINS))
 	@echo "ALL TESTS PASSED"
 
 define make_ldlib_path
-$(subst $(SPACE__),:,$(dir $(filter %.so,$(1))))
+$(subst $(SPACE__),:,$(strip . $(dir $(filter %.so,$(1)))))
 endef
 
 
