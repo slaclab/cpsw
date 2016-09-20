@@ -125,6 +125,12 @@ ifndef SRCDIR
 SRCDIR=.
 endif
 
+ifndef UPDIR
+TOPDIR=./
+else
+TOPDIR=$(UPDIR)
+endif
+
 # definitions
 include $(CPSW_DIR)/config.mak
 -include $(CPSW_DIR)/config.local.mak
