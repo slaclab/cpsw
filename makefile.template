@@ -20,6 +20,7 @@ CPSW_DIR=<path_to_cpsw>
 SRCDIR=.
 
 -include $(SRCDIR)/release.mak
+include $(CPSW_DIR)/defs.mak
 
 # If you want to add your own ARCHSPECIFIC_VARS or
 # ARCHSPECIFIC_LIBVARS then you *must* do so before
@@ -28,7 +29,6 @@ SRCDIR=.
 # ARCHSPECIFIC_VARS    += MYVAR
 # ARCHSPECIFIC_LIBVARS += mypackage
 
-include $(CPSW_DIR)/defs.mak
 
 # Recurse into subdirectories (prior to making this directory)
 SUBDIRS += mySubdir1 mySubdir2
