@@ -117,8 +117,9 @@ WITH_SHARED_LIBRARIES_default=YES
 WITH_STATIC_LIBRARIES_default=NO
 WITH_PYCPSW_default          =$(or $(and $(pyinc_DIR),$(WITH_SHARED_LIBRARIES)),NO)
 
-COMMA__=,
-SPACE__= #
+COMMA__:=,
+SPACE__:=
+SPACE__+=
 
 # definitions
 include $(CPSW_DIR)/config.mak
