@@ -9,9 +9,14 @@
 
 # Rules for CPSW makefiles
 
-# The general pattern is that you invoke 
+# The general pattern is that you invoke
 
 # provide 'multi-' aliases for most common targets
+
+# separator for makefile targets; targets have the form
+
+# (sub | multi)-(<arch>|./<subdir>)@<target>
+TSEP:=@
 
 # default target
 all: multi-build
@@ -20,45 +25,52 @@ all: multi-build
 install: multi-build multi-do_install
 	@true
 
-# run tests (on host)
-test: sub-$(HARCH)-run_tests
+# run tests (on host only)
+multi-test: sub-$(HARCH)$(TSEP)run_tests
+	@true
 
 multi-clean: clean
 
 # 'multi-target'; execute a target for all architectures:
 # If the user has a target 'xxx' defined in his/her makefile
 # then 'multi-arch-xxx' builds that target in all arch-subdirs.
-multi-arch-%: $(patsubst %,sub-%-%,$(ARCHES))
+multi-arch-%: $(patsubst %,sub-%$(TSEP)%,$(ARCHES))
 	@true
 
 # 'multi-target'; execute a target for all subdirs:
 # If the user has a target 'xxx' defined in his/her makefile
 # then 'multi-subdir-xxx' builds that target in all subdirs.
-multi-subdir-%: $(patsubst %,sub-./%-%,$(SUBDIRS))
+multi-subdir-%: $(patsubst %,sub-./%$(TSEP)%,$(SUBDIRS))
 	@true
 
 # 'multi-target'; execute a target for all subdirs:
 # If the user has a target 'xxx' defined in his/her makefile
 # then 'multi-postsubdir-xxx' builds that target in all subdirs.
-multi-postsubdir-%: $(patsubst %,sub-./%-%,$(POSTBUILD_SUBDIRS))
+multi-postsubdir-%: $(patsubst %,sub-./%$(TSEP)%,$(POSTBUILD_SUBDIRS))
 	@true
 
 multi-%: generate_srcs install_headers multi-arch-% multi-postsubdir-%
 	@true
 
-# 'sub-x-y' builds target 'y' for architecture 'x'
-# by recursively executing MAKE from subdir 'O.x 
+# convert '.' and '-' in a name to '_' since the former must not
+# be present in a gnu-make variable name.
+define nam2varnam
+$(subst .,_,$(subst -,_,$(1)))
+endef
+
+# 'sub-x$(TSEP)y' builds target 'y' for architecture 'x'
+# by recursively executing MAKE from subdir 'O.x
 # for target 'y'.
 
-sub-%:TWORDS=$(subst -, ,$@)
+sub-%:TWORDS=$(subst $(TSEP), ,$@)
 sub-%:TARGT=$(lastword $(TWORDS))
-sub-%:TARCH=$(patsubst %-$(TARGT),%,$(patsubst sub-%,%,$@))
-sub-%:TARNM=$(subst -,_,$(TARCH))
+sub-%:TARCH=$(patsubst %$(TSEP)$(TARGT),%,$(patsubst sub-%,%,$@))
+sub-%:TARNM=$(call nam2varnam,$(TARCH))
 
 # Function which checks a list of words (supposedly directories)
 # and prepends $(UPDIR) to each one of them that doesn't start
 # with '/' (-> relative paths may receive a ../ prefix)
-# 
+#
 # We use this when running from a target subdirectory.
 #
 # E.g., $(call ADD_updir,/a/b/c ../e) expands to  '/a/b/c $(UPDIR)../e'
@@ -78,11 +90,11 @@ sub-./%:
          "multi-$(TARGT)"
 
 # No need to step into O.<arch> subdir to clean; it will be removed anyways
-sub-%-clean:
+sub-%$(TSEP)clean:
 	@true
 
 # No need to step into O.<arch> subdir to install headers
-sub-%-install_headers:
+sub-%$(TSEP)install_headers:
 	@true
 
 # arch-subdir make
@@ -144,9 +156,9 @@ endef
 TGTS+=$(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
 
 # Expand the template for all library targets
-$(foreach lib,$(STATIC_LIBRARIES),$(eval $(call LIBa_template,$(lib),$(subst .,_,$(subst -,_,$(lib))))))
+$(foreach lib,$(STATIC_LIBRARIES),$(eval $(call LIBa_template,$(lib),$(call nam2varnam,$(lib)))))
 
-$(foreach lib,$(SHARED_LIBRARIES),$(eval $(call LIBs_template,$(lib),$(subst .,_,$(subst -,_,$(lib))))))
+$(foreach lib,$(SHARED_LIBRARIES),$(eval $(call LIBs_template,$(lib),$(call nam2varnam,$(lib)))))
 
 $(STATIC_LIBRARIES:%=lib%.a):
 	$(AR) cr $@ $^
@@ -164,14 +176,30 @@ $(STATIC_LIBRARIES:%=lib%.a):
 $(SHARED_LIBRARIES:%=lib%.so):
 	$(CXX) -shared -o $@ $^
 
+# Find library with <stem> passed as the first argument.
+# Return path to 'lib<stem>.so' or 'lib<stem>.a':
+# if 'stem' is of the form '%.a' then only a static version
+# is searched. Otherwise a static version is only searched
+# if a shared version cannot be found
+define findlib
+$(or $(if $(filter-out %.a,$(1)),$(call searchlib,$(1),lib$(1).so)),$(call searchlib,$(1),$(or $(addprefix lib,$(filter %.a,$(1))),lib$(1).a)))
+endef
+
+# Try to actually locate the library
+define searchlib
+$(wildcard $(addsuffix /$(2),$($(call libvarnam,$(1))lib_DIR) $(subst :, ,$(cpswlib_DIRS)) .))
+endef
+
+
 # Template to link programs
 # Argument 1 is the name of the program
 # Argument 2 is the name of the program with '-' and '.' substituted by '_' (for use in variable names)
 define PROG_template
 
 $(2)_OBJS=$$(patsubst %.cpp,%.o,$$(patsubst %.cc,%.o,$$(patsubst %.c,%.o,$$($(2)_SRCS))))
+$(2)_LIBS_WITH_PATH=$$(foreach lib,$$($(2)_LIBS),$$(call findlib,$$(lib)))
 
-$(1): $$($(2)_OBJS) $$(wildcard $$(foreach suff,.a .so .so.*,$$(addsuffix $$(suff), $$(call ADD_updir,$$(foreach lib,$$($(2)_LIBS),$$($$(subst .,_,$$(subst -,_,$$(lib)))_DIR_$$(TARNM))/lib$$(lib) $$($$(subst .,_,$$(subst -,_,$$(lib)))_DIR)/lib$$(lib)),) $$(foreach lib,$$($(2)_LIBS),lib$$(lib)))))
+$(1): $$($(2)_OBJS) $$($(2)_LIBS_WITH_PATH)
 
 SRCS+=$$($(2)_SRCS)
 
@@ -200,13 +228,13 @@ TGTS+=$(PROGRAMS)
 TGTS+=$(TESTPROGRAMS)
 
 # Expand the template for all program (and testprogram) targets
-$(foreach bin,$(PROGRAMS) $(TESTPROGRAMS),$(eval $(call PROG_template,$(bin),$(subst .,_,$(subst -,_,$(bin))))))
+$(foreach bin,$(PROGRAMS) $(TESTPROGRAMS),$(eval $(call PROG_template,$(bin),$(call nam2varnam,$(bin)))))
 
-$(PROGRAMS) $(TESTPROGRAMS):OBJS=$($(subst .,_,$(subst -,_,$@)_OBJS))
-$(PROGRAMS) $(TESTPROGRAMS):LIBS=$($(subst .,_,$(subst -,_,$@)_LIBS))
+$(PROGRAMS) $(TESTPROGRAMS):OBJS=$($(call nam2varnam,$@)_OBJS)
+$(PROGRAMS) $(TESTPROGRAMS):LIBS=$($(call nam2varnam,$@)_LIBS)
 
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS  = -L.
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(subst .,_,$(subst -,_,$(lib)))_DIR) $($(subst .,_,$(subst -,_,$(lib)))_DIR_$(TARNM)),)))
+$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$(call ADD_updir,$($(call nam2varnam,$(lib))_DIR) $($(call nam2varnam,$(lib))_DIR_$(TARNM)),)))
 # don't apply ADD_updir to cpswlib_DIRS because CPSW_DIR already was 'upped'.
 # This means that e.g. yaml_cpplib_DIR must be absolute or relative to CPSW_DIR
 $(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
@@ -221,16 +249,24 @@ build: $(TGTS)
 run_tests: $(addsuffix _run,$(FILTERED_TBINS))
 	@echo "ALL TESTS PASSED"
 
+define make_ldlib_path
+$(subst $(SPACE__),:,$(dir $(filter %.so,$(1))))
+endef
+
+
 $(addsuffix _run,$(FILTERED_TBINS)):%_run: %
 	@for opt in $(RUN_OPTS) ; do \
 	    echo "Running ./$< $${opt}"; \
-        if ( LD_LIBRARY_PATH="$(cpswlib_DIRS)$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) ./$< $${opt} ) ; then \
+        if ( LD_LIBRARY_PATH="$(call make_ldlib_path,$($^_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) ./$< $${opt} ) ; then \
 			echo "TEST ./$< $${opt} PASSED" ; \
 		else \
 			echo "TEST ./$< $${opt} FAILED" ; \
 			exit 1; \
 		fi; \
 	done
+
+$(addsuffix _pat,$(FILTERED_TBINS)):%_pat: %
+	echo "'$(subst $(SPACE__),:,$(dir $(filter %.so,$($^_LIBS_WITH_PATH))))'"
 
 
 # We only track changes in .c and .cc files (and the .h files
@@ -253,7 +289,7 @@ clean: multi-subdir-clean multi-postsubdir-clean
 
 generate_srcs: $(GENERATED_SRCS)
 
-install_headers: 
+install_headers:
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		echo "Installing Headers $(HEADERS)" ; \
 		if [ -n "$(HEADERS)" ] ; then \
@@ -301,8 +337,8 @@ endif
 # invoke with :  eval `make libpath`
 ifndef TARCH
 libpath:QUIET=@
-libpath:sub-$(HARCH)-libpath
+libpath:sub-$(HARCH)$(TSEP)libpath
 else
 libpath:
-	@echo export LD_LIBRARY_PATH="$(cpswlib_DIRS)$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}"
+	@echo export LD_LIBRARY_PATH="$(subst $(SPACE__),:,$(patsubst ../%,%,$(subst :, ,$(cpswlib_DIRS))))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}"
 endif
