@@ -293,7 +293,7 @@ EntryAdapt
 CEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
 {
 	if ( isInterface<Stream>(interfaceType) ) {
-		_createAdapter<StreamAdapt>(this, p);
+		return _createAdapter<StreamAdapt>(this, p);
 	}
 	return EntryAdapt();
 }
