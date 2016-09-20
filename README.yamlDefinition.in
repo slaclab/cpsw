@@ -1,5 +1,15 @@
 # Describing CPSW Hierarchies with YAML
 
+## Copyright Notice
+This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
+file found in the top-level directory of this distribution and
+[at](https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html).
+
+No part of CPSW, including this file, may be copied, modified, propagated, or
+distributed except according to the terms contained in the LICENSE.txt file.
+
+## Introduction
+
 This document describes how a CPSW hierarchy can be defined by writing
 a YAML file. Such a YAML file provides a convenient interface to the
 CPSW 'builder' API as it does not require writing any C++ code.

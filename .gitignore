@@ -3,4 +3,5 @@ O.*
 git_version_string.h
 INSTALL.html
 README.configData.html
+README.yamlDefinition
 README.yamlDefinition.html
