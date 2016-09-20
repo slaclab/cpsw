@@ -121,6 +121,10 @@ COMMA__:=,
 SPACE__:=
 SPACE__+=
 
+ifndef SRCDIR
+SRCDIR=.
+endif
+
 # definitions
 include $(CPSW_DIR)/config.mak
 -include $(CPSW_DIR)/config.local.mak
