@@ -93,9 +93,9 @@ public:
 		static  Builder create();
 	};
 private:
-	bool               is_signed_;
-	int                ls_bit_;
-	uint64_t           size_bits_;
+	bool               isSigned_;
+	int                lsBit_;
+	uint64_t           sizeBits_;
 	Mode               mode_;
 	unsigned           wordSwap_;
 	Encoding           encoding_;
@@ -110,7 +110,7 @@ protected:
 
 public:
 
-	CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool is_signed = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP, Enum enm = Enum());
+	CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits = DFLT_SIZE_BITS, bool isSigned = DFLT_IS_SIGNED, int lsBit = DFLT_LS_BIT, Mode mode = DFLT_MODE, unsigned wordSwap = DFLT_WORD_SWAP, Enum enm = Enum());
 
 	CIntEntryImpl(Key &k, YamlState &n);
 
@@ -124,9 +124,9 @@ public:
 
 	CIntEntryImpl(const CIntEntryImpl &orig, Key &k)
 	:CEntryImpl(orig, k),
-	 is_signed_(orig.is_signed_),
-	 ls_bit_(orig.ls_bit_),
-	 size_bits_(orig.size_bits_),
+	 isSigned_(orig.isSigned_),
+	 lsBit_(orig.lsBit_),
+	 sizeBits_(orig.sizeBits_),
 	 mode_(orig.mode_),
 	 wordSwap_(orig.wordSwap_),
 	 encoding_(orig.encoding_),

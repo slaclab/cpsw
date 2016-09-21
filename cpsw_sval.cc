@@ -118,9 +118,9 @@ static int checkConfigBase(int proposed)
 void
 CIntEntryImpl::checkArgs()
 {
-unsigned byteSize = b2B(size_bits_);
+unsigned byteSize = b2B(sizeBits_);
 
-	if ( ls_bit_ > 7 ) {
+	if ( lsBit_ > 7 ) {
 		throw InvalidArgError("lsBit (bit shift) must be in 0..7");
 	}
 
@@ -136,7 +136,7 @@ unsigned byteSize = b2B(size_bits_);
 	// merging a word-swapped entity with a bit-size that is
 	// not a multiple of 8 would require more complex bitmasks
 	// than what our current 'write' method supports.
-	if ( (size_bits_ % 8) && wordSwap_ && mode_ != RO ) {
+	if ( (sizeBits_ % 8) && wordSwap_ && mode_ != RO ) {
 		throw InvalidArgError("Word-swap only supported if size % 8 == 0");
 	}
 
@@ -147,16 +147,23 @@ unsigned byteSize = b2B(size_bits_);
 	configBase_ = checkConfigBase( configBase_ );
 }
 
+void
+CIntEntryImpl::postHook( ConstShObj ob )
+{
+	CEntryImpl::postHook( ob );
+	// maybe the parameters were modified by a subclass? check again
+	checkArgs();
+}
 
-CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap, Enum enm)
+CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool isSigned, int lsBit, Mode mode, unsigned wordSwap, Enum enm)
 : CEntryImpl(
 		k,
 		name,
 		computeSize(wordSwap, sizeBits, lsBit)
 	),
-	is_signed_(is_signed),
-	ls_bit_(lsBit),
-	size_bits_(sizeBits),
+	isSigned_(isSigned),
+	lsBit_(lsBit),
+	sizeBits_(sizeBits),
 	mode_(mode),
 	wordSwap_( wordSwap ),
 	encoding_( DFLT_ENCODING ),
@@ -190,9 +197,9 @@ CIntEntryImpl::setEncoding(Encoding proposed)
 
 CIntEntryImpl::CIntEntryImpl(Key &key, YamlState &node)
 :CEntryImpl(key, node),
- is_signed_(DFLT_IS_SIGNED),
- ls_bit_(DFLT_LS_BIT),
- size_bits_(DFLT_SIZE_BITS),
+ isSigned_(DFLT_IS_SIGNED),
+ lsBit_(DFLT_LS_BIT),
+ sizeBits_(DFLT_SIZE_BITS),
  mode_(DFLT_MODE),
  wordSwap_(DFLT_WORD_SWAP),
  encoding_(DFLT_ENCODING),
@@ -200,9 +207,9 @@ CIntEntryImpl::CIntEntryImpl(Key &key, YamlState &node)
 {
 MutableEnum e;
 
-	readNode(node, YAML_KEY_isSigned,   &is_signed_ );
-	readNode(node, YAML_KEY_lsBit,      &ls_bit_    );
-	readNode(node, YAML_KEY_sizeBits,   &size_bits_ );
+	readNode(node, YAML_KEY_isSigned,   &isSigned_  );
+	readNode(node, YAML_KEY_lsBit,      &lsBit_     );
+	readNode(node, YAML_KEY_sizeBits,   &sizeBits_  );
 	readNode(node, YAML_KEY_mode,       &mode_      );
 	readNode(node, YAML_KEY_wordSwap,   &wordSwap_  );
 	readNode(node, YAML_KEY_encoding,   &encoding_  );
@@ -214,7 +221,7 @@ MutableEnum e;
 		enum_ = IMutableEnum::create( enum_node );
 	}
 
-	size_     = computeSize(wordSwap_, size_bits_, ls_bit_);
+	size_     = computeSize(wordSwap_, sizeBits_, lsBit_);
 
 	checkArgs();
 }
@@ -225,12 +232,12 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 
 	CEntryImpl::dumpYamlPart(node);
 
-	if ( is_signed_ != DFLT_IS_SIGNED )
-		writeNode(node, YAML_KEY_isSigned, is_signed_);
-	if ( ls_bit_    != DFLT_LS_BIT    )
-		writeNode(node, YAML_KEY_lsBit,    ls_bit_   );
-	if ( size_bits_ != DFLT_SIZE_BITS )
-		writeNode(node, YAML_KEY_sizeBits, size_bits_);
+	if ( isSigned_ != DFLT_IS_SIGNED )
+		writeNode(node, YAML_KEY_isSigned, isSigned_ );
+	if ( lsBit_    != DFLT_LS_BIT    )
+		writeNode(node, YAML_KEY_lsBit,    lsBit_    );
+	if ( sizeBits_ != DFLT_SIZE_BITS )
+		writeNode(node, YAML_KEY_sizeBits, sizeBits_ );
 	if ( mode_      != DFLT_MODE      )
 		writeNode(node, YAML_KEY_mode,     mode_     );
 	if ( wordSwap_  != DFLT_WORD_SWAP )
@@ -287,9 +294,9 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 }
 
 
-IntField IIntField::create(const char *name, uint64_t sizeBits, bool is_signed, int lsBit, Mode mode, unsigned wordSwap)
+IntField IIntField::create(const char *name, uint64_t sizeBits, bool isSigned, int lsBit, Mode mode, unsigned wordSwap)
 {
-	return CShObj::create<IntEntryImpl>(name, sizeBits, is_signed, lsBit, mode, wordSwap);
+	return CShObj::create<IntEntryImpl>(name, sizeBits, isSigned, lsBit, mode, wordSwap);
 }
 
 CScalValAdapt::CScalValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
@@ -967,7 +974,7 @@ unsigned nelms, i;
 	}
 
 	if ( nelms > p->getNelms() ) {
-		fprintf(stderr,"WARNING: loadMyConfnigFromYaml -- excess elements in YAML Node; IGNORED\n");
+		fprintf(stderr,"WARNING: loadMyConfigFromYaml -- excess elements in YAML Node; IGNORED\n");
 		nelms = p->getNelms();
 	}
 
