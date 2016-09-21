@@ -5,6 +5,8 @@
 CStreamAdapt::CStreamAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
 : IEntryAdapt(k, p, ie)
 {
+	if ( p->getNelms() > 1 )
+		throw ConfigurationError("CStreamAdapt -- arrays of streams not supported");
 }
 
 
