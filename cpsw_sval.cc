@@ -333,12 +333,6 @@ DoubleVal IDoubleVal::create(Path p)
 }
 
 unsigned
-IIntEntryAdapt::getNelms()
-{
-	return p_->getNelms();
-}
-
-unsigned
 IIntEntryAdapt::nelmsFromIdx(IndexRange *r)
 {
 	if ( r ) {
