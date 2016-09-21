@@ -173,6 +173,91 @@ CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool i
 	checkArgs();
 }
 
+bool
+CIntEntryImpl::isSigned() const
+{
+	return isSigned_;
+}
+
+int
+CIntEntryImpl::getLsBit() const
+{
+	return lsBit_;
+}
+uint64_t
+CIntEntryImpl::getSizeBits() const
+{
+	return sizeBits_;
+}
+
+unsigned
+CIntEntryImpl::getWordSwap() const
+{
+	return wordSwap_;
+}
+
+CIntEntryImpl::Encoding
+CIntEntryImpl::getEncoding() const
+{
+	return encoding_;
+}
+
+int
+CIntEntryImpl::getConfigBase() const
+{
+	return configBase_;
+}
+
+IIntField::Mode
+CIntEntryImpl::getMode() const
+{
+	return mode_;
+}
+
+Enum
+CIntEntryImpl::getEnum() const
+{
+	return enum_;
+}
+
+
+// setters can only be used from constructors
+void
+CIntEntryImpl::setSigned(Key &k, bool     v)
+{
+	isSigned_   = v;
+}
+
+void
+CIntEntryImpl::setLsBit(Key &k, int      v)
+{
+	lsBit_      = v;
+}
+
+void
+CIntEntryImpl::setSizeBits(Key &k, uint64_t v)
+{
+	sizeBits_   = v;
+}
+
+void
+CIntEntryImpl::setWordSwap(Key &k, unsigned v)
+{
+	wordSwap_   = v;
+}
+
+void
+CIntEntryImpl::setMode(Key &k, Mode     v)
+{
+	mode_       = v;
+}
+
+void
+CIntEntryImpl::setEnum(Key &k, Enum     v)
+{
+	enum_       = v;
+}
+
 int
 CIntEntryImpl::getDefaultConfigPrio() const
 {

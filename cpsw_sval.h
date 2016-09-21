@@ -137,17 +137,27 @@ public:
 
 	virtual CIntEntryImpl *clone(Key &k)   { return new CIntEntryImpl( *this, k ); }
 
-	virtual bool     isSigned()      const { return is_signed_;                    }
-	virtual int      getLsBit()      const { return ls_bit_;                       }
-	virtual uint64_t getSizeBits()   const { return size_bits_;                    }
-	virtual unsigned getWordSwap()   const { return wordSwap_;                     }
-	virtual Encoding getEncoding()   const { return encoding_;                     }
-	virtual int      getConfigBase() const { return configBase_;                   }
-	virtual Mode     getMode()       const { return mode_;                         }
-	virtual Enum     getEnum()       const { return enum_;                         }
+	virtual bool     isSigned()      const;
+	virtual int      getLsBit()      const;
+	virtual uint64_t getSizeBits()   const;
+	virtual unsigned getWordSwap()   const;
+	virtual Encoding getEncoding()   const;
+	virtual int      getConfigBase() const;
+	virtual Mode     getMode()       const;
+	virtual Enum     getEnum()       const;
+
+	// setters can only be used from constructors
+	virtual void     setSigned    (Key &k, bool     v);
+	virtual void     setLsBit     (Key &k, int      v);
+	virtual void     setSizeBits  (Key &k, uint64_t v);
+	virtual void     setWordSwap  (Key &k, unsigned v);
+	virtual void     setMode      (Key &k, Mode     v);
+	virtual void     setEnum      (Key &k, Enum     v);
 
 	virtual void     setConfigBase(int);
 	virtual void     setEncoding(Encoding);
+
+	virtual void postHook( ConstShObj );
 
 	virtual EntryAdapt createAdapter(IEntryAdapterKey &, Path, const std::type_info&) const;
 };
