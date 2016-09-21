@@ -372,17 +372,6 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 		return _createAdapter<ScalVal_WOAdapt>(this, p);
 	}
 #endif
-	else if ( isInterface<DoubleVal>(interfaceType) ) {
-		if ( getMode() != RW ) {
-			throw InterfaceNotImplementedError("DoubleVal interface not supported");
-		}
-		return _createAdapter<ScalValAdapt>(this, p);
-	} else if ( isInterface<ScalVal_RO>(interfaceType) ) {
-		if ( getMode() == WO ) {
-			throw InterfaceNotImplementedError("ScalVal_RO interface not supported by write-only entry");
-		}
-		return _createAdapter<ScalVal_ROAdapt>(this, p);
-	}
 	// maybe the superclass knows about this interface?
 	return CEntryImpl::createAdapter(key, p, interfaceType);
 }
