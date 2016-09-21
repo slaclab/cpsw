@@ -421,6 +421,13 @@ public:
 	 */
 	virtual Path     getPath()          const = 0;
 
+	/*!
+	 * Return a const reference of the Path which was used to
+	 * create this val. This is not a copy (more efficient if
+	 * you don't intend to modify it).
+	 */
+	virtual ConstPath getConstPath()    const = 0;
+
 
 	virtual ~IVal_Base() {}
 };
