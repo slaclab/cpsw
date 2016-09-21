@@ -16,15 +16,19 @@
 #include <math.h>
 #include <inttypes.h>
 
-#define PROMSIZE (1024*1024*32)
-
 class Num {
+public:
+
+	typedef enum {NORM_0 = 0, NORM_8 = 1, NORM_16 = 2, NORM_32 = 3} NormType;
+
 private:
 	double   val_;
     double   norm_;
+	NormType normCode_;
     bool     isSigned_;
 	uint64_t off_;
 public:
+
 
 	void set(double   dval)
 	{
@@ -55,9 +59,10 @@ public:
 		return (uint32_t)v;
 	}
 
-	Num(double val, unsigned shft, bool isSigned, uint64_t off)
+	Num(double val, NormType norm, bool isSigned, uint64_t off)
 	: val_(val),
-	  norm_( (double)((uint64_t)1<<(uint64_t)shft) ),
+	  norm_( (double)((uint64_t)1<<( ( (uint64_t)((1<<norm)>>1) ) * 8 - (isSigned ? 1 : 0) )) ),
+	  normCode_(norm),
 	  isSigned_(isSigned),
 	  off_(off)
 	{
@@ -81,6 +86,11 @@ public:
 
 		while ( *off < off_  + sizeof(uint32_t) && *nbytes > 0 ) {
 			**data = (val & 0xff);
+			if ( *off == off_ ) {
+				/* Merge normCode */
+				**data &= ~3;
+				**data |= normCode_ & 3;
+			}
 			val >>= 8;
 			(*data)++;
 			(*nbytes)--;
@@ -139,7 +149,7 @@ private:
 	Num nu_;          // ratio of mass of pendulum / mass of cart
     Num Fe_;          // external horizontal force applied to cart
     Num iv_;          // initial velocity
-    Num l_;           // pendulum length ( < 1 ), x runs from -1..1 (hard limits) 
+    Num l_;           // pendulum length, x runs from -1..1 (hard limits)
 	Num x_;
 	Num phi_;
 	Num x_rb_;
@@ -169,20 +179,20 @@ public:
 
 	CPendSim(double pollms)
 	: CRunnable("pendsim"),
-	  av_( .001, 32, false,    PENDULUM_SIMULATOR_AV_OFF),  
-	  af_( .100, 32, false,    PENDULUM_SIMULATOR_AF_OFF),
-	  w2_(2.000, 16, false,    PENDULUM_SIMULATOR_W2_OFF),
-	  nu_( .800, 16, false,    PENDULUM_SIMULATOR_NU_OFF),
-      Fe_( .000, 16, false,    PENDULUM_SIMULATOR_FE_OFF),
-      iv_( .200, 16, true ,    PENDULUM_SIMULATOR_VE_OFF),
-      l_ ( .500, 32, false,    PENDULUM_SIMULATOR_LE_OFF),
-	  x_ ( .0  , 31, true,     PENDULUM_SIMULATOR_DX_OFF),
-	  phi_( .49, 31, true,     PENDULUM_SIMULATOR_PH_OFF), // normalized to 2*Pi
-	  x_rb_ ( .0  , 31, true,  PENDULUM_SIMULATOR_DX_RB_OFF),
-	  phi_rb_( .49, 31, true,  PENDULUM_SIMULATOR_PH_RB_OFF), // normalized to 2*Pi
-	  t_rb_( .00, 8, false,    PENDULUM_SIMULATOR_T_RB_OFF),
-	  t_ ( .0 ),
-      h_ ( .125 ),
+	  av_    ( .001, Num::NORM_32, false, PENDULUM_SIMULATOR_AV_OFF),
+	  af_    ( .100, Num::NORM_32, false, PENDULUM_SIMULATOR_AF_OFF),
+	  w2_    (2.000, Num::NORM_16, false, PENDULUM_SIMULATOR_W2_OFF),
+	  nu_    ( .800, Num::NORM_16, false, PENDULUM_SIMULATOR_NU_OFF),
+	  Fe_    ( .000, Num::NORM_16, false, PENDULUM_SIMULATOR_FE_OFF),
+	  iv_    ( .200, Num::NORM_16, true , PENDULUM_SIMULATOR_VE_OFF),
+	  l_     ( .500, Num::NORM_16, false, PENDULUM_SIMULATOR_LE_OFF),
+	  x_     ( .000, Num::NORM_32, true,  PENDULUM_SIMULATOR_DX_OFF),
+	  phi_   ( .490, Num::NORM_32, true,  PENDULUM_SIMULATOR_PH_OFF), // normalized to 2*Pi
+	  x_rb_  ( .000, Num::NORM_32, true,  PENDULUM_SIMULATOR_DX_RB_OFF),
+	  phi_rb_( .490, Num::NORM_32, true,  PENDULUM_SIMULATOR_PH_RB_OFF), // normalized to 2*Pi
+	  t_rb_  ( .000, Num::NORM_8,  false, PENDULUM_SIMULATOR_T_RB_OFF),
+	  t_     ( .0 ),
+	  h_     ( .125 ),
 	  pollms_(pollms)
 	{
 		dly_.tv_sec  = floor( pollms_ / 1000. );
@@ -327,6 +337,8 @@ void CPendSim::ydot(double t, double *dotState, double *state)
 	double A    = w2_.getVal()*sphi - state[1]*state[1];
 	double B    = cphi;
 	double Fext;
+
+	// Fext normalized to (Ml), dx normalized to l -> elastic coeff. normalized to M
 	if ( state[2] < -lim_ ) {
 		Fext = -100. * (state[2] + lim_);
 	} else if ( state[2] > lim_ ) {
