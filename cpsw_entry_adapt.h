@@ -20,7 +20,7 @@ using boost::dynamic_pointer_cast;
 class IEntryAdapt;
 typedef shared_ptr<IEntryAdapt> EntryAdapt;
 
-class IEntryAdapt : public virtual IEntry, public CShObj {
+class IEntryAdapt : public virtual IVal_Base, public CShObj {
 protected:
 	shared_ptr<const CEntryImpl> ie_;
 	ConstPath                    p_;
@@ -45,6 +45,7 @@ public:
 	virtual Hub         isHub()          const { return ie_->isHub();            }
 	virtual Path        getPath()        const { return p_->clone();             }
 	virtual ConstPath   getConstPath()   const { return p_;                      }
+	virtual unsigned    getNelms()             { return p_->getNelms();          }
 
 	virtual            ~IEntryAdapt();
 
