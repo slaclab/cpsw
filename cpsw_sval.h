@@ -193,6 +193,8 @@ public:
 		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
 	}
 
+	virtual void     int2dbl(double *dst, uint64_t *src, unsigned n);
+
 	virtual unsigned getVal(uint64_t *p, unsigned n, IndexRange *r=0) { return getVal<uint64_t>(p,n,r); }
 	virtual unsigned getVal(uint32_t *p, unsigned n, IndexRange *r=0) { return getVal<uint32_t>(p,n,r); }
 	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0) { return getVal<uint16_t>(p,n,r); }
@@ -208,6 +210,8 @@ public:
 	template <typename E> unsigned setVal(E *e, unsigned nelms, IndexRange *r) {
 		return setVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
 	}
+
+	virtual void     dbl2int(uint64_t *dst, double *src, unsigned n);
 
 	virtual unsigned setVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
 

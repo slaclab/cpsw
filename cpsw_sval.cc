@@ -43,6 +43,9 @@ public:
 	{
 	}
 
+	unsigned getNelms() { return nelms_; }
+	EL      *getValp()  { return vals_;  }
+
 	unsigned setVal(CScalVal_WOAdapt *scalValAdapt, IndexRange *r, VL v)
 	{
 	EL onStack[ vals_ ? 0 : nelms_ ];
@@ -62,6 +65,22 @@ public:
 	}
 };
 
+template <> unsigned Vals<uint64_t, double>::setVal(CScalVal_WOAdapt *scalValAdapt, IndexRange *r, double v)
+{
+Vals<double, double>  dblVal(nelms_);
+uint64_t onStackInt[ vals_ ? 0 : nelms_ ];
+double   onStackDbl[ dblVal.getValp() ? 0 : nelms_ ];
+uint64_t *intp = vals_            ? vals_ : onStackInt;
+double   *dblp = dblVal.getValp() ? dblVal.getValp() : onStackDbl;
+
+	for ( unsigned i=0; i<nelms_; i++ )
+		dblp[i] = v;
+
+	scalValAdapt->dbl2int(intp, dblp, nelms_);
+
+	return scalValAdapt->setVal(intp, nelms_, r);
+}
+
 template <> unsigned Vals<uint64_t, double>::getVal(CScalVal_ROAdapt *scalValAdapt, double *v_p, IndexRange *r)
 {
 	uint64_t onStack[ vals_ ? 0 : nelms_ ];
@@ -70,13 +89,8 @@ template <> unsigned Vals<uint64_t, double>::getVal(CScalVal_ROAdapt *scalValAda
 
 	got = scalValAdapt->getVal( valp, nelms_, r );
 
-	if ( scalValAdapt->isSigned() ) {
-		for ( unsigned i = 0; i<got; i++ )
-			v_p[i] = (int64_t)valp[i];
-	} else {
-		for ( unsigned i = 0; i<got; i++ )
-			v_p[i] = valp[i];
-	}
+	scalValAdapt->int2dbl(v_p, valp, got);
+
 	return got;
 }
 
@@ -85,13 +99,8 @@ template <> unsigned Vals<uint64_t, double>::setVal(CScalVal_WOAdapt *scalValAda
 uint64_t onStack[ vals_ ? 0 : nelms_ ];
 uint64_t *valp = vals_ ? vals_ : onStack;
 
-	if ( scalValAdapt->isSigned() ) {
-		for ( unsigned i = 0; i<nelms_; i++ )
-			valp[i] = (int64_t)v_p[i];
-	} else {
-		for ( unsigned i = 0; i<nelms_; i++ )
-			valp[i] = (uint64_t)v_p[i];
-	}
+	scalValAdapt->dbl2int(valp, v_p, nelms_);
+
 	return scalValAdapt->setVal( valp, nelms_, r );
 }
 
@@ -584,6 +593,30 @@ public:
 		}
 	}
 };
+
+void
+CScalVal_ROAdapt::int2dbl(double *dst, uint64_t *src, unsigned nelms)
+{
+	if ( isSigned() ) {
+		for ( unsigned i = 0; i<nelms; i++ )
+			dst[i] = (int64_t)src[i];
+	} else {
+		for ( unsigned i = 0; i<nelms; i++ )
+			dst[i] = src[i];
+	}
+}
+
+void
+CScalVal_WOAdapt::dbl2int(uint64_t *dst, double *src, unsigned nelms)
+{
+	if ( isSigned() ) {
+		for ( unsigned i = 0; i<nelms; i++ )
+			dst[i] = (int64_t)src[i];
+	} else {
+		for ( unsigned i = 0; i<nelms; i++ )
+			dst[i] = (uint64_t)src[i];
+	}
+}
 
 unsigned CScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
 {
