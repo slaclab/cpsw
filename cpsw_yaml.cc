@@ -23,6 +23,7 @@
 #include <cpsw_hub.h>
 #include <cpsw_error.h>
 #include <cpsw_sval.h>
+#include <cpsw_const_sval.h>
 #include <cpsw_mem_dev.h>
 #include <cpsw_mmio_dev.h>
 #include <cpsw_netio_dev.h>
@@ -860,6 +861,7 @@ static CYamlTypeRegistry<Field> the_registry_;
 DECLARE_YAML_FIELD_FACTORY(EntryImpl);
 DECLARE_YAML_FIELD_FACTORY(DevImpl);
 DECLARE_YAML_FIELD_FACTORY(IntEntryImpl);
+DECLARE_YAML_FIELD_FACTORY(ConstIntEntryImpl);
 DECLARE_YAML_FIELD_FACTORY(MemDevImpl);
 DECLARE_YAML_FIELD_FACTORY(MMIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(NetIODevImpl);

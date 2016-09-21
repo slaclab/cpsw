@@ -154,6 +154,7 @@ unsigned byteSize = b2B(sizeBits_);
 	 */
 
 	configBase_ = checkConfigBase( configBase_ );
+	size_       = computeSize(wordSwap_, sizeBits_, lsBit_);
 }
 
 void
@@ -314,8 +315,6 @@ MutableEnum e;
 	if ( enum_node ) {
 		enum_ = IMutableEnum::create( enum_node );
 	}
-
-	size_     = computeSize(wordSwap_, sizeBits_, lsBit_);
 
 	checkArgs();
 }

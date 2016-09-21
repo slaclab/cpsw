@@ -475,7 +475,7 @@ named 'usleep'.
 ### 2.5 The 'IntField' Class
 
 IntField is derived from Field and is a 'leaf' class. It implements
-the `ScalVal` and `ScalVal_RO` user-APIs.
+the `ScalVal`, `ScalVal_RO`, `DoubleVal` and `DoubleVal_RO` user-APIs.
 
 IntField supports signed or unsigned integer numerical values of
 arbitrary length in bits (up to 64). IntField also supports arbitrary
@@ -496,8 +496,8 @@ Depending on an IntField's signed-ness numbers are sign-extended to
 the size requested by the user.
 
 IntField can be configured to a 'read-only' mode (statically defined by
-YAML - cannot be switched later) in which only `ScalVal_RO` is supported
-and values cannot be changed.
+YAML - cannot be switched later) in which only `ScalVal_RO` and `DoubleVal_RO`
+are supported and values cannot be changed.
 
 An optional 'string-encoding' attribute can be defined for IntField
 which is passed to the user-application (CPSW does not use it internally).
@@ -557,7 +557,7 @@ strings if the underlying entity actually represents a character.
             # for a complete list)
             #
             # Defaults to NONE.
-          YAML_KEY_wordSwap: <int>           # optional
+          YAML_KEY_encoding: <int>           # optional
 
             # The base in which values are saved to a configuration
             # file. Legal values are 10 (decimal) or 16 (hex). 
@@ -565,7 +565,7 @@ strings if the underlying entity actually represents a character.
             # readability of saved configuration files.
             #
             # Defaults to 16.
-          YAML_KEY_wordSwap: <int>           # optional
+          YAML_KEY_configBase: <int>         # optional
 
 The `YAML_KEY_wordSwap` parameter can e.g., be used to handle
 the case of a 64-bit word in 'mixed format':
@@ -582,7 +582,7 @@ If the words are stored in little-endian format then the
 quad '0x0807060504030201' would *normally* be stored (by
 increasing address):
 
-           0x01, 0x02, 0x03, 0x04, 0x04, 0x06, 0x07, 0x08
+          0x01, 0x02, 0x03, 0x04, 0x04, 0x06, 0x07, 0x08
 
 If, however, (as it sometimes happens in 'real-world' devices)
 the above 'mixed format' is used then the data would be
@@ -593,7 +593,52 @@ stored:
 In this case an IntField with `YAML_KEY_wordSwap` set
 to 4 would read the correct value.
 
-### 2.6 The 'MMIODev' Class
+### 2.6 The 'ConstIntField' Class
+
+ConstIntField is derived from IntField and is another 'leaf' class.
+It implements `ScalVal_RO` and `DoubleVal_RO` user-APIs.
+
+The purpose of ConstIntField is providing run-time access to
+`constant` values which are defined in YAML. ConstIntField
+does never access real hardware.
+
+ConstIntField can supply string-, double- or integer values.
+It inherits all properties from IntField but overrides some
+of them (`YAML_KEY_sizeBits`, `YAML_KEY_lsBit`, `YAML_KEY_byteOrder`, `YAML_KEY_wordSwap`, `YAML_KEY_mode`).
+
+The type of the value retrieved from YAML is defined by the
+`YAML_KEY_encoding` and  `YAML_KEY_isDouble` properties.
+
+If `YAML_KEY_encoding` is set to `ASCII` then the value is
+interpreted as a string; otherwise, if `YAML_KEY_isDouble` is
+`true` then it is interpreted as a `double` else as a 64-bit
+integer (honoring `YAML_KEY_isSigned`).
+
+A 'Enum' menu with a single entry which maps a string to
+the numerical value is always attached to ConstIntField but
+it is not necessary to define such a menu in YAML.
+
+E.g., in the case of
+
+        aString:
+          YAML_KEY_class:    ConstIntField     # *mandatory*
+
+            # inherited from IntField
+          YAML_KEY_encoding: ASCII
+            # The constant value
+          YAML_KEY_value:    "Hello"           # *mandatory*
+
+        aDouble:
+          YAML_KEY_class:    ConstIntField     # *mandatory*
+            # set to 'true' if the value is to be interpreted
+            # as a double.
+          YAML_KEY_isDouble: true              # *optional*
+          YAML_KEY_value:    3.141             # *mandatory*
+
+`aString`'s menu will map the value 0 to the string "Hello"
+and `aDouble`'s menu will map the value 3 to the string "3.141".
+
+### 2.7 The 'MMIODev' Class
 
 MMIODev is a subclass of Dev and implements a memory-mapped
 container.
@@ -628,7 +673,7 @@ this setting individually for the specific child).
  
           YAML_KEY_byteOrder: <ByteOrder>
 
-#### 2.6.1 MMIOAddress
+#### 2.7.1 MMIOAddress
 
 When a Field is attached to an MMIODev then there are two parameters
 in addition to `YAML_KEY_nelms` and `YAML_KEY_byteOrder` (which are
@@ -652,7 +697,7 @@ Note that when the offset is omitted then an ordinary 'Address'
 is used which essentially bypasses the MMIODev and forwards
 all read/write operations to the parent.
 
-#### 2.6.2 MMIODev and IntField Example
+#### 2.7.2 MMIODev and IntField Example
 
 Assume a (memory-mapped) device presents an ASCII string
 of 40 characters where each character is aligned on a
@@ -672,7 +717,7 @@ of 40 characters where each character is aligned on a
                 YAML_KEY_stride:    4
                 YAML_KEY_nelms:    40
            
-### 2.7 The 'NetIODev' Class
+### 2.8 The 'NetIODev' Class
 
 NetIODev is -- for most applications -- the 'root' device which
 handles all communication with a remote endpoint.
@@ -708,7 +753,7 @@ instance is required. These could be attached to a dummy root Dev:
               YAML_KEY_ipAddr: 10.0.0.2
               YAML_KEY_at: # empty 'at' -- no addressing info needed
 
-#### 2.7.1 NetIODev Address Objects
+#### 2.8.1 NetIODev Address Objects
 
 The true power of NetIODev lies in the Address objects it implements.
 These are the communication endpoints where children are attached.
@@ -872,7 +917,7 @@ deliberately to use maps so that merge keys work across all levels).
             # Default: 0
           YAML_KEY_virtualChannel: <int>
 
-#### 2.7.2 Protocol Multiplexing
+#### 2.8.2 Protocol Multiplexing
 
 There are two layers of protocol-multiplexers available
 in the stack: messages may be routed based on TDEST
