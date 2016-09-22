@@ -17,14 +17,12 @@
 #include <inttypes.h>
 
 class Num {
-public:
 
-	typedef enum {NORM_0 = 0, NORM_8 = 1, NORM_16 = 2, NORM_32 = 3} NormType;
+	typedef uint8_t NormBits;
 
 private:
 	double   val_;
     double   norm_;
-	NormType normCode_;
     bool     isSigned_;
 	uint64_t off_;
 public:
@@ -59,10 +57,9 @@ public:
 		return (uint32_t)v;
 	}
 
-	Num(double val, NormType norm, bool isSigned, uint64_t off)
+	Num(double val, NormBits normBits, bool isSigned, uint64_t off)
 	: val_(val),
-	  norm_( (double)((uint64_t)1<<( ( (uint64_t)((1<<norm)>>1) ) * 8 - (isSigned ? 1 : 0) )) ),
-	  normCode_(norm),
+	  norm_( (double)((uint64_t)1<<normBits) ),
 	  isSigned_(isSigned),
 	  off_(off)
 	{
@@ -86,11 +83,6 @@ public:
 
 		while ( *off < off_  + sizeof(uint32_t) && *nbytes > 0 ) {
 			**data = (val & 0xff);
-			if ( *off == off_ ) {
-				/* Merge normCode */
-				**data &= ~3;
-				**data |= normCode_ & 3;
-			}
 			val >>= 8;
 			(*data)++;
 			(*nbytes)--;
@@ -147,11 +139,11 @@ private:
 	Num af_;          // kinetic damping coefficient (Ff_kin = af_ * Fnormal)
 	Num w2_;          // g/l (wo^2)
 	Num nu_;          // ratio of mass of pendulum / mass of cart
-    Num Fe_;          // external horizontal force applied to cart
-    Num iv_;          // initial velocity
     Num l_;           // pendulum length, x runs from -1..1 (hard limits)
 	Num x_;
 	Num phi_;
+    Num iv_;          // initial velocity
+    Num Fe_;          // external horizontal force applied to cart
 	Num x_rb_;
 	Num phi_rb_;
 	Num t_rb_;
@@ -179,20 +171,22 @@ public:
 
 	CPendSim(double pollms)
 	: CRunnable("pendsim"),
-	  av_    ( .001, Num::NORM_32, false, PENDULUM_SIMULATOR_AV_OFF),
-	  af_    ( .100, Num::NORM_32, false, PENDULUM_SIMULATOR_AF_OFF),
-	  w2_    (2.000, Num::NORM_16, false, PENDULUM_SIMULATOR_W2_OFF),
-	  nu_    ( .800, Num::NORM_16, false, PENDULUM_SIMULATOR_NU_OFF),
-	  Fe_    ( .000, Num::NORM_16, false, PENDULUM_SIMULATOR_FE_OFF),
-	  iv_    ( .200, Num::NORM_16, true , PENDULUM_SIMULATOR_VE_OFF),
-	  l_     ( .500, Num::NORM_16, false, PENDULUM_SIMULATOR_LE_OFF),
-	  x_     ( .000, Num::NORM_32, true,  PENDULUM_SIMULATOR_DX_OFF),
-	  phi_   ( .490, Num::NORM_32, true,  PENDULUM_SIMULATOR_PH_OFF), // normalized to 2*Pi
-	  x_rb_  ( .000, Num::NORM_32, true,  PENDULUM_SIMULATOR_DX_RB_OFF),
-	  phi_rb_( .490, Num::NORM_32, true,  PENDULUM_SIMULATOR_PH_RB_OFF), // normalized to 2*Pi
-	  t_rb_  ( .000, Num::NORM_8,  false, PENDULUM_SIMULATOR_T_RB_OFF),
+	  av_    ( .001, 32, false, PENDULUM_SIMULATOR_AV_OFF),
+	  af_    ( .100, 32, false, PENDULUM_SIMULATOR_AF_OFF),
+	  w2_    (2.000, 16, false, PENDULUM_SIMULATOR_W2_OFF),
+	  nu_    ( .800, 16, false, PENDULUM_SIMULATOR_NU_OFF),
+	  l_     ( .500, 16, false, PENDULUM_SIMULATOR_LE_OFF),
+
+	  x_     ( .000, 31, true,  PENDULUM_SIMULATOR_DX_OFF),
+	  phi_   ( .490, 31, true,  PENDULUM_SIMULATOR_PH_OFF), // normalized to 2*Pi
+	  iv_    ( .200, 15, true,  PENDULUM_SIMULATOR_VE_OFF),
+	  Fe_    ( .000, 15, true,  PENDULUM_SIMULATOR_FE_OFF),
+
+	  x_rb_  ( .000, 31, true,  PENDULUM_SIMULATOR_DX_RB_OFF),
+	  phi_rb_( .490, 31, true,  PENDULUM_SIMULATOR_PH_RB_OFF), // normalized to 2*Pi
+	  t_rb_  ( .000,  8, false, PENDULUM_SIMULATOR_T_RB_OFF),
 	  t_     ( .0 ),
-	  h_     ( .125 ),
+	  h_     ( .0125 ),
 	  pollms_(pollms)
 	{
 		dly_.tv_sec  = floor( pollms_ / 1000. );
@@ -323,7 +317,8 @@ struct timespec dly = dly_;
 
 		{
 		CMtx::lg guard( &mtx_ );
-			rk4();
+			for (unsigned k=0; k<10; k++ )
+				rk4();
 		}
 	}
 
@@ -395,4 +390,4 @@ static int writereg(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 }
 
 
-static struct udpsrv_range axiprom_range(PENDULUM_SIMULATOR_ADDR, PENDULUM_SIMULATOR_SIZE, readreg, writereg, 0);
+static struct udpsrv_range pendsim_range(PENDULUM_SIMULATOR_ADDR, PENDULUM_SIMULATOR_SIZE, readreg, writereg, 0);
