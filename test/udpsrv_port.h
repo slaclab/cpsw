@@ -21,7 +21,7 @@ extern "C" {
 typedef struct UdpPrt_ *UdpPrt;
 typedef struct UdpQue_ *UdpQue;
 
-int udpPrtRecv(UdpPrt , void *buf, unsigned size);
+int udpPrtRecv(UdpPrt , void *buf, unsigned size, struct timespec *abs_timeout);
 int udpPrtSend(UdpPrt , void *buf, unsigned size);
 int udpPrtIsConn(UdpPrt);
 

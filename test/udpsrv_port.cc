@@ -63,11 +63,17 @@ unsigned bufsz = bc->getSize();
 	return size;
 }
 
-int udpPrtRecv(UdpPrt p, void *buf, unsigned size)
+int udpPrtRecv(UdpPrt p, void *buf, unsigned size, struct timespec *abs_timeout)
 {
 CMtx::lg( &p->mtx_ );
 
-BufChain bc = p->top_->pop( NULL );
+BufChain bc;
+	if ( abs_timeout ) {
+		CTimeout to( *abs_timeout );
+		bc = p->top_->pop( &to );
+	} else {
+		bc = p->top_->pop( NULL );
+	}
 	if ( ! bc )
 		return -1;
 
