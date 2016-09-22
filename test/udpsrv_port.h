@@ -24,6 +24,7 @@ typedef struct UdpQue_ *UdpQue;
 int udpPrtRecv(UdpPrt , void *buf, unsigned size, struct timespec *abs_timeout);
 int udpPrtSend(UdpPrt , void *buf, unsigned size);
 int udpPrtIsConn(UdpPrt);
+int udpPrtRssiIsConn(UdpPrt prt);
 
 UdpQue udpQueCreate(unsigned depth);
 void   udpQueDestroy(UdpQue);

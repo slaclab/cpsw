@@ -15,15 +15,22 @@ struct UdpPrt_ {
 	UdpPort   udp_;
 	ProtoPort top_;
 	CMtx      mtx_;
+	int       withRssi_;
 	UdpPrt_(const char *mtxnm):mtx_(mtxnm){}
 };
+
+int udpPrtRssiIsConn(UdpPrt prt)
+{
+	return prt->withRssi_ && prt->top_->isConnected();
+}
 
 UdpPrt udpPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int withRssi)
 {
 ProtoPort  prt;
 UdpPrt     p = new UdpPrt_("udp_port");
 
-	p->udp_ = IUdpPort::create(ina, port, simLossPercent, ldScrambler);
+	p->udp_      = IUdpPort::create(ina, port, simLossPercent, ldScrambler);
+    p->withRssi_ = withRssi;
 	if ( withRssi ) {
 		p->top_ = CRssiPort::create( true );
 		p->top_->attach( p->udp_ );
