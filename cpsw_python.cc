@@ -22,6 +22,21 @@ using namespace boost::python;
 
 namespace cpsw_python {
 
+class GILUnlocker {
+private:
+	PyThreadState *_save;
+public:
+	GILUnlocker()
+	{
+		Py_UNBLOCK_THREADS;
+	}
+
+	~GILUnlocker()
+	{
+		Py_BLOCK_THREADS;
+	}
+};
+
 // Translate CPSW Errors/exceptions into python exceptions
 //
 // This is complicated by the fact that there is no easy
@@ -270,6 +285,8 @@ IndexRange rng(from, to);
 	if ( nelms > val->getNelms() )
 		nelms = val->getNelms();
 
+	{
+	GILUnlocker allowThreadingWhileWaiting;
 
 	if        ( view.itemsize == sizeof(uint8_t ) ) {
 		uint8_t *bufp = reinterpret_cast<uint8_t*>(view.buf);
@@ -284,6 +301,7 @@ IndexRange rng(from, to);
 	} else if ( view.itemsize == sizeof(uint64_t) ) {
 		uint64_t *bufp = reinterpret_cast<uint64_t*>(view.buf);
 		return val->getVal( bufp, nelms, &rng );
+	}
 	}
 
 	throw InvalidArgError("Unable to convert python argument");
@@ -303,7 +321,10 @@ IndexRange rng(from, to);
 	// must not use 'reserve' which doesn't construct invalid shared pointers!
 	std::vector<CString>  str(nelms, CString());
 
+		{
+		GILUnlocker allowThreadingWhileWaiting;
 		got = val->getVal( &str[0], nelms, &rng );
+		}
 		if ( 1 == got ) {
 			return boost::python::object( *str[0] );	
 		}
@@ -320,7 +341,10 @@ IndexRange rng(from, to);
 
 		v64.reserve(nelms);
 
+		{
+		GILUnlocker allowThreadingWhileWaiting;
 		got = val->getVal( &v64[0], nelms, &rng );
+		}
 		if ( 1 == got ) {
 			if ( val->isSigned() )
 				return boost::python::object( (int64_t)v64[0] );
@@ -380,6 +404,8 @@ bool enumScalar = false;
 
 		Py_ssize_t nelms = view.len / view.itemsize;
 
+		{
+		GILUnlocker allowThreadingWhileWaiting;
 		if        ( view.itemsize == sizeof(uint8_t ) ) {
 			uint8_t *bufp = reinterpret_cast<uint8_t*>(view.buf);
 			// set same value to all elements ? 
@@ -394,6 +420,7 @@ bool enumScalar = false;
 			uint64_t *bufp = reinterpret_cast<uint64_t*>(view.buf);
 			return 1==nelms ? val->setVal( (uint64_t)*bufp ) : val->setVal( bufp, nelms, &rng );
 		}
+		}
 
 		// if we get here then we couldn't deal with the buffer interface;
 		// try the hard way...
@@ -404,6 +431,7 @@ bool enumScalar = false;
 
 	if ( ! PySequence_Check( op ) ) {
 		// a single string (attempt to set enum) is also a sequence
+		GILUnlocker allowThreadingWhileWaiting;
 		if ( val->isSigned() )
 			return val->setVal( (uint64_t)extract<int64_t>( o ), &rng );
 		else
@@ -429,7 +457,10 @@ bool enumScalar = false;
 				vcstr.push_back( vstr[i].c_str() );
 			}
 		}
+		{
+		GILUnlocker allowThreadingWhileWaiting;
 		return val->setVal( &vcstr[0], nelms, &rng );
+		}
 	} else {
 		std::vector<uint64_t> v64;
 		if ( val->isSigned() ) {
@@ -441,7 +472,10 @@ bool enumScalar = false;
 				v64.push_back( extract<uint64_t>( o[i] ) );
 			}
 		}
+		{
+		GILUnlocker allowThreadingWhileWaiting;
 		return val->setVal( &v64[0], nelms, &rng );
+		}
 	}
 }
 
@@ -460,7 +494,12 @@ Py_buffer view;
 	if ( timeoutUs >= 0 )
 		timeout.set( (uint64_t)timeoutUs );
 
+
+	// hopefully it's OK to release the GIL while operating on the buffer view...
+	{
+	GILUnlocker allowThreadingWhileWaiting;
 	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
+	}
 }
 
 static int64_t wrap_Stream_write(Stream val, object &o, int64_t timeoutUs)
@@ -477,7 +516,11 @@ Py_buffer view;
 	if ( timeoutUs >= 0 )
 		timeout.set( (uint64_t)timeoutUs );
 
+	// hopefully it's OK to release the GIL while operating on the buffer view...
+	{
+	GILUnlocker allowThreadingWhileWaiting;
 	return val->write( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
+	}
 }
 
 static boost::python::object wrap_DoubleVal_RO_getVal(DoubleVal_RO val, int from, int to)
@@ -490,7 +533,10 @@ IndexRange rng(from, to);
 
 	v64.reserve(nelms);
 
+	{
+	GILUnlocker allowThreadingWhileWaiting;
 	got = val->getVal( &v64[0], nelms, &rng );
+	}
 	if ( 1 == got ) {
 		return boost::python::object( v64[0] );
 	}
@@ -512,6 +558,7 @@ IndexRange rng(from, to);
 
 	if ( ! PySequence_Check( op ) ) {
 		// a single string (attempt to set enum) is also a sequence
+		GILUnlocker allowThreadingWhileWaiting;
 		return val->setVal( extract<double>( o ), &rng );
 	}
 
@@ -521,7 +568,10 @@ IndexRange rng(from, to);
 	for ( unsigned i = 0; i < nelms; ++i ) {
 		v64.push_back( extract<double>( o[i] ) );
 	}
+	{
+	GILUnlocker allowThreadingWhileWaiting;
 	return val->setVal( &v64[0], nelms, &rng );
+	}
 }
 
 
