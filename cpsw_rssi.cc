@@ -441,6 +441,7 @@ if ( rssi_debug > 1 )
 #endif
 	state_ = newState;
 	if ( newConnState && newConnState != oldConnState ) {
+		CConnectionStateChangedEventSource::sendEvent( newConnState );
 		CConnectionOpenEventSource::connectionStateChanged   ( newConnState );
 		CConnectionNotOpenEventSource::connectionStateChanged( newConnState );
 		CConnectionClosedEventSource::connectionStateChanged ( newConnState );
@@ -448,7 +449,7 @@ if ( rssi_debug > 1 )
 }
 
 CConnectionStateEventSource::CConnectionStateEventSource()
-: connState_(CONN_STATE_CLOSED)
+: connState_(CConnectionStateChangedEventSource::CONN_STATE_CLOSED)
 {
 }
 
@@ -476,17 +477,17 @@ CConnectionClosedEventSource::CConnectionClosedEventSource()
 
 bool CConnectionOpenEventSource::checkForEvent()
 {
-	return connState_.load( memory_order_acquire ) == CONN_STATE_OPEN;
+	return connState_.load( memory_order_acquire ) == CConnectionStateChangedEventSource::CONN_STATE_OPEN;
 }
 
 bool CConnectionNotOpenEventSource::checkForEvent()
 {
-	return connState_.load( memory_order_acquire ) != CONN_STATE_OPEN;
+	return connState_.load( memory_order_acquire ) != CConnectionStateChangedEventSource::CONN_STATE_OPEN;
 }
 
 bool CConnectionClosedEventSource::checkForEvent()
 {
-	return connState_.load( memory_order_acquire ) == CONN_STATE_CLOSED;
+	return connState_.load( memory_order_acquire ) == CConnectionStateChangedEventSource::CONN_STATE_CLOSED;
 }
 
 CRssi::~CRssi()

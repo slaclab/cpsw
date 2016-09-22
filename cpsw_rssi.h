@@ -77,14 +77,19 @@ public:
 
 };
 
-// currently posts events when the state is changed to
+// posts events when the state changes
+class CConnectionStateChangedEventSource : public CIntEventSource {
+public:
+	static const int      CONN_STATE_OPEN   = 10; // could support other states
+	static const int      CONN_STATE_CLOSED = -1;
+};
+
+// posts events when the state is changed to
 // the defined target state (currently: open/closed)
 class CConnectionStateEventSource : public IIntEventSource {
 protected:
 	atomic<int>  connState_;
 
-	static const int      CONN_STATE_OPEN   = 10; // could support other states
-	static const int      CONN_STATE_CLOSED = -1;
 public:
 	CConnectionStateEventSource();
 
@@ -121,6 +126,7 @@ class CRssi : public CRunnable,
               public IRexTimer,
               public IAckTimer,
               public INulTimer,
+              public CConnectionStateChangedEventSource,
               public CConnectionOpenEventSource,
               public CConnectionNotOpenEventSource,
               public CConnectionClosedEventSource
