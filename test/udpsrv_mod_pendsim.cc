@@ -304,9 +304,19 @@ public:
 	virtual void *threadBody();
 };
 
+static void encodeDblLE(uint8_t *buf, double v)
+{
+int64_t vi = v*4294967296.; // 2^32
+	for (unsigned i=0; i<sizeof(vi); i++) {
+		*buf++ = vi & 0xff;
+		vi >>= 8;
+	}
+}
+
 void *CPendSim::threadBody()
 {
-struct timespec dly = dly_;
+struct   timespec dly = dly_;
+uint8_t  streambuf[8+3*8];
 
 	while ( 1 ) {
 		while ( nanosleep( &dly, &dly ) ) {
@@ -320,6 +330,14 @@ struct timespec dly = dly_;
 			for (unsigned k=0; k<10; k++ )
 				rk4();
 		}
+
+		encodeDblLE(streambuf + 8, t_                   );
+		encodeDblLE(streambuf +16, state_[0]/2./M_PI    );
+		encodeDblLE(streambuf +24, state_[2]*l_.getVal());
+
+        //printf("%g - %g\n", state_[0], state_[2]*l_.getVal());
+
+		streamSend(streambuf, sizeof(streambuf), PENDULUM_SIMULATOR_TDEST);
 	}
 
 	return 0;

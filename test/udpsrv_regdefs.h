@@ -53,7 +53,9 @@
 #define PENDULUM_SIMULATOR_PH_RB_OFF    0x34   /* see PH_OFF */
 #define PENDULUM_SIMULATOR_T_RB_OFF     0x38   /* fractional * 2^8 */
 
-#define PENDULUM_SIMULATOR_SIZE (0x400)
+#define PENDULUM_SIMULATOR_SIZE        0x400
+
+#define PENDULUM_SIMULATOR_TDEST          44
 
 #define DEBUG
 

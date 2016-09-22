@@ -740,6 +740,12 @@ int i;
 		if (  ! udpPrtRssiIsConn( strm_args[i].port ) && ! strm_args[i].polled_stream_up ) {
 			continue;
 		}
+
+		if ( strm_args[i].isRunning ) {
+			// if the stream test is running then they look for consecutive
+			// frame numbers - which we don't want to mess up...
+			continue;
+		}
 		if ( tdest == strm_args[i].srp_tdest ) {
 			fprintf(stderr,"ERROR: cannot post to stream on TDEST %d -- already used by SRP\n", tdest);
 			exit(1);
