@@ -95,6 +95,12 @@ struct udpsrv_range {
 extern "C" {
 #endif
 	int streamIsRunning();
+
+	/* send a stream message; the buffer must have 8-bytes at
+	 * the head reserved for the packet header
+	 */
+	void streamSend(uint8_t *buf, int size, uint8_t tdest);
+
 #ifdef __cplusplus
 };
 #endif
