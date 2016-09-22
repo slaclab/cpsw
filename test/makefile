@@ -15,6 +15,7 @@ DEP_HEADERS += crc32-le-tbl-4.h
 DEP_HEADERS += udpsrv_regdefs.h
 DEP_HEADERS += udpsrv_port.h
 DEP_HEADERS += udpsrv_rssi_port.h
+DEP_HEADERS += udpsrv_stream_state_monitor.h
 DEP_HEADERS += udpsrv_util.h
 
 tstaux_SRCS+= crc32-le-tbl-4.c
@@ -30,6 +31,7 @@ udpsrv_SRCS+= udpsrv_util.cc
 udpsrv_SRCS+= udpsrv_mod_mem.cc
 udpsrv_SRCS+= udpsrv_mod_axiprom.cc
 udpsrv_SRCS+= udpsrv_mod_pendsim.cc
+udpsrv_SRCS+= udpsrv_stream_state_monitor.cc
 
 udpsrv_CXXFLAGS+= -DUDPSRV
 
@@ -77,7 +79,7 @@ cpsw_enum_tst_SRCS       = cpsw_enum_tst.cc
 cpsw_enum_tst_LIBS       = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_enum_tst
 
-rssi_tst_SRCS            = rssi_tst.cc udpsrv_port.cc udpsrv_util.cc
+rssi_tst_SRCS            = rssi_tst.cc udpsrv_port.cc udpsrv_util.cc udpsrv_stream_state_monitor.cc
 rssi_tst_LIBS            = $(CPSW_LIBS)
 TESTPROGRAMS            += rssi_tst
 
