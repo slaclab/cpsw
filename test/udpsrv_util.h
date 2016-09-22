@@ -51,6 +51,8 @@ public:
 	virtual bool push(BufChain, const CTimeout *)          = 0;
 	virtual bool tryPush(BufChain)                         = 0;
 
+	virtual unsigned isConnected()                         = 0;
+
 	virtual ~IProtoPort() {}
 
 	virtual void start()                                   = 0;

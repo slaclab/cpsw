@@ -641,6 +641,8 @@ public:
 
 	virtual void attach(ProtoPort);
 
+	virtual unsigned isConnected() { return 1; }
+
 	virtual ProtoPort getPortA() { return static_pointer_cast<CPortA>( shared_ptr<CLoopbackPorts>( self_ ) ); }
 	virtual ProtoPort getPortB() { return static_pointer_cast<CPortB>( shared_ptr<CLoopbackPorts>( self_ ) ); }
 
@@ -748,6 +750,8 @@ public:
 	virtual void attach(ProtoPort upstream)           { upstream_ = upstream;                    }
 	virtual bool push(BufChain b, const CTimeout *to) { return upstream_->push( b, to );         }
 	virtual bool tryPush(BufChain b)                  { return upstream_->tryPush( b );          }
+
+	virtual unsigned isConnected()                    { return 1;                                }
 
 	virtual IEventSource *getReadEventSource()        { return NULL;                             }
 
