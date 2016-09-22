@@ -12,17 +12,49 @@
 
 #include <udpsrv_util.h>
 #include <cpsw_rssi.h>
+#include <udpsrv_stream_state_monitor.h>
+#include <boost/atomic.hpp>
 
+#include <stdio.h>
 class CRssiPort;
 typedef shared_ptr<CRssiPort> RssiPort;
 
+class ConnHandler : public IEventHandler {
+private:
+	boost::atomic<bool> isConnected_;
+
+public:
+	ConnHandler()
+	: isConnected_(false)
+	{
+	}
+
+	bool
+	isConnected()
+	{
+		return isConnected_.load();
+	}
+
+	virtual void handle(IIntEventSource *eventSource)
+	{
+		isConnected_.store( eventSource->getEventVal() > 0 );
+	}
+};
+
 class CRssiPort : public CRssi, public IProtoPort {
 private:
-	ProtoPort upstream_;
+	ProtoPort  upstream_;
+	ConnHandler hdlr;
 public:
 	CRssiPort(bool isServer)
 	: CRssi(isServer)
 	{
+		StreamStateMonitor::getTheMonitor()->getEventSet()->add((CConnectionStateChangedEventSource*)this, &hdlr);
+	}
+
+	virtual unsigned isConnected()
+	{
+		return hdlr.isConnected();
 	}
 
 	virtual ProtoPort getUpstreamPort()
