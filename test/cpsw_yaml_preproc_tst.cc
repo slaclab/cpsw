@@ -43,7 +43,7 @@ const char *top03=
 
 const char *top23=
 "#\n"
-"#include "INC_V20"\n"
+"#include <"INC_V20">\n"
 "#schemaversion 3.0.0\n"
 "root:\n"
 "  "YAML_KEY_class": Dev\n";
