@@ -155,33 +155,51 @@ int rev = -1;
 		std::getline(*current, line );
 
 		if ( 0 == line.compare(1, 5, "once ") ) {
-			if ( line.size() < 7 ) {
+
+			size_t beg = line.find_first_not_of(" \t", 5);
+
+			if ( std::string::npos == beg ) {
 				MissingOnceTagError e("YamlPreprocessor: #once line lacks a 'tag' -- in: ");
 				e.append( name );
 				throw e;
 			}
 
+			// maybe there is an '\r' (windows-generated file)
+			size_t len = line.find_first_of( " \t\r", beg );
+
+			if ( std::string::npos != len )
+				len -= beg;
+
 			// if tag exist already then ignore rest of file
-			if ( check_exists( line.substr(6) ) )
+			if ( check_exists( line.substr(beg, len) ) )
 				return; 
 
 		} else if ( 0 == line.compare(1, 8, "include ") ) {
+
 			size_t beg = line.find_first_not_of(" \t", 8);
-			if ( beg == std::string::npos ) {
+
+			if ( std::string::npos == beg ) {
 				MissingIncludeFileNameError e("YamlPreprocessor: #include line lacks a 'filename' -- in: ");
 				e.append( name );
 				throw e;
 			}
-			// maybe there is an '\r' (windows-generated file)
-			size_t len = line.find_first_of(" \t\r",beg);
 
-			if ( ! std::string::npos != len )
+			bool   hasOpenAngle = (0 == line.compare(beg, 1, "<"));
+
+			if ( hasOpenAngle )
+				beg++;
+
+			// maybe there is an '\r' (windows-generated file)
+			size_t len = line.find_first_of( (hasOpenAngle ? ">" : " \t\r"), beg );
+
+			if ( std::string::npos != len )
 				len -= beg;
 
 			// recursively process included file
 			// in same directory
 			std::string incFnam( path_ + line.substr(beg, len) );
 			process( StreamMuxBuf::mkstrm( incFnam.c_str() ), incFnam );
+
 		} else if ( 0 == line.compare(1, 14, "schemaversion ") ) {
 			if ( 3 != ::sscanf( line.c_str() + 15, "%d.%d.%d", &maj, &min, &rev  ) ) {
 				BadSchemaVersionError e("YamlPreprocessor: #schemaversion lacks <major>.<minor>.<revision> triple -- in: "); 

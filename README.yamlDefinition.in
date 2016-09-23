@@ -49,12 +49,18 @@ i.e., it scans until a line does not start with `#`.
 
 The 'include' directive (a line starting with '`#include `' [notice the blank]):
 
-        whitespace        = ' ' | ?TAB? ;
+        whitespace        = ' ' | ?TAB? | ?CR? ;
         nonwhite_char     = ?ANYCHAR? - whitespace ;
+        nonbra_char       = nonwhite_char - '<' ;
+        nonket_char       = nonwhite_char - '>' ;
 
         include_directive = 'include ', { whitespace }, include_filename, { whitespace } ;
  
-        include_filename  =  nonwhite_char , { nonwhite_char } ;
+        include_filename  = bracketed_name | nonbracketed_name ;
+
+        nonbracketed_name = nonbra_char, { nonwhite_char } ;
+        bracketed_name    = '<', nonket_char, { nonket_char }, '>' ;
+
 
 directs the preprocessor to (recursively) continue with processing the file
 `include_filename` before resuming processing the current file.
@@ -71,8 +77,8 @@ an alternate location.
 If the preprocessor encounters a 'once' directive (a line starting with '`#once `'
 [notice the blank])
 
-        once_directive := 'once ' , once_tag ;
-        once_tag       := ?any_char? , { ?any_char? } ;
+        once_directive := 'once ' , { whitespace } , once_tag ;
+        once_tag       := nonwhite_char, { nonwhite_char } ;
 
 then it reads the `once_tag` (any non-empty string following '`#once `') and
 checks if it has encountered the same `once_tag` already earlier. If this is
