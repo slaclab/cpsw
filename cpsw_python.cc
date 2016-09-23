@@ -287,6 +287,7 @@ IndexRange rng(from, to);
 
 	{
 	GILUnlocker allowThreadingWhileWaiting;
+	// Nobody else must mess with the buffer while the GIL is unlocked!
 
 	if        ( view.itemsize == sizeof(uint8_t ) ) {
 		uint8_t *bufp = reinterpret_cast<uint8_t*>(view.buf);
@@ -495,11 +496,13 @@ Py_buffer view;
 		timeout.set( (uint64_t)timeoutUs );
 
 
-	// hopefully it's OK to release the GIL while operating on the buffer view...
 	{
 	GILUnlocker allowThreadingWhileWaiting;
-	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
+		if ( 0 == val->read( NULL, 0, timeout ) )
+			return 0;
 	}
+	// we have already waited
+	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, TIMEOUT_NONE );
 }
 
 static int64_t wrap_Stream_write(Stream val, object &o, int64_t timeoutUs)
@@ -516,9 +519,11 @@ Py_buffer view;
 	if ( timeoutUs >= 0 )
 		timeout.set( (uint64_t)timeoutUs );
 
-	// hopefully it's OK to release the GIL while operating on the buffer view...
 	{
-	GILUnlocker allowThreadingWhileWaiting;
+	// hopefully it's OK to release the GIL while operating on the buffer view...
+	// UPDATE: we assume that write is not a frequent operation and it rarely blocks.
+	//         Just to be safe...
+	// GILUnlocker allowThreadingWhileWaiting;
 	return val->write( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 	}
 }

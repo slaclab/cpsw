@@ -1721,6 +1721,30 @@ CCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 BufChain bch;
 
+	if ( 0 == args->dst_ ) {
+		// They just want to wait until data arrives (or a timeout occurs) and
+		// then do the actual 'read' afterwards
+		EventSet          evSet = IEventSet::create();
+		CNoopEventHandler handler;
+
+		evSet->add( door_->getReadEventSource(), &handler );
+
+		bool dataReady;
+
+		if ( args->timeout_.isNone() ) {
+			dataReady = evSet->processEvent( false, NULL );
+		} else if ( args->timeout_.isIndefinite() ) {
+			dataReady = evSet->processEvent( true , NULL );
+		} else {
+			CTimeout absTimeout;
+			evSet->getAbsTimeout( &absTimeout, &args->timeout_ );
+			dataReady = evSet->processEvent( true , &absTimeout );
+		}
+		// we can't peek at the buffer and thus don't know how much
+		// data would be available but certainly at least 1 byte...
+		return dataReady ? 1 : 0;
+	}
+
 	bch = door_->pop( &args->timeout_, IProtoPort::REL_TIMEOUT  );
 
 	if ( ! bch )
