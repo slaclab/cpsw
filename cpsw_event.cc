@@ -54,7 +54,7 @@ protected:
 private:
 	vector<Binding>       srcs_;
 
-	CMtx                  mtx_;
+	CMtx                  mutx_;
 	CCond                 cnd_;
 
 	CEventSet(const CEventSet &orig);
@@ -64,7 +64,7 @@ private:
 
 public:
 
-	CEventSet(Key &k):CShObj(k), mtx_("EVS") {}
+	CEventSet(Key &k):CShObj(k), mutx_("EVS") {}
 
 	virtual void add(IEventSource *src, IEventHandler *h)
 	{
@@ -77,7 +77,7 @@ public:
 		// and recursively lock the source
 		src->clrEventSet();
 
-		{CMtx::lg guard( &mtx_ );
+		{CMtx::lg guard( &mutx_ );
 
 			for ( i=0; i<srcs_.size(); i++ ) {
 				if ( srcs_[i].first == src ) {
@@ -99,7 +99,7 @@ public:
 	// always lock source before the event set
 	CMtx::lg guard( &src->mtx_ );
 
-		{CMtx::lg guard( &mtx_ );
+		{CMtx::lg guard( &mutx_ );
 
 			for ( i=0; i<srcs_.size(); i++ ) {
 				if ( srcs_[i].first == src ) {
@@ -149,7 +149,7 @@ public:
 	int         st;
 	Binding  *rval;
 
-	CMtx::lg guard( &mtx_ );
+	CMtx::lg guard( &mutx_ );
 
 		if ( wait && abs_timeout ) {
 			if ( abs_timeout->isNone() ) {
@@ -163,9 +163,9 @@ public:
 
 			if ( wait ) {
 				if ( abs_timeout ) {
-					st = pthread_cond_timedwait( cnd_.getp(), mtx_.getp(), &abs_timeout->tv_ );
+					st = pthread_cond_timedwait( cnd_.getp(), mutx_.getp(), &abs_timeout->tv_ );
 				} else {
-					st = pthread_cond_wait( cnd_.getp(), mtx_.getp() );
+					st = pthread_cond_wait( cnd_.getp(), mutx_.getp() );
 				}
 
 				if ( st ) {
@@ -202,7 +202,7 @@ public:
 		// but before it went to sleep. In order to
 		// synchronize with this condition we
 		// must take the mutex!
-		CMtx::lg guard( &mtx_ );
+		CMtx::lg guard( &mutx_ );
 
 		if ( pthread_cond_signal( cnd_.getp() ) )
 			throw CondSignalFailed();
@@ -254,6 +254,7 @@ CMtx::lg guard( &mtx_ );
 		eventSet_->del( this );
 }
 
+// NOTE: caller must hold the Source's mtx_
 void IEventSource::setEventSet(EventSet eventSet)
 {
 	if ( eventSet_ ) {
@@ -262,6 +263,7 @@ void IEventSource::setEventSet(EventSet eventSet)
 	eventSet_ = eventSet;
 }
 
+// NOTE: caller must hold the Source's mtx_
 void IEventSource::clrEventSet(EventSet eventSet)
 {
 	if ( eventSet_ != eventSet )
@@ -269,6 +271,7 @@ void IEventSource::clrEventSet(EventSet eventSet)
 	eventSet_.reset();
 }
 
+// NOTE: caller must hold the Source's mtx_
 void IEventSource::clrEventSet()
 {
 	if ( eventSet_ )
@@ -305,7 +308,7 @@ unsigned     i,j;
 
 // can't lock the source yet -- unknown
 
-CMtx::lg guard( &mtx_ );
+CMtx::lg guard( &mutx_ );
 
 	for ( i=0; i<srcs_.size(); i++ ) {
 
