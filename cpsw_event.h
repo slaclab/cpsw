@@ -105,6 +105,14 @@ public:
 	}
 };
 
+// useful if the event itself is all you need
+class CNoopEventHandler : public IEventHandler {
+public:
+	virtual void handle(IIntEventSource *es)
+	{
+	}
+};
+
 // general-purpose handler for 'int' events
 class CIntEventHandler : public IEventHandler {
 private:
