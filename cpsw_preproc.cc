@@ -172,7 +172,8 @@ int rev = -1;
 				e.append( name );
 				throw e;
 			}
-			size_t len = line.find_first_of(" \t",beg);
+			// maybe there is an '\r' (windows-generated file)
+			size_t len = line.find_first_of(" \t\r",beg);
 
 			if ( ! std::string::npos != len )
 				len -= beg;
