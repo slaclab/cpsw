@@ -1258,6 +1258,9 @@ int                        i;
 			proto_vers = pbldr->getSRPVersion();
 			if ( readNode(nn, YAML_KEY_protocolVersion, &proto_vers) )
 				pbldr->setSRPVersion( proto_vers );
+			// initialize u64 to silence rhel compiler warning
+			// about potentially un-initialized 'u64'
+			u64 = pbldr->getSRPTimeoutUS();
 			if ( readNode(nn, YAML_KEY_timeoutUS, &u64) )
 				pbldr->setSRPTimeoutUS( u64 );
 			if ( readNode(nn, YAML_KEY_dynTimeout, &b) )
