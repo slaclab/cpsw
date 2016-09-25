@@ -93,6 +93,7 @@ cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 pycpsw_so_SRCS    = cpsw_python.cc
 pycpsw_so_LIBS    = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
 pycpsw_so_CPPFLAGS= $(addprefix -I,$(pyinc_DIR))
+pycpsw_so_CXXFLAGS= -fno-strict-aliasing
 
 PYCPSW_YES        = pycpsw.so
 PYCPSW            = $(PYCPSW_$(WITH_PYCPSW))
