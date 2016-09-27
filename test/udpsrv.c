@@ -227,6 +227,7 @@ struct timespec to;
 
 		if ( got < 4 ) {
 			fprintf(stderr,"Poller: Contacted by %d\n", udpPrtIsConn( sa->port ) );
+			sa->polled_stream_up = 1;
 		} else {
 			unsigned vers, fram, frag, tdest, tid, tusr1, tail;
 
@@ -317,7 +318,6 @@ struct timespec to;
 			}
 		}
 
-		sa->polled_stream_up = 1;
 	}
 	return 0;
 }
@@ -740,6 +740,10 @@ int i;
 		if (  ! udpPrtRssiIsConn( strm_args[i].port ) && ! strm_args[i].polled_stream_up ) {
 			continue;
 		}
+if ( udpPrtRssiIsConn( strm_args[i].port ) )
+  printf("RSSI conn (chnl %d)\n", i);
+if ( strm_args[i].polled_stream_up )
+  printf("Polled up (chnl %d)\n", i);
 
 		if ( strm_args[i].isRunning ) {
 			// if the stream test is running then they look for consecutive
