@@ -607,13 +607,13 @@ public:
 	}
 };
 
-static Hub
-wrap_Hub_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0)
+static Path
+wrap_Path_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0)
 {
-// could use IHub::loadYamlStream(const char *,...) but that would make a new string
+// could use IPath::loadYamlStream(const char *,...) but that would make a new string
 // which we want to avoid.
 std::istringstream sstrm( yaml );
-	return IHub::loadYamlStream( sstrm, root_name, yaml_dir_name );
+	return IPath::loadYamlStream( sstrm, root_name, yaml_dir_name );
 }
 
 static boost::python::tuple
@@ -642,12 +642,12 @@ Hub hc(h);
 // without the overload macros (using 'arg' within 'def') there
 // are problems when a default pointer is set to 0.
 // Complaints about mismatching python and c++ arg types (when using defaults)
-BOOST_PYTHON_FUNCTION_OVERLOADS( IHub_loadYamlFile_ol,
-                                 IHub::loadYamlFile,
+BOOST_PYTHON_FUNCTION_OVERLOADS( IPath_loadYamlFile_ol,
+                                 IPath::loadYamlFile,
                                  1, 3 )
 
-BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Hub_loadYamlStream_ol,
-                                 wrap_Hub_loadYamlStream,
+BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadYamlStream_ol,
+                                 wrap_Path_loadYamlStream,
                                  1, 3 )
 
 BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadConfigFromYamlFile_ol,
@@ -788,42 +788,6 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Return a list of all children"
 		)
-		.def("loadYamlFile",   &IHub::loadYamlFile,
-			IHub_loadYamlFile_ol(
-			args("yamlFileName", "rootName", "yamlIncDirName"),
-			"\n"
-			"Load a hierarchy definition in YAML format from a file.\n"
-			"\n"
-			"The hierarchy is built from the node with name 'rootName' (defaults to 'root').\n"
-			"\n"
-			"Optionally, 'yamlIncDirName' may be passed which identifies a directory\n"
-			"where *all* yaml files reside. 'None' (or empty) instructs the method to\n"
-			"use the same directory where 'fileName' resides.\n"
-			"\n"
-			"The directory is relevant for included YAML files.\n"
-			"\n"
-			"RETURNS: Hub at the root of the device hierarchy."
-			)
-		)
-		.staticmethod("loadYamlFile")
-		.def("loadYaml",       wrap_Hub_loadYamlStream,
-			wrap_Hub_loadYamlStream_ol(
-			args("yamlString", "rootName", "yamlIncDirName"),
-			"\n"
-			"Load a hierarchy definition in YAML format from a string.\n"
-			"\n"
-			"The hierarchy is built from the node with name 'rootName' (defaults to 'root').\n"
-			"\n"
-			"Optionally, 'yamlIncDirName' may be passed which identifies a directory\n"
-			"where *all* yaml files reside. 'None' (or empty) instructs the method to\n"
-			"use the current working directory.\n"
-			"\n"
-			"The directory is relevant for included YAML files.\n"
-			"\n"
-			"RETURNS: Hub at the root of the device hierarchy."
-			)
-		)
-		.staticmethod("loadYaml")
 	;
 
 	// wrap 'IPath' interface
@@ -1059,6 +1023,42 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"information."
 		)
 		.staticmethod("create")
+		.def("loadYamlFile",   &IPath::loadYamlFile,
+			IPath_loadYamlFile_ol(
+			args("yamlFileName", "rootName", "yamlIncDirName"),
+			"\n"
+			"Load a hierarchy definition in YAML format from a file.\n"
+			"\n"
+			"The hierarchy is built from the node with name 'rootName' (defaults to 'root').\n"
+			"\n"
+			"Optionally, 'yamlIncDirName' may be passed which identifies a directory\n"
+			"where *all* yaml files reside. 'None' (or empty) instructs the method to\n"
+			"use the same directory where 'fileName' resides.\n"
+			"\n"
+			"The directory is relevant for included YAML files.\n"
+			"\n"
+			"RETURNS: Root Path of the device hierarchy."
+			)
+		)
+		.staticmethod("loadYamlFile")
+		.def("loadYaml",       wrap_Path_loadYamlStream,
+			wrap_Path_loadYamlStream_ol(
+			args("yamlString", "rootName", "yamlIncDirName"),
+			"\n"
+			"Load a hierarchy definition in YAML format from a string.\n"
+			"\n"
+			"The hierarchy is built from the node with name 'rootName' (defaults to 'root').\n"
+			"\n"
+			"Optionally, 'yamlIncDirName' may be passed which identifies a directory\n"
+			"where *all* yaml files reside. 'None' (or empty) instructs the method to\n"
+			"use the current working directory.\n"
+			"\n"
+			"The directory is relevant for included YAML files.\n"
+			"\n"
+			"RETURNS: Root Path of the device hierarchy."
+			)
+		)
+		.staticmethod("loadYaml")
 	;
 
 	class_<IPathVisitor, WrapPathVisitor, boost::noncopyable, boost::shared_ptr<WrapPathVisitor> >

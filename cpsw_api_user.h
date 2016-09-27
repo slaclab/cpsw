@@ -165,6 +165,22 @@ public:
 	virtual void  visitPost(ConstPath here) = 0;
 };
 
+/*!
+ * A IYamlFixup object may be passed to the methods which
+ * load YAML files. They can fix-up the YAML tree before
+ * CPSW creates its hierarchy.
+ *
+ * The fixup is executed on the root node (as specified
+ * by 'root_name' in the loader methods)
+ */
+class IYamlFixup {
+public:
+	virtual void operator()(YAML::Node &)            = 0;
+
+	virtual ~IYamlFixup() {}
+};
+
+
 class IPath {
 public:
 	// lookup 'name' under this path and return new 'full' path
@@ -245,6 +261,56 @@ public:
 	static  Path        create(const char*);  // absolute; starting at root
 	static  Path        create(Hub);          // relative; starting at passed arg
 
+	/*!
+	 * Load a hierarchy definition in YAML format from a file.
+	 * The hierarchy is built from the node with name 'rootName'.
+	 *
+	 * Optionally, 'yamlDir' may be passed which identifies a directory
+	 * where *all* yaml files reside. NULL (or empty) instructs the
+	 * method to use the same directory where 'fileName' resides.
+	 *
+	 * The directory is relevant for included YAML files.
+	 *
+	 * RETURNS: Root path of the device hierarchy.
+	 */
+	static Path loadYamlFile(
+					const char *fileName,
+					const char *rootName = "root",
+					const char *yamlDir  = 0,
+					IYamlFixup *fixup    = 0
+	);
+
+	/*!
+	 * Load a hierarchy definition in YAML format from a std::istream.
+	 * The hierarchy is built from the node with name 'rootName'.
+	 *
+	 * Optionally, 'yamlDir' may be passed which identifies a directory
+	 * where *all* yaml files reside. NULL (or empty) denotes CWD.
+	 *
+	 * The directory is relevant for included YAML files.
+	 *
+	 * RETURNS: Root path of the device hierarchy.
+	 */
+	static Path loadYamlStream(
+					std::istream &yaml,
+					const char *rootName = 0,
+					const char *yamlDir  = 0,
+					IYamlFixup *fixup    = 0
+	);
+
+	/*!
+	 * Convenience wrapper which converts a C-style string into
+	 * std::istream and uses the overloaded method (see above).
+	 *
+	 * RETURNS: Root path of the device hierarchy.
+	 */
+	static Path loadYamlStream(
+					const char *yaml,
+					const char *rootName = "root",
+					const char *yamlDir  = 0,
+					IYamlFixup *fixup    = 0
+	);
+
 	virtual ~IPath() {}
 };
 
@@ -278,21 +344,6 @@ public:
 	virtual Children   getChildren()               const = 0;
 
 	/*!
-	 * A IYamlFixup object may be passed to the methods which
-	 * load YAML files. They can fix-up the YAML tree before
-	 * CPSW creates its hierarchy.
-	 *
-	 * The fixup is executed on the root node (as specified
-	 * by 'root_name' in the loader methods)
-	 */
-	class IYamlFixup {
-	public:
-		virtual void operator()(YAML::Node &)            = 0;
-
-		virtual ~IYamlFixup() {}
-	};
-
-	/*!
 	 * Load a hierarchy definition in YAML format from a file.
 	 * The hierarchy is built from the node with name 'rootName'.
 	 *
@@ -301,6 +352,8 @@ public:
 	 * method to use the same directory where 'fileName' resides.
 	 *
 	 * The directory is relevant for included YAML files.
+	 *
+	 * NOTE: DEPRECATED -- use IPath::loadYamlFile()
 	 *
 	 * RETURNS: Hub at the root of the device hierarchy.
 	 */
@@ -320,6 +373,8 @@ public:
 	 *
 	 * The directory is relevant for included YAML files.
 	 *
+	 * NOTE: DEPRECATED -- use IPath::loadYamlStream()
+	 *
 	 * RETURNS: Hub at the root of the device hierarchy.
 	 */
 	static Hub loadYamlStream(
@@ -332,6 +387,10 @@ public:
 	/*!
 	 * Convenience wrapper which converts a C-style string into
 	 * std::istream and uses the overloaded method (see above).
+	 *
+	 * NOTE: DEPRECATED -- use IPath::loadYamlStream()
+	 *
+	 * RETURNS: Hub at the root of the device hierarchy.
 	 */
 	static Hub loadYamlStream(
 					const char *yaml,
