@@ -505,11 +505,11 @@ const char *job = doDump ? "'dump'" : "'load'";
 				YAML::iterator item( child.begin() );
 
 				// extract the key
-				const char *key = item->first.as<std::string>().c_str();
+				const std::string &key = item->first.as<std::string>();
 
 				try {
 					// try to find the entity referred to by the yaml node in our hierarchy
-					Path descendant( findByName( key ) );
+					Path descendant( findByName( key.c_str() ) );
 
 					p->append( descendant );
 
@@ -526,7 +526,7 @@ const char *job = doDump ? "'dump'" : "'load'";
 
 				} catch ( NotFoundError e ) {
 					// descendant not found; not a big deal but spit out a warning
-					fprintf(stderr,"WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (key %s not found) -- IGNORING\n", job, mrk.line, mrk.column, key);
+					fprintf(stderr,"WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (key %s not found) -- IGNORING\n", job, mrk.line, mrk.column, key.c_str());
 					child.remove( key );
 				}
 			}

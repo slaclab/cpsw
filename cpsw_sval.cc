@@ -1022,7 +1022,8 @@ unsigned nelms, i;
 
 	if ( n.IsScalar() ) {
 		if ( enum_ ) {
-			u64[0] = enum_->map( n.as<std::string>().c_str() ).second;
+			const std::string &nam = n.as<std::string>();
+			u64[0] = enum_->map( nam.c_str() ).second;
 		} else {
 			u64[0] = n.as<uint64_t>();
 		}
@@ -1030,7 +1031,8 @@ unsigned nelms, i;
 	} else {
 		if ( enum_ ) {
 			for ( i=0; i<nelms; i++ ) {
-				u64[i] = enum_->map( n[i].as<std::string>().c_str() ).second;
+				const std::string &nam = n[i].as<std::string>();
+				u64[i] = enum_->map( nam.c_str() ).second;
 			}
 		} else {
 			for ( i=0; i<nelms; i++ ) {
