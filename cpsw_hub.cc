@@ -95,6 +95,13 @@ const char * CAddressImpl::getDescription() const
 	return child_->getDescription();
 }
 
+double CAddressImpl::getPollSecs() const
+{
+	if ( ! child_ )
+		throw InternalError("CAddressImpl: child pointer not set");
+	return child_->getPollSecs();
+}
+
 uint64_t CAddressImpl::getSize() const
 {
 	if ( ! child_ )

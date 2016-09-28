@@ -42,6 +42,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		static const int CONFIG_PRIO_OFF      = 0;
 		static const int DFLT_CONFIG_PRIO     = CONFIG_PRIO_OFF;
 		static const int DFLT_CONFIG_PRIO_DEV = 1; // on for containers
+		static const double DFLT_POLL_SECS    = 0.; 
 
 		class                              CUniqueHandle;
 		typedef shared_ptr<CUniqueHandle>   UniqueHandle;
@@ -82,6 +83,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		mutable Cacheable       cacheable_;
 		mutable int             configPrio_;
 		mutable bool            configPrioSet_;
+		mutable double          pollSecs_;
 		mutable bool            locked_;
 		mutable CMtxLazy        uniqueListMtx_;
 		mutable CUniqueListHead uniqueListHead_;
@@ -104,6 +106,8 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		// This just helps to reduce the size of the YAML file since default
 		// values are not stored.
 		virtual int getDefaultConfigPrio() const;
+
+		virtual double getDefaultPollSecs() const;
 
 	public:
 		CEntryImpl(Key &k, const char *name, uint64_t size);
@@ -134,6 +138,11 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 			return description_.c_str();
 		}
 
+		virtual double getPollSecs() const
+		{
+			return pollSecs_;
+		}
+
 		virtual void setDescription(const char *);
 		virtual void setDescription(const std::string&);
 
@@ -159,6 +168,10 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		// may throw exception if modified after
 		// being attached
 		virtual void setConfigPrio(int configPrio);
+
+		// may throw exception if modified after
+		// being attached
+		virtual void setPollSecs(double pollSecs);
 
 		virtual ~CEntryImpl();
 

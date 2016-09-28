@@ -304,6 +304,9 @@ It supports the following properties (in addition to 'Basic Node'):
             # brief description of the purpose and semantics of this Field
           YAML_KEY_description: <string>   # optional
 
+            # suggested polling interval (not used by CPSW)
+          YAML_KEY_pollSecs:    <double>   # optional
+
             # size (in bytes) of this field. Note that some subclasses
             # don't accept a size of zero (default).
           YAML_KEY_size:        <int>      # optional

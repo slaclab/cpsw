@@ -154,6 +154,7 @@ class CAddressImpl : public IAddress {
 		virtual const char *getName() const;
 
 		virtual const char *getDescription() const;
+		virtual double      getPollSecs()    const;
 		virtual uint64_t    getSize() const;
 
 		virtual unsigned getNelms() const

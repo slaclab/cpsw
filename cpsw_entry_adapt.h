@@ -41,6 +41,7 @@ private:
 public:
 	virtual const char *getName()        const { return ie_->getName();          }
 	virtual const char *getDescription() const { return ie_->getDescription();   }
+	virtual double      getPollSecs()    const { return ie_->getPollSecs();      }
 	virtual uint64_t    getSize()        const { return ie_->getSize();          }
 	virtual Hub         isHub()          const { return ie_->isHub();            }
 	virtual Path        getPath()        const { return p_->clone();             }

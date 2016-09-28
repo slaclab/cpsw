@@ -99,6 +99,13 @@ public:
 	virtual const char *getDescription() const = 0;
 
 	/*!
+	 * Return the poll interval (in seconds). This
+	 * currently not used by CPSW proper but passed on
+	 * for use by upper layers.
+	 */
+	virtual double      getPollSecs()    const = 0;
+
+	/*!
 	 * Test if this Entry is a Hub; return a shared pointer
 	 * to itself (as a Hub) if this is the case, NULL otherwise.
 	 */

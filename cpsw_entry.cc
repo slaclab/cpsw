@@ -47,6 +47,7 @@ CEntryImpl::CEntryImpl(Key &k, const char *name, uint64_t size)
   cacheable_( DFLT_CACHEABLE ),
   configPrio_( DFLT_CONFIG_PRIO ),
   configPrioSet_( false ),
+  pollSecs_(DFLT_POLL_SECS),
   locked_( false )
 {
 	checkArgs();
@@ -61,6 +62,7 @@ CEntryImpl::CEntryImpl(const CEntryImpl &ei, Key &k)
   cacheable_( DFLT_CACHEABLE ),      // reset copy to default
   configPrio_( DFLT_CONFIG_PRIO ),   // reset copy to default
   configPrioSet_( false ),           // reset copy to default
+  pollSecs_( DFLT_POLL_SECS ),       // reset copy to default
   locked_( false )
 {
 	++ocnt();
@@ -73,6 +75,7 @@ CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
   cacheable_( DFLT_CACHEABLE ),
   configPrio_( DFLT_CONFIG_PRIO ),
   configPrioSet_( false ),
+  pollSecs_( DFLT_POLL_SECS ),
   locked_( false )
 {
 
@@ -93,6 +96,11 @@ CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
 	int configPrio;
 	if ( readNode( ypath, YAML_KEY_configPrio, &configPrio ) )
 		setConfigPrio( configPrio );
+
+	double pollSecs;
+	if ( readNode( ypath, YAML_KEY_pollSecs, &pollSecs ) ) {
+		setPollSecs( pollSecs );
+	}
 
 	checkArgs();
 
@@ -130,11 +138,18 @@ const char *d = getDescription();
 	if ( getConfigPrio() != getDefaultConfigPrio() )
 		writeNode(node, YAML_KEY_configPrio, getConfigPrio());
 
+	if ( getPollSecs() != getDefaultPollSecs() )
+		writeNode(node, YAML_KEY_pollSecs, getPollSecs());
 }
 
 int CEntryImpl::getDefaultConfigPrio() const
 {
 	return DFLT_CONFIG_PRIO;
+}
+
+double CEntryImpl::getDefaultPollSecs() const
+{
+	return DFLT_POLL_SECS;
 }
 
 CEntryImpl::~CEntryImpl()
@@ -153,6 +168,16 @@ void CEntryImpl::setDescription(const std::string &desc)
 }
 
 
+void CEntryImpl::setPollSecs(double pollSecs)
+{
+	// this test also fails if isnan(pollSecs_) && isnan(pollSecs)
+	// but who cares...
+	if ( pollSecs_ != pollSecs && locked_ ) {
+		throw ConfigurationError("Configuration Error - cannot modify attached device");
+	}
+	this->pollSecs_  = pollSecs;
+}
+
 void CEntryImpl::setCacheable(Cacheable cacheable)
 {
 	if ( UNKNOWN_CACHEABLE != getCacheable() && locked_ ) {
@@ -160,6 +185,7 @@ void CEntryImpl::setCacheable(Cacheable cacheable)
 	}
 	this->cacheable_   = cacheable;
 }
+
 
 void CEntryImpl::setConfigPrio(int configPrio)
 {

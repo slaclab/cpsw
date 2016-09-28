@@ -713,6 +713,11 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Return the description string (if any) of this Entry."
 		)
+		.def("getPollSecs", &IEntry::getPollSecs,
+			( arg("self") ),
+			"\n"
+			"Return the suggested polling interval for this Entry."
+		)
 		.def("isHub",          &IEntry::isHub,
 			( arg("self") ),
 			"\n"
