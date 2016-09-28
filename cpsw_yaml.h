@@ -49,6 +49,11 @@ namespace YAML {
 			return key_;
 		}
 
+		const PNode *getParent() const
+		{
+			return parent_;
+		}
+
 		// assign a new Node to this PNode while preserving parent/child/key
 		// ('merge' operation)
 		PNode & operator=(const Node &orig_node);
@@ -139,7 +144,7 @@ namespace YAML {
 		PNode lookup(const char *key, int maxlevel = -1) const;
 
 	private:
-		static YAML::Node backtrack_mergekeys(const YAML::PNode *, unsigned, const YAML::Node &);
+		static YAML::Node backtrack_mergekeys(const YAML::PNode *, unsigned, const YAML::Node &, int);
 	};
 };
 

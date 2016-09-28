@@ -38,6 +38,8 @@ using YAML::PNode;
 using YAML::Node;
 using std::cout;
 
+#undef CPSW_YAML_DEBUG
+
 // Helper operations
 struct CStrOps {
 	struct Hash {
@@ -278,7 +280,7 @@ PNode::~PNode()
 
 
 Node
-PNode::backtrack_mergekeys(const PNode *path_head, unsigned path_nelms, const Node &top)
+PNode::backtrack_mergekeys(const PNode *path_head, unsigned path_nelms, const Node &top, int lvl)
 {
 int  i;
 Node nodes[path_nelms+1];
@@ -294,14 +296,24 @@ Node nodes[path_nelms+1];
 
 	i=0;
 
+#ifdef CPSW_YAML_DEBUG
+	printf("%*sbacktrack_mergekeys: ENTERING (head %s)\n", lvl,"", path_head->key_);
+#endif
+
 	// search right
 	while ( path_head && (nodes[i+1].reset( fixInvalidNode( nodes[i][path_head->key_] ) ), nodes[i+1]) ) {
+#ifdef CPSW_YAML_DEBUG
+		printf("%*sbacktrack_mergekeys: found right: %s\n", lvl, "", path_head->key_);
+#endif
 		path_head = path_head->child_;
 		i++;
 	}
 
 	if ( ! path_head ) {
 		/* found the last element */
+#ifdef CPSW_YAML_DEBUG
+		printf("%*sbacktrack_mergekeys: RETURN -- FOUND\n", lvl, "");
+#endif
 		return nodes[i];
 	}
 
@@ -311,14 +323,28 @@ Node nodes[path_nelms+1];
 		// see comments in PNode::operator=(const Node &)
 		nodes[i].reset( fixInvalidNode( nodes[i][YAML_KEY_MERGE] ) );
 		if ( nodes[i] ) {
-			const Node n( backtrack_mergekeys(path_head, path_nelms - i, nodes[i]) );
-			if ( n )
+#ifdef CPSW_YAML_DEBUG
+            printf("%*sbacktrack_mergekeys: found MERGE (level %i -- key %s)\n", lvl, "", i, path_head->key_);
+#endif
+			const Node n( backtrack_mergekeys(path_head, path_nelms - i, nodes[i], lvl+1) );
+			if ( n ) {
+#ifdef CPSW_YAML_DEBUG
+				printf("%*sbacktrack_mergekeys: MERGE SUCCESS\n", lvl, "");
+#endif
 				return n;
+			}
+		} else {
+#ifdef CPSW_YAML_DEBUG
+            printf("%*sbacktrack_mergekeys: no MERGE (level %i -- key %s)\n", lvl, "", i, path_head->key_);
+#endif
 		}
 
 		path_head = path_head->parent_;
 		--i;
 	}
+#ifdef CPSW_YAML_DEBUG
+	printf("%*sbacktrack_mergekeys: RETURN Undef\n", lvl, "");
+#endif
 
 	return Node ( YAML::NodeType::Undefined );
 }
@@ -332,15 +358,34 @@ else
 	cout << "PN UNDEFINED?\n";
 }
 
-		// starting at 'this' node visit all merge keys upstream
-		// until the visitor's 'visit' method returns 'false'.
+
+#ifdef CPSW_YAML_DEBUG
+static void pp(const PNode *p)
+{
+	if ( p ) {
+		pp(p->getParent());
+		printf("/%s", p->getName());
+	}
+}
+#endif
+
+// starting at 'this' node visit all merge keys upstream
+// until the visitor's 'visit' method returns 'false'.
 void
 PNode::visitMergekeys(MergekeyVisitor *visitor, int maxlevel)
 {
 const PNode *top   = this->parent_;
 unsigned     nelms = 1;
 
+#ifdef CPSW_YAML_DEBUG
+	printf("visitMergekeys: ENTERING: "); pp(top); printf("/%s\n", getName());
+#endif
+
 	while ( top && maxlevel ) {
+
+#ifdef CPSW_YAML_DEBUG
+        printf("visitMergekeys: %s in %s\n", this->key_, top->key_);
+#endif
 
 		if ( ! top->IsMap() ) {
 			return; // cannot handle merge keys across sequences
@@ -352,7 +397,7 @@ unsigned     nelms = 1;
 
 		if ( merged_node ) {
 			// try (backtracking) lookup from the node at the mergekey
-			merge( backtrack_mergekeys(top->child_, nelms , merged_node) );
+			merge( backtrack_mergekeys(top->child_, nelms , merged_node, 0) );
 			if ( *this && ! visitor->visit( this ) )
 				return;
 		}
@@ -363,6 +408,9 @@ unsigned     nelms = 1;
 		// each time we back up we must search for a longer path in the
 		// merged node...
 		nelms++;
+#ifdef CPSW_YAML_DEBUG
+        printf("visitMergekeys: trying one level up\n");
+#endif
 
 		if ( maxlevel > 0 )
 			maxlevel--;
@@ -612,7 +660,7 @@ private:
 	// record children that were not created because 'instantiated' is false
 	// we need to remember this when going through merge keys upstream
 	// (which may contain the same child marked as instantiated = true).
-	CStrSet::Set            not_instantiated_;
+	unordered_set<std::string> not_instantiated_;
 
 public:
 	AddChildrenVisitor(CDevImpl *d, IYamlTypeRegistry<Field> *registry)
@@ -631,11 +679,14 @@ public:
 
 			YAML::Node downmerged_node( YAML::NodeType::Undefined );
 			while ( it != ite ) {
-				const char *k = it->first.as<std::string>().c_str();
+				const std::string &k = it->first.as<std::string>();
 
 				// skip merge node! But remember it and follow downstream
 				// after all other children are handled.
-				if ( 0 == strcmp( k, YAML_KEY_MERGE ) ) {
+				if ( 0 == k.compare( YAML_KEY_MERGE ) ) {
+#ifdef CPSW_YAML_DEBUG
+					printf("AddChildrenVisitor: found a merge node\n");
+#endif
 					if ( it->second && ! it->second.IsMap() ) {
 						throw ConfigurationError(
 							  std::string("Value of merge key (in: ")
@@ -663,12 +714,18 @@ public:
 					// would first visit 'child' and create it (class:theclass, key: defaultval)
 					// then go into the merged node, find 'child' thereunder and skip a second
 					// instantiation.
-					if ( ! d_->getChild( k ) && 0 == not_instantiated_.count( k ) ) {
-						const YAML::PNode child( merged_node, k, it->second );
+					if ( ! d_->getChild( k.c_str() ) && 0 == not_instantiated_.count( k ) ) {
+						const YAML::PNode child( merged_node, k.c_str(), it->second );
+#ifdef CPSW_YAML_DEBUG
+						printf("AddChildrenVisitor: trying to make child %s\n", k.c_str());
+#endif
 						Field c = registry_->makeItem( child );
 						if ( c ) {
 							// if 'instantiate' is 'false' then
 							// makeItem() returns a NULL pointer
+#ifdef CPSW_YAML_DEBUG
+							printf("AddChildrenVisitor: adding child %s\n", k.c_str());
+#endif
 
 							const YAML::PNode child_address( child.lookup(YAML_KEY_at) );
 							if ( child_address ) {
@@ -681,8 +738,15 @@ public:
 								throw InvalidArgError(errmsg);
 							}
 						} else {
+#ifdef CPSW_YAML_DEBUG
+							printf("AddChildrenVisitor: adding child %s to 'not_instantiated' database\n", k.c_str());
+#endif
 							not_instantiated_.insert( k );
 						}
+					} else {
+#ifdef CPSW_YAML_DEBUG
+						printf("AddChildrenVisitor: %s not instantiated\n", k.c_str());
+#endif
 					}
 				}
 				++it;
@@ -699,14 +763,27 @@ CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState &node, IYamlTypeRegist
 YAML::PNode         children( node.lookup(YAML_KEY_children) );
 AddChildrenVisitor  visitor( &d, registry );
 
+#ifdef CPSW_YAML_DEBUG
+	printf("Entering addChildren of %s\n", d.getName());
+#endif
+
 	if ( children ) {
+#ifdef CPSW_YAML_DEBUG
+		printf("Adding immediate children to %s\n", d.getName());
+#endif
 		// handle the 'children' node itself
 		visitor.visit( &children );
 	}
 
+#ifdef CPSW_YAML_DEBUG
+	printf("Looking for merged children of %s\n", d.getName());
+#endif
 	// and now look for merge keys upstream which may match
 	// our node
 	children.visitMergekeys( &visitor );
+#ifdef CPSW_YAML_DEBUG
+	printf("Leaving addChildren of %s\n", d.getName());
+#endif
 }
 
 Dev
