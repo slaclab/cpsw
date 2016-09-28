@@ -746,6 +746,8 @@ int i;
 				printf("RSSI conn (chnl %d)\n", i);
 			if ( strm_args[i].polled_stream_up )
 				printf("Polled up (chnl %d)\n", i);
+			if ( strm_args[i].isRunning )
+				printf("Test stream is running (chnl %d)\n", i);
 		}
 #endif
 
