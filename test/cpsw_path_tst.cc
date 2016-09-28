@@ -40,7 +40,7 @@ Hub root;
 
 if ( use_yaml ) {
 	do {
-	root = IHub::loadYamlStream( yaml, "root" );
+	root = IPath::loadYamlStream( yaml, "root" )->origin();
 	} while (0);
 } else {
 
@@ -149,7 +149,7 @@ const char *yaml=
 "              "YAML_KEY_size": 8\n"
 "              "YAML_KEY_at":\n"
 "                "YAML_KEY_nelms": 4\n";
-	return IHub::loadYamlStream( yaml, "root" );
+	return IPath::loadYamlStream( yaml, "root" )->origin();
 }
 
 static Dev build()

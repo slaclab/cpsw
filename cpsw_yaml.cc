@@ -944,39 +944,6 @@ DECLARE_YAML_FIELD_FACTORY(MMIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(NetIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(SequenceCommandImpl);
 
-Hub
-IHub::loadYamlFile(const char *file_name, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
-{
-	YAML::Node top( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name, yaml_dir ) );
-
-	if ( fixup ) {
-		YAML::Node root( root_name ? top[root_name] : top );
-		(*fixup)( root );
-	}
-
-	return CYamlFieldFactoryBase::dispatchMakeField( top, root_name );
-}
-
-Hub
-IHub::loadYamlStream(std::istream &in, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
-{
-	YAML::Node top( CYamlFieldFactoryBase::loadPreprocessedYaml( in, yaml_dir ) );
-	if ( fixup ) {
-		YAML::Node root( root_name ? top[root_name] : top );
-		(*fixup)( root );
-	}
-
-	return CYamlFieldFactoryBase::dispatchMakeField( top, root_name );
-}
-
-Hub
-IHub::loadYamlStream(const char *yaml, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
-{
-std::string  str( yaml );
-std::stringstream sstrm( str );
-	return loadYamlStream( sstrm, root_name, yaml_dir, fixup );
-}
-
 Path
 IPath::loadYamlFile(const char *file_name, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
 {

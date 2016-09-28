@@ -76,8 +76,8 @@ try {
 		snprintf(yaml, sizeof(yaml), yamlFmt, passes[pass]);
 
 		// during the second pass 'val2' is not instantiated
-		Hub    h = IHub::loadYamlStream( yaml );
-		Path top = IPath::create(h);
+		Path top = IPath::loadYamlStream( yaml );
+		Hub    h = top->origin();
 
 		ConstMemDevImpl mem = boost::dynamic_pointer_cast<ConstMemDevImpl::element_type>( h );
 

@@ -138,7 +138,7 @@ try {
 
 	{
 	// include file not including top should succeed
-	Hub h( IHub::loadYamlStream( topyaml, "root" ) );
+	Hub h( IPath::loadYamlStream( topyaml, "root" )->origin() );
 	}
 
 	wrf(incyaml, INC);
@@ -146,7 +146,7 @@ try {
 		// include file includes 'top' file (which doesn't exist
 		// since we read the top from memory); we expect
 		// failure...
-		Hub h( IHub::loadYamlStream( topyaml, "root" ) );
+		Hub h( IPath::loadYamlStream( topyaml, "root" )->origin() );
 		fprintf(stderr,"Reading top should fail\n");		
 		throw TestFailed();
 	} catch (FailedStreamError &e) {
@@ -155,7 +155,7 @@ try {
 	wrf(topyaml, TOP);
 
 	{
-	Hub h( IHub::loadYamlFile( TOP, "root" ) );
+	Hub h( IPath::loadYamlFile( TOP, "root" )->origin() );
 	// check merge key
 	Path p( h->findByName("overridename") );
 	if ( p->getNelms() != 5 )
@@ -170,28 +170,28 @@ try {
 	// test combinations of schemaversions
 	try {
 		// No schemaversion should fail
-		Hub h( IHub::loadYamlStream(top00, "root") );
+		Hub h( IPath::loadYamlStream(top00, "root")->origin() );
 		throw TestFailed();
 	} catch (BadSchemaVersionError) {
 	}
 
 	try {
 		// No no version and major should fail
-		Hub h( IHub::loadYamlStream(top03, "root") );
+		Hub h( IPath::loadYamlStream(top03, "root")->origin() );
 		throw TestFailed();
 	} catch (BadSchemaVersionError) {
 	}
 
 	try {
 		// No mismatching major should fail
-		Hub h( IHub::loadYamlStream(top23, "root") );
+		Hub h( IPath::loadYamlStream(top23, "root")->origin() );
 		throw TestFailed();
 	} catch (BadSchemaVersionError) {
 	}
 
 	{
 		// No matching majors should pass
-		Hub h( IHub::loadYamlStream(top33, "root") );
+		Hub h( IPath::loadYamlStream(top33, "root")->origin() );
 	}
 
 

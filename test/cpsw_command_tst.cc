@@ -73,7 +73,7 @@ try {
 Hub root;
 
 	if ( use_yaml ) {
-		root = IHub::loadYamlFile( use_yaml, "root" );
+		root = IPath::loadYamlFile( use_yaml, "root" )->origin();
 	} else {
 
 		if ( ! (iMyCommandImpl_create = linkMyCommand()) ) {

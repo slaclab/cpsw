@@ -158,7 +158,7 @@ const char *dmp_yaml =  0;
 		MMIODev  srvm;
 
 		if ( use_yaml ) {
-			root = IHub::loadYamlFile( use_yaml, "root" );
+			root = IPath::loadYamlFile( use_yaml, "root" )->origin();
 		} else {
 		NetIODev netio = INetIODev::create("fpga", ip_addr);
 		MMIODev   mmio = IMMIODev::create ("mmio",0x100000);

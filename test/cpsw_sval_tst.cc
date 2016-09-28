@@ -220,7 +220,7 @@ int run = !use_yaml ? 3 : 2;
 while ( --run > 0 ) {
 
 	if ( use_yaml ) {
-		root = IHub::loadYamlFile(use_yaml, "root");
+		root = IPath::loadYamlFile(use_yaml, "root")->origin();
 
 		cmm = dynamic_pointer_cast<ConstMemDev::element_type>( root );
 

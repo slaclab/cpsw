@@ -124,7 +124,7 @@ try {
 Hub      root;
 
 	if ( use_yaml ) {
-		root = IHub::loadYamlFile( use_yaml, "root" );
+		root = IPath::loadYamlFile( use_yaml, "root" )->origin();
 	} else {
 	NetIODev netio = INetIODev::create("udp", "127.0.0.1");
 	Field    data  = IField::create("data");

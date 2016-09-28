@@ -40,19 +40,26 @@ public:
 
     void set(uint32_t ival)
 	{
-		if ( isSigned_ )
+		if ( isSigned_ ) {
 			val_ = (double)(int32_t)ival/norm_;
-		else
+		} else {
 			val_ = (double)ival/norm_;
+		}
 	}
 
 	uint32_t get() const
 	{
-	int32_t v = val_*norm_;
-		if ( v < 0 && val_ > 0 )
-			v = isSigned_ ? 0x7fffffff : 0xffffffff;
-		else if ( v > 0 && val_ < 0 ) {
-			v = isSigned_ ? 0x80000000 : 0x00000000;
+	int64_t v = val_*norm_;
+		if ( isSigned_ ) {
+			if ( v < -(((int64_t)1)<<31) )
+				v = -(((int64_t)1)<<31);
+			else if ( v > (int64_t)0x7fffffff )
+				v = (int64_t)0x7fffffff;
+		} else {
+			if ( v < 0 )
+				v = (int64_t)0;
+			else if ( v > (int64_t)0xffffffff )
+				v = (int64_t)0xffffffff;
 		}
 		return (uint32_t)v;
 	}
@@ -166,13 +173,14 @@ public:
 		state_[1] = 0.;
 		state_[2] = x_.getVal()/l_.getVal();
 		state_[3] = iv_.getVal()/l_.getVal();
+printf("InitState: %g %g %g %g %g\n", state_[0], state_[1], state_[2], state_[3], Fe_.getVal());
 		t_        = 0.;
 	}
 
 	CPendSim(double pollms)
 	: CRunnable("pendsim"),
-	  av_    ( .001, 32, false, PENDULUM_SIMULATOR_AV_OFF),
-	  af_    ( .100, 32, false, PENDULUM_SIMULATOR_AF_OFF),
+	  av_    ( .050, 32, false, PENDULUM_SIMULATOR_AV_OFF),
+	  af_    ( .000, 32, false, PENDULUM_SIMULATOR_AF_OFF),
 	  w2_    (2.000, 16, false, PENDULUM_SIMULATOR_W2_OFF),
 	  nu_    ( .800, 16, false, PENDULUM_SIMULATOR_NU_OFF),
 	  l_     ( .500, 16, false, PENDULUM_SIMULATOR_LE_OFF),
@@ -295,8 +303,10 @@ public:
 
 		rkSteplet( state_, k1, h_/6. );
 
-		if ( state_[0] >= 2.*M_PI )
+		while ( state_[0] >= M_PI )
 			state_[0] -= 2.*M_PI;
+		while ( state_[0] < -M_PI )
+            state_[0] += 2.*M_PI;
 
 		t_ += h_;
 	}
@@ -329,13 +339,13 @@ uint8_t  streambuf[8+3*8];
 		CMtx::lg guard( &mtx_ );
 			for (unsigned k=0; k<10; k++ )
 				rk4();
+
+			encodeDblLE(streambuf + 8, t_                   );
+			encodeDblLE(streambuf +16, state_[0]/2./M_PI    );
+			encodeDblLE(streambuf +24, state_[2]*l_.getVal());
+
+			//printf("%g - %g\n", state_[0], state_[2]*l_.getVal());
 		}
-
-		encodeDblLE(streambuf + 8, t_                   );
-		encodeDblLE(streambuf +16, state_[0]/2./M_PI    );
-		encodeDblLE(streambuf +24, state_[2]*l_.getVal());
-
-        //printf("%g - %g\n", state_[0], state_[2]*l_.getVal());
 
 		streamSend(streambuf, sizeof(streambuf), PENDULUM_SIMULATOR_TDEST);
 	}
@@ -349,18 +359,18 @@ void CPendSim::ydot(double t, double *dotState, double *state)
 	double cphi = cos( state[0] );
 	double A    = w2_.getVal()*sphi - state[1]*state[1];
 	double B    = cphi;
-	double Fext;
+	double Kext;
 
 	// Fext normalized to (Ml), dx normalized to l -> elastic coeff. normalized to M
 	if ( state[2] < -lim_ ) {
-		Fext = -100. * (state[2] + lim_);
+		Kext = -100. * (state[2] + lim_); // hit negative limit
 	} else if ( state[2] > lim_ ) {
-		Fext = -100. * (state[2] - lim_);
+		Kext = -100. * (state[2] - lim_); // hit positive limit
 	} else {
-		Fext = Fe_.getVal();
+		Kext = Fe_.getVal();
 	}
 
-	double C = (Fext - sphi * av_.getVal() * state[1]) * nu_.getVal();
+	double C = (Kext*w2_.getVal() - sphi * av_.getVal() * state[1]) * nu_.getVal();
 	double D = - cphi * nu_.getVal();
 	double dphiSign = state[1] > 0. ? 1. : (state[1] < 0. ? -1. : 0.);
 	double E = - dphiSign * sphi * af_.getVal() * nu_.getVal();
@@ -368,22 +378,22 @@ void CPendSim::ydot(double t, double *dotState, double *state)
 	double a = A + B*C;
 	double b = B*D-1.0;
 	double c = B*E;
-	double Fn;
+	double Kn;
 	if ( b+c < 0. ) {
 		if ( b-c >= 0. )
 			throw "pendsim: Friction model violation -- b+c < 0., b-c >= 0.; two or no solution(s)";
 		else
-			Fn = - a / ( a > 0. ? b + c : b - c );
+			Kn = - a / ( a > 0. ? b + c : b - c );
 	} else if ( b+c > 0. ) {
 		if ( b-c <= 0. )
 			throw "pendsim: Friction model violation -- b+c > 0., b-c <= 0.; two or no solution(s)";
 		else
-			Fn = - a / ( a < 0. ? b + c : b - c );
+			Kn = - a / ( a < 0. ? b + c : b - c );
 	} else {
 		throw "pendsim: Friction model violation -- b+c == 0.!";
 	}
-	double xdotdot   = C + D*Fn + E * fabs(Fn);
-	double phidotdot = - w2_.getVal() * cphi - av_.getVal() * state[1] - dphiSign * af_.getVal() * fabs(Fn) + sphi * xdotdot;
+	double xdotdot   = C + D*Kn + E * fabs(Kn);
+	double phidotdot = - w2_.getVal() * cphi - av_.getVal() * state[1] - dphiSign * af_.getVal() * fabs(Kn) + sphi * xdotdot;
 
     //printf("phi %8.5g pos %8.5g\n", state[0], state[2]);
 

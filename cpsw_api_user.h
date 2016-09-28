@@ -342,62 +342,6 @@ public:
 	 * Retrieve a list of all children
 	 */
 	virtual Children   getChildren()               const = 0;
-
-	/*!
-	 * Load a hierarchy definition in YAML format from a file.
-	 * The hierarchy is built from the node with name 'rootName'.
-	 *
-	 * Optionally, 'yamlDir' may be passed which identifies a directory
-	 * where *all* yaml files reside. NULL (or empty) instructs the
-	 * method to use the same directory where 'fileName' resides.
-	 *
-	 * The directory is relevant for included YAML files.
-	 *
-	 * NOTE: DEPRECATED -- use IPath::loadYamlFile()
-	 *
-	 * RETURNS: Hub at the root of the device hierarchy.
-	 */
-	static Hub loadYamlFile(
-					const char *fileName,
-					const char *rootName = "root",
-					const char *yamlDir  = 0,
-					IYamlFixup *fixup    = 0
-	);
-
-	/*!
-	 * Load a hierarchy definition in YAML format from a std::istream.
-	 * The hierarchy is built from the node with name 'rootName'.
-	 *
-	 * Optionally, 'yamlDir' may be passed which identifies a directory
-	 * where *all* yaml files reside. NULL (or empty) denotes CWD.
-	 *
-	 * The directory is relevant for included YAML files.
-	 *
-	 * NOTE: DEPRECATED -- use IPath::loadYamlStream()
-	 *
-	 * RETURNS: Hub at the root of the device hierarchy.
-	 */
-	static Hub loadYamlStream(
-					std::istream &yaml,
-					const char *rootName = 0,
-					const char *yamlDir  = 0,
-					IYamlFixup *fixup    = 0
-	);
-
-	/*!
-	 * Convenience wrapper which converts a C-style string into
-	 * std::istream and uses the overloaded method (see above).
-	 *
-	 * NOTE: DEPRECATED -- use IPath::loadYamlStream()
-	 *
-	 * RETURNS: Hub at the root of the device hierarchy.
-	 */
-	static Hub loadYamlStream(
-					const char *yaml,
-					const char *rootName = "root",
-					const char *yamlDir  = 0,
-					IYamlFixup *fixup    = 0
-	);
 };
 
 /*!

@@ -71,11 +71,11 @@ const char *defflnam = 0;
 		return 1;
 	}
 	try {
-		Hub h( defflnam ? IHub::loadYamlFile(defflnam, rootname) : IHub::loadYamlStream(std::cin, rootname) );
+		Path p( defflnam ? IPath::loadYamlFile(defflnam, rootname) : IPath::loadYamlStream(std::cin, rootname) );
 
 		if ( conflnam ) {
 			YAML::Node conf( YAML::LoadFile( conflnam ) );
-			IPath::create( h )->loadConfigFromYaml( conf );
+			p->loadConfigFromYaml( conf );
 		}
 
 		if ( cd ) {
@@ -83,7 +83,6 @@ const char *defflnam = 0;
 			if ( confdnam ) {
 				n = YAML::LoadFile( confdnam );
 			}
-			Path p( IPath::create( h ) );
 			p->dumpConfigToYaml( n );
 			YAML::Emitter e;
 			e << n;
@@ -91,7 +90,7 @@ const char *defflnam = 0;
 			std::cout << e.c_str() << "\n";
 		} else {
 		IYamlSupport::dumpYamlFile(
-				h,
+				p->origin(),
 				0,
 				rootname);
 		}
