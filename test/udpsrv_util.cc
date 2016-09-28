@@ -917,6 +917,17 @@ public:
 		return doPush(bc, true, to);
 	}
 
+	virtual unsigned getUdpPort()
+	{
+	struct sockaddr_in sin;
+	socklen_t          len = sizeof(sin);
+
+		sin.sin_family = AF_INET;
+
+		getsockname(sd_.get(), (struct sockaddr*)&sin, &len);
+		return ntohs(sin.sin_port);
+	}
+
 	virtual void *threadBody()
 	{
 	int got;

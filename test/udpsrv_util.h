@@ -79,6 +79,8 @@ public:
 
 	virtual unsigned isConnected()                = 0;
 
+	virtual unsigned getUdpPort()                 = 0;
+
 	virtual ~IUdpPort() {}
 
 	static UdpPort create(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler);
