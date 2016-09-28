@@ -740,10 +740,14 @@ int i;
 		if (  ! udpPrtRssiIsConn( strm_args[i].port ) && ! strm_args[i].polled_stream_up ) {
 			continue;
 		}
-if ( udpPrtRssiIsConn( strm_args[i].port ) )
-  printf("RSSI conn (chnl %d)\n", i);
-if ( strm_args[i].polled_stream_up )
-  printf("Polled up (chnl %d)\n", i);
+#ifdef DEBUG
+		if ( debug ) {
+			if ( udpPrtRssiIsConn( strm_args[i].port ) )
+				printf("RSSI conn (chnl %d)\n", i);
+			if ( strm_args[i].polled_stream_up )
+				printf("Polled up (chnl %d)\n", i);
+		}
+#endif
 
 		if ( strm_args[i].isRunning ) {
 			// if the stream test is running then they look for consecutive
