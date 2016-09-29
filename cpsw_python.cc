@@ -58,7 +58,7 @@ public:
 // complains:
 //
 //   SystemError: 'finally' pops bad exception
-//  
+//
 // probably because the class object that was thrown is not
 // a PyErr_Exception.
 //
@@ -210,7 +210,7 @@ std::ostringstream strm;
 }
 
 
-// Need wrappers for methods which take 
+// Need wrappers for methods which take
 // shared pointers to const objects which
 // do not seem to be handled correctly
 // by boost::python.
@@ -291,7 +291,7 @@ IndexRange rng(from, to);
 
 	if        ( view.itemsize == sizeof(uint8_t ) ) {
 		uint8_t *bufp = reinterpret_cast<uint8_t*>(view.buf);
-		// set same value to all elements ? 
+		// set same value to all elements ?
 		return val->getVal( bufp, nelms, &rng );
 	} else if ( view.itemsize == sizeof(uint16_t) ) {
 		uint16_t *bufp = reinterpret_cast<uint16_t*>(view.buf);
@@ -327,7 +327,7 @@ IndexRange rng(from, to);
 		got = val->getVal( &str[0], nelms, &rng );
 		}
 		if ( 1 == got ) {
-			return boost::python::object( *str[0] );	
+			return boost::python::object( *str[0] );
 		}
 
 		boost::python::list l;
@@ -409,7 +409,7 @@ bool enumScalar = false;
 		GILUnlocker allowThreadingWhileWaiting;
 		if        ( view.itemsize == sizeof(uint8_t ) ) {
 			uint8_t *bufp = reinterpret_cast<uint8_t*>(view.buf);
-			// set same value to all elements ? 
+			// set same value to all elements ?
 			return 1==nelms ? val->setVal( (uint64_t)*bufp ) : val->setVal( bufp, nelms, &rng );
 		} else if ( view.itemsize == sizeof(uint16_t) ) {
 			uint16_t *bufp = reinterpret_cast<uint16_t*>(view.buf);
@@ -784,7 +784,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"         result in I/O failures!\n"
 		)
 		.def("getChild",       &IHub::getChild,
-			( arg("self"), arg("nameString") ),	
+			( arg("self"), arg("nameString") ),
 			"\n"
 			"Return a child with name 'nameString' (or 'None' if no matching child exists)."
 		)
@@ -820,7 +820,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"'pathString' (a string object) may span multiple levels in the hierarchy,\n"
 			"separated by '/' - analogous to a file system.\n"
 			"However, CPSW supports the concept of 'array nodes', i.e., some nodes\n"
-			"(at any level of depth) may represent multiple identical devices or\n" 
+			"(at any level of depth) may represent multiple identical devices or\n"
 			"registers. Array indices are zero-based.\n"
 			"\n"
 			"When looking up an entity, the range(s) of items to address may be\n"
