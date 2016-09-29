@@ -527,6 +527,7 @@ strings if the underlying entity actually represents a character.
             # corresponding size in bytes is automatically
             # computed (YAML setting ignored).
             # Defaults to 32.
+            # I.e.,: size = (sizeBits + lsBit + 7) / 8
           YAML_KEY_sizeBits: <int>           # optional
 
             # Alignment of the least-significant bit
@@ -696,10 +697,10 @@ inherited from Address):
           # Default: <none>
         YAML_KEY_offset: <int>                   # *see note*
 
-          # The 'stride' specifies by how many bytes multiple
-          # instances of an array are separated.
-          # The default (0) assumes 'dense' packing i.e., is
-          # automatically resolved to the size of the attachee.
+          # The 'stride' specifies by how many bytes the elements
+          # of an array are separated/spaced.
+          # The default (0) assumes 'dense' packing i.e., the stride
+          # is automatically set to the size of an array element.
         YAML_KEY_stride: <int>                   # *optional*
 
 Note that when the offset is omitted then an ordinary 'Address'
