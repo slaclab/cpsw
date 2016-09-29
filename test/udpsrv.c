@@ -105,6 +105,8 @@ static void usage(const char *nm)
 #endif
 	fprintf(stderr, "        -S <lddepth>: scramble packet order (arg is ld2(scrambler-depth))\n");
 	fprintf(stderr, "        -L <percent>: lose/drop <percent> packets\n");
+	fprintf(stderr, "        -T <port>   : run in TUTORIAL mode on <port>; use RSSI, SRPV3 and\n");
+	fprintf(stderr, "                      ignore all other settings\n");
 	fprintf(stderr, " Defaults: -a %s -P %d -p %d -s %d -f %d -L %d -S %d\n", INA_DEF, V2PORT_DEF, V1PORT_DEF, SPORT_DEF, NFRAGS_DEF, SIMLOSS_DEF, SCRMBL_DEF);
 	fprintf(stderr, "           V3 (norssi                 ) is listening at  %d\n", V3PORT_DEF);
 	fprintf(stderr, "           V3 (norssi, byte-resolution) is listening at %d\n",  V3BPORT_DEF);
@@ -783,15 +785,16 @@ int      scramble   = SCRMBL_DEF;
 unsigned tdest      = 0;
 int      i;
 sigset_t sigset;
+int      tut_port   = 0;
 
-int    nprts;
+int      nprts, nstrms;
 
 	memset(&srpArgs,  0, sizeof(srpArgs));
 	memset(&strm_args, 0, sizeof(strm_args));
 
 	signal( SIGINT, sh );
 
-	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:r:R:")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:r:R:T:")) > 0 ) {
 		i_a = 0;
 		switch ( opt ) {
 			case 'h': usage(argv[0]);      return 0;
@@ -806,6 +809,7 @@ int    nprts;
 			case 'S': i_a = &scramble;                      break;
 			case 'r': i_a = &srpvars[V2_RSSI].port;         break;
 			case 'R': i_a = &strmvars[STRM_RSSI].port;      break;
+			case 'T': i_a = &tut_port;                      break;
 			default:
 				fprintf(stderr, "unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -826,13 +830,21 @@ int    nprts;
 
 	nprts = 0;
 
-	for ( i=0; i<sizeof(strmvars)/sizeof(strmvars[0]); i++ ) {
-		if ( strmvars[i].port > 0 )
-			nprts++;
-	}
-	for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
-		if ( srpvars[i].port > 0 )
-			nprts++;
+	if ( tut_port ) {
+		if ( tut_port < 0 || tut_port > 65535 ) {
+			fprintf(stderr,"Invalid -T argument (%d out of range)\n", tut_port);
+			exit(1);
+		}
+		nprts++;
+	} else {
+		for ( i=0; i<sizeof(strmvars)/sizeof(strmvars[0]); i++ ) {
+			if ( strmvars[i].port > 0 )
+				nprts++;
+		}
+		for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
+			if ( srpvars[i].port > 0 )
+				nprts++;
+		}
 	}
 
 	if ( 0 == nprts ) {
@@ -840,7 +852,18 @@ int    nprts;
 		goto bail;
 	}
 
-	for ( i=0; i<sizeof(strmvars)/sizeof(strmvars[0]); i++ ) {
+	if ( tut_port ) {
+		nstrms = sizeof(strmvars)/sizeof(strmvars[0]);
+		strmvars[0].port     = tut_port;
+		strmvars[0].haveRssi = WITH_RSSI;
+		strmvars[0].srpvers  = 3;
+		sim_loss = 0;
+		scramble = 0;
+	} else {
+		nstrms = 1;
+	}
+
+	for ( i=0; i<nstrms; i++ ) {
 		if ( strmvars[i].port <= 0 )
 			continue;
 
@@ -900,8 +923,10 @@ bail:
 			pthread_join( strm_args[i].fragger_tid, &res );
 			rval += (uintptr_t)res;
 		}
-		udpPrtDestroy( strm_args[i].port );
-		udpQueDestroy( strm_args[i].srpQ );
+		if ( strm_args[i].port )
+			udpPrtDestroy( strm_args[i].port );
+		if ( strm_args[i].srpQ )
+			udpQueDestroy( strm_args[i].srpQ );
 	}
 	for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
 		void *res;
