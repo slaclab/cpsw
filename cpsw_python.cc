@@ -445,25 +445,28 @@ bool enumScalar = false;
 	unsigned nelms = enumScalar ? 1 : len(o);
 
 	if ( useEnum ) {
-		// we can't just extract a 'const char *' pointer -- under
-		// python3 all strings are unicode and we must first convert
-		// to a c++ std::string. Should be backwards compatible to 
-		// python 2.7.
-		std::vector<std::string>  vstr;
-		std::vector<const char *> vcstr;
-
 		if ( enumScalar ) {
-			vstr.push_back( extract<std::string>( o ) );
-			vcstr.push_back( vstr[0].c_str() );
+			std::string str = extract<std::string>( o );
+			{
+				GILUnlocker allowThreadingWhileWaiting;
+				return val->setVal( str.c_str(), &rng );
+			}
 		} else {
+			// we can't just extract a 'const char *' pointer -- under
+			// python3 all strings are unicode and we must first convert
+			// to a c++ std::string. Should be backwards compatible to
+			// python 2.7.
+			std::vector<std::string>  vstr;
+			std::vector<const char *> vcstr;
+
 			for ( unsigned i = 0; i < nelms; ++i ) {
 				vstr.push_back( extract<std::string>( o[i] ) );
 				vcstr.push_back( vstr[i].c_str() );
 			}
-		}
-		{
-		GILUnlocker allowThreadingWhileWaiting;
-		return val->setVal( &vcstr[0], nelms, &rng );
+			{
+				GILUnlocker allowThreadingWhileWaiting;
+				return val->setVal( &vcstr[0], nelms, &rng );
+			}
 		}
 	} else {
 		std::vector<uint64_t> v64;
