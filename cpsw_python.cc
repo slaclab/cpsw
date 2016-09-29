@@ -433,10 +433,13 @@ bool enumScalar = false;
 	if ( ! PySequence_Check( op ) ) {
 		// a single string (attempt to set enum) is also a sequence
 		GILUnlocker allowThreadingWhileWaiting;
-		if ( val->isSigned() )
-			return val->setVal( (uint64_t)extract<int64_t>( o ), &rng );
-		else
-			return val->setVal( extract<uint64_t>( o ), &rng );
+		// boost::python::extract() is not very useful here
+		// since it does a range check (and produces a mysterious
+		// segfault [g++-5.4/python3.5] if the number if out of
+		// range. We really want module 2^64 here which is what
+		// the PyLong_AsUnsignedLongLongMask() achieves.
+        uint64_t num64 = PyLong_AsUnsignedLongLongMask( op );
+		return val->setVal( num64, &rng );
 	}
 
 	unsigned nelms = enumScalar ? 1 : len(o);
@@ -464,14 +467,11 @@ bool enumScalar = false;
 		}
 	} else {
 		std::vector<uint64_t> v64;
-		if ( val->isSigned() ) {
-			for ( unsigned i = 0; i < nelms; ++i ) {
-				v64.push_back( (uint64_t)extract<int64_t>( o[i] ) );
-			}
-		} else {
-			for ( unsigned i = 0; i < nelms; ++i ) {
-				v64.push_back( extract<uint64_t>( o[i] ) );
-			}
+		for ( unsigned i = 0; i < nelms; ++i ) {
+			object ob_tmp( o[i] );
+			// see above why we use this instead of boost::python::extract
+			uint64_t num64 = PyLong_AsUnsignedLongLongMask( ob_tmp.ptr() );
+			v64.push_back( num64 );
 		}
 		{
 		GILUnlocker allowThreadingWhileWaiting;
