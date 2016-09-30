@@ -853,14 +853,14 @@ int      nprts, nstrms;
 	}
 
 	if ( tut_port ) {
-		nstrms = sizeof(strmvars)/sizeof(strmvars[0]);
 		strmvars[0].port     = tut_port;
 		strmvars[0].haveRssi = WITH_RSSI;
 		strmvars[0].srpvers  = 3;
 		sim_loss = 0;
 		scramble = 0;
+		nstrms   = 1;
 	} else {
-		nstrms = 1;
+		nstrms = sizeof(strmvars)/sizeof(strmvars[0]);
 	}
 
 	for ( i=0; i<nstrms; i++ ) {
