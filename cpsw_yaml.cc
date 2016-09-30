@@ -41,43 +41,7 @@ using std::cout;
 
 #undef CPSW_YAML_DEBUG
 
-// Helper operations
-struct CStrOps {
-	struct Hash {
-		size_t operator() (const char *str) const
-		{
-		size_t hash = 5381;
-		size_t c;
-			while ( (c = *str++) ) {
-				hash = (hash << 5) + hash + c;
-			}
-			return hash;
-		}
-	};
-
-	struct Eq {
-		bool operator() (const char *a, const char *b) const
-		{
-			return 0 == ::strcmp(a, b);
-		}
-	};
-
-	struct Cmp {
-		bool operator () (const char *a, const char *b) const {
-			return ::strcmp(a,b) < 0 ? true : false;
-		}
-	};
-};
-
-template <typename T>
-struct CStrMap : public CStrOps {
-	typedef std::pair<const char *, T>      Member;
-	typedef std::map <const char *, T, Cmp> Map;
-};
-
-struct CStrSet : public CStrOps {
-	typedef unordered_set<const char *, Hash, Eq> Set;
-};
+typedef unordered_set<std::string> StrSet;
 
 // PNode Implementation
 
@@ -485,9 +449,9 @@ CYamlSupportBase::dumpYamlPart(YAML::Node &node) const
 class RegistryImpl : public IRegistry {
 	public:
 
-	typedef CStrMap<void*>::Map    Map;
-	typedef CStrMap<void*>::Member Member;
-    typedef CStrSet::Set           Set;
+	typedef std::map<std::string,void*>   Map;
+	typedef std::pair<std::string, void*> Member;
+	typedef StrSet                        Set;
 
 private:
 	Map  map_;
@@ -661,7 +625,7 @@ private:
 	// record children that were not created because 'instantiated' is false
 	// we need to remember this when going through merge keys upstream
 	// (which may contain the same child marked as instantiated = true).
-	unordered_set<std::string> not_instantiated_;
+	StrSet                    not_instantiated_;
 
 public:
 	AddChildrenVisitor(CDevImpl *d, IYamlTypeRegistry<Field> *registry)
