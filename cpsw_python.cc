@@ -78,7 +78,6 @@ template <typename ECL>
 class ExceptionTranslator {
 private:
 	std::string  name_;
-	std::string  scopeName_;
 	PyObject    *excTypeObj_;
 
 	ExceptionTranslator &operator=(const ExceptionTranslator &orig);
@@ -87,7 +86,6 @@ public:
 
 	ExceptionTranslator(const ExceptionTranslator &orig)
 	: name_(orig.name_),
-	  scopeName_(orig.scopeName_),
 	  excTypeObj_(orig.excTypeObj_)
 	{
 		if ( excTypeObj_ )
@@ -109,27 +107,25 @@ public:
 		return excTypeObj_;
 	}
 
-	std::string getFQName() const
-	{
-
-		return scopeName_ + std::string(".") + name_;
-	}
-
 	ExceptionTranslator(const char *name, PyObject *base=0)
 	: name_(name),
-	  scopeName_(extract<std::string>(scope().attr("__name__"))),
 	  excTypeObj_(0)
 	{
 		if ( ! firstTime() )
 			throw std::exception();
 
-		std::string qualifiedName( getFQName() );
+		std::string scopeName = extract<std::string>(scope().attr("__name__"));
+
+		char qualifiedName[ scopeName.size() + name_.size() + 1 + 1 ];
+		::strcpy(qualifiedName, scopeName.c_str());
+		::strcat(qualifiedName, ".");
+		::strcat(qualifiedName, name_.c_str());
 
 		// create a new C-API class which is derived from 'base'
 		// (must be a subclass of PyErr_Exception)
-		excTypeObj_ = PyErr_NewException( qualifiedName.c_str(), base, 0 );
+		excTypeObj_ = PyErr_NewException( qualifiedName, base, 0 );
 
-		// std::cout << qualifiedName << " typeObj_ refcnt " << Py_REFCNT( excTypeObj_ ) << "\n";
+		//std::cout << qualifiedName << " typeObj_ refcnt " << Py_REFCNT( excTypeObj_ ) << "\n";
 
 		// Register in the current scope
 		scope current;
@@ -150,8 +146,7 @@ public:
 	void operator() (const ECL &e) const
 	{
 	//std::cout << "EXCEPTION TYPE REFCOUNT PRE " << Py_REFCNT(getTypeObj()) << "\n";
-		std::string msg = getFQName() + std::string(": ") + e.getInfo();
-		PyErr_SetString( getTypeObj(), msg.c_str() );
+		PyErr_SetString( getTypeObj(), e.what() );
 	//std::cout << "EXCEPTION TYPE REFCOUNT PST " << Py_REFCNT(getTypeObj()) << "\n";
 	}
 
