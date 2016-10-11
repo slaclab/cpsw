@@ -39,7 +39,7 @@ public:
 		name_.append(s);
 	}
 
-	virtual std::string &getInfo()
+	virtual const std::string &getInfo() const
 	{
 		return name_;
 	}
