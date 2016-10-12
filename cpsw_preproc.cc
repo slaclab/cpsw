@@ -90,6 +90,18 @@ std::ifstream *p = new std::ifstream( fnam );
 	return Stream( p );
 }
 
+StreamMuxBuf::Stream
+StreamMuxBuf::mkstrm(const std::string &contents)
+{
+std::stringstream *p = new std::stringstream( contents );
+	if ( p->fail() ) {
+		delete p;
+		FailedStreamError e("Creation of stringstream failed");
+		throw e;
+	}
+	return Stream( p );
+}
+
 static void
 set_path(std::string *dst, const char *yaml_dir)
 {
@@ -198,7 +210,16 @@ int rev = -1;
 			// recursively process included file
 			// in same directory
 			std::string incFnam( path_ + line.substr(beg, len) );
+
+			if ( getVerbose() ) {
+				mux_->pushbuf( StreamMuxBuf::mkstrm( line ) );
+			}
+
 			process( StreamMuxBuf::mkstrm( incFnam.c_str() ), incFnam );
+
+			if ( getVerbose() ) {
+				mux_->pushbuf( StreamMuxBuf::mkstrm( std::string("#endinclude ") + incFnam ) );
+			}
 
 		} else if ( 0 == line.compare(1, 14, "schemaversion ") ) {
 			if ( 3 != ::sscanf( line.c_str() + 15, "%d.%d.%d", &maj, &min, &rev  ) ) {

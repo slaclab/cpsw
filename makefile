@@ -89,6 +89,8 @@ SHARED_LIBRARIES_YES+=cpsw
 cpsw_yaml_xpand_SRCS += cpsw_yaml_xpand.cc
 cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 
+cpsw_ypp_SRCS        += cpsw_ypp.cc cpsw_preproc.cc
+
 # Python wrapper; only built if WITH_PYCPSW is set to YES (can be target specific)
 pycpsw_so_SRCS    = cpsw_python.cc
 pycpsw_so_LIBS    = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
@@ -98,7 +100,7 @@ pycpsw_so_CXXFLAGS= -fno-strict-aliasing
 PYCPSW_YES        = pycpsw.so
 PYCPSW            = $(PYCPSW_$(WITH_PYCPSW))
 
-PROGRAMS         += cpsw_yaml_xpand $(PYCPSW)
+PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW)
 
 include $(CPSW_DIR)/rules.mak
 

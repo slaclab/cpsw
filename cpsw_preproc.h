@@ -66,7 +66,8 @@ public:
 	virtual void dump();
 
 	// create a Stream; throws FailedStreamException e.g., if file is not found
-	static Stream mkstrm(const char *fnam);
+	static Stream mkstrm(const char            *fnam);
+	static Stream mkstrm(const std::string &contents);
 };
 
 class YamlPreprocessor {
@@ -81,6 +82,7 @@ private:
 	int                                 major_;
 	int                                 minor_;
 	int                                 revision_;
+	bool                                verbose_;
 
 	// no copying
 	YamlPreprocessor(const YamlPreprocessor &);
@@ -121,6 +123,15 @@ public:
 		return revision_;
 	}
 
+	bool getVerbose() const
+	{
+		return verbose_;
+	}
+
+	void setVerbose(bool verbose)
+	{
+		verbose_ = verbose;
+	}
 
 	// helper which creates the main Stream
 	YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, const char *yaml_dir);
