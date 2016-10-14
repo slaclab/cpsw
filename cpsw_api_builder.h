@@ -119,7 +119,7 @@ public:
 	virtual void            addAtAddress(Field child) = 0;
 	virtual uint8_t * const getBufp()           const = 0;
 
-	static MemDev create(const char *name, uint64_t size);
+	static MemDev create(const char *name, uint64_t size, uint8_t *ext_buf = 0);
 };
 
 

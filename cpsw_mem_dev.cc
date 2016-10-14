@@ -17,14 +17,17 @@
 
 #undef  MEMDEV_DEBUG
 
-CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size)
-: CDevImpl(k, name, size), buf_( new uint8_t[size] )
+CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size, uint8_t *ext_buf)
+: CDevImpl(k, name, size),
+  buf_( ext_buf ? ext_buf : new uint8_t[size] ),
+  isExt_ ( ext_buf ? true : false )
 {
 }
 
 CMemDevImpl::CMemDevImpl(Key &key, YamlState &node)
 : CDevImpl(key, node),
-  buf_( new uint8_t[size_] )
+  buf_( new uint8_t[size_] ),
+  isExt_( false )
 {
 	if ( 0 == size_ ) {
 		throw InvalidArgError("'size' zero or unset");
@@ -34,14 +37,16 @@ CMemDevImpl::CMemDevImpl(Key &key, YamlState &node)
 
 CMemDevImpl::CMemDevImpl(const CMemDevImpl &orig, Key &k)
 : CDevImpl(orig, k),
-  buf_( new uint8_t[orig.getSize()] )
+  buf_( new uint8_t[orig.getSize()] ),
+  isExt_( false )
 {
 	memcpy( buf_, orig.buf_, orig.getSize() );
 }
 
 CMemDevImpl::~CMemDevImpl()
 {
-	delete [] buf_;
+	if ( ! isExt_ )
+		delete [] buf_;
 }
 
 void CMemDevImpl::addAtAddress(Field child)
@@ -127,7 +132,7 @@ for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->src_[ii]); 
 	return rval;
 }
 
-MemDev IMemDev::create(const char *name, uint64_t size)
+MemDev IMemDev::create(const char *name, uint64_t size, uint8_t *ext_buf)
 {
-	return CShObj::create<MemDevImpl>(name, size);
+	return CShObj::create<MemDevImpl>(name, size, ext_buf);
 }

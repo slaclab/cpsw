@@ -37,11 +37,12 @@ class CMemAddressImpl : public CAddressImpl {
 class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	private:
 		uint8_t * buf_;
+		bool      isExt_;
 	protected:
 		CMemDevImpl(const CMemDevImpl &orig, Key &k);
 
 	public:
-		CMemDevImpl(Key &k, const char *name, uint64_t size);
+		CMemDevImpl(Key &k, const char *name, uint64_t size, uint8_t *ext_buf);
 
 		CMemDevImpl(Key &k, YamlState &n);
 
