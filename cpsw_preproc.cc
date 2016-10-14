@@ -121,7 +121,8 @@ YamlPreprocessor::YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux, 
   versionSet_(false),
   major_(-1),
   minor_(-1),
-  revision_(-1)
+  revision_(-1),
+  verbose_(false)
 {
 	set_path( &path_, yaml_dir );
 	if ( inp->fail() ) {
@@ -136,7 +137,8 @@ YamlPreprocessor::YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, con
   versionSet_(false),
   major_(-1),
   minor_(-1),
-  revision_(-1)
+  revision_(-1),
+  verbose_(false)
 {
 const char  *sep;
 std::string  main_dir;
