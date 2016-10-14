@@ -30,6 +30,7 @@ multi-test: sub-$(HARCH)$(TSEP)run_tests
 	@true
 
 multi-clean: clean
+	@true
 
 # 'multi-target'; execute a target for all architectures:
 # If the user has a target 'xxx' defined in his/her makefile
@@ -283,11 +284,12 @@ endif
 %.dp:%.c $(DEP_HEADERS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
 
-clean: multi-subdir-clean multi-postsubdir-clean
+clean: multi-subdir-clean multi-postsubdir-clean clean_local
 	$(RM) deps $(GENERATED_SRCS)
 	$(RM) -r O.*
 
 generate_srcs: $(GENERATED_SRCS)
+	@true
 
 install_headers:
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
@@ -330,7 +332,7 @@ git_version_string.h: FORCE
 
 FORCE:
 
-.PHONY: install_local install_headers
+.PHONY: install_local install_headers clean_local
 
 ifdef TARCH
 -include deps
