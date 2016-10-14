@@ -298,7 +298,7 @@ install_headers:
 		fi ;\
 	fi
 
-do_install: install_headers
+do_install: install_headers install_local
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		if [ -n "$(STATIC_LIBRARIES)" ] ; then \
 			mkdir -p $(INSTALL_DIR)/lib/$(TARCH) ;\
@@ -329,6 +329,8 @@ git_version_string.h: FORCE
 	fi
 
 FORCE:
+
+.PHONY: install_local install_headers
 
 ifdef TARCH
 -include deps
