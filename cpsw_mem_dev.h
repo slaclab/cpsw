@@ -20,7 +20,7 @@ typedef shared_ptr<const CMemDevImpl> ConstMemDevImpl;
 
 class CMemAddressImpl : public CAddressImpl {
 	public:
-		CMemAddressImpl(AKey key, unsigned nelms = 1);
+		CMemAddressImpl(AKey key);
 
 		CMemAddressImpl(const CMemAddressImpl &orig, AKey k)
 		: CAddressImpl(orig, k)
@@ -48,7 +48,10 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 		static  const char *_getClassName()       { return "MemDev";        }
 		virtual const char * getClassName() const { return _getClassName(); }
 
-		virtual void addAtAddress(Field child, unsigned nelms = 1);
+		virtual void addAtAddress(Field child);
+
+		// must override to check that nelms == 1
+		virtual void addAtAddress(Field child, unsigned nelms);
 
 		virtual uint8_t * const getBufp() const { return buf_; }
 

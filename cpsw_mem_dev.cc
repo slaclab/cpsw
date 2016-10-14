@@ -44,15 +44,22 @@ CMemDevImpl::~CMemDevImpl()
 	delete [] buf_;
 }
 
-void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
+void CMemDevImpl::addAtAddress(Field child)
 {
 IAddress::AKey k = getAKey();
 
-	add( make_shared<CMemAddressImpl>(k, nelms), child );
+	add( make_shared<CMemAddressImpl>(k), child );
 }
 
-CMemAddressImpl::CMemAddressImpl(AKey k, unsigned nelms)
-: CAddressImpl(k, nelms)
+void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
+{
+	if ( 1 != nelms )
+		throw ConfigurationError("CMemDevImpl::addAtAddress -- can only have exactly 1 child");
+	addAtAddress( child );
+}
+
+CMemAddressImpl::CMemAddressImpl(AKey k)
+: CAddressImpl(k, 1)
 {
 }
 
