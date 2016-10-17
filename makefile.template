@@ -77,10 +77,13 @@ SHARED_LIBRARIES_YES += myLib
 # List programs to build:
 PROGRAMS         += myProg
 
-# You can also build shared objects
+# You can also build shared objects (installed where PROGRAMS are)
 PROGRAMS         += myObj.so
 
-# List tests to build:
+# or shared objects which are to be installed where libraries are:
+SHARED_OBJS      += myOtherObj.so
+
+# List tests to build (TESTPROGRAMS are not installed):
 TESTPROGRAMS     += myTest myOtherTest
 
 # List sources for each target:
