@@ -225,24 +225,25 @@ $(2)_LDFLAGS_$$(TARNM) ?= $$($(2)_LDFLAGS_default)
 
 endef
 
-TGTS+=$(PROGRAMS)
-TGTS+=$(TESTPROGRAMS)
+BINTGTS=$(PROGRAMS) $(TESTPROGRAMS) $(SHARED_OBJS)
+
+TGTS+=$(BINTGTS)
 
 # Expand the template for all program (and testprogram) targets
-$(foreach bin,$(PROGRAMS) $(TESTPROGRAMS),$(eval $(call PROG_template,$(bin),$(call nam2varnam,$(bin)))))
+$(foreach bin,$(BINTGTS),$(eval $(call PROG_template,$(bin),$(call nam2varnam,$(bin)))))
 
-$(PROGRAMS) $(TESTPROGRAMS):OBJS=$($(call nam2varnam,$@)_OBJS)
-$(PROGRAMS) $(TESTPROGRAMS):LIBS=$($(call nam2varnam,$@)_LIBS)
+$(BINTGTS):OBJS=$($(call nam2varnam,$@)_OBJS)
+$(BINTGTS):LIBS=$($(call nam2varnam,$@)_LIBS)
 
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS  = -L.
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$($(call nam2varnam,$(lib))lib_DIR)))
+$(BINTGTS): LIBARGS  = -L.
+$(BINTGTS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$($(call nam2varnam,$(lib))lib_DIR)))
 # don't apply ADD_updir to cpswlib_DIRS because CPSW_DIR already was 'upped'.
 # This means that e.g. yaml_cpplib_DIR must be absolute or relative to CPSW_DIR
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(addprefix -L,$(INSTALL_DIR:%=%/lib/$(TARCH)))
-$(PROGRAMS) $(TESTPROGRAMS): LIBARGS += $(foreach lib,$(LIBS:%=-l%),$(lib:%.a=-Wl,-Bstatic % -Wl,-Bdynamic))
+$(BINTGTS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
+$(BINTGTS): LIBARGS += $(addprefix -L,$(INSTALL_DIR:%=%/lib/$(TARCH)))
+$(BINTGTS): LIBARGS += $(foreach lib,$(LIBS:%=-l%),$(lib:%.a=-Wl,-Bstatic % -Wl,-Bdynamic))
 
-$(PROGRAMS) $(TESTPROGRAMS): $(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
+$(BINTGTS): $(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
 	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS) $(addprefix -Wl$(COMMA__)-rpath$(COMMA__),$(abspath $(INSTALL_DIR:%=%/lib/$(TARCH))))
 
 build: $(TGTS)
@@ -316,6 +317,11 @@ do_install: install_headers install_local
 			mkdir -p $(INSTALL_DIR)/bin/$(TARCH) ;\
 			echo "Installing Programs $(PROGRAMS)" ; \
 			$(INSTALL) $(PROGRAMS) $(INSTALL_DIR)/bin/$(TARCH) ;\
+		fi ;\
+		if [ -n "$(SHARED_OBJS)" ] ; then \
+			mkdir -p $(INSTALL_DIR)/lib/$(TARCH) ;\
+			echo "Installing Shared Objects $(SHARED_OBJS)" ; \
+			$(INSTALL) $(SHARED_OBJS) $(INSTALL_DIR)/lib/$(TARCH) ;\
 		fi \
 	fi
 
