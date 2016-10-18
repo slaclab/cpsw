@@ -347,16 +347,19 @@ IndexRange rng(from, to);
 		got = val->getVal( &v64[0], nelms, &rng );
 		}
 		if ( 1 == got ) {
-			if ( val->isSigned() )
-				return boost::python::object( (int64_t)v64[0] );
-			else
+			if ( val->isSigned() ) {
+				int64_t ival = (int64_t)v64[0];
+				return boost::python::object( ival );
+			} else {
 				return boost::python::object( v64[0] );
+			}
 		}
 
 		boost::python::list l;
 		if ( val->isSigned() ) {
 			for ( unsigned i = 0; i<got; i++ ) {
-				l.append( (int64_t)v64[i] );
+				int64_t ival = (int64_t)v64[i];
+				l.append( ival );
 			}
 		} else {
 			for ( unsigned i = 0; i<got; i++ ) {
@@ -436,9 +439,19 @@ bool enumScalar = false;
 		// boost::python::extract() is not very useful here
 		// since it does a range check (and produces a mysterious
 		// segfault [g++-5.4/python3.5] if the number if out of
-		// range. We really want module 2^64 here which is what
+		// range. We really want modulo 2^64 here which is what
 		// the PyLong_AsUnsignedLongLongMask() achieves.
-        uint64_t num64 = PyLong_AsUnsignedLongLongMask( op );
+		uint64_t num64;
+		if ( ! PyLong_Check( op ) ) {
+#if PY_VERSION_HEX < 0x03000000
+			if ( PyInt_Check( op ) ) {
+				num64 = PyInt_AsUnsignedLongLongMask( op );
+			} else 
+#endif
+			throw InvalidArgError("int/long value expected");
+		} else {
+        	num64 = PyLong_AsUnsignedLongLongMask( op );
+		}
 		return val->setVal( num64, &rng );
 	}
 
@@ -472,8 +485,19 @@ bool enumScalar = false;
 		std::vector<uint64_t> v64;
 		for ( unsigned i = 0; i < nelms; ++i ) {
 			object ob_tmp( o[i] );
+			PyObject *op = ob_tmp.ptr();
 			// see above why we use this instead of boost::python::extract
-			uint64_t num64 = PyLong_AsUnsignedLongLongMask( ob_tmp.ptr() );
+			uint64_t num64;
+			if ( ! PyLong_Check( op ) ) {
+#if PY_VERSION_HEX < 0x03000000
+				if ( PyInt_Check( op ) ) {
+					num64 = PyInt_AsUnsignedLongLongMask( op );
+				} else 
+#endif
+				throw InvalidArgError("int/long value expected");
+			} else {
+				num64 = PyLong_AsUnsignedLongLongMask( op );
+			}
 			v64.push_back( num64 );
 		}
 		{
