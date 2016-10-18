@@ -1297,7 +1297,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Instantiate a 'ScalVal_RO' interface at the endpoint identified by 'path'\n"
 			"\n"
-			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does\n"
 			"      not support this interface."
 		)
 		.staticmethod(			"create")
@@ -1359,7 +1359,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Instantiate a 'ScalVal' interface at the endpoint identified by 'path'\n"
 			"\n"
-			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does\n"
 			"      not support this interface."
 		)
 		.staticmethod("create")
@@ -1416,7 +1416,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Instantiate a 'DoubleVal_RO' interface at the endpoint identified by 'path'\n"
 			"\n"
-			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does\n"
 			"      not support this interface."
 		)
 		.staticmethod(			"create")
@@ -1469,7 +1469,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Instantiate a 'DoubleVal' interface at the endpoint identified by 'path'\n"
 			"\n"
-			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does\n"
 			"      not support this interface."
 		)
 		.staticmethod("create")
@@ -1515,7 +1515,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Instantiate a 'Stream' interface at the endpoint identified by 'path'\n"
 			"\n"
-			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does\n"
 			"      not support this interface."
 		)
 		.staticmethod("create")
@@ -1544,7 +1544,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Instantiate a 'Stream' interface at the endpoint identified by 'path'\n"
 			"\n"
-			"NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does\n"
+			"NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does\n"
 			"      not support this interface."
 		)
 		.staticmethod("create")
