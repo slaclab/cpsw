@@ -12,7 +12,7 @@ const char *justTheName = ::strrchr(nm, '/');
 	else
 		justTheName++;
 	fprintf(stderr,"usage: %s [-D <yaml_dir>] [-Y <yaml_file>] [-vh]\n", justTheName);
-	fprintf(stderr,"  -f <yaml_file>: Preprocess YAML file <yaml_file> (or stdin if no -Y given).\n");
+	fprintf(stderr,"  -Y <yaml_file>: Preprocess YAML file <yaml_file> (or stdin if no -Y given).\n");
 	fprintf(stderr,"  -D <yaml_dir> : Included files are searched for in <yaml_dir> or in the\n");
 	fprintf(stderr,"                  'dirname' of <yaml_file> if no -D given.\n");
 	fprintf(stderr,"  -v            : Enable verbose mode; comments are added indicating the start\n");
