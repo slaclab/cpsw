@@ -39,7 +39,7 @@ using YAML::PNode;
 using YAML::Node;
 using std::cout;
 
-#undef CPSW_YAML_DEBUG
+#undef  CPSW_YAML_DEBUG
 
 typedef unordered_set<std::string> StrSet;
 
@@ -464,6 +464,13 @@ public:
 	{
 	}
 
+	~RegistryImpl()
+	{
+#ifdef CPSW_YAML_DEBUG
+		printf("Destroying a registry\n");
+#endif
+	}
+
 	virtual void  addItem(const char *name, void *item)
 	{
 	std::pair< Map::iterator, bool > ret = map_.insert( Member(name, item) );
@@ -474,6 +481,9 @@ public:
 
 	virtual void  delItem(const char *name)
 	{
+#ifdef CPSW_YAML_DEBUG
+		printf("Deleting a registry item: %s\n", name);
+#endif
 		map_.erase( name );
 	}
 

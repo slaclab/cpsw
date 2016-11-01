@@ -514,7 +514,6 @@ public:
 
 	virtual ~IYamlFactoryBase()
 	{
-		printf("Destroying factory %s\n", className_);
 		registry_->delFactory( className_ );
 	}
 };
@@ -578,7 +577,6 @@ public:
 
 	virtual ~CYamlTypeRegistry()
 	{
-		printf("Destroying a type registry\n");
 		delete registry_;
 	}
 };
