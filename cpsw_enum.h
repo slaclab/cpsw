@@ -37,6 +37,8 @@ protected:
 	friend class CTransformFuncImpl;
 
 public:
+	public:
+		typedef shared_ptr< IYamlTypeRegistry<MutableEnum> > Registry;
 	// For an example check class 'CBoolTransFormFunc' in cpsw_enum.cc
 
 	class CTransformFuncImpl : public CTransformFunc, public IYamlFactoryBase<MutableEnum> {
@@ -53,7 +55,7 @@ public:
 			return in;
 		}
 
-		virtual MutableEnum makeItem(YamlState &node, IYamlTypeRegistry<MutableEnum> *r);
+		virtual MutableEnum makeItem(YamlState &node);
 
 		// singleton access via base-class template:
 		//

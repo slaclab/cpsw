@@ -492,21 +492,29 @@ public:
 };
 
 template <typename T> class IYamlFactoryBase {
-private:
-	IYamlTypeRegistry<T> *registry_	;
-	const char           *className_;
 public:
-	IYamlFactoryBase(const char *className, IYamlTypeRegistry<T> *r)
+	typedef shared_ptr< IYamlTypeRegistry<T> > Registry;
+private:
+	Registry     registry_	;
+	const char  *className_;
+public:
+	IYamlFactoryBase(const char *className, Registry r)
 	: registry_(r),
 	  className_(className)
 	{
 		r->addFactory( className, this );
 	}
 
-	virtual T makeItem(YamlState &node, IYamlTypeRegistry<T> *) = 0;
+	virtual T makeItem(YamlState &node ) = 0;
+
+	virtual Registry getRegistry()
+	{
+		return registry_;
+	}
 
 	virtual ~IYamlFactoryBase()
 	{
+		printf("Destroying factory %s\n", className_);
 		registry_->delFactory( className_ );
 	}
 };
@@ -554,7 +562,7 @@ public:
 		for( std::vector<std::string>::iterator it = str_vec.begin(); it != str_vec.end(); ++it ) {
 			IYamlFactoryBase<T> *factory = static_cast<IYamlFactoryBase<T> *>( registry_->getItem( it->c_str() ) );
 			if ( factory )
-				return factory->makeItem( n, this );
+				return factory->makeItem( n );
 			if ( 0 != str_no_factory.size() )
 				str_no_factory += ", ";
 			str_no_factory += (*it);
@@ -570,21 +578,24 @@ public:
 
 	virtual ~CYamlTypeRegistry()
 	{
+		printf("Destroying a type registry\n");
 		delete registry_;
 	}
 };
 
 class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 	public:
-		static IYamlTypeRegistry<Field> *getFieldRegistry();
+		typedef IYamlFactoryBase<Field>::Registry FieldRegistry;
+
+		static FieldRegistry getFieldRegistry_();
 	protected:
 		CYamlFieldFactoryBase(const char *typeLabel)
-		: IYamlFactoryBase<Field>( typeLabel, getFieldRegistry() )
+		: IYamlFactoryBase<Field>( typeLabel, getFieldRegistry_() )
 		{
 		}
 
-		virtual void addChildren(CEntryImpl &, YamlState &, IYamlTypeRegistry<Field> *);
-		virtual void addChildren(CDevImpl &,   YamlState &, IYamlTypeRegistry<Field> *);
+		virtual void addChildren(CEntryImpl &, YamlState &);
+		virtual void addChildren(CDevImpl &,   YamlState &);
 
 
 	public:
@@ -594,7 +605,7 @@ class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 		static YAML::Node loadPreprocessedYaml    (const char *char_stream, const char *yaml_dir = 0);
 		static YAML::Node loadPreprocessedYamlFile(const char *file_name,   const char *yaml_dir = 0);
 
-		static void dumpClasses() { getFieldRegistry()->dumpClasses(); }
+		static void dumpClasses() { getFieldRegistry_()->dumpClasses(); }
 };
 
 
@@ -605,11 +616,11 @@ public:
 	{
 	}
 
-	virtual Field makeItem(YamlState & state, IYamlTypeRegistry<Field> *registry)
+	virtual Field makeItem(YamlState & state)
 	{
 	    T::element_type::overrideNode(state);
 		T fld( CShObj::create<T, YamlState &>(state) );
-		addChildren( *fld, state, registry );
+		addChildren( *fld, state );
 		return fld;
 	}
 

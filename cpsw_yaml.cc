@@ -580,7 +580,7 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 }
 
 void
-CYamlFieldFactoryBase::addChildren(CEntryImpl &e, YamlState &node, IYamlTypeRegistry<Field> *registry)
+CYamlFieldFactoryBase::addChildren(CEntryImpl &e, YamlState &node)
 {
 	// nothing to do for 'leaf' entries
 }
@@ -618,8 +618,8 @@ CYamlFieldFactoryBase::addChildren(CEntryImpl &e, YamlState &node, IYamlTypeRegi
 // created.
 class AddChildrenVisitor : public PNode::MergekeyVisitor {
 private:
-	CDevImpl                *d_;
-	IYamlTypeRegistry<Field> *registry_;
+	CDevImpl                          *d_;
+	IYamlFactoryBase<Field>::Registry  registry_;
 
 
 	// record children that were not created because 'instantiated' is false
@@ -628,7 +628,7 @@ private:
 	StrSet                    not_instantiated_;
 
 public:
-	AddChildrenVisitor(CDevImpl *d, IYamlTypeRegistry<Field> *registry)
+	AddChildrenVisitor(CDevImpl *d, IYamlFactoryBase<Field>::Registry registry)
 	: d_(d),
 	  registry_(registry)
 	{
@@ -723,10 +723,10 @@ public:
 };
 
 void
-CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState &node, IYamlTypeRegistry<Field> *registry)
+CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState &node)
 {
 YAML::PNode         children( node.lookup(YAML_KEY_children) );
-AddChildrenVisitor  visitor( &d, registry );
+AddChildrenVisitor  visitor( &d, getRegistry() );
 
 #ifdef CPSW_YAML_DEBUG
 	printf("Entering addChildren of %s\n", d.getName());
@@ -767,7 +767,7 @@ int       vers = root.getSchemaVersionMajor();
 	}
 
 	/* Root node must be a Dev */
-	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry()->makeItem( root ) );
+	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry_()->makeItem( root ) );
 }
 
 static YAML::Node
@@ -892,11 +892,11 @@ YAML::Emitter& operator << (YAML::Emitter& out, const Hub& h)
 	return out;
 }
 
-IYamlTypeRegistry<Field> *
-CYamlFieldFactoryBase::getFieldRegistry()
+CYamlFieldFactoryBase::FieldRegistry
+CYamlFieldFactoryBase::getFieldRegistry_()
 {
-static CYamlTypeRegistry<Field> the_registry_;
-	return &the_registry_;
+static FieldRegistry the_registry_( new CYamlTypeRegistry<Field> );
+	return the_registry_;
 }
 
 DECLARE_YAML_FIELD_FACTORY(EntryImpl);

@@ -139,26 +139,26 @@ CYamlTypeRegistry<MutableEnum>::extractInstantiate(YamlState &node)
 	return true;
 }
 
-static IYamlTypeRegistry<MutableEnum> *getRegistry()
+static CEnumImpl::Registry getEnumRegistry()
 {
-static CYamlTypeRegistry<MutableEnum> the_registry_;
-	return &the_registry_;
+static CEnumImpl::Registry the_registry_( new CYamlTypeRegistry<MutableEnum> );
+	return the_registry_;
 }
 
 MutableEnum IMutableEnum::create(YamlState &node)
 {
-	return getRegistry()->makeItem( node );
+	return getEnumRegistry()->makeItem( node );
 }
 
 
 CEnumImpl::CTransformFuncImpl::CTransformFuncImpl(const Key &key)
 : CTransformFunc( key ),
-  IYamlFactoryBase<MutableEnum>( getName(), getRegistry())
+  IYamlFactoryBase<MutableEnum>( getName(), getEnumRegistry() )
 {
 }
 
 MutableEnum
-CEnumImpl::CTransformFuncImpl::makeItem(YamlState &node, IYamlTypeRegistry<MutableEnum> *r)
+CEnumImpl::CTransformFuncImpl::makeItem(YamlState &node)
 {
 MutableEnum enm = IMutableEnum::create(this, 0);
 unsigned    i;
