@@ -46,8 +46,19 @@ public:
 };
 
 class CAXIVersImpl : public CMMIODevImpl, public virtual IAXIVers {
+protected:
+	CAXIVersImpl(const CAXIVersImpl &orig, Key &k)
+	: CMMIODevImpl(orig, k)
+	{
+	}
+
 public:
 	CAXIVersImpl(Key &k, const char *name);
+
+	virtual CAXIVersImpl *clone(Key &k)
+	{
+		return new CAXIVersImpl( *this, k );
+	}
 };
 
 AXIVers IAXIVers::create(const char *name)
@@ -87,8 +98,19 @@ public:
 };
 
 class CPRBSImpl : public CMMIODevImpl, public virtual IPRBS {
+protected:
+	CPRBSImpl(const CPRBSImpl &orig, Key &k)
+	: CMMIODevImpl(orig, k)
+	{
+	}
+
 public:
 	CPRBSImpl(Key &k, const char *name);
+
+	virtual CPRBSImpl *clone(Key &k)
+	{
+		return new CPRBSImpl( *this, k );
+	}
 };
 
 PRBS IPRBS::create(const char *name)
