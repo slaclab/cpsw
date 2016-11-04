@@ -24,6 +24,8 @@ class IEntry;
 class IHub;
 class IChild;
 class IPath;
+class IVal_Base;
+class IScalVal_Base;
 class IScalVal_RO;
 class IScalVal_WO;
 class IScalVal;
@@ -40,6 +42,8 @@ typedef shared_ptr<const IHub>           Hub;
 typedef shared_ptr<const IChild>         Child;
 typedef shared_ptr<IPath>                Path;
 typedef shared_ptr<const IPath>          ConstPath;
+typedef shared_ptr<IVal_Base>            Val_Base;
+typedef shared_ptr<IScalVal_Base>        ScalVal_Base;
 typedef shared_ptr<IScalVal_RO>          ScalVal_RO;
 typedef shared_ptr<IScalVal_WO>          ScalVal_WO;
 typedef shared_ptr<IScalVal>             ScalVal;
@@ -440,6 +444,14 @@ public:
 
 
 	virtual ~IVal_Base() {}
+
+	/*!
+	 * Instantiate a 'Val_Base' interface at the endpoint identified by 'path'
+	 *
+	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
+	 *       not support this interface.
+	 */
+	static Val_Base create(Path path);
 };
 
 /*!
@@ -479,7 +491,8 @@ public:
 	               ISO_8859_2, ISO_8859_3, ISO_8859_4, ISO_8859_5, ISO_8859_6, ISO_8859_7,
 	               ISO_8859_8, ISO_8859_9, ISO_8859_10, ISO_8859_11, ISO_8859_13 = ISO_8859_11 + 2,
 	               ISO_8859_14, ISO_8859_15, ISO_8859_16,
-	               CUSTOM = 0x1000 } Encoding;
+	               IEEE_754 = 0x0f00,
+	               CUSTOM   = 0x1000 } Encoding;
 
 	/*!
 	 * Retrieve the encoding of this ScalVal (if any); if the ScalVal
@@ -490,6 +503,14 @@ public:
 	virtual Encoding getEncoding()      const = 0;
 
 	virtual ~IScalVal_Base () {}
+
+	/*!
+	 * Instantiate a 'ScalVal_Base' interface at the endpoint identified by 'path'
+	 *
+	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
+	 *       not support this interface.
+	 */
+	static ScalVal_Base create(Path path);
 };
 
 

@@ -20,11 +20,18 @@ class CIntEntryImpl;
 typedef shared_ptr<CIntEntryImpl> IntEntryImpl;
 
 class CScalVal_ROAdapt;
-typedef shared_ptr<CScalVal_ROAdapt> ScalVal_ROAdapt;
+typedef shared_ptr<CScalVal_ROAdapt>   ScalVal_ROAdapt;
 class CScalVal_WOAdapt;
-typedef shared_ptr<CScalVal_WOAdapt> ScalVal_WOAdapt;
+typedef shared_ptr<CScalVal_WOAdapt>   ScalVal_WOAdapt;
 class CScalValAdapt;
-typedef shared_ptr<CScalValAdapt>    ScalValAdapt;
+typedef shared_ptr<CScalValAdapt>      ScalValAdapt;
+class CDoubleVal_ROAdapt;
+typedef shared_ptr<CDoubleVal_ROAdapt> DoubleVal_ROAdapt;
+class CDoubleVal_WOAdapt;
+typedef shared_ptr<CDoubleVal_WOAdapt> DoubleVal_WOAdapt;
+class CDoubleValAdapt;
+typedef shared_ptr<CDoubleValAdapt>    DoubleValAdapt;
+
 
 
 class CIntEntryImpl : public CEntryImpl, public virtual IIntField {
@@ -181,55 +188,112 @@ public:
 protected:
 	virtual shared_ptr<const CIntEntryImpl> asIntEntry() const { return static_pointer_cast<const CIntEntryImpl, const CEntryImpl>(ie_); }
 
-};
-
-class CScalVal_ROAdapt : public virtual IDoubleVal_RO, public virtual IScalVal_RO, public virtual IIntEntryAdapt {
-public:
-	CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
-
 	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0 );
 
-	template <typename E> unsigned getVal(E *e, unsigned nelms, IndexRange *r) {
+	template <typename E> unsigned getVal(E *e, unsigned nelms, IndexRange *r)
+	{
 		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
 	}
 
-	virtual void     int2dbl(double *dst, uint64_t *src, unsigned n);
+	virtual unsigned setVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
 
-	virtual unsigned getVal(uint64_t *p, unsigned n, IndexRange *r=0) { return getVal<uint64_t>(p,n,r); }
-	virtual unsigned getVal(uint32_t *p, unsigned n, IndexRange *r=0) { return getVal<uint32_t>(p,n,r); }
-	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0) { return getVal<uint16_t>(p,n,r); }
-	virtual unsigned getVal(uint8_t  *p, unsigned n, IndexRange *r=0) { return getVal<uint8_t> (p,n,r); }
-	virtual unsigned getVal(double   *p, unsigned n, IndexRange *r=0);
-	virtual unsigned getVal(CString  *p, unsigned n, IndexRange *r=0);
-};
-
-class CScalVal_WOAdapt : public virtual IDoubleVal_WO, public virtual IScalVal_WO, public virtual IIntEntryAdapt {
-public:
-	CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
-
-	template <typename E> unsigned setVal(E *e, unsigned nelms, IndexRange *r) {
+	template <typename E> unsigned setVal(E *e, unsigned nelms, IndexRange *r)
+	{
 		return setVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
 	}
 
-	virtual void     dbl2int(uint64_t *dst, double *src, unsigned n);
-
-	virtual unsigned setVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
-
-	virtual unsigned setVal(uint64_t    *p, unsigned n, IndexRange *r=0) { return setVal<uint64_t>(p,n,r); }
-	virtual unsigned setVal(uint32_t    *p, unsigned n, IndexRange *r=0) { return setVal<uint32_t>(p,n,r); }
-	virtual unsigned setVal(uint16_t    *p, unsigned n, IndexRange *r=0) { return setVal<uint16_t>(p,n,r); }
-	virtual unsigned setVal(uint8_t     *p, unsigned n, IndexRange *r=0) { return setVal<uint8_t> (p,n,r); }
-	virtual unsigned setVal(const char* *p, unsigned n, IndexRange *r=0);
-	virtual unsigned setVal(double      *p, unsigned n, IndexRange *r=0);
-
-	virtual unsigned setVal(uint64_t     v, IndexRange *r=0);
-	virtual unsigned setVal(double       v, IndexRange *r=0);
-	virtual unsigned setVal(const char*  v, IndexRange *r=0);
 };
 
-class CScalValAdapt : public virtual CScalVal_ROAdapt, public virtual CScalVal_WOAdapt, public virtual IScalVal, public virtual IDoubleVal {
+class CScalVal_ROAdapt : public virtual IScalVal_RO, public virtual IIntEntryAdapt {
+public:
+	CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+
+	virtual unsigned getVal(uint64_t *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint64_t>(p,n,r);
+	}
+
+	virtual unsigned getVal(uint32_t *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint32_t>(p,n,r);
+	}
+
+	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint16_t>(p,n,r);
+	}
+
+	virtual unsigned getVal(uint8_t  *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint8_t> (p,n,r);
+	}
+
+	virtual unsigned getVal(CString  *p, unsigned n, IndexRange *r=0);
+};
+
+class CDoubleVal_ROAdapt : public virtual IDoubleVal_RO, public virtual IIntEntryAdapt {
+public:
+	CDoubleVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+
+	virtual void     int2dbl(double *dst, uint64_t *src, unsigned n);
+	virtual void     dbl2dbl(double *dst, unsigned n);
+
+	virtual unsigned getVal(double   *p, unsigned n, IndexRange *r=0);
+};
+
+class CScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {
+public:
+	CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+
+	virtual unsigned setVal(uint64_t    *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::setVal<uint64_t>(p,n,r);
+	}
+
+	virtual unsigned setVal(uint32_t    *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::setVal<uint32_t>(p,n,r);
+	}
+
+	virtual unsigned setVal(uint16_t    *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::setVal<uint16_t>(p,n,r);
+	}
+
+	virtual unsigned setVal(uint8_t     *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::setVal<uint8_t> (p,n,r);
+	}
+
+
+	virtual unsigned setVal(const char* *p, unsigned n, IndexRange *r=0);
+
+	virtual unsigned setVal(uint64_t     v, IndexRange *r=0);
+	virtual unsigned setVal(const char*  v, IndexRange *r=0);
+
+};
+
+class CDoubleVal_WOAdapt : public virtual IDoubleVal_WO, public virtual IIntEntryAdapt {
+public:
+	CDoubleVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+
+	virtual void     dbl2int(uint64_t *dst, double *src, unsigned n);
+	virtual void     dbl2dbl(double *dst, unsigned n);
+
+	virtual unsigned setVal(double      *p, unsigned n, IndexRange *r=0);
+	virtual unsigned setVal(double       v, IndexRange *r=0);
+};
+
+
+class CScalValAdapt : public virtual CScalVal_ROAdapt, public virtual CScalVal_WOAdapt, public virtual IScalVal {
 public:
 	CScalValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 };
+
+class CDoubleValAdapt : public virtual CDoubleVal_ROAdapt, public virtual CDoubleVal_WOAdapt, public virtual IDoubleVal {
+public:
+	CDoubleValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+};
+
 
 #endif

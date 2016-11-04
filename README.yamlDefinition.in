@@ -491,6 +491,16 @@ arbitrary length in bits (up to 64). IntField also supports arbitrary
 alignment within a byte, i.e., the bits that make up an IntField
 need not be byte-aligned (but the must be contiguous).
 
+In addition, IntField supports single- or double-precision IEEE-754
+floating-point numbers. Such numbers must have a length of exactly
+32 or 64 bits and marked with the `YAML_KEY_encoding` property
+set to `IEEE_754`. Bit-shift and endianness-conversion etc. are
+handled the in the same way as for integers ('enum' mappings as
+described below are not supported for floating-point entities).
+
+Note that if an entity has IEEE_754 encoding then it may only
+be accessed via the `DoubleVal`/`DoubleVal_RO` interfaces.
+
 Thus, IntFields are ideal to represent registers or bits thereof.
 
 Optionally, a list of 'enum' mappings can be associated with an IntField
@@ -508,11 +518,12 @@ IntField can be configured to a 'read-only' mode (statically defined by
 YAML - cannot be switched later) in which only `ScalVal_RO` and `DoubleVal_RO`
 are supported and values cannot be changed.
 
-An optional 'string-encoding' attribute can be defined for IntField
-which is passed to the user-application (CPSW does not use it internally).
+An optional 'encoding' attribute can be defined for IntField.
 
-This allows the user-application to properly decode numbers into
+This e.g., allows the user-application to properly decode numbers into
 strings if the underlying entity actually represents a character.
+The 'encoding' attribute is also used for registers containing
+floating-point numbers.
 
         myIntField:
           YAML_KEY_class: IntField           # *mandatory*
@@ -554,17 +565,17 @@ strings if the underlying entity actually represents a character.
             # Defaults to 0.
           YAML_KEY_wordSwap: <int>           # optional
 
-            # If this IntField represents a character then
-            # the encoding used by this IntField can be specified.
-            # This parameter is not used by CPSW proper but
-            # just passed on to the user.
+            # If this IntField represents a character or a
+			# floating-point number etc., then the encoding
+            # used by this IntField can be specified.
             # An automatically generated GUI, for example,
             # could use the encoding to detect strings and
             # display them correctly.
             #
             # Legal values include "NONE", "ASCII", "UTF_8",
-            # ISO_8859_1 among others (consult the API header
-            # for a complete list)
+            # "ISO_8859_1" among others (consult the API header
+            # for a complete list).
+			# Floating-point numbers use e.g., "IEEE_754".
             #
             # Defaults to NONE.
           YAML_KEY_encoding: <int>           # optional
@@ -617,12 +628,12 @@ It inherits all properties from IntField but overrides some
 of them (`YAML_KEY_sizeBits`, `YAML_KEY_lsBit`, `YAML_KEY_byteOrder`, `YAML_KEY_wordSwap`, `YAML_KEY_mode`).
 
 The type of the value retrieved from YAML is defined by the
-`YAML_KEY_encoding` and  `YAML_KEY_isDouble` properties.
+`YAML_KEY_encoding` property.
 
-If `YAML_KEY_encoding` is set to `ASCII` then the value is
-interpreted as a string; otherwise, if `YAML_KEY_isDouble` is
-`true` then it is interpreted as a `double` else as a 64-bit
-integer (honoring `YAML_KEY_isSigned`).
+If `YAML_KEY_encoding` is set to `ASCII` then the value is interpreted
+as a string; otherwise, if `YAML_KEY_encoding` equals `IEEE_754` then
+it is interpreted as a `double` else as a 64-bit integer
+(honoring `YAML_KEY_isSigned`).
 
 A 'Enum' menu with a single entry which maps a string to
 the numerical value is always attached to ConstIntField but
@@ -640,9 +651,9 @@ E.g., in the case of
 
         aDouble:
           YAML_KEY_class:    ConstIntField     # *mandatory*
-            # set to 'true' if the value is to be interpreted
+            # set to 'IEEE_754' if the value is to be interpreted
             # as a double.
-          YAML_KEY_isDouble: true              # *optional*
+          YAML_KEY_encoding: IEEE_754
           YAML_KEY_value:    3.141             # *mandatory*
 
 `aString`'s menu will map the value 0 to the string "Hello"

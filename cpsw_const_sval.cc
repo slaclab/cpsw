@@ -10,9 +10,8 @@
 #include <cpsw_const_sval.h>
 #include <cpsw_yaml.h>
 
-CConstIntEntryImpl::CConstIntEntryImpl(Key &k, const char *name, bool isSigned, bool isDouble, Enum enm)
+CConstIntEntryImpl::CConstIntEntryImpl(Key &k, const char *name, bool isSigned, Enum enm)
 : CIntEntryImpl(k, name, 64, isSigned, 0, RO, 0, enm),
-  isDouble_(isDouble),
   intVal_(0),
   doubleVal_(0.)
 {
@@ -32,11 +31,11 @@ Encoding     enc;
 std::string  stringVal;
 Enum         enm = getEnum();
 
-	readNode(n, YAML_KEY_isDouble, &isDouble_);
-
 	enc = getEncoding();
 
-	if ( IScalVal_Base::NONE != enc && IScalVal_Base::ASCII != enc ) {
+	if (   IScalVal_Base::NONE     != enc
+	    && IScalVal_Base::ASCII    != enc
+	    && IScalVal_Base::IEEE_754 != enc ) {
 		throw InvalidArgError("CConstIntEntryImpl: Unsupported encoding");
 	}
 
@@ -50,7 +49,6 @@ Enum         enm = getEnum();
 
 	if ( isString() ) {
 		setSigned  (k, false);
-		setIsDouble(k, false);
 		setSizeBits(k,     8);
 		if ( enm ) {
 			IEnum::Item item = enm->map( stringVal.c_str() );
@@ -62,7 +60,7 @@ Enum         enm = getEnum();
 	} else {
 		setSizeBits(k,    64);
 
-		if ( isDouble() ) {
+		if ( IScalVal_Base::IEEE_754 == getEncoding() ) {
 			readNode(n, YAML_KEY_value, &doubleVal_);
             setSigned(k, true);
 			intVal_ = (int64_t)doubleVal_;
@@ -92,8 +90,7 @@ Enum         enm = getEnum();
 void
 CConstIntEntryImpl::dumpYamlPart(YAML::Node &n) const
 {
-	writeNode(n, YAML_KEY_isDouble, isDouble_);
-	if ( isDouble() )
+	if ( IScalVal_Base::IEEE_754 == getEncoding() )
 		writeNode(n, YAML_KEY_value, doubleVal_);
 	else
 		writeNode(n, YAML_KEY_value, intVal_   );
@@ -113,12 +110,6 @@ CConstIntEntryImpl::loadMyConfigFromYaml(Path p, YAML::Node &n) const
 	throw ConfigurationError("This class doesn't implement 'loadMyConfigFromYaml'");
 }
 
-bool
-CConstIntEntryImpl::isDouble() const
-{
-	return isDouble_;
-}
-
 uint64_t
 CConstIntEntryImpl::getInt() const
 {
@@ -132,12 +123,6 @@ CConstIntEntryImpl::getDouble() const
 }
 
 
-void
-CConstIntEntryImpl::setIsDouble(Key &k, bool v)
-{
-	isDouble_ = v;
-}
-
 EntryAdapt
 CConstIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path path, const std::type_info &interfaceType) const
 {
@@ -149,7 +134,8 @@ CConstIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path path, const std::t
 
 CConstIntEntryAdapt::CConstIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
 : IIntEntryAdapt(k, p, ie),
-  CScalVal_ROAdapt(k, p, ie)
+  CScalVal_ROAdapt(k, p, ie),
+  CDoubleVal_ROAdapt(k, p, ie)
 {
 }
 

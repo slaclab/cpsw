@@ -1175,6 +1175,15 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Return a copy of the Path which was used to create this ScalVal."
 		)
+		.def("create",       &IVal_Base::create,
+			( arg("path") ),
+			"\n"
+			"Instantiate a 'Val_Base' interface at the endpoint identified by 'path'\n"
+			"\n"
+			"NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does\n"
+			"      not support this interface."
+		)
+		.staticmethod(			"create")
 	;
 
 	// wrap 'IScalVal_Base' interface
@@ -1207,12 +1216,14 @@ BOOST_PYTHON_MODULE(pycpsw)
 			( arg("self") ),
 			"\n"
 			"Return a string which describes the encoding if this ScalVal is\n"
-			"itself a string. Common encodings include 'ASCII', 'UTF_8\n"
+			"itself e.g., a string. Common encodings include 'ASCII', 'UTF_8\n"
 			"Custom encodings are also communicated as 'CUSTOM_<integer>'.\n"
 			"If this ScalVal is not a string then the encoding should be <None>\n"
 			"(i.e., the object None).\n\n"
 			"The encoding may e.g., be used to convert a numerical array into\n"
-			"a string by python (second argument to the str() constructor)."
+			"a string by python (second argument to the str() constructor).\n\n"
+			"The encoding 'IEEE_754' conveys that the ScalVal represents a\n"
+			"floating-point number.\n\n"
 		)
 		.def("getEnum",      &IScalVal_Base::getEnum,
 			( arg("self") ),
@@ -1222,6 +1233,15 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"An Enum object is a list of (str,int) tuples with associates strings\n",
 			"with numerical values."
 		)
+		.def("create",       &IScalVal_Base::create,
+			( arg("path") ),
+			"\n"
+			"Instantiate a 'ScalVal_Base' interface at the endpoint identified by 'path'\n"
+			"\n"
+			"NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does\n"
+			"      not support this interface."
+		)
+		.staticmethod(			"create")
 	;
 
 	// wrap 'IScalVal_RO' interface

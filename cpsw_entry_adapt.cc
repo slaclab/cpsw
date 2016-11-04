@@ -48,3 +48,9 @@ IEntryAdapt::~IEntryAdapt()
 
 	a->close( &it );
 }
+
+Val_Base
+IVal_Base::create(Path p)
+{
+	return IEntryAdapt::check_interface<Val_Base>( p );
+}

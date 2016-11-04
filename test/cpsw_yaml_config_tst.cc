@@ -52,6 +52,20 @@ static const char *yamlFmt=
 "            "YAML_KEY_at":\n"
 "              "YAML_KEY_offset": 0x100\n"
 "              "YAML_KEY_nelms":  8\n"
+"          val3:\n"
+"            "YAML_KEY_class":       IntField\n"
+"            "YAML_KEY_sizeBits":    32\n"
+"            "YAML_KEY_encoding":    IEEE_754\n"
+"            "YAML_KEY_at":\n"
+"              "YAML_KEY_offset": 0x200\n"
+"              "YAML_KEY_nelms":  8\n"
+"          val3i:\n"
+"            "YAML_KEY_class":       IntField\n"
+"            "YAML_KEY_sizeBits":    32\n"
+"            "YAML_KEY_instantiate": %s\n"
+"            "YAML_KEY_at":\n"
+"              "YAML_KEY_offset": 0x200\n"
+"              "YAML_KEY_nelms":  8\n"
 ;
 
 int main(int argc, char **argv)
@@ -73,9 +87,9 @@ try {
 	for ( unsigned pass = 0; pass < sizeof(passes)/sizeof(passes[0]); pass ++ ) {
 
 		char yaml[10000];
-		snprintf(yaml, sizeof(yaml), yamlFmt, passes[pass]);
+		snprintf(yaml, sizeof(yaml), yamlFmt, passes[pass], passes[pass]);
 
-		// during the second pass 'val2' is not instantiated
+		// during the second pass 'val2' and 'val3i' are not instantiated
 		Path top = IPath::loadYamlStream( yaml );
 		Hub    h = top->origin();
 
@@ -98,11 +112,21 @@ try {
 	
 			val1->setVal( v32, nelms );
 
-			ScalVal val2   = IScalVal::create( h->findByName("mmio/val2") );
+			ScalVal   val2   = IScalVal::create( h->findByName("mmio/val2")  );
+			ScalVal   val3i  = IScalVal::create( h->findByName("mmio/val3i") );
 
 			val2Size       = val2->getNelms() * ((val2->getSizeBits() + 7 )/8);
 
-			val2->setVal( (uint64_t)0 );
+			union {
+				float    f;
+				uint32_t u;
+			} uu;
+
+			uu.f = 8.5;
+
+			val3i->setVal( uu.u );
+
+			val2->setVal( (uint64_t) 0x00000000 );
 		} else {
 			top->loadConfigFromYaml( cnfg );	
 		}
@@ -121,7 +145,23 @@ try {
 			}
 		}
 
+		DoubleVal val3   = IDoubleVal::create( h->findByName("mmio/val3")  );
+		double    dv3[ val3->getNelms() ];
+		val3->getVal( dv3, val3->getNelms() );
+		for ( unsigned i=0; i<val3->getNelms(); i++ ) {
+			if ( dv3[i] != 8.5 ) {
+				throw TestFailed("v3 readback");
+			}
+		}
+
+			
+
 		top->dumpConfigToYaml( cnfg );
+{
+YAML::Emitter e;
+e << cnfg;
+std::cout << e.c_str() << "\n";
+}
 		if ( 1 == pass ) {
 			// 'val2' should not be present
 			YAML::const_iterator it( cnfg[0]["mmio"].begin() );

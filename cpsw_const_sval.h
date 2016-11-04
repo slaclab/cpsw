@@ -23,11 +23,10 @@ class CConstIntEntryImpl : public CIntEntryImpl {
 public:
 	static const bool DFLT_IS_DOUBLE = false;
 private:
-	bool               isDouble_;
 	uint64_t           intVal_;
     double             doubleVal_;
 public:
-	CConstIntEntryImpl(Key &k, const char *name, bool isSigned = DFLT_IS_SIGNED, bool isDouble = DFLT_IS_DOUBLE, Enum enm = Enum());
+	CConstIntEntryImpl(Key &k, const char *name, bool isSigned = DFLT_IS_SIGNED, Enum enm = Enum());
 
 	CConstIntEntryImpl(Key &k, YamlState &n);
 
@@ -41,7 +40,6 @@ public:
 
 	CConstIntEntryImpl(const CConstIntEntryImpl &orig, Key &k)
 	:CIntEntryImpl(orig, k),
-	 isDouble_(orig.isDouble_),
 	 intVal_(orig.intVal_ ),
 	 doubleVal_(orig.doubleVal_)
 	{
@@ -49,20 +47,15 @@ public:
 
 	virtual CConstIntEntryImpl *clone(Key &k)   { return new CConstIntEntryImpl( *this, k ); }
 
-	virtual bool     isDouble()       const;
-
 	virtual bool     isString()       const;
 
 	virtual double   getDouble()      const;
 	virtual uint64_t getInt()         const;
 
-	// setters can only be used from constructors
-	virtual void     setIsDouble  (Key &k, bool     v);
-
 	virtual EntryAdapt createAdapter(IEntryAdapterKey &, Path, const std::type_info&) const;
 };
 
-class CConstIntEntryAdapt : public CScalVal_ROAdapt {
+class CConstIntEntryAdapt : public virtual CScalVal_ROAdapt, public virtual CDoubleVal_ROAdapt {
 public:
 	CConstIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 

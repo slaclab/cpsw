@@ -29,31 +29,56 @@ const int CIntEntryImpl::DFLT_CONFIG_PRIO_RW;
 class CStreamAdapt;
 typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
-template <typename EL, typename VL> class Vals {
+template <typename EL> class TmpBuf {
 private:
-	EL          *vals_;
-	unsigned     nelms_;
+    size_t     nelms_;
+	bool       onStack_;
+	EL        *buff_;
 
-	static const unsigned STACK_BREAK = 1024*100;
+	static const size_t STACK_BREAK = 4096*10;
 
 public:
+	size_t getNelms() const
+	{
+		return nelms_;
+	}
+
+	EL *getBufp()
+	{
+		return buff_;
+	}
+
+	EL & operator[](size_t i)
+	{
+		return buff_[i];
+	}
+
+	~TmpBuf()
+	{
+		if ( ! onStack_ && buff_ )
+			delete [] buff_;
+	}
+
+	TmpBuf(size_t nelms)
+	: nelms_( nelms ),
+	  onStack_ ( nelms > STACK_BREAK ),
+	  buff_( onStack_ ? static_cast<EL*>( alloca( sizeof(EL) * nelms_ ) ) : new EL[nelms_] )
+	{
+	}
+};
+
+template <typename EL, typename VL> class Vals : public TmpBuf<EL> {
+public:
 	Vals(unsigned nelms)
-	: vals_( nelms*sizeof(EL) > STACK_BREAK ? new EL[nelms] : NULL ),
-	  nelms_( nelms )
+	: TmpBuf<EL>( nelms )
 	{
 	}
 
-	unsigned getNelms() { return nelms_; }
-	EL      *getValp()  { return vals_;  }
-
 	unsigned setVal(CScalVal_WOAdapt *scalValAdapt, IndexRange *r, VL v)
 	{
-	EL onStack[ vals_ ? 0 : nelms_ ];
-	EL *valp = vals_ ? vals_ : onStack;
-
-		for ( unsigned i = 0; i<nelms_; i++ )
-			valp[i] = (EL)v;
-		return scalValAdapt->setVal( valp, nelms_, r );
+		for ( unsigned i = 0; i< TmpBuf<EL>::getNelms(); i++ )
+			(*this)[i] = (EL)v;
+		return scalValAdapt->setVal( TmpBuf<EL>::getBufp(), TmpBuf<EL>::getNelms(), r );
 	}
 
 	unsigned getVal(CScalVal_ROAdapt *scalValAdapt, VL *v_p, IndexRange *r);
@@ -61,48 +86,8 @@ public:
 
 	~Vals()
 	{
-		delete [] vals_;
 	}
 };
-
-template <> unsigned Vals<uint64_t, double>::setVal(CScalVal_WOAdapt *scalValAdapt, IndexRange *r, double v)
-{
-Vals<double, double>  dblVal(nelms_);
-uint64_t onStackInt[ vals_ ? 0 : nelms_ ];
-double   onStackDbl[ dblVal.getValp() ? 0 : nelms_ ];
-uint64_t *intp = vals_            ? vals_ : onStackInt;
-double   *dblp = dblVal.getValp() ? dblVal.getValp() : onStackDbl;
-
-	for ( unsigned i=0; i<nelms_; i++ )
-		dblp[i] = v;
-
-	scalValAdapt->dbl2int(intp, dblp, nelms_);
-
-	return scalValAdapt->setVal(intp, nelms_, r);
-}
-
-template <> unsigned Vals<uint64_t, double>::getVal(CScalVal_ROAdapt *scalValAdapt, double *v_p, IndexRange *r)
-{
-	uint64_t onStack[ vals_ ? 0 : nelms_ ];
-	uint64_t *valp = vals_ ? vals_ : onStack;
-	unsigned got;
-
-	got = scalValAdapt->getVal( valp, nelms_, r );
-
-	scalValAdapt->int2dbl(v_p, valp, got);
-
-	return got;
-}
-
-template <> unsigned Vals<uint64_t, double>::setVal(CScalVal_WOAdapt *scalValAdapt, IndexRange *r, double *v_p)
-{
-uint64_t onStack[ vals_ ? 0 : nelms_ ];
-uint64_t *valp = vals_ ? vals_ : onStack;
-
-	scalValAdapt->dbl2int(valp, v_p, nelms_);
-
-	return scalValAdapt->setVal( valp, nelms_, r );
-}
 
 static uint64_t b2B(uint64_t bits)
 {
@@ -149,9 +134,27 @@ unsigned byteSize = b2B(sizeBits_);
 		throw InvalidArgError("Word-swap only supported if size % 8 == 0");
 	}
 
-	/* Encoding is not currently used by CPSW itself; just a hint for others;
-	 * thus, don't check.
-	 */
+	if ( IScalVal_Base::NONE != encoding_ ) {
+		if (   IScalVal_Base::ASCII  == encoding_
+			|| IScalVal_Base::EBCDIC == encoding_
+			|| IScalVal_Base::UTF_8  == encoding_
+			|| (IScalVal_Base::ISO_8859_1 <= encoding_ && IScalVal_Base::ISO_8859_16 >= encoding_) ) {
+			if ( sizeBits_ != 8 )
+				throw InvalidArgError("Character encoding expects 8-bit characters");
+		} else if ( IScalVal_Base::UTF_16 == encoding_ ) {
+			if ( sizeBits_ != 16 )
+				throw InvalidArgError("UTF_16 encoding expects 16-bit characters");
+		} else if ( IScalVal_Base::UTF_32 == encoding_ ) {
+			if ( sizeBits_ != 32 )
+				throw InvalidArgError("UTF_32 encoding expects 32-bit characters");
+		} else if ( IScalVal_Base::IEEE_754 == encoding_ ) {
+			if ( sizeBits_ != 32 && sizeBits_ != 64 )
+				throw InvalidArgError("IEEE_754 encoding expects 32- or 64-bit numbers");
+			if ( enum_ )
+				throw InvalidArgError("IEEE_754 encoding doesn't support enums");
+			isSigned_ = true;
+		}
+	}
 
 	configBase_ = checkConfigBase( configBase_ );
 	size_       = computeSize(wordSwap_, sizeBits_, lsBit_);
@@ -350,16 +353,34 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 EntryAdapt
 CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
 {
-	if ( isInterface<ScalVal>(interfaceType) || isInterface<DoubleVal>(interfaceType) ) {
+	if ( isInterface<Val_Base>(interfaceType) || isInterface<ScalVal_Base>(interfaceType) ) {
+		return _createAdapter< shared_ptr<IIntEntryAdapt> >(this, p);
+	} else if ( isInterface<ScalVal>(interfaceType) ) {
 		if ( getMode() != RW ) {
-			throw InterfaceNotImplementedError("ScalVal/Double interface not supported (read- or write-only)");
+			throw InterfaceNotImplementedError("ScalVal interface not supported (read- or write-only)");
+		}
+		if ( IScalVal_Base::IEEE_754 == getEncoding() ) {
+			throw InterfaceNotImplementedError("ScalVal interface not supported (IEEE_754 encoding)");
 		}
 		return _createAdapter<ScalValAdapt>(this, p);
-	} else if ( isInterface<ScalVal_RO>(interfaceType) || isInterface<DoubleVal_RO>(interfaceType) ) {
+	} else if ( isInterface<DoubleVal>(interfaceType) ) {
+		if ( getMode() != RW ) {
+			throw InterfaceNotImplementedError("Double interface not supported (read- or write-only)");
+		}
+		return _createAdapter<DoubleValAdapt>(this, p);
+	} else if ( isInterface<ScalVal_RO>(interfaceType) ) {
 		if ( getMode() == WO ) {
-			throw InterfaceNotImplementedError("ScalVal_RO/Double_RO interface not supported (write-only)");
+			throw InterfaceNotImplementedError("ScalVal_RO interface not supported (write-only)");
+		}
+		if ( IScalVal_Base::IEEE_754 == getEncoding() ) {
+			throw InterfaceNotImplementedError("ScalVal interface not supported (IEEE_754 encoding)");
 		}
 		return _createAdapter<ScalVal_ROAdapt>(this, p);
+	} else if ( isInterface<DoubleVal_RO>(interfaceType) ) {
+		if ( getMode() == WO ) {
+			throw InterfaceNotImplementedError("Double_RO interface not supported (write-only)");
+		}
+		return _createAdapter<DoubleVal_ROAdapt>(this, p);
 	}
 #if 0
 	// without caching and bit-level access at the SRP protocol level we cannot
@@ -386,7 +407,18 @@ CScalValAdapt::CScalValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
 {
 }
 
+CDoubleValAdapt::CDoubleValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+	: IIntEntryAdapt(k, p, ie), CDoubleVal_ROAdapt(k, p, ie), CDoubleVal_WOAdapt(k, p, ie)
+{
+}
+
+
 CScalVal_ROAdapt::CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+	: IIntEntryAdapt(k, p, ie)
+{
+}
+
+CDoubleVal_ROAdapt::CDoubleVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(k, p, ie)
 {
 }
@@ -394,6 +426,17 @@ CScalVal_ROAdapt::CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImp
 CScalVal_WOAdapt::CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(k, p, ie)
 {
+}
+
+CDoubleVal_WOAdapt::CDoubleVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+	: IIntEntryAdapt(k, p, ie)
+{
+}
+
+
+ScalVal_Base IScalVal_Base::create(Path p)
+{
+	return IEntryAdapt::check_interface<ScalVal_Base>( p );
 }
 
 DoubleVal_RO IDoubleVal_RO::create(Path p)
@@ -583,7 +626,7 @@ public:
 };
 
 void
-CScalVal_ROAdapt::int2dbl(double *dst, uint64_t *src, unsigned nelms)
+CDoubleVal_ROAdapt::int2dbl(double *dst, uint64_t *src, unsigned nelms)
 {
 	if ( isSigned() ) {
 		for ( unsigned i = 0; i<nelms; i++ )
@@ -595,7 +638,18 @@ CScalVal_ROAdapt::int2dbl(double *dst, uint64_t *src, unsigned nelms)
 }
 
 void
-CScalVal_WOAdapt::dbl2int(uint64_t *dst, double *src, unsigned nelms)
+CDoubleVal_ROAdapt::dbl2dbl(double *srcdst, unsigned nelms)
+{
+}
+
+void
+CDoubleVal_WOAdapt::dbl2dbl(double *srcdst, unsigned nelms)
+{
+}
+
+
+void
+CDoubleVal_WOAdapt::dbl2int(uint64_t *dst, double *src, unsigned nelms)
 {
 	if ( isSigned() ) {
 		for ( unsigned i = 0; i<nelms; i++ )
@@ -606,7 +660,7 @@ CScalVal_WOAdapt::dbl2int(uint64_t *dst, double *src, unsigned nelms)
 	}
 }
 
-unsigned CScalVal_ROAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
+unsigned IIntEntryAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
 {
 SlicedPathIterator it( p_, range );
 
@@ -632,11 +686,9 @@ unsigned         nelmsOnPath  = it.getNelmsLeft();
 	else
 		ibuf_nchars = 0;
 
-	// FIXME: allocating temp. buffer on the stack is efficient
-	//        but very large requests should be broken up
-	uint8_t ibuf[ibuf_nchars];
+	TmpBuf<uint8_t> ibuf( ibuf_nchars );
 
-	uint8_t *ibufp = ibuf_nchars ? ibuf : buf;
+	uint8_t *ibufp = ibuf_nchars ? ibuf.getBufp() : buf;
 	uint8_t *obufp = buf;
 
 	if ( dbytes > sbytes ) {
@@ -700,7 +752,7 @@ unsigned         nelmsOnPath  = it.getNelmsLeft();
 		for ( n = nelms-1; n >= 0; n--, oidx += oinc, iidx += iinc ) {
 
 			if ( targetEndian != hostEndian ) {
-				byteSwap.work(ibufp + iidx);
+				byteSwap.work( ibufp + iidx );
 			}
 
 			if ( lsb != 0 ) {
@@ -735,13 +787,11 @@ unsigned         nelmsOnPath  = it.getNelmsLeft();
 
 unsigned CScalVal_ROAdapt::getVal(CString *strs, unsigned nelms, IndexRange *range)
 {
-// FIXME: allocating temp. buffer on the stack is efficient
-//        but very large requests should be broken up
-uint64_t buf[nelms];
-unsigned got,i;
-Enum     enm = getEnum();
+TmpBuf<uint64_t> buf(nelms);
+unsigned         got,i;
+Enum             enm = getEnum();
 
-	got = getVal(buf, nelms, range);
+	got = getVal(buf.getBufp(), nelms, range);
 
 	if ( enm ) {
 		for ( i=0; i < got; i++ ) {
@@ -763,10 +813,29 @@ Enum     enm = getEnum();
 	return got;
 }
 
-unsigned CScalVal_ROAdapt::getVal(double *buf, unsigned nelms, IndexRange *range)
+unsigned CDoubleVal_ROAdapt::getVal(double *buf, unsigned nelms, IndexRange *range)
 {
-Vals<uint64_t, double> vals( nelms );
-	return vals.getVal( this, buf, range );
+unsigned rval;
+
+	if ( IScalVal_Base::IEEE_754 == getEncoding() ) {
+		if ( 64 == getSizeBits() ) {
+			rval = IIntEntryAdapt::getVal<double>( buf, nelms, range );
+		} else {
+			TmpBuf<float> tmpBuf( nelms );
+			rval = IIntEntryAdapt::getVal<float>( tmpBuf.getBufp(), nelms, range );
+			for ( unsigned i=0; i<nelms; i++ ) {
+				buf[i] = (double)tmpBuf[i];
+			}
+		}
+	} else {
+		TmpBuf<uint64_t> tmpBuf( nelms );
+		rval = IIntEntryAdapt::getVal<uint64_t>( tmpBuf.getBufp(), nelms, range );
+		int2dbl( buf, tmpBuf.getBufp(), nelms );
+	}
+
+	dbl2dbl( buf, nelms );
+
+	return rval;
 }
 
 #ifdef SVAL_DEBUG
@@ -780,7 +849,7 @@ for (int i=0; i<9; i++ ) {
 }
 #endif
 
-unsigned CScalVal_WOAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
+unsigned IIntEntryAdapt::setVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
 {
 SlicedPathIterator   it( p_, range );
 Address          cl = it->c_p_;
@@ -813,12 +882,10 @@ unsigned         nelmsOnPath = it.getNelmsLeft();
 
 	size_t  obuf_nchars = need_work ? dbytes * nelms : 0;
 
-	// FIXME: allocating temp. buffer on the stack is efficient
-	//        but very large requests should be broken up
-	uint8_t obuf[obuf_nchars];
+	TmpBuf<uint8_t> obuf( obuf_nchars );
 
 	uint8_t *ibufp = buf;
-	uint8_t *obufp = need_work ? obuf : buf;
+	uint8_t *obufp = need_work ? obuf.getBufp() : buf;
 
 
 	if ( need_work ) {
@@ -923,11 +990,9 @@ prib("byte-swapped", obufp + oidx);
 
 unsigned CScalVal_WOAdapt::setVal(const char* *strs, unsigned nelms, IndexRange *range)
 {
-// FIXME: allocating temp. buffer on the stack is efficient
-//        but very large requests should be broken up
-uint64_t buf[nelms];
-unsigned i;
-Enum     enm = getEnum();
+TmpBuf<uint64_t> buf( nelms );
+unsigned         i;
+Enum             enm = getEnum();
 
 	if ( enm ) {
 		for ( i=0; i<nelms; i++ ) {
@@ -937,13 +1002,13 @@ Enum     enm = getEnum();
 	} else {
 		const char *fmt = isSigned() ? "%"SCNi64 : "%"SCNu64;
 		for ( i=0; i<nelms; i++ ) {
-			if ( 1 != sscanf(strs[i],fmt,&buf[i]) ) {
+			if ( 1 != sscanf(strs[i], fmt, &buf[i]) ) {
 				throw ConversionError("CScalVal_RO::setVal -- unable to scan string into number");
 			}
 		}
 	}
 
-	return setVal(buf, nelms, range);
+	return setVal(buf.getBufp(), nelms, range);
 }
 
 
@@ -954,16 +1019,55 @@ Vals<const char*, const char *> vals(nelms);
 	return vals.setVal(this, range, v);
 }
 
-unsigned CScalVal_WOAdapt::setVal(double *buf, unsigned nelms, IndexRange *range)
+unsigned CDoubleVal_WOAdapt::setVal(double *buf, unsigned nelms, IndexRange *range)
 {
-Vals<uint64_t, double> vals( nelms );
-	return vals.setVal(this, range, buf);
+unsigned rval;
+
+	dbl2dbl( buf, nelms );
+
+	if ( IScalVal_Base::IEEE_754 == getEncoding() ) {
+		if ( 64 == getSizeBits() ) {
+			rval = IIntEntryAdapt::setVal<double>( buf, nelms, range );
+		} else {
+			TmpBuf<float> tmpBuf( nelms );
+			for ( unsigned i=0; i<nelms; i++ ) {
+				tmpBuf[i] = (float)buf[i];
+			}
+			rval = IIntEntryAdapt::setVal<float>( tmpBuf.getBufp(), nelms, range );
+		}
+	} else {
+		TmpBuf<uint64_t> tmpBuf( nelms );
+		dbl2int( tmpBuf.getBufp(), buf, nelms );
+		rval = IIntEntryAdapt::setVal<uint64_t>( tmpBuf.getBufp(), nelms, range );
+	}
+
+	return rval;
 }
 
-unsigned CScalVal_WOAdapt::setVal(double v, IndexRange *range)
+unsigned CDoubleVal_WOAdapt::setVal(double v, IndexRange *range)
 {
-Vals<uint64_t, double> vals( nelmsFromIdx(range) );
-	return vals.setVal(this, range, v);
+TmpBuf<uint64_t> buf( nelmsFromIdx( range ) );
+uint64_t         lu;
+
+	dbl2dbl( &v, 1 );
+
+	if ( IScalVal_Base::IEEE_754 == getEncoding() ) {
+		if ( 32 == getSizeBits() ) {
+			float    f = (float)v;
+			uint32_t u;
+			memcpy( &u, &f, sizeof(u) );
+
+			lu = (uint64_t)u;
+		} else {
+			memcpy( &lu, &v, sizeof(lu) );
+		}
+	} else {
+		dbl2int( &lu, &v, 1 );
+	}
+	for ( unsigned i = 0; i < buf.getNelms(); i++ ) {
+		buf[i] = lu;
+	}
+	return IIntEntryAdapt::setVal<uint64_t>( buf.getBufp(), buf.getNelms(), range );
 }
 
 unsigned CScalVal_WOAdapt::setVal(uint64_t  v, IndexRange *r)
@@ -986,25 +1090,46 @@ unsigned nelms = nelmsFromIdx(r);
 	}
 }
 
+typedef union VU_ {
+	double   d;
+	uint64_t u;
+} VU;
+
 YAML::Node
 CIntEntryImpl::dumpMyConfigToYaml(Path p) const
 {
 	if ( WO != getMode() ) {
-		ScalVal_RO val( IScalVal_RO::create( p ) );
-		unsigned   nelms = val->getNelms();
-		uint64_t   u64[ nelms ];
-		unsigned   i;
+		ScalVal_Base bas( IScalVal_Base::create( p ) );
+		unsigned     nelms = bas->getNelms();
 
 		if ( nelms == 0 )
 			return YAML::Node( YAML::NodeType::Undefined );
 
-		if ( nelms != val->getVal( u64, nelms ) ) {
+		TmpBuf<VU>   valBuf( nelms );
+
+		unsigned     got;
+		unsigned     i;
+
+		bool         isFloat;
+
+		if ( (isFloat = (IScalVal_Base::IEEE_754 == getEncoding())) ) {
+			DoubleVal_RO val( IDoubleVal_RO::create( p ) );
+			got = val->getVal( & valBuf[0].d, nelms );
+		} else {
+			ScalVal_RO val( IScalVal_RO::create( p ) );
+			got = val->getVal( & valBuf[0].u, nelms );
+		}
+
+		if ( nelms != got ) {
 			throw ConfigurationError("CIntEntryImpl::dumpMyConfigToYaml -- unexpected number of elements read");
 		}
 
-		// check if all values are identical
+
+		// check if all values are identical - just do comparison of the bit pattern
+		// (since Nan == Nan is false we would end up writing unnecessary stuff)
+		uint64_t u0 = valBuf[0].u;
 		for ( i=nelms-1; i>0; i-- ) {
-			if ( u64[0] != u64[i] )
+			if ( u0 != valBuf[i].u )
 				break;
 		}
 
@@ -1022,15 +1147,20 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p) const
 			// must save full array;
 			YAML::Node n( YAML::NodeType::Sequence );
 
-			if ( enum_ ) {
+			if ( isFloat ) {
 				for ( i=0; i<nelms; i++ ) {
-					n.push_back( *(enum_->map( u64[i] ).first) );
+					n.push_back( valBuf[i].d );
+				}
+			} else if ( enum_ ) {
+				for ( i=0; i<nelms; i++ ) {
+					n.push_back( *(enum_->map( valBuf[i].u ).first) );
 				}
 			} else {
 				char cbuf[66];
+
 				for ( i=0; i<nelms; i++ ) {
 					// yaml-cpp dumps integers in decimal representation
-					::snprintf(cbuf, sizeof(cbuf), fmt, field_width, u64[i]);
+					::snprintf(cbuf, sizeof(cbuf), fmt, field_width, valBuf[i].u);
 					n.push_back( cbuf );
 				}
 			}
@@ -1038,11 +1168,14 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p) const
 		} else {
 			// can save single value
 			YAML::Node n( YAML::NodeType::Scalar );
-			if ( enum_ ) {
-				n = *enum_->map( u64[0] ).first;
+
+			if ( isFloat ) {
+				n = valBuf[0].d;
+			} else if ( enum_ ) {
+				n = *enum_->map( valBuf[0].u ).first;
 			} else {
 				char cbuf[66];
-				::snprintf(cbuf, sizeof(cbuf), fmt, field_width, u64[0]);
+				::snprintf(cbuf, sizeof(cbuf), fmt, field_width, valBuf[0].u);
 				n = cbuf;
 			}
 			return n;
@@ -1084,32 +1217,50 @@ unsigned nelms, i;
 		nelms = p->getNelms();
 	}
 
-	uint64_t u64[nelms];
-
-	ScalVal val( IScalVal::create(p) );
+	bool isFloat = (IScalVal_Base::IEEE_754 == getEncoding());
 
 	if ( n.IsScalar() ) {
-		if ( enum_ ) {
+		double   d;
+		uint64_t u;
+		if ( isFloat ) {
+			d   = n.as<double>();
+		} else if ( enum_ ) {
 			const std::string &nam = n.as<std::string>();
-			u64[0] = enum_->map( nam.c_str() ).second;
+			u = enum_->map( nam.c_str() ).second;
 		} else {
-			u64[0] = n.as<uint64_t>();
+			u = n.as<uint64_t>();
 		}
-		val->setVal( u64[0] );
+		if ( isFloat ) {
+			DoubleVal val = IDoubleVal::create( p );
+			val->setVal( d );
+		} else {
+			ScalVal val = IScalVal::create( p );
+			val->setVal( u );
+		}
 	} else {
-		if ( enum_ ) {
+		TmpBuf<VU> valBuf( nelms );
+		if ( isFloat ) {
+			for ( i=0; i<nelms; i++ ) {
+				valBuf[i].d = n[i].as<double>();
+			}
+		} else if ( enum_ ) {
 			for ( i=0; i<nelms; i++ ) {
 				const std::string &nam = n[i].as<std::string>();
-				u64[i] = enum_->map( nam.c_str() ).second;
+				valBuf[i].u = enum_->map( nam.c_str() ).second;
 			}
 		} else {
 			for ( i=0; i<nelms; i++ ) {
-				u64[i] = n[i].as<uint64_t>();
+				valBuf[i].u = n[i].as<uint64_t>();
 			}
 		}
-		val->setVal( u64, nelms );
+		if ( isFloat ) {
+			DoubleVal val = IDoubleVal::create( p );
+			val->setVal( &valBuf[0].d, nelms );
+		} else {
+			ScalVal val = IScalVal::create( p );
+			val->setVal( &valBuf[0].u, nelms );
+		}
 	}
-
 }
 
 

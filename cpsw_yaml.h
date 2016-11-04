@@ -302,6 +302,8 @@ namespace YAML {
 					rhs = IScalVal_Base::UTF_16;
 				else if ( str.compare( "UTF_32" ) == 0 )
 					rhs = IScalVal_Base::UTF_32;
+				else if ( str.compare( "IEEE_754" ) == 0 )
+					rhs = IScalVal_Base::IEEE_754;
 				else if ( 1 == ::sscanf( str.c_str(), "ISO_8859_%d", &num ) && num >=1 && num <=16 )
 					rhs = static_cast<IScalVal_Base::Encoding>( IScalVal_Base::ISO_8859_1 + num - 1 );
 				else if ( 1 == ::sscanf( str.c_str(), "CUSTOM_%i", &num ) )
@@ -327,6 +329,8 @@ namespace YAML {
 						return std::string("UTF_16");
 					else if ( IScalVal_Base::UTF_32 == rhs )
 						return std::string("UTF_32");
+					else if ( IScalVal_Base::IEEE_754 == rhs )
+						return std::string("IEEE_754");
 					else if ( IScalVal_Base::ISO_8859_1 <= rhs && IScalVal_Base::ISO_8859_16 >= rhs ) {
 						char buf[100];
 						snprintf(buf, sizeof(buf), "ISO_8859_%d", (unsigned)rhs - IScalVal_Base::ISO_8859_1 + 1);

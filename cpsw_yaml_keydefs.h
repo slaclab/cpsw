@@ -32,7 +32,6 @@
 #define YAML_KEY_instantiate  "instantiate"
 #define YAML_KEY_ipAddr  "ipAddr"
 #define YAML_KEY_isSigned  "isSigned"
-#define YAML_KEY_isDouble  "isDouble"
 #define YAML_KEY_ldFragWinSize  "ldFragWinSize"
 #define YAML_KEY_ldFrameWinSize  "ldFrameWinSize"
 #define YAML_KEY_lsBit  "lsBit"
