@@ -128,7 +128,11 @@ try {
 
 			val2->setVal( (uint64_t) 0x00000000 );
 		} else {
-			top->loadConfigFromYaml( cnfg );	
+			uint64_t got;
+			if ( 16 != (got = top->loadConfigFromYaml( cnfg )) ) {
+				printf("got %ld\n", got);
+				throw TestFailed("Unexpected number of config values loaded");
+			}
 		}
 
 		// verify values
@@ -155,8 +159,15 @@ try {
 		}
 
 			
+		{
+		uint64_t put;
 
-		top->dumpConfigToYaml( cnfg );
+			put = top->dumpConfigToYaml( cnfg );
+			if ( ! ( (0 == pass && 32 == put) || (1 == pass && 16 == put)) ) {
+				printf("Put %ld (pass %d)\n", put, pass);
+				throw TestFailed("Unexpected number of config elements dumped");
+			}
+		}
 {
 YAML::Emitter e;
 e << cnfg;

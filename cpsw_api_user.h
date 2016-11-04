@@ -263,9 +263,11 @@ public:
 	 * each entry).
 	 * This helps creating a configuration file for the first
 	 * time.
+	 *
+	 * RETURNS: number of entries saved/loaded
 	 */
-	virtual void        dumpConfigToYaml (YAML::Node   &tmplt)   const = 0;
-	virtual void        loadConfigFromYaml(YAML::Node  &config)  const = 0;
+	virtual uint64_t    dumpConfigToYaml (YAML::Node   &tmplt)   const = 0;
+	virtual uint64_t    loadConfigFromYaml(YAML::Node  &config)  const = 0;
 
 	// create a path
 	static  Path        create();             // absolute; starting at root

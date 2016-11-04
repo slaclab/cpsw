@@ -35,8 +35,8 @@ public:
 
 	virtual void dumpYamlPart(YAML::Node &n) const;
 
-	virtual YAML::Node dumpMyConfigToYaml(Path p)                  const;
-	virtual void       loadMyConfigFromYaml(Path p, YAML::Node &n) const;
+	virtual uint64_t dumpMyConfigToYaml(Path p, YAML::Node &n) const;
+	virtual uint64_t loadMyConfigFromYaml(Path p, YAML::Node &n) const;
 
 	CConstIntEntryImpl(const CConstIntEntryImpl &orig, Key &k)
 	:CIntEntryImpl(orig, k),

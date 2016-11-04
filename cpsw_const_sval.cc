@@ -97,14 +97,15 @@ CConstIntEntryImpl::dumpYamlPart(YAML::Node &n) const
 	// If it was a string then string is saved as an enum
 }
 
-YAML::Node
-CConstIntEntryImpl::dumpMyConfigToYaml(Path p) const
+uint64_t
+CConstIntEntryImpl::dumpMyConfigToYaml(Path p, YAML::Node &n) const
 {
 	// caller should ignore this node
-	return YAML::Node( YAML::NodeType::Undefined );
+	n = YAML::Node( YAML::NodeType::Undefined );
+	return 0;
 }
 
-void
+uint64_t
 CConstIntEntryImpl::loadMyConfigFromYaml(Path p, YAML::Node &n) const
 {
 	throw ConfigurationError("This class doesn't implement 'loadMyConfigFromYaml'");

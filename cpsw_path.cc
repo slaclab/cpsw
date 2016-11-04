@@ -141,16 +141,16 @@ public:
 
 	virtual void        explore(IPathVisitor *) const;
 
-	virtual void        processYamlConfig(YAML::Node &, bool) const;
+	virtual uint64_t    processYamlConfig(YAML::Node &, bool) const;
 
-	virtual void        dumpConfigToYaml(YAML::Node &node)    const
+	virtual uint64_t    dumpConfigToYaml(YAML::Node &node)    const
 	{
-		processYamlConfig( node, true );
+		return processYamlConfig( node, true );
 	}
 
-	virtual void        loadConfigFromYaml(YAML::Node &node)  const
+	virtual uint64_t    loadConfigFromYaml(YAML::Node &node)  const
 	{
-		processYamlConfig( node, false );
+		return processYamlConfig( node, false );
 	}
 
 	virtual ~CPathImpl();
@@ -722,16 +722,16 @@ CPathImpl::explore_r(struct explorer_ctxt *ctxt)
 	ctxt->visitor->visitPost( ctxt->here );
 }
 
-void
+uint64_t
 CPathImpl::processYamlConfig(YAML::Node &template_node, bool doDump) const
 {
 	if ( empty() ) {
 		if ( ! originDev_ ) {
 			throw InvalidPathError("dumpConfigToYaml() called on an empty Path");
 		}
-		originDev_->processYamlConfig( clone(), template_node, doDump );
+		return originDev_->processYamlConfig( clone(), template_node, doDump );
 	} else {
-		back().c_p_->getEntryImpl()->processYamlConfig( clone(), template_node, doDump );
+		return back().c_p_->getEntryImpl()->processYamlConfig( clone(), template_node, doDump );
 	}
 }
 

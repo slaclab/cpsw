@@ -423,9 +423,11 @@ MyChildren::iterator it;
 	return rval;
 }
 
-void CDevImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
+uint64_t
+CDevImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 {
-const char *job = doDump ? "'dump'" : "'load'";
+const char *job  = doDump ? "'dump'" : "'load'";
+uint64_t    rval = 0;
 
 	if ( !n || n.IsNull() ) {
 		// new node, i.e., first time config
@@ -442,7 +444,7 @@ const char *job = doDump ? "'dump'" : "'load'";
 		// a subclass may and override 'dumpYamlConfig()/loadYamlConfig()'.
 		// Such settings would end up in the 'self' node.
 		YAML::Node self;
-		CEntryImpl::processYamlConfig( p, self, doDump );
+		rval += CEntryImpl::processYamlConfig( p, self, doDump );
 		if ( self && ! self.IsNull() ) {
 			// only save 'self' if there is anything...
 			n.push_back(self);
@@ -460,7 +462,7 @@ const char *job = doDump ? "'dump'" : "'load'";
 			IPathImpl::toPathImpl( p )->append( a, 0, a->getNelms() - 1 );
 
 			// dump child into the 'child' node
-			a->getEntryImpl()->processYamlConfig( p, child, doDump );
+			rval += a->getEntryImpl()->processYamlConfig( p, child, doDump );
 
 			if ( child && ! child.IsNull() ) {
 				// they actually put something there;
@@ -492,7 +494,7 @@ const char *job = doDump ? "'dump'" : "'load'";
 				// If this node has a 'value' tag then that means that the
 				// node contains settings for *this* device (see above).
 				// A subclass of CDevImpl may want to load/save state here...
-				CEntryImpl::processYamlConfig( p, child, doDump );
+				rval += CEntryImpl::processYamlConfig( p, child, doDump );
 			} else {
 				YAML::Mark mrk( child.Mark() );
 				// no 'value' tag; this means that the child must be a map
@@ -521,9 +523,9 @@ const char *job = doDump ? "'dump'" : "'load'";
 					p->append( descendant );
 
 					if ( doDump )
-						p->dumpConfigToYaml( item->second );
+						rval += p->dumpConfigToYaml( item->second );
 					else
-						p->loadConfigFromYaml( item->second );
+						rval += p->loadConfigFromYaml( item->second );
 
 					int i = descendant->size();
 
@@ -544,4 +546,5 @@ const char *job = doDump ? "'dump'" : "'load'";
 			}
 		}
 	}
+	return rval;
 }

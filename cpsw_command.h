@@ -112,8 +112,8 @@ public:
 			return new CCommandImpl( *this, k );
 		}
 
-		virtual YAML::Node dumpMyConfigToYaml(Path)                 const;
-		virtual void       loadMyConfigFromYaml(Path, YAML::Node &) const;
+		virtual uint64_t dumpMyConfigToYaml(Path, YAML::Node &) const;
+		virtual uint64_t loadMyConfigFromYaml(Path, YAML::Node &) const;
 
 		virtual EntryAdapt createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const;
 };

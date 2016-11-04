@@ -160,33 +160,36 @@ public:
 	register_exception_translator<clazz>( tr_##clazz );
 };
 
-static void wrap_Path_loadConfigFromYamlFile(Path p, const char *filename, const char *yaml_dir = 0)
+static uint64_t wrap_Path_loadConfigFromYamlFile(Path p, const char *filename, const char *yaml_dir = 0)
 {
 YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYamlFile( filename, yaml_dir ) );
-	p->loadConfigFromYaml( conf );
+	return p->loadConfigFromYaml( conf );
 }
 
-static void wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir = 0)
+static uint64_t wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir = 0)
 {
 YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
-	p->loadConfigFromYaml( conf );
+	return p->loadConfigFromYaml( conf );
 }
 
-static void wrap_Path_dumpConfigToYamlFile(Path p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0)
+static uint64_t wrap_Path_dumpConfigToYamlFile(Path p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0)
 {
+uint64_t   rval;
 YAML::Node conf;
 
 	if ( templFilename ) {
 		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
 	}
 
-	p->dumpConfigToYaml( conf );
+	rval = p->dumpConfigToYaml( conf );
 
 YAML::Emitter emit;
 	emit << conf;
 
 std::fstream strm( filename, std::fstream::out );
 	strm << emit.c_str() << "\n";
+
+	return rval;
 }
 
 static std::string wrap_Path_dumpConfigToYamlString(Path p, const char *templFilename = 0, const char *yaml_dir = 0)
@@ -1008,7 +1011,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"Load a configuration file in YAML format and write out into the hardware.\n"
 			"\n"
 			"'yamlIncDirname' may point to a directory where included YAML files can\n"
-			"be found. Defaults to the directory where the YAML file is located."
+			"be found. Defaults to the directory where the YAML file is located.\n\n"
+			"RETURNS: number of values successfully written out."
 			)
 		)
 		.def("loadConfigFromYamlString", wrap_Path_loadConfigFromYamlString,
@@ -1018,7 +1022,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"Load a configuration from a YAML formatted string and write out into the hardware.\n"
 			"\n"
 			"'yamlIncDirname' may point to a directory where included YAML files can be found.\n"
-			"Defaults to the directory where the YAML file is located.\n"
+			"Defaults to the directory where the YAML file is located.\n\n"
+			"RETURNS: number of values successfully written out."
 			)
 		)
 		.def("dumpConfigToYamlFile", wrap_Path_dumpConfigToYamlFile,
@@ -1030,7 +1035,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"are used in the order defined in 'templFileName'. Otherwise, the 'configPrio'\n"
 			"property of each field in the hierarchy is honored (see README.configData).\n"
 			"'yamlIncDirname' can be used to specify where additional YAML files are\n"
-			"stored."
+			"stored.\n\n"
+			"RETURNS: number of values successfully saved to file."
 			)
 		)
 		.def("dumpConfigToYamlString", wrap_Path_dumpConfigToYamlString,

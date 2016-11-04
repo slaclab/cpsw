@@ -1095,15 +1095,17 @@ typedef union VU_ {
 	uint64_t u;
 } VU;
 
-YAML::Node
-CIntEntryImpl::dumpMyConfigToYaml(Path p) const
+uint64_t
+CIntEntryImpl::dumpMyConfigToYaml(Path p, YAML::Node &node) const
 {
 	if ( WO != getMode() ) {
 		ScalVal_Base bas( IScalVal_Base::create( p ) );
 		unsigned     nelms = bas->getNelms();
 
-		if ( nelms == 0 )
-			return YAML::Node( YAML::NodeType::Undefined );
+		if ( nelms == 0 ) {
+			node = YAML::Node( YAML::NodeType::Undefined );
+			return 0;
+		}
 
 		TmpBuf<VU>   valBuf( nelms );
 
@@ -1123,7 +1125,6 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p) const
 		if ( nelms != got ) {
 			throw ConfigurationError("CIntEntryImpl::dumpMyConfigToYaml -- unexpected number of elements read");
 		}
-
 
 		// check if all values are identical - just do comparison of the bit pattern
 		// (since Nan == Nan is false we would end up writing unnecessary stuff)
@@ -1164,7 +1165,7 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p) const
 					n.push_back( cbuf );
 				}
 			}
-			return n;
+			node = n;
 		} else {
 			// can save single value
 			YAML::Node n( YAML::NodeType::Scalar );
@@ -1178,13 +1179,15 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p) const
 				::snprintf(cbuf, sizeof(cbuf), fmt, field_width, valBuf[0].u);
 				n = cbuf;
 			}
-			return n;
+			node = n;
 		}
+		return nelms;
 	}
-	return YAML::Node( YAML::NodeType::Undefined );
+	node = YAML::Node( YAML::NodeType::Undefined );
+	return 0;
 }
 
-void
+uint64_t
 CIntEntryImpl::loadMyConfigFromYaml(Path p, YAML::Node &n) const
 {
 unsigned nelms, i;
@@ -1205,16 +1208,18 @@ unsigned nelms, i;
 	}
 
 	if ( 0 == nelms )
-		return;
+		return 0;
+
+	unsigned nelmsFromPath = p->getNelms();
 
 	// A scalar means we will write all elements to same value 
-	if ( nelms < p->getNelms()  && !n.IsScalar() ) {
+	if ( nelms < nelmsFromPath  && !n.IsScalar() ) {
 		throw InvalidArgError("CIntEntryImpl::loadMyConfigFromYaml --  elements in YAML node < number expected from PATH");
 	}
 
-	if ( nelms > p->getNelms() ) {
+	if ( nelms > nelmsFromPath ) {
 		fprintf(stderr,"WARNING: loadMyConfigFromYaml -- excess elements in YAML Node; IGNORED\n");
-		nelms = p->getNelms();
+		nelms = nelmsFromPath;
 	}
 
 	bool isFloat = (IScalVal_Base::IEEE_754 == getEncoding());
@@ -1237,6 +1242,7 @@ unsigned nelms, i;
 			ScalVal val = IScalVal::create( p );
 			val->setVal( u );
 		}
+		nelms = nelmsFromPath;
 	} else {
 		TmpBuf<VU> valBuf( nelms );
 		if ( isFloat ) {
@@ -1261,6 +1267,7 @@ unsigned nelms, i;
 			val->setVal( &valBuf[0].u, nelms );
 		}
 	}
+	return nelms;
 }
 
 

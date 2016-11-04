@@ -196,21 +196,22 @@ void CEntryImpl::setConfigPrio(int configPrio)
 	this->configPrioSet_ = true;
 }
 
-void CEntryImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
+uint64_t CEntryImpl::processYamlConfig(Path p, YAML::Node &n, bool doDump) const
 {
 	if ( doDump ) {
-		YAML::Node new_n = dumpMyConfigToYaml( p );
-		if ( new_n ) {
+		uint64_t rval;
+		rval = dumpMyConfigToYaml( p, n );
+		if ( n ) {
 			// attach a tag.
-			new_n.SetTag( YAML_KEY_value );
+			n.SetTag( YAML_KEY_value );
 		}
-		n = new_n;
+		return rval;
 	} else {
-		loadMyConfigFromYaml(p, n);
+		return loadMyConfigFromYaml(p, n);
 	}
 }
 
-YAML::Node CEntryImpl::dumpMyConfigToYaml(Path p) const
+uint64_t CEntryImpl::dumpMyConfigToYaml(Path p, YAML::Node &n) const
 {
 	// normally, entries which have nothing to save/restore
 	// should not even be executing this. It may however
@@ -218,10 +219,11 @@ YAML::Node CEntryImpl::dumpMyConfigToYaml(Path p) const
 	// which has nothing to contribute.
 	// We just return an empty node which tells our
 	// caller to ignore us.
-	return YAML::Node( YAML::NodeType::Undefined );
+	n = YAML::Node( YAML::NodeType::Undefined );
+	return 0;
 }
 
-void
+uint64_t
 CEntryImpl::loadMyConfigFromYaml(Path p, YAML::Node &n) const
 {
 	throw ConfigurationError("This class doesn't implement loadMyConfigFromYaml");

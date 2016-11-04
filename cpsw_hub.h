@@ -118,7 +118,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 			return children_.end();
 		}
 
-		virtual void processYamlConfig(Path p, YAML::Node &, bool) const;
+		virtual uint64_t processYamlConfig(Path p, YAML::Node &, bool) const;
 };
 
 #define NULLHUB     Hub( static_cast<IHub *>(NULL) )
