@@ -84,8 +84,6 @@ public:
 	{
 	}
 
-	CCommAddressImpl(AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
-
 	CCommAddressImpl(CCommAddressImpl &orig, AKey k)
 	: CAddressImpl(orig, k)
 	{
@@ -143,8 +141,6 @@ protected:
 	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 
 public:
-//	CSRPAddressImpl(AKey key, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
-
 	CSRPAddressImpl(AKey key, INetIODev::PortBuilder, ProtoPort);
 
 	CSRPAddressImpl(CSRPAddressImpl &orig, AKey k)
@@ -186,11 +182,8 @@ protected:
 		/* The real work is in cloning the protocols -  which is not supported */
 	}
 
+
 	virtual ProtoPort findProtoPort(ProtoPortMatchParams *);
-#ifdef TSILL
-//	friend CSRPAddressImpl::CSRPAddressImpl(IAddress::AKey, INetIODev::ProtocolVersion version, unsigned short dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest);
-#endif
-	friend CCommAddressImpl::CCommAddressImpl(IAddress::AKey key, unsigned short dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest);
 
 	ProtoPort makeProtoStack(PortBuilder bldr);
 
