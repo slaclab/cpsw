@@ -183,7 +183,6 @@ CIntEntryImpl::CIntEntryImpl(Key &k, const char *name, uint64_t sizeBits, bool i
 	enum_(enm),
 	configBase_( DFLT_CONFIG_BASE )
 {
-	checkArgs();
 }
 
 bool
@@ -318,8 +317,6 @@ MutableEnum e;
 	if ( enum_node ) {
 		enum_ = IMutableEnum::create( enum_node );
 	}
-
-	checkArgs();
 }
 
 void
