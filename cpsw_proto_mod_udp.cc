@@ -101,17 +101,29 @@ CUdpHandlerThread::CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in
 	sockIni( sd_.getSd(), dest, me_p, false );
 }
 
+#define NBUFS_MAX 8
+
 void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 {
-	ssize_t got;
-	Buf     buf = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
+	ssize_t          got,siz,cap;
+	std::vector<Buf> bufs;
+	unsigned         idx;
+
+	struct iovec     iov[NBUFS_MAX];
+	unsigned         niovs;
+
+	for ( niovs = 0, cap = 0; niovs<NBUFS_MAX && cap < IBuf::CAPA_ETH_JUM; niovs++ ) {
+		bufs.push_back( IBuf::getBuf( IBuf::CAPA_ETH_JUM, true ) );
+		iov[niovs].iov_base = bufs[niovs]->getPayload();
+		cap += (iov[niovs].iov_len  = bufs[niovs]->getAvail());
+	}
 
 	while ( 1 ) {
 
 #ifdef UDP_DEBUG
 		printf("UDP -- waiting for data\n");
 #endif
-		got = ::read( sd_.getSd(), buf->getPayload(), buf->getCapacity() );
+		got = ::readv( sd_.getSd(), iov, niovs );
 		if ( got < 0 ) {
 			perror("rx thread");
 			sleep(10);
@@ -119,24 +131,41 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 		}
 		nDgrams_.fetch_add(1,   boost::memory_order_relaxed);
 		nOctets_.fetch_add(got, boost::memory_order_relaxed);
-		buf->setSize( got );
+
 		if ( got > 0 ) {
-
-#ifdef UDP_DEBUG
-		int      i;
-#ifdef UDP_DEBUG_STRM
-		uint8_t  *p = buf->getPayload();
-		unsigned fram = (p[1]<<4) | (p[0]>>4);
-		unsigned frag = (p[4]<<16) | (p[3] << 8) | p[2];
-#endif
-			printf("UDP data: ");
-			for ( i=0; i< (got < 4 ? got : 4); i++ )
-				printf("%02x ", buf->getPayload()[i]);
-			printf("\n");
-#endif
-
 			BufChain bufch = IBufChain::create();
-			bufch->addAtTail( buf );
+
+			siz = got;
+			idx = 0;
+			while ( siz > 0 ) {
+				if ( siz < (cap = bufs[idx]->getAvail()) ) {
+					cap = siz;
+				}
+				bufs[idx]->setSize( cap );
+#ifdef UDP_DEBUG
+				if ( idx == 0 ) {
+					int      i;
+					uint8_t  *p = bufs[idx]->getPayload();
+#ifdef UDP_DEBUG_STRM
+					unsigned fram = (p[1]<<4) | (p[0]>>4);
+					unsigned frag = (p[4]<<16) | (p[3] << 8) | p[2];
+#endif
+					printf("UDP data: ");
+					for ( i=0; i< (got < 4 ? got : 4); i++ )
+						printf("%02x ", p[i]);
+					printf("\n");
+				}
+#endif
+
+				bufch->addAtTail( bufs[idx] );
+
+				// get new buffers
+				bufs[idx] = IBuf::getBuf( IBuf::CAPA_ETH_HDR );
+				iov[idx].iov_base = bufs[idx]->getPayload();
+				iov[idx].iov_len  = bufs[idx]->getAvail();
+				idx++;
+				siz -= cap;
+			}
 
 #ifdef UDP_DEBUG
 		bool st=
@@ -159,8 +188,6 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 				printf(" (pushdown DROP)\n");
 #endif
 
-			// get new buffer
-			buf = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 		}
 #ifdef UDP_DEBUG
 		else {

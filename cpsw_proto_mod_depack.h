@@ -212,16 +212,18 @@ public:
 	static const FragID  NO_FRAG  = (FragID)-2; // so that NO_FRAG + 1 is not a valid ID
 protected:
 	BufChain         prod_;
+	FragID           nFrags_;
 	FrameID          frameID_;
 	FragID           oldestFrag_;
 	FragID           lastFrag_;
 	CTimeout         timeout_;
-	vector<Buf>      fragWin_;
+	vector<BufChain> fragWin_;
 	bool             isComplete_;
 	bool             running_;
 
 	CFrame(unsigned winSize)
-	:frameID_( NO_FRAME ),
+	:nFrags_( 0 ),
+	 frameID_( NO_FRAME ),
 	 oldestFrag_( 0 ),
 	 lastFrag_( NO_FRAG ),
 	 fragWin_( winSize ),
@@ -235,34 +237,8 @@ protected:
 		return isComplete_;
 	}
 
-	void release(unsigned *ctr)
-	{
-	unsigned i;
-		if ( ctr )
-			(*ctr)++;
-		prod_.reset();
-		for ( i=0; i<fragWin_.size(); i++ )
-			fragWin_[i].reset();
-		frameID_    = NO_FRAME;
-		lastFrag_   = NO_FRAG;
-		oldestFrag_ = 0;
-		isComplete_ = false;
-		running_    = false;
-	}
-
-	void updateChain()
-	{
-	unsigned idx = oldestFrag_ & (fragWin_.size() - 1);
-	unsigned l;
-		while ( fragWin_[idx] ) {
-			prod_->addAtTail( fragWin_[idx] );
-			fragWin_[idx].reset();
-			idx = (++oldestFrag_ & (fragWin_.size() - 1));
-		}
-		l = prod_->getLen();
-		if ( l == lastFrag_ + 1 || CAxisFrameHeader::FRAG_MAX == l )
-			isComplete_ = true;
-	}
+	void release(unsigned *ctr);
+	void updateChain();
 
 	friend class CProtoModDepack;
 };
@@ -297,7 +273,7 @@ protected:
 	FrameID        oldestFrame_;
 	vector<CFrame> frameWin_;
 
-	virtual void processBuffer(Buf);
+	virtual void processBuffer(BufChain);
 
 	virtual void frameSync(CAxisFrameHeader *);
 

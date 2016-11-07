@@ -102,6 +102,7 @@ public:
 	virtual         ~IBuf() {}
 
 	const static size_t CAPA_ETH_BIG = 1500 - 20 - 8;
+	const static size_t CAPA_ETH_JUM = 9000;
 	const static size_t CAPA_ETH_HDR = 128;
 	const static size_t CAPA_MAX     = 65535; // only 64k afaik - but this is enough
 

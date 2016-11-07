@@ -691,7 +691,6 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 		BufChain xchn = assembleXBuf(iov, iovlen, iov_pld, toput);
 
 		BufChain rchn;
-		uint8_t *rbuf;
 		struct timespec then, now;
 		if ( clock_gettime(CLOCK_REALTIME, &then) ) {
 			throw IOError("clock_gettime(then) failed", errno);
@@ -713,22 +712,12 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 			}
 
 			got = rchn->getSize();
-			if ( rchn->getLen() > 1 )
-				throw InternalError("Assume received payload fits into a single buffer");
-			rbuf = rchn->getHead()->getPayload();
-#if 0
-			printf("got %i bytes, dbytes %i, nWords %i\n", got, dbytes, nWords);
-			printf("got %i bytes\n", got);
-			for (i=0; i<2; i++ )
-				printf("header[%i]: %x\n", i, bufh[i]);
 
-			for ( i=0; i<dbytes; i++ )
-				printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
-#endif
-			memcpy( &got_tid, rbuf + tidoff, sizeof(SRPWord) );
+			rchn->extract( &got_tid, tidoff, sizeof(SRPWord) );
 			if ( doSwap ) {
 				swp32( &got_tid );
 			}
+
 		} while ( tid != (got_tid & tidMsk_) );
 
 		if ( useDynTimeout_ )
@@ -747,17 +736,17 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 		}
 
 		if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
+			rchn->extract( &header, 0, sizeof(header) );
 			if ( LE == hostByteOrder() ) {
-				swpw( rbuf );
+				swp32( &header );
 			}
-			memcpy( &header, rbuf,  sizeof(SRPWord) );
 		} else {
 			header = 0;
 		}
+		rchn->extract( &status, got - sizeof(SRPWord), sizeof(SRPWord) );
 		if ( doSwap ) {
-			swpw( rbuf + got - sizeof(SRPWord) );
+			swp32( &status );
 		}
-		memcpy( &status, rbuf + got - sizeof(SRPWord), sizeof(SRPWord) );
 		if ( status )
 			throw BadStatusError("writing SRP", status);
 		return dbytes;

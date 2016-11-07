@@ -124,6 +124,39 @@ void CAxisFrameHeader::insert(uint8_t *hdrBase, size_t hdrSize)
 	setNum( hdrBase, TUSR1_BIT_OFFSET,    TUSR1_BIT_SIZE,    tUsr1_   );
 }
 
+void CFrame::release(unsigned *ctr)
+{
+unsigned i;
+	if ( ctr )
+		(*ctr)++;
+	prod_.reset();
+	for ( i=0; i<fragWin_.size(); i++ )
+		fragWin_[i].reset();
+	nFrags_     = 0;
+	frameID_    = NO_FRAME;
+	lastFrag_   = NO_FRAG;
+	oldestFrag_ = 0;
+	isComplete_ = false;
+	running_    = false;
+}
+
+void CFrame::updateChain()
+{
+unsigned idx = oldestFrag_ & (fragWin_.size() - 1);
+	while ( fragWin_[idx] ) {
+		Buf b;
+		while ( (b = fragWin_[idx]->getHead()) ) {
+			b->unlink();
+			prod_->addAtTail( b );
+		}
+		nFrags_++;
+		fragWin_[idx].reset();
+		idx = (++oldestFrag_ & (fragWin_.size() - 1));
+	}
+	if ( nFrags_ == lastFrag_ + 1 || CAxisFrameHeader::FRAG_MAX == nFrags_ )
+		isComplete_ = true;
+}
+
 
 CProtoModDepack::CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, CTimeout timeout)
 	: CProtoMod(k, oqueueDepth),
@@ -250,13 +283,8 @@ printf("Depack input timeout (late: %ld.%ld)\n", del.tv_.tv_sec, del.tv_.tv_nsec
 				// maybe there are complete frames after the timed-out one
 				releaseFrames( true );
 			} else {
-				Buf buf;
-
-				while ( (buf = bufch->getHead()) ) {
-					buf->unlink();
-					processBuffer( buf );
-					releaseFrames( true );
-				}
+				processBuffer( bufch );
+				releaseFrames( true );
 			}
 		}
 	} catch ( IntrError e ) {
@@ -281,11 +309,12 @@ printf("frameSync (frame %d, frag %d, oldest frame %d, winsz %d)\n",
 	}
 }
 
-void CProtoModDepack::processBuffer(Buf b)
+void CProtoModDepack::processBuffer(BufChain bc)
 {
 CAxisFrameHeader hdr;
+Buf bh = bc->getHead();
 
-	if ( ! hdr.parse( b->getPayload(), b->getSize() ) ) {
+	if ( ! hdr.parse( bh->getPayload(), bh->getSize() ) ) {
 		badHeaderDrops_++;
 		return;
 	}
@@ -400,9 +429,12 @@ printf("Frag %d of frame # %d\n", hdr.getFragNo(), frame->frameID_);
 	}
 
 	// Looks good - a new frag
-	frame->fragWin_[fragIdx] = b;
+	frame->fragWin_[fragIdx] = bc;
 	// Check for last frag
-	if ( hdr.getTailEOF( b->getPayload() + b->getSize() - hdr.getTailSize() ) || ( CAxisFrameHeader::FRAG_MAX == hdr.getFragNo() ) ) {
+
+	Buf bt = bc->getTail();
+
+	if ( hdr.getTailEOF( bt->getPayload() + bt->getSize() - hdr.getTailSize() ) || ( CAxisFrameHeader::FRAG_MAX == hdr.getFragNo() ) ) {
 		if ( CFrame::NO_FRAG != frame->lastFrag_ ) {
 			duplicateLastSeen_++;
 #ifdef DEPACK_DEBUG
@@ -420,12 +452,12 @@ printf("Last frag %d\n", frame->lastFrag_);
 
 	if ( hdr.getFragNo() != 0 ) {
 		// skip header on all but the first fragments
-		b->setPayload( b->getPayload() + hdr.getSize() );
+		bh->setPayload( bh->getPayload() + hdr.getSize() );
 	}
 
 	if ( hdr.getFragNo() != frame->lastFrag_ ) {
 		// skip tail on all but the last fragment
-		b->setSize( b->getSize() - hdr.getTailSize() );
+		bt->setSize( bt->getSize() - hdr.getTailSize() );
 	}
 
 	frame->updateChain();
