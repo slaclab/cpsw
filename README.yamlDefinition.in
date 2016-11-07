@@ -636,8 +636,9 @@ it is interpreted as a `double` else as a 64-bit integer
 (honoring `YAML_KEY_isSigned`).
 
 A 'Enum' menu with a single entry which maps a string to
-the numerical value is always attached to ConstIntField but
-it is not necessary to define such a menu in YAML.
+the numerical value is always attached to ConstIntField 
+(except if IEEE_754 encoding is used) but it is not
+necessary to define such a menu in YAML.
 
 E.g., in the case of
 

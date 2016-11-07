@@ -80,7 +80,7 @@ Enum         enm = getEnum();
 			enm->map( intVal_ );
 	}
 
-	if ( ! enm ) {
+	if ( ! enm && IScalVal_Base::IEEE_754 != enc ) {
 		MutableEnum menm = IMutableEnum::create();
 		menm->add( stringVal.c_str(), intVal_ );
 		setEnum(k, menm);
