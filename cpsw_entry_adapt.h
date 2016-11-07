@@ -47,6 +47,8 @@ public:
 	virtual Path        getPath()        const { return p_->clone();             }
 	virtual ConstPath   getConstPath()   const { return p_;                      }
 	virtual unsigned    getNelms()             { return p_->getNelms();          }
+	virtual void        dump(FILE *f)    const;
+	virtual void        dump()           const;
 
 	virtual            ~IEntryAdapt();
 

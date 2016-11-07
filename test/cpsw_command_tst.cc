@@ -98,7 +98,7 @@ Hub root;
 		mmio->addAtAddress( dummy_container, 0 );
 
 
-		netio->addAtAddress( mmio, INetIODev::createPortBuilder() );
+		netio->addAtAddress( mmio, IProtoStackBuilder::create() );
 
 		root = netio;
 	}

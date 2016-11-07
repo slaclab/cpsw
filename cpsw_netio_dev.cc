@@ -38,328 +38,6 @@ typedef uint32_t SRPWord;
 // Must subtract RSSI (8), packetizer (9), SRP (V3: 20 + 4)
 #define MAXWORDS (256 - 11 - 4)
 
-class CNetIODevImpl::CPortBuilder : public INetIODev::IPortBuilder {
-	private:
-		INetIODev::ProtocolVersion protocolVersion_;
-		uint64_t                   SRPTimeoutUS_;
-		int                        SRPDynTimeout_;
-		unsigned                   SRPRetryCount_;
-		unsigned                   UdpPort_;
-		unsigned                   UdpOutQueueDepth_;
-		unsigned                   UdpNumRxThreads_;
-		int                        UdpPollSecs_;
-		bool                       hasRssi_;
-		int                        hasDepack_;
-		unsigned                   DepackOutQueueDepth_;
-		unsigned                   DepackLdFrameWinSize_;
-		unsigned                   DepackLdFragWinSize_;
-		int                        hasSRPMux_;
-		unsigned                   SRPMuxVirtualChannel_;
-		bool                       hasTDestMux_;
-		unsigned                   TDestMuxTDEST_;
-		int                        TDestMuxStripHeader_;
-		unsigned                   TDestMuxOutQueueDepth_;
-	public:
-		virtual void reset()
-		{
-			protocolVersion_        = SRP_UDP_V2;
-			SRPTimeoutUS_           = 0;
-			SRPDynTimeout_          = -1;
-			SRPRetryCount_          = -1;
-			UdpPort_                = 8192;
-			UdpOutQueueDepth_       = 0;
-			UdpNumRxThreads_        = 0;
-			UdpPollSecs_            = -1;
-			hasRssi_                = false;
-			hasDepack_              = -1;
-			DepackOutQueueDepth_    = 0;
-			DepackLdFrameWinSize_   = 0;
-			DepackLdFragWinSize_    = 0;
-			hasSRPMux_              = -1;
-			SRPMuxVirtualChannel_   = 0;
-			hasTDestMux_            = false;
-			TDestMuxTDEST_          = 0;
-			TDestMuxStripHeader_    = -1;
-			TDestMuxOutQueueDepth_  = 0;
-		}
-
-		CPortBuilder()
-		{
-			reset();
-		}
-
-		CPortBuilder(YamlState &);
-
-
-		bool hasSRP()
-		{
-			return SRP_UDP_NONE != protocolVersion_;
-		}
-
-		virtual void            setSRPVersion(ProtocolVersion v)
-		{
-			if ( SRP_UDP_NONE != v && SRP_UDP_V1 != v && SRP_UDP_V2 != v && SRP_UDP_V3 != v ) {
-				throw InvalidArgError("Invalid protocol version");	
-			}
-			protocolVersion_ = v;
-			if ( SRP_UDP_NONE == v ) {
-				setSRPTimeoutUS( 0 );
-				setSRPRetryCount( -1 );
-			}
-		}
-
-		virtual ProtocolVersion getSRPVersion()
-		{
-			return protocolVersion_;
-		}
-
-		virtual void            setSRPTimeoutUS(uint64_t v)
-		{
-			SRPTimeoutUS_ = v;
-		}
-
-		virtual uint64_t        getSRPTimeoutUS()
-		{
-			if ( 0 == SRPTimeoutUS_ )
-				return hasRssi() ? 500000 : 10000;
-			return SRPTimeoutUS_;
-		}
-
-		virtual void            setSRPRetryCount(unsigned v)
-		{
-			SRPRetryCount_ = v;
-		}
-
-		virtual unsigned        getSRPRetryCount()
-		{
-			if ( (unsigned)-1 == SRPRetryCount_ )
-				return 10;
-			return SRPRetryCount_;
-		}
-
-		virtual bool            hasUdp()
-		{
-			return getUdpPort() != 0;
-		}
-
-		virtual void            useSRPDynTimeout(bool v)
-		{
-			SRPDynTimeout_ = (v ? 1 : 0);
-		}
-
-		virtual bool            hasSRPDynTimeout()
-		{
-			if ( SRPDynTimeout_ < 0 )
-				return ! hasTDestMux();
-			return SRPDynTimeout_ ? true : false;
-		}
-
-		virtual void            setUdpPort(unsigned v)
-		{
-			if ( v > 65535 || v == 0 )
-				throw InvalidArgError("Invalid UDP Port");
-			UdpPort_ = v;
-		}
-
-		virtual unsigned        getUdpPort()
-		{
-			return UdpPort_;
-		}
-
-		virtual void            setUdpOutQueueDepth(unsigned v)
-		{
-			UdpOutQueueDepth_ = v;
-		}
-
-		virtual unsigned        getUdpOutQueueDepth()
-		{
-			if ( 0 == UdpOutQueueDepth_ )
-				return 10;
-			return UdpOutQueueDepth_;
-		}
-
-		virtual void            setUdpNumRxThreads(unsigned v)
-		{
-			if ( v > 100 )
-				throw InvalidArgError("Too many UDP RX threads");
-			UdpNumRxThreads_ = v;
-		}
-
-		virtual unsigned        getUdpNumRxThreads()
-		{
-			if ( 0 == UdpNumRxThreads_ )
-				return 1;
-			return UdpNumRxThreads_;
-		}
-
-		virtual void            setUdpPollSecs(int v)
-		{
-			UdpPollSecs_ = v;
-		}
-
-		virtual int             getUdpPollSecs()
-		{
-			if ( 0 >  UdpPollSecs_ ) {
-				if ( ! hasRssi() && ( ! hasSRP() || hasTDestMux() ) )
-					return 60;
-			}
-			return UdpPollSecs_;
-		}
-
-		virtual void            useRssi(bool v)
-		{
-			hasRssi_ = v;
-		}
-
-		virtual bool            hasRssi()
-		{
-			return hasRssi_;
-		}
-
-		virtual void            useDepack(bool v)
-		{
-			if ( ! (hasDepack_ = (v ? 1:0)) ) {
-				setDepackOutQueueDepth( 0 );
-				setDepackLdFrameWinSize( 0 );
-				setDepackLdFragWinSize( 0 );
-			}
-		}
-
-		virtual bool            hasDepack()
-		{
-			if ( hasDepack_ < 0 ) {
-				return ! hasSRP() || hasTDestMux();
-				
-			}
-			return hasDepack_ > 0;
-		}
-
-		virtual void            setDepackOutQueueDepth(unsigned v)
-		{
-			DepackOutQueueDepth_ = v;
-			useDepack( true );
-		}
-
-		virtual unsigned        getDepackOutQueueDepth()
-		{
-			if ( 0 == DepackOutQueueDepth_ )
-				return 50;
-			return DepackOutQueueDepth_;
-		}
-
-		virtual void            setDepackLdFrameWinSize(unsigned v)
-		{
-			if ( v > 10 )	
-				throw InvalidArgError("Requested depacketizer frame window too large");
-			DepackLdFrameWinSize_ = v;
-			useDepack( true );
-		}
-
-		virtual unsigned        getDepackLdFrameWinSize()
-		{
-			if ( 0 == DepackLdFrameWinSize_ )
-				return hasRssi() ? 1 : 5;
-			return DepackLdFrameWinSize_;
-		}
-
-		virtual void            setDepackLdFragWinSize(unsigned v)
-		{
-			if ( v > 10 )	
-				throw InvalidArgError("Requested depacketizer frame window too large");
-			DepackLdFragWinSize_ = v;
-			useDepack( true );
-		}
-
-		virtual unsigned        getDepackLdFragWinSize()
-		{
-			if ( 0 == DepackLdFragWinSize_ )
-				return hasRssi() ? 1 : 5;
-			return DepackLdFragWinSize_;
-		}
-
-		virtual void            useSRPMux(bool v)
-		{
-			hasSRPMux_ = (v ? 1 : 0);
-		}
-
-		virtual bool            hasSRPMux()
-		{
-			if ( hasSRPMux_ < 0 )
-				return hasSRP();
-			return hasSRPMux_ > 0;
-		}
-
-		virtual void            setSRPMuxVirtualChannel(unsigned v)
-		{
-			if ( v > 255 )
-				throw InvalidArgError("Requested SRP Mux Virtual Channel out of range");
-			useSRPMux( true );
-			SRPMuxVirtualChannel_ = v;
-		}
-
-		virtual unsigned        getSRPMuxVirtualChannel()
-		{
-			return SRPMuxVirtualChannel_;
-		}
-
-		virtual void            useTDestMux(bool v)
-		{
-			hasTDestMux_ = v;
-		}
-
-		virtual bool            hasTDestMux()
-		{
-			return hasTDestMux_;
-		}
-
-		virtual void            setTDestMuxTDEST(unsigned v)
-		{
-			if ( v > 255 )
-				throw InvalidArgError("Requested TDEST out of range");
-			useTDestMux( true );
-			TDestMuxTDEST_ = v;
-		}
-
-		virtual unsigned        getTDestMuxTDEST()
-		{
-			return TDestMuxTDEST_;
-		}
-
-		virtual void            setTDestMuxStripHeader(bool v)
-		{
-			TDestMuxStripHeader_    = (v ? 1:0);
-			useTDestMux( true );
-		}
-
-		virtual bool            getTDestMuxStripHeader()
-		{
-			if ( 0 > TDestMuxStripHeader_ ) {
-				return hasSRP();
-			}
-			return TDestMuxStripHeader_ > 0;
-		}
-
-		virtual void            setTDestMuxOutQueueDepth(unsigned v)
-		{
-			TDestMuxOutQueueDepth_ = v;			
-			useTDestMux( true );
-		}
-
-		virtual unsigned        getTDestMuxOutQueueDepth()
-		{
-			if ( 0 == TDestMuxOutQueueDepth_ )
-				return hasSRP() ? 1 : 50;
-			return TDestMuxOutQueueDepth_;
-		}
-
-		virtual PortBuilder     clone()
-		{
-			return make_shared<CPortBuilder>( *this );
-		}
-
-		static PortBuilder      create(YamlState &ypath);
-};
-
 static bool hasRssi(ProtoPort stack)
 {
 ProtoPortMatchParams cmp;
@@ -375,7 +53,7 @@ ProtoPortMatchParams cmp;
 }
 
 
-CSRPAddressImpl::CSRPAddressImpl(AKey key, INetIODev::PortBuilder bldr, ProtoPort stack)
+CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort stack)
 :CCommAddressImpl(key, stack),
  protoVersion_(bldr->getSRPVersion()),
  usrTimeout_(bldr->getSRPTimeoutUS()),
@@ -387,8 +65,8 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, INetIODev::PortBuilder bldr, ProtoPor
  nReads_(0),
  vc_(bldr->getSRPMuxVirtualChannel()),
  tid_(0),
- byteResolution_( bldr->getSRPVersion() >= INetIODev::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
- maxWordsRx_( protoVersion_ < INetIODev::SRP_UDP_V3 || !hasDepack( stack) ? MAXWORDS : (1<<28) ),
+ byteResolution_( bldr->getSRPVersion() >= IProtoStackBuilder::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
+ maxWordsRx_( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 || !hasDepack( stack) ? MAXWORDS : (1<<28) ),
  maxWordsTx_( MAXWORDS ),
  mutex_( CMtx::AttrRecursive(), "SRPADDR" )
 {
@@ -539,9 +217,9 @@ struct timespec retry_then;
 
 	// V1 sends payload in network byte order. We want to transform to restore
 	// the standard AXI layout which is little-endian
-	bool doSwapV1 = (INetIODev::SRP_UDP_V1 == protoVersion_);
+	bool doSwapV1 = (IProtoStackBuilder::SRP_UDP_V1 == protoVersion_);
 	// header info needs to be swapped to host byte order since we interpret it
-	bool doSwap   =	( ( protoVersion_ == INetIODev::SRP_UDP_V1 ? LE : BE ) == hostByteOrder() );
+	bool doSwap   =	( ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ? LE : BE ) == hostByteOrder() );
 
 #ifdef NETIO_DEBUG
 	fprintf(stderr, "SRP readBlk_unlocked off %"PRIx64"; sbytes %d, swapV1 %d, swap %d protoVersion %d\n", off, sbytes, doSwapV1, doSwap, protoVersion_);
@@ -555,11 +233,11 @@ struct timespec retry_then;
 	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
 	put = expected = 0;
-	if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
+	if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
 		xbuf[put++] = vc_ << 24;
 		expected += 1;
 	}
-	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
+	if ( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 ) {
 		xbuf[put++] = tid;
 		xbuf[put++] = (off >> 2) & 0x3fffffff;
 		xbuf[put++] = nWords   - 1;
@@ -586,7 +264,7 @@ struct timespec retry_then;
 	}
 
 	i = 0;
-	if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
+	if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
 		iov[i].iov_base = &header;
 		iov[i].iov_len  = sizeof( header );
 		i++;
@@ -854,8 +532,8 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 		return 0;
 
 	// these look similar but are different...
-	bool doSwapV1 =  (protoVersion_ == INetIODev::SRP_UDP_V1);
-	bool doSwap   = ((protoVersion_ == INetIODev::SRP_UDP_V1 ? LE : BE) == hostByteOrder() );
+	bool doSwapV1 =  (protoVersion_ == IProtoStackBuilder::SRP_UDP_V1);
+	bool doSwap   = ((protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ? LE : BE) == hostByteOrder() );
 
 	totbytes = headbytes + dbytes;
 
@@ -960,10 +638,10 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 	put = 0;
 	tid = getTid();
 
-	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
+	if ( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 ) {
 		expected    = 3;
 		tidoff      = 0;
-		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
+		if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
 			xbuf[put++] = vc_ << 24;
 			expected++;
 			tidoff  = 4;
@@ -1025,7 +703,7 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 		i++;
 	}
 
-	if ( protoVersion_ < INetIODev::SRP_UDP_V3 ) {
+	if ( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 ) {
 		iov[i].iov_base = &zero;
 		iov[i].iov_len  = sizeof(SRPWord);
 		i++;
@@ -1099,7 +777,7 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 			}
 		}
 
-		if ( protoVersion_ == INetIODev::SRP_UDP_V1 ) {
+		if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
 			if ( LE == hostByteOrder() ) {
 				swpw( rbuf );
 			}
@@ -1164,19 +842,6 @@ unsigned nWords;
 
 }
 
-void CCommAddressImpl::dump(FILE *f) const
-{
-	CAddressImpl::dump(f);
-	fprintf(f,"\nPeer: %s\n", getOwnerAs<NetIODevImpl>()->getIpAddressString());
-	fprintf(f,"\nProtocol Modules:\n");
-	if ( protoStack_ ) {
-		ProtoMod m;
-		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
-			m->dumpInfo( f );
-		}
-	}
-}
-
 void CSRPAddressImpl::dump(FILE *f) const
 {
 	fprintf(f,"CSRPAddressImpl:\n");
@@ -1197,33 +862,40 @@ void CSRPAddressImpl::dump(FILE *f) const
 	CCommAddressImpl::dump(f);
 }
 
-bool CNetIODevImpl::portInUse(unsigned port)
+void CNetIODevImpl::dump(FILE *f) const
 {
-ProtoPortMatchParams cmp;
-
-	cmp.udpDestPort_=port;
-
-	return findProtoPort( &cmp ) != 0;
+	fprintf(f, "Peer: %s", ip_str_.c_str());
 }
 
-void CNetIODevImpl::addAtAddress(Field child, PortBuilder bldr)
+void CNetIODevImpl::addAtAddress(Field child, ProtoStackBuilder bldr)
 {
-IAddress::AKey key  = getAKey();
-ProtoPort      port = makeProtoStack( bldr );
+IAddress::AKey         key  = getAKey();
+std::vector<ProtoPort> myPorts;
+
+	if ( INADDR_NONE == bldr->getIPAddr() ) {
+		bldr->setIPAddr( getIpAddress() );
+	} else if ( getIpAddress() != bldr->getIPAddr() ) {
+		throw ConfigurationError("CNetIODev: unexpected IP address");
+	}
+
+	getPorts( &myPorts );
+
+ProtoPort              port = bldr->build( myPorts );
 
 shared_ptr<CCommAddressImpl> addr;
 
+
 	switch( bldr->getSRPVersion() ) {
-		case SRP_UDP_NONE:
+		case IProtoStackBuilder::SRP_UDP_NONE:
 #ifdef NETIO_DEBUG
 			fprintf(stderr,"Creating CCommAddress\n");
 #endif
 			addr = make_shared<CCommAddressImpl>(key, port);
 		break;
 
-		case SRP_UDP_V1:
-		case SRP_UDP_V2:
-		case SRP_UDP_V3:
+		case IProtoStackBuilder::SRP_UDP_V1:
+		case IProtoStackBuilder::SRP_UDP_V2:
+		case IProtoStackBuilder::SRP_UDP_V3:
 #ifdef NETIO_DEBUG
 			fprintf(stderr,"Creating SRP address (V %d)\n", bldr->getSRPVersion());
 #endif
@@ -1238,101 +910,9 @@ shared_ptr<CCommAddressImpl> addr;
 	addr->startProtoStack();
 }
 
-INetIODev::PortBuilder
-CNetIODevImpl::CPortBuilder::create(YamlState &node)
-{
-
-INetIODev::PortBuilder pbldr( INetIODev::createPortBuilder() );
-unsigned                   u;
-uint64_t                   u64;
-bool                       b;
-INetIODev::ProtocolVersion proto_vers;
-int                        i;
-
-	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_SRP) );
-		if( nn )
-		{
-			// initialize proto_vers to silence rhel compiler warning
-			// about potentially un-initialized 'proto_vers'
-			proto_vers = pbldr->getSRPVersion();
-			if ( readNode(nn, YAML_KEY_protocolVersion, &proto_vers) )
-				pbldr->setSRPVersion( proto_vers );
-			// initialize u64 to silence rhel compiler warning
-			// about potentially un-initialized 'u64'
-			u64 = pbldr->getSRPTimeoutUS();
-			if ( readNode(nn, YAML_KEY_timeoutUS, &u64) )
-				pbldr->setSRPTimeoutUS( u64 );
-			if ( readNode(nn, YAML_KEY_dynTimeout, &b) )
-				pbldr->useSRPDynTimeout( b );
-			if ( readNode(nn, YAML_KEY_retryCount, &u) )
-				pbldr->setSRPRetryCount( u );
-		}
-	}
-	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_UDP) );
-		if ( nn )
-		{
-			if ( readNode(nn, YAML_KEY_port, &u) )
-				pbldr->setUdpPort( u );
-			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
-				pbldr->setUdpOutQueueDepth( u );
-			if ( readNode(nn, YAML_KEY_numRxThreads, &u) )
-				pbldr->setUdpNumRxThreads( u );
-			// initialize i to silence rhel compiler warning
-			// about potentially un-initialized 'i'
-			i = pbldr->getUdpPollSecs();
-			if ( readNode(nn, YAML_KEY_pollSecs, &i) )
-				pbldr->setUdpPollSecs( i );
-		}
-	}
-	{
-        const YAML::PNode &nn( node.lookup(YAML_KEY_RSSI) );
-
-        pbldr->useRssi( !!nn );
-	}
-	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_depack) );
-		if (nn )
-		{
-			pbldr->useDepack( true );
-			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
-				pbldr->setDepackOutQueueDepth( u );
-			if ( readNode(nn, YAML_KEY_ldFrameWinSize, &u) )
-				pbldr->setDepackLdFrameWinSize( u );
-			if ( readNode(nn, YAML_KEY_ldFragWinSize, &u) )
-				pbldr->setDepackLdFragWinSize( u );
-		}
-	}
-	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_SRPMux) );
-		if (nn )
-		{
-			pbldr->useSRPMux( true );
-			if ( readNode(nn, YAML_KEY_virtualChannel, &u) )
-				pbldr->setSRPMuxVirtualChannel( u );
-		}
-	}
-	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_TDESTMux) );
-		if (nn )
-		{
-			pbldr->useTDestMux( true );
-			if ( readNode(nn, YAML_KEY_TDEST, &u) )
-				pbldr->setTDestMuxTDEST( u );
-			if ( readNode(nn, YAML_KEY_stripHeader, &b) )
-				pbldr->setTDestMuxStripHeader( b );
-			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
-				pbldr->setTDestMuxOutQueueDepth( u );
-		}
-	}
-
-	return pbldr;
-}
-
 void CNetIODevImpl::addAtAddress(Field child, YamlState &ypath)
 {
-PortBuilder bldr( CPortBuilder::create( ypath ) );
+ProtoStackBuilder bldr( IProtoStackBuilder::create( ypath ) );
 
 	if ( bldr->hasUdp() ) {
 		addAtAddress(child, bldr);
@@ -1343,7 +923,7 @@ PortBuilder bldr( CPortBuilder::create( ypath ) );
 
 void CNetIODevImpl::addAtAddress(Field child, INetIODev::ProtocolVersion version, unsigned dport, unsigned timeoutUs, unsigned retryCnt, uint8_t vc, bool useRssi, int tDest)
 {
-PortBuilder bldr( INetIODev::createPortBuilder() );
+ProtoStackBuilder bldr( IProtoStackBuilder::create() );
 
 	bldr->setSRPVersion( version );
 	bldr->setSRPTimeoutUS( timeoutUs );
@@ -1358,11 +938,25 @@ PortBuilder bldr( INetIODev::createPortBuilder() );
 	addAtAddress(child, bldr);
 }
 
+
+void CNetIODevImpl::getPorts( std::vector<ProtoPort> *portVec )
+{
+	portVec->clear();
+
+	Children myChildren = getChildren();
+
+	// construct a vector of all our ports for passing to the stack builder
+	for ( Children::element_type::iterator it = myChildren->begin(); it != myChildren->end(); ++it ) {
+		shared_ptr<const CCommAddressImpl> child = static_pointer_cast<const CCommAddressImpl>( *it );
+		portVec->push_back( child->getProtoStack() );
+	}
+}
+
 void CNetIODevImpl::addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi, int tDest)
 {
-PortBuilder bldr( INetIODev::createPortBuilder() );
+ProtoStackBuilder bldr( IProtoStackBuilder::create() );
 
-	bldr->setSRPVersion( SRP_UDP_NONE );
+	bldr->setSRPVersion( IProtoStackBuilder::SRP_UDP_NONE );
 	bldr->setUdpPort( dport );
 	// ignore depacketizer (input) timeout -- no builder support because not necessary
 	bldr->setUdpOutQueueDepth( inQDepth );
@@ -1384,10 +978,6 @@ NetIODev INetIODev::create(const char *name, const char *ipaddr)
 	return CShObj::create<NetIODevImpl>(name, ipaddr);
 }
 
-INetIODev::PortBuilder INetIODev::createPortBuilder()
-{
-	return make_shared<CNetIODevImpl::CPortBuilder>();
-}
 
 void CNetIODevImpl::setLocked()
 {
@@ -1397,338 +987,6 @@ void CNetIODevImpl::setLocked()
 	CDevImpl::setLocked();
 }
 
-
-ProtoPort CNetIODevImpl::findProtoPort(ProtoPortMatchParams *cmp_p)
-{
-Children myChildren = getChildren();
-
-Children::element_type::iterator it;
-int                              requestedMatches = cmp_p->requestedMatches();
-
-	for ( it = myChildren->begin(); it != myChildren->end(); ++it ) {
-		shared_ptr<const CCommAddressImpl> child = static_pointer_cast<const CCommAddressImpl>( *it );
-		// 'match' modifies the parameters (storing results)
-		cmp_p->reset();
-		if ( requestedMatches == cmp_p->findMatches( child->getProtoStack() ) ) {
-			return child->getProtoStack();
-		}
-	}
-	return ProtoPort();
-}
-
-ProtoPort CNetIODevImpl::makeProtoStack(PortBuilder bldr_in)
-{
-ProtoPort            rval;
-ProtoPort            foundTDestPort;
-ProtoPortMatchParams cmp;
-ProtoModTDestMux     tDestMuxMod;
-ProtoModSRPMux       srpMuxMod;
-PortBuilder          bldr   = bldr_in->clone();
-bool                 hasSRP = SRP_UDP_NONE != bldr->getSRPVersion();
-
-	// sanity checks
-	if ( ! bldr->hasUdp() )
-		throw ConfigurationError("Currently only UDP transport supported\n");
-
-	if ( ! hasSRP && bldr->hasSRPMux() ) {
-		throw ConfigurationError("Cannot configure SRP Demuxer w/o SRP protocol version");
-	}
-
-	cmp.udpDestPort_ = bldr->getUdpPort();
-
-#ifdef NETIO_DEBUG
-	printf("makeProtoPort for port %d\n", bldr->getUdpPort());
-#endif
-
-	if ( findProtoPort( &cmp ) ) {
-
-		if ( ! bldr->hasTDestMux() && ( !hasSRP || !bldr->hasSRPMux() ) ) {
-			throw ConfigurationError("Some kind of demuxer must be used when sharing a UDP port");
-		}
-
-#ifdef NETIO_DEBUG
-	printf("makeProtoPort port %d found\n", bldr->getUdpPort());
-#endif
-
-		// existing RSSI configuration must match the requested one
-		if ( bldr->hasRssi() ) {
-#ifdef NETIO_DEBUG
-	printf("  including RSSI\n");
-#endif
-			cmp.haveRssi_.include();
-		} else {
-#ifdef NETIO_DEBUG
-	printf("  excluding RSSI\n");
-#endif
-			cmp.haveRssi_.exclude();
-		}
-
-		// existing DEPACK configuration must match the requested one
-		if ( bldr->hasDepack() ) {
-			cmp.haveDepack_.include();
-#ifdef NETIO_DEBUG
-	printf("  including depack\n");
-#endif
-		} else {
-			cmp.haveDepack_.exclude();
-#ifdef NETIO_DEBUG
-	printf("  excluding depack\n");
-#endif
-		}
-
-		if ( bldr->hasTDestMux() ) {
-			cmp.tDest_ = bldr->getTDestMuxTDEST();
-#ifdef NETIO_DEBUG
-	printf("  tdest %d\n", bldr->getTDestMuxTDEST());
-#endif
-		} else {
-			cmp.tDest_.exclude();
-#ifdef NETIO_DEBUG
-	printf("  tdest excluded\n");
-#endif
-		}
-
-		if ( (foundTDestPort = findProtoPort( &cmp )) ) {
-#ifdef NETIO_DEBUG
-	printf("  tdest port FOUND\n");
-#endif
-
-			// either no tdest demuxer or using an existing tdest port
-			if ( ! hasSRP ) {
-				throw ConfigurationError("Cannot share TDEST w/o SRP demuxer");
-			}
-
-			cmp.srpVersion_     = bldr->getSRPVersion();
-			cmp.srpVC_          = bldr->getSRPMuxVirtualChannel();
-
-			if ( findProtoPort( &cmp ) ) {
-				throw ConfigurationError("SRP VC already in use");
-			}
-
-			cmp.srpVC_.wildcard();
-
-			if ( ! findProtoPort( &cmp ) ) {
-				throw ConfigurationError("No SRP Demultiplexer found -- cannot create SRP port on top of existing protocol modules");
-			}
-
-			srpMuxMod = dynamic_pointer_cast<ProtoModSRPMux::element_type>( cmp.srpVC_.handledBy_ );
-
-			if ( ! srpMuxMod ) {
-				throw InternalError("No SRP Demultiplexer - but there should be one");
-			}
-
-		} else {
-			// possibilities here are
-			//   asked for no tdest demux but there is one present
-			//   asked for tdest demux on non-existing port (OK)
-			//   other mismatches
-			if ( bldr->hasTDestMux() ) {
-				cmp.tDest_.wildcard();
-				if ( ! findProtoPort( &cmp ) ) {
-					throw ConfigurationError("No TDEST Demultiplexer found");
-				}
-				tDestMuxMod  = dynamic_pointer_cast<ProtoModTDestMux::element_type>( cmp.tDest_.handledBy_ );
-
-				if ( ! tDestMuxMod ) {
-					throw InternalError("No TDEST Demultiplexer - but there should be one");
-				}
-#ifdef NETIO_DEBUG
-	printf("  using (existing) tdest MUX\n");
-#endif
-			} else {
-				throw ConfigurationError("Unable to create new port on existing protocol modules");
-			}
-		}
-	} else {
-		// create new
-		struct sockaddr_in dst;
-
-		dst.sin_family      = AF_INET;
-		dst.sin_port        = htons( bldr->getUdpPort() );
-		dst.sin_addr.s_addr = getIpAddress();
-
-		// Note: UDP module MUST have a queue if RSSI is used
-		rval = CShObj::create< ProtoModUdp >( &dst, bldr->getUdpOutQueueDepth(), bldr->getUdpNumRxThreads(), bldr->getUdpPollSecs() );
-
-		if ( bldr->hasRssi() ) {
-#ifdef NETIO_DEBUG
-	printf("  creating RSSI\n");
-#endif
-			ProtoModRssi rssi = CShObj::create<ProtoModRssi>();
-			rval->addAtPort( rssi );
-			rval = rssi;
-		}
-
-		if ( bldr->hasDepack() ) {
-#ifdef NETIO_DEBUG
-	printf("  creating depack\n");
-#endif
-			ProtoModDepack depackMod  = CShObj::create< ProtoModDepack > (
-			                                bldr->getDepackOutQueueDepth(),
-			                                bldr->getDepackLdFrameWinSize(),
-			                                bldr->getDepackLdFragWinSize(),
-			                                CTimeout() );
-			rval->addAtPort( depackMod );
-			rval = depackMod;
-		}
-	}
-
-	if ( bldr->hasTDestMux()  && ! foundTDestPort ) {
-#ifdef NETIO_DEBUG
-	printf("  creating tdest port\n");
-#endif
-		if ( ! tDestMuxMod ) {
-			tDestMuxMod = CShObj::create< ProtoModTDestMux >();
-			rval->addAtPort( tDestMuxMod );
-		}
-		rval = tDestMuxMod->createPort( bldr->getTDestMuxTDEST(), bldr->getTDestMuxStripHeader(), bldr->getTDestMuxOutQueueDepth() );
-	}
-
-	if ( bldr->hasSRPMux() ) {
-		if ( ! srpMuxMod ) {
-#ifdef NETIO_DEBUG
-	printf("  creating SRP mux module\n");
-#endif
-			srpMuxMod   = CShObj::create< ProtoModSRPMux >( bldr->getSRPVersion() );
-			rval->addAtPort( srpMuxMod );
-		}
-		rval = srpMuxMod->createPort( bldr->getSRPMuxVirtualChannel() );
-#ifdef NETIO_DEBUG
-	printf("  creating SRP mux port\n");
-#endif
-	}
-
-	return rval;
-}
-
-void
-CCommAddressImpl::dumpYamlPart( YAML::Node &node) const
-{
-ProtoPort port;
-	CAddressImpl::dumpYamlPart( node );
-	// since SRP V2 is the default we switch it OFF here; if SRP
-	// is chained after us they will re-enable
-	YAML::Node noSRP;
-	writeNode(noSRP, YAML_KEY_protocolVersion, INetIODev::SRP_UDP_NONE);
-	writeNode(node , YAML_KEY_SRP,             noSRP                  );
-	for ( port = protoStack_; port; port = port->getUpstreamPort() ) {
-		port->dumpYaml( node );
-	}
-}
-
-int
-CCommAddressImpl::open(CompositePathIterator *node)
-{
-CMtx::lg guard( & doorMtx_ );
-
-int rval = CAddressImpl::open( node );
-
-	if ( 0 == rval ) {
-		door_ = getProtoStack()->open();
-	}
-
-	return rval;
-}
-
-int
-CCommAddressImpl::close(CompositePathIterator *node)
-{
-CMtx::lg guard( & doorMtx_ );
-
-int rval = CAddressImpl::close( node );
-
-	if ( 1 == rval )
-		door_.reset();
-
-	return rval;
-}
-
-uint64_t
-CCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
-{
-BufChain bch;
-
-	if ( 0 == args->dst_ ) {
-		// They just want to wait until data arrives (or a timeout occurs) and
-		// then do the actual 'read' afterwards
-		EventSet          evSet = IEventSet::create();
-		CNoopEventHandler handler;
-
-		evSet->add( door_->getReadEventSource(), &handler );
-
-		bool dataReady;
-
-		if ( args->timeout_.isNone() ) {
-			dataReady = evSet->processEvent( false, NULL );
-		} else if ( args->timeout_.isIndefinite() ) {
-			dataReady = evSet->processEvent( true , NULL );
-		} else {
-			CTimeout absTimeout;
-			evSet->getAbsTimeout( &absTimeout, &args->timeout_ );
-			dataReady = evSet->processEvent( true , &absTimeout );
-		}
-		// we can't peek at the buffer and thus don't know how much
-		// data would be available but certainly at least 1 byte...
-		return dataReady ? 1 : 0;
-	}
-
-	bch = door_->pop( &args->timeout_, IProtoPort::REL_TIMEOUT  );
-
-	if ( ! bch )
-		return 0;
-
-	return bch->extract( args->dst_, args->off_, args->nbytes_ );
-}
-
-uint64_t
-CCommAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
-{
-BufChain bch = IBufChain::create();
-uint64_t rval;
-
-	bch->insert( args->src_, args->off_, args->nbytes_ );
-
-	rval = bch->getSize();
-
-	if ( ! door_->push( bch, &args->timeout_, IProtoPort::REL_TIMEOUT ) )
-		return 0;
-	return rval;
-}
-
-void CCommAddressImpl::startProtoStack()
-{
-	// start in reverse order
-	if ( protoStack_  && ! running_) {
-		std::vector<ProtoMod> mods;
-		int                      i;
-
-		running_ = true;
-
-		ProtoMod m;
-		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
-			mods.push_back( m );
-		}
-		for ( i = mods.size() - 1; i >= 0; i-- ) {
-			mods[i]->modStartup();
-		}
-	}
-}
-
-void CCommAddressImpl::shutdownProtoStack()
-{
-	if ( protoStack_ && running_ ) {
-		ProtoMod m;
-		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
-			m->modShutdown();
-		}
-		running_ = false;
-	}
-}
-
-CCommAddressImpl::~CCommAddressImpl()
-{
-	shutdownProtoStack();
-}
 
 DynTimeout::DynTimeout(const CTimeout &iniv)
 : timeoutCap_( CAP_US )

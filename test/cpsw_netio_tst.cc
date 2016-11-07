@@ -166,14 +166,14 @@ const char *dmp_yaml =  0;
 
 		root = netio;
 
-		INetIODev::PortBuilder pbldr( INetIODev::createPortBuilder() );
+		ProtoStackBuilder pbldr( IProtoStackBuilder::create() );
 
 		mmio->addAtAddress( srvm, REGBASE );
 
 		switch ( vers ) {
-			case 1: protoVers = INetIODev::SRP_UDP_V1; break;
-			case 2: protoVers = INetIODev::SRP_UDP_V2; break;
-			case 3: protoVers = INetIODev::SRP_UDP_V3; break;
+			case 1: protoVers = IProtoStackBuilder::SRP_UDP_V1; break;
+			case 2: protoVers = IProtoStackBuilder::SRP_UDP_V2; break;
+			case 3: protoVers = IProtoStackBuilder::SRP_UDP_V3; break;
 			default:
 				throw TestFailed();
 		}

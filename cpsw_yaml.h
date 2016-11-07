@@ -399,13 +399,13 @@ namespace YAML {
 				std::string str = node.Scalar();
 
 				if ( str.compare( "SRP_UDP_V1" ) == 0 )
-					rhs = INetIODev::SRP_UDP_V1;
+					rhs = IProtoStackBuilder::SRP_UDP_V1;
 				else if (str.compare( "SRP_UDP_V2" ) == 0 )
-					rhs = INetIODev::SRP_UDP_V2;
+					rhs = IProtoStackBuilder::SRP_UDP_V2;
 				else if (str.compare( "SRP_UDP_V3" ) == 0 )
-					rhs = INetIODev::SRP_UDP_V3;
+					rhs = IProtoStackBuilder::SRP_UDP_V3;
 				else if (str.compare( "SRP_UDP_NONE" ) == 0 )
-					rhs = INetIODev::SRP_UDP_NONE;
+					rhs = IProtoStackBuilder::SRP_UDP_NONE;
 				else
 					return false;
 
@@ -415,9 +415,9 @@ namespace YAML {
 			static Node encode(const INetIODev::ProtocolVersion &rhs) {
 				Node node;
 				switch( rhs ) {
-					case INetIODev::SRP_UDP_V1: node = "SRP_UDP_V1"; break;
-					case INetIODev::SRP_UDP_V2: node = "SRP_UDP_V2"; break;
-					case INetIODev::SRP_UDP_V3: node = "SRP_UDP_V3"; break;
+					case IProtoStackBuilder::SRP_UDP_V1: node = "SRP_UDP_V1"; break;
+					case IProtoStackBuilder::SRP_UDP_V2: node = "SRP_UDP_V2"; break;
+					case IProtoStackBuilder::SRP_UDP_V3: node = "SRP_UDP_V3"; break;
 					default: node = "SRP_UDP_NONE"; break;
 				}
 				return node;

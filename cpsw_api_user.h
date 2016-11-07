@@ -115,6 +115,16 @@ public:
 	 */
 	virtual Hub         isHub()          const = 0;
 
+	/*!
+	 * Dump information about this child to FILE
+	 */
+	virtual       void      dump(FILE*)    const = 0;
+
+	/*!
+	 * Dump information about this child to stdout
+	 */
+	virtual       void      dump()         const = 0;
+
 	virtual ~IEntry() {}
 };
 
@@ -137,15 +147,6 @@ class IChild : public virtual IEntry {
 		 */
 		virtual       unsigned  getNelms()     const = 0;
 
-		/*!
-		 * Dump information about this child to FILE
-		 */
-		virtual       void      dump(FILE*)    const = 0;
-
-		/*!
-		 * Dump information about this child to stdout
-		 */
-		virtual       void      dump()         const = 0;
 		virtual ~IChild() {}
 };
 

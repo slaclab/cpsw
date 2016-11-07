@@ -71,6 +71,22 @@ public:
 	}
 };
 
+/* Interface which should be implemented by classes which use
+ * protocol stacks. It helps finding an existing stack which
+ * matches select parameters so that new ports can be created.
+ * E.g., someone could be trying to create a new port for
+ * a certain UDPPort/TDEST combination. 
+ * 'findProtoPort()' could be used to locate an existing TDEST
+ * multiplexer on the desired UDP port so that a new TDEST
+ * port can then be added there.
+ */
+class IProtoPortLocator {
+public:
+	virtual ProtoPort findProtoPort(ProtoPortMatchParams *) = 0;
+
+	virtual ~IProtoPortLocator(){}
+};
+
 class IProtoDoor : public IProtoPort {
 public:
 	// returns NULL shared_ptr on timeout; throws on error

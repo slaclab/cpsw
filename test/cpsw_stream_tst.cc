@@ -131,18 +131,18 @@ Hub      root;
 
 		root = netio;
 
-	INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
+	ProtoStackBuilder bldr( IProtoStackBuilder::create() );
 
-		bldr->setSRPVersion          ( INetIODev::SRP_UDP_NONE );
-		bldr->setUdpPort             (                   sport );
-		bldr->setUdpOutQueueDepth    (                 iQDepth );
-		bldr->setUdpNumRxThreads     (             nUdpThreads );
-		bldr->setDepackOutQueueDepth (                 oQDepth );
-		bldr->setDepackLdFrameWinSize(          ldFrameWinSize );
-		bldr->setDepackLdFragWinSize (           ldFragWinSize );
-		bldr->useRssi                (                 useRssi );
+		bldr->setSRPVersion          ( IProtoStackBuilder::SRP_UDP_NONE );
+		bldr->setUdpPort             (                            sport );
+		bldr->setUdpOutQueueDepth    (                          iQDepth );
+		bldr->setUdpNumRxThreads     (                      nUdpThreads );
+		bldr->setDepackOutQueueDepth (                          oQDepth );
+		bldr->setDepackLdFrameWinSize(                   ldFrameWinSize );
+		bldr->setDepackLdFragWinSize (                    ldFragWinSize );
+		bldr->useRssi                (                          useRssi );
 		if ( tDest < 256 )
-			bldr->setTDestMuxTDEST   (                   tDest );
+			bldr->setTDestMuxTDEST   (                            tDest );
 
 		netio->addAtAddress( data, bldr );
 	}

@@ -141,7 +141,7 @@ bail:
 int
 main(int argc, char **argv)
 {
-INetIODev::ProtocolVersion vers = INetIODev::SRP_UDP_V2;
+IProtoStackBuilder::ProtocolVersion vers = IProtoStackBuilder::SRP_UDP_V2;
 int port = 0;
 int vc1  = 81;
 int vc2  = 17;
@@ -177,15 +177,15 @@ int  tDest   = -1;
 	}
 
 	switch ( ivers ) {
-		case 2: vers = INetIODev::SRP_UDP_V2; break;
-		case 1: vers = INetIODev::SRP_UDP_V1; break;
+		case 2: vers = IProtoStackBuilder::SRP_UDP_V2; break;
+		case 1: vers = IProtoStackBuilder::SRP_UDP_V1; break;
 		default:
 			fprintf(stderr,"Invalid protocol version '%i'\n", ivers);
 			return 1;
 	}
 
 	if ( port <= 0 ) {
-		port = INetIODev::SRP_UDP_V2 == vers ? 8192 : 8191;
+		port = IProtoStackBuilder::SRP_UDP_V2 == vers ? 8192 : 8191;
 	}
 
 	try {
@@ -193,7 +193,7 @@ int  tDest   = -1;
 		MMIODev  mmio_vc_1 = IMMIODev::create("mmio_vc_1",0x10000,BE);
 		MMIODev  mmio_vc_2 = IMMIODev::create("mmio_vc_2",0x10000,BE);
 
-		INetIODev::PortBuilder bldr( INetIODev::createPortBuilder() );
+		ProtoStackBuilder bldr( IProtoStackBuilder::create() );
 
 		bldr->setSRPVersion       (    vers );
 		bldr->setUdpPort          (    port );

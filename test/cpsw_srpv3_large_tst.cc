@@ -83,8 +83,8 @@ unsigned    nelms   = REG_ARR_SZ / sizeof(TYPE);
 		mmiov2->addAtAddress( srvm, REGBASE+REG_ARR_OFF );
 		mmiov3->addAtAddress( srvm, REGBASE+REG_ARR_OFF );
 
-		INetIODev::PortBuilder pbldr( root->createPortBuilder() );
-		pbldr->setSRPVersion( INetIODev::SRP_UDP_V2 );
+		ProtoStackBuilder pbldr( IProtoStackBuilder::create() );
+		pbldr->setSRPVersion( IProtoStackBuilder::SRP_UDP_V2 );
 		pbldr->setUdpPort   (                v2port );
 		pbldr->useRssi      (                  true );
 		pbldr->useTDestMux  (                 false );
@@ -97,7 +97,7 @@ unsigned    nelms   = REG_ARR_SZ / sizeof(TYPE);
 			throw TestFailed();
 		}
 
-		pbldr->setSRPVersion( INetIODev::SRP_UDP_V3 );
+		pbldr->setSRPVersion( IProtoStackBuilder::SRP_UDP_V3 );
 		pbldr->setSRPTimeoutUS(             1000000 );
 		pbldr->setUdpPort   (                v3port );
 		pbldr->setTDestMuxTDEST(             v3tdst );

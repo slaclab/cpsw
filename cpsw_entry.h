@@ -205,6 +205,9 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		// This member is not for general use (therefore the key argument)
 		virtual EntryAdapt createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const;
 
+		virtual void dump(FILE *) const;
+		virtual void dump()       const { dump( ::stdout ); }
+
 protected:
 		// You can use this template to implement the virtual 'createAdapter' member
 		// The 'helper' argument exists for convenience (template argument deduction)

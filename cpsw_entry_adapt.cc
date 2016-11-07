@@ -40,6 +40,18 @@ IEntryAdapt::setUnique(CEntryImpl::UniqueHandle uniqueHandle)
 	uniq_ = uniqueHandle;
 }
 
+void
+IEntryAdapt::dump(FILE *f) const
+{
+	p_->tail()->dump( f );
+}
+
+void
+IEntryAdapt::dump() const
+{
+	dump( ::stdout );
+}
+
 IEntryAdapt::~IEntryAdapt()
 {
 	CompositePathIterator it( p_ );

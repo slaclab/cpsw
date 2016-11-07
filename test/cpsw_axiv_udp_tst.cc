@@ -268,38 +268,6 @@ Stream strm = IStream::create( stats->getRoot()->findByName("dataSource") );
 	return 0;
 }
 
-#if 0
-static void testNUL(NetIODev root)
-{
-INetIODev::PortBuilder bldr( root->createPortBuilder() );
-	bldr->setSRPVersion( INetIODev::SRP_UDP_NONE );
-	bldr->setUdpPort( 8193 );
-	bldr->setTDestMuxTDEST( 3 );
-	bldr->setTDestMuxStripHeader( true );
-
-	root->addAtAddress( IField::create("EP"), bldr );
-
-Stream strm( IStream::create( root->findByName("EP") ) );
-
-uint8_t obuf[20];
-uint8_t ibuf[20];
-int64_t got;
-
-	memset(obuf,0,sizeof(obuf));
-	obuf[0] = 3;
-	obuf[1] = 3;
-
-	strm->write( obuf, sizeof(obuf) );
-	got = strm->read( ibuf, sizeof(ibuf) );
-	printf("Got %"PRId64" bytes in reply to SRPV3 NUL\n", got);
-
-	for ( int i=0; i<got; i++ )
-		printf("0x%02x ", ibuf[i]);
-	printf("\n");
-
-}
-#endif
-
 static void testBram(ScalVal bram)
 {
 unsigned nelms = bram->getNelms();
@@ -565,13 +533,13 @@ uint16_t  u16;
 		mmio->addAtAddress( prbs, prbs_base );
 
 		{
-			INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
-			INetIODev::ProtocolVersion protoVers;
+			ProtoStackBuilder bldr = IProtoStackBuilder::create();
+			IProtoStackBuilder::ProtocolVersion protoVers;
 			switch ( vers ) {
 				default: throw TestFailed();
-				case 1: protoVers = INetIODev::SRP_UDP_V1; break;
-				case 2: protoVers = INetIODev::SRP_UDP_V2; break;
-				case 3: protoVers = INetIODev::SRP_UDP_V3; break;
+				case 1: protoVers = IProtoStackBuilder::SRP_UDP_V1; break;
+				case 2: protoVers = IProtoStackBuilder::SRP_UDP_V2; break;
+				case 3: protoVers = IProtoStackBuilder::SRP_UDP_V3; break;
 			}
 			bldr->setSRPVersion              (             protoVers );
 			bldr->setUdpPort                 (                  port );
@@ -603,17 +571,17 @@ uint16_t  u16;
 		}
 
 		if ( length > 0 ) {
-			INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
-			bldr->setSRPVersion          ( INetIODev::SRP_UDP_NONE );
-			bldr->setUdpPort             ( sport                   );
-			bldr->setUdpOutQueueDepth    (                      32 );
-			bldr->setUdpNumRxThreads     (                       2 );
-			bldr->setDepackOutQueueDepth (                      16 );
-			bldr->setDepackLdFrameWinSize(                       4 );
-			bldr->setDepackLdFragWinSize (                       4 );
-			bldr->useRssi                (                 strRssi );
+			ProtoStackBuilder bldr = IProtoStackBuilder::create();
+			bldr->setSRPVersion          ( IProtoStackBuilder::SRP_UDP_NONE );
+			bldr->setUdpPort             ( sport                            );
+			bldr->setUdpOutQueueDepth    (                               32 );
+			bldr->setUdpNumRxThreads     (                                2 );
+			bldr->setDepackOutQueueDepth (                               16 );
+			bldr->setDepackLdFrameWinSize(                                4 );
+			bldr->setDepackLdFragWinSize (                                4 );
+			bldr->useRssi                (                          strRssi );
 			if ( tDestSTRM >= 0 )
-				bldr->setTDestMuxTDEST   (               tDestSTRM );
+				bldr->setTDestMuxTDEST   (                        tDestSTRM );
 			comm->addAtAddress( IField::create("dataSource"), bldr );
 		}
 	}

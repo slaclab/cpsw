@@ -291,6 +291,12 @@ public:
 	}
 };
 
+void
+CEntryImpl::dump(FILE *f) const
+{
+	fprintf(f, "%s", getName());
+}
+
 CEntryImpl::UniqueHandle
 CEntryImpl::getUniqueHandle(IEntryAdapterKey &k, ConstPath path) const
 {

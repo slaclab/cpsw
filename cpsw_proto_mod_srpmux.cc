@@ -22,9 +22,9 @@ BufChain CSRPPort::processOutput(BufChain bc)
 unsigned off = VC_OFF_V2;
 
 	switch ( getProtoVersion() ) {
-		case INetIODev::SRP_UDP_V1: off = VC_OFF_V1; break;
-		case INetIODev::SRP_UDP_V2: off = VC_OFF_V2; break;
-		case INetIODev::SRP_UDP_V3: off = VC_OFF_V3; break;
+		case IProtoStackBuilder::SRP_UDP_V1: off = VC_OFF_V1; break;
+		case IProtoStackBuilder::SRP_UDP_V2: off = VC_OFF_V2; break;
+		case IProtoStackBuilder::SRP_UDP_V3: off = VC_OFF_V3; break;
 
 		default:
 		throw InternalError("CSRPPort::processOutput -- unknown protocol version");
@@ -63,9 +63,9 @@ uint8_t  vc;
 unsigned off = VC_OFF_V2;
 
 	switch ( getProtoVersion() ) {
-		case INetIODev::SRP_UDP_V1: off = VC_OFF_V1; break;
-		case INetIODev::SRP_UDP_V2: off = VC_OFF_V2; break;
-		case INetIODev::SRP_UDP_V3: off = VC_OFF_V3; break;
+		case IProtoStackBuilder::SRP_UDP_V1: off = VC_OFF_V1; break;
+		case IProtoStackBuilder::SRP_UDP_V2: off = VC_OFF_V2; break;
+		case IProtoStackBuilder::SRP_UDP_V3: off = VC_OFF_V3; break;
 
 		default:
 		throw InternalError("CSRPPort::processOutput -- unknown protocol version");
