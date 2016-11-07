@@ -12,6 +12,8 @@
 
 #include <cpsw_comm_addr.h>
 
+
+// Dynamical timeout based on round-trip times
 class DynTimeout {
 private:
 	static const uint64_t AVG_SHFT  = 6; // time-constant for averager v(n+1) = v(n) + (x - v(n))/(1<<AVG_SHFT)
