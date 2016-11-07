@@ -925,6 +925,11 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Convert this Path to a string representation"
 		)
+		.def("__repr__",     &IPath::toString,
+			( arg("self") ),
+			"\n"
+			"Convert this Path to a string representation"
+		)
 		.def("verifyAtTail", &IPath::verifyAtTail,
 			( arg("self"), arg("path") ),
 			"\n"
