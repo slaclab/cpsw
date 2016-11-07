@@ -391,8 +391,8 @@ namespace YAML {
 		};
 
 	template<>
-		struct convert<INetIODev::ProtocolVersion> {
-			static bool decode(const Node& node, INetIODev::ProtocolVersion& rhs) {
+		struct convert<IProtoStackBuilder::ProtocolVersion> {
+			static bool decode(const Node& node, IProtoStackBuilder::ProtocolVersion& rhs) {
 				if (!node.IsScalar())
 					return false;
 
@@ -412,7 +412,7 @@ namespace YAML {
 				return true;
 			}
 
-			static Node encode(const INetIODev::ProtocolVersion &rhs) {
+			static Node encode(const IProtoStackBuilder::ProtocolVersion &rhs) {
 				Node node;
 				switch( rhs ) {
 					case IProtoStackBuilder::SRP_UDP_V1: node = "SRP_UDP_V1"; break;
