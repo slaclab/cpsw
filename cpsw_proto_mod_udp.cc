@@ -112,7 +112,7 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 	struct iovec     iov[NBUFS_MAX];
 	int              niovs;
 
-	for ( niovs = 0, cap = 0; niovs<NBUFS_MAX && cap < IBuf::CAPA_ETH_JUM; niovs++ ) {
+	for ( niovs = 0, cap = 0; niovs<NBUFS_MAX && cap < (ssize_t)IBuf::CAPA_ETH_JUM; niovs++ ) {
 		bufs.push_back( IBuf::getBuf( IBuf::CAPA_ETH_JUM, true ) );
 		iov[niovs].iov_base = bufs[niovs]->getPayload();
 		cap += (iov[niovs].iov_len  = bufs[niovs]->getAvail());
