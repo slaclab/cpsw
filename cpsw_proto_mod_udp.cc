@@ -110,7 +110,7 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 	unsigned         idx;
 
 	struct iovec     iov[NBUFS_MAX];
-	unsigned         niovs;
+	int              niovs;
 
 	for ( niovs = 0, cap = 0; niovs<NBUFS_MAX && cap < IBuf::CAPA_ETH_JUM; niovs++ ) {
 		bufs.push_back( IBuf::getBuf( IBuf::CAPA_ETH_JUM, true ) );
