@@ -809,4 +809,9 @@ public:
 	static DoubleVal create(Path path);
 };
 
+/*!
+ * Obtain the GIT version string of the library
+ */
+const char *getCPSWVersionString();
+
 #endif

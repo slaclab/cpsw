@@ -714,6 +714,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 
 	register_ptr_to_python< shared_ptr<std::string const> >();
 
+	def("getCPSWVersionString", getCPSWVersionString);
+
 	// wrap 'IEntry' interface
 	class_<IEntry, boost::noncopyable>
 	EntryClazz(

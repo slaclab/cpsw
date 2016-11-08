@@ -51,6 +51,7 @@ cpsw_SRCS+= cpsw_proto_stack_builder.cc
 cpsw_SRCS+= cpsw_thread.cc
 cpsw_SRCS+= cpsw_yaml.cc
 cpsw_SRCS+= cpsw_preproc.cc
+cpsw_SRCS+= cpsw_version.cc
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h
