@@ -434,6 +434,10 @@ printf("JAM cleared\n");
 			fprintf(stderr, "fragmenter: write error\n");
 			break;
 		}
+#ifdef DEBUG
+		if ( debug )
+			printf("fragger sent %d[%d]!\n", sa->fram, frag);
+#endif
 
 		if ( ++frag >= sa->n_frags ) {
 			frag = 0;
@@ -877,7 +881,11 @@ int      nprts, nstrms;
 		if ( strmvars[i].port <= 0 )
 			continue;
 
-		strm_args[i].port                 = ioPrtCreate( ina, strmvars[i].port, sim_loss, scramble, strmvars[i].haveRssi );
+		if ( use_tcp ) {
+			strm_args[i].port             = tcpPrtCreate( ina, strmvars[i].port );
+		} else {
+			strm_args[i].port             = udpPrtCreate( ina, strmvars[i].port, sim_loss, scramble, strmvars[i].haveRssi );
+		}
 		strm_args[i].srpQ                 = ioQueCreate(10);
 		strm_args[i].n_frags              = n_frags;
 		strm_args[i].tdest                = tdest;
@@ -909,7 +917,11 @@ int      nprts, nstrms;
 		srpArgs[i].vers     = srpvars[i].vers;
 		srpArgs[i].opts     = srpvars[i].opts;
 		// don't scramble SRP - since SRP is synchronous (single request-response) it becomes extremely slow when scrambled
-		srpArgs[i].port     = ioPrtCreate( ina, srpvars[i].port, sim_loss, 0, srpvars[i].haveRssi );
+		if ( use_tcp ) {
+			srpArgs[i].port = tcpPrtCreate( ina, srpvars[i].port );
+		} else {
+			srpArgs[i].port = udpPrtCreate( ina, srpvars[i].port, sim_loss, 0, srpvars[i].haveRssi );
+		}
 		if ( pthread_create( &srpArgs[i].tid, 0, srpHandler, (void*)&srpArgs[i] ) ) {
 			perror("pthread_create [srpHandler]");
 			goto bail;

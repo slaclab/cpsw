@@ -25,6 +25,8 @@
 using boost::make_shared;
 using boost::dynamic_pointer_cast;
 
+//#define PSBLDR_DEBUG
+
 class CProtoStackBuilder : public IProtoStackBuilder {
 	public:
 		typedef enum TransportProto { NONE = 0, UDP = 1, TCP = 2 } TransportProto;
@@ -436,6 +438,16 @@ int                        i;
 		}
 	}
 	{
+		const YAML::PNode &nn( node.lookup(YAML_KEY_TCP) );
+		if ( nn )
+		{
+			if ( readNode(nn, YAML_KEY_port, &u) )
+				bldr->setTcpPort( u );
+			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
+				bldr->setTcpOutQueueDepth( u );
+		}
+	}
+	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_UDP) );
 		if ( nn )
 		{
@@ -535,6 +547,10 @@ ProtoModTDestMux     tDestMuxMod;
 ProtoModSRPMux       srpMuxMod;
 ProtoStackBuilder    bldr   = clone();
 bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVersion();
+
+#ifdef PSBLDR_DEBUG
+	printf("makeProtoPort...entering\n");
+#endif
 
 	// sanity checks
 	if ( ( ! bldr->hasUdp() && ! bldr->hasTcp() ) || (INADDR_NONE == bldr->getIPAddr()) )

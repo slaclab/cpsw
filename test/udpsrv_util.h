@@ -66,18 +66,10 @@ typedef shared_ptr<IUdpPort> UdpPort;
 
 class IUdpPort : public IProtoPort {
 public:
-	virtual BufChain pop(const CTimeout *)       = 0;
-	virtual BufChain tryPop()                    = 0;
-
 	virtual void attach(ProtoPort upstream)
 	{
 		throw InternalError("This must be a 'top' port");
 	}
-
-	virtual bool push(BufChain, const CTimeout *) = 0;
-	virtual bool tryPush(BufChain)                = 0;
-
-	virtual unsigned isConnected()                = 0;
 
 	virtual unsigned getUdpPort()                 = 0;
 
@@ -91,18 +83,11 @@ typedef shared_ptr<ITcpPort> TcpPort;
 
 class ITcpPort : public IProtoPort {
 public:
-	virtual BufChain pop(const CTimeout *)       = 0;
-	virtual BufChain tryPop()                    = 0;
 
 	virtual void attach(ProtoPort upstream)
 	{
 		throw InternalError("This must be a 'top' port");
 	}
-
-	virtual bool push(BufChain, const CTimeout *) = 0;
-	virtual bool tryPush(BufChain)                = 0;
-
-	virtual unsigned isConnected()                = 0;
 
 	virtual unsigned getTcpPort()                 = 0;
 

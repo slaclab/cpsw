@@ -103,7 +103,7 @@ void CNetIODevImpl::addAtAddress(Field child, YamlState &ypath)
 {
 ProtoStackBuilder bldr( IProtoStackBuilder::create( ypath ) );
 
-	if ( bldr->hasUdp() ) {
+	if ( bldr->hasUdp() || bldr->hasTcp() ) {
 		addAtAddress(child, bldr);
 	} else {
 		CDevImpl::addAtAddress(child, ypath);

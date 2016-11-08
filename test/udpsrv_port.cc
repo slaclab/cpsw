@@ -12,34 +12,46 @@
 #include <udpsrv_rssi_port.h>
 
 struct IoPrt_ {
-	UdpPort   udp_;
+	ProtoPort prt_;
 	ProtoPort top_;
 	CMtx      mtx_;
-	int       withRssi_;
+	int       hasConn_;
 	IoPrt_(const char *mtxnm):mtx_(mtxnm){}
 };
 
 int ioPrtRssiIsConn(IoPrt prt)
 {
-	return prt->withRssi_ && prt->top_->isConnected();
+	return prt->hasConn_ && prt->top_->isConnected();
 }
 
-IoPrt ioPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int withRssi)
+IoPrt udpPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int withRssi)
 {
 ProtoPort  prt;
 IoPrt     p = new IoPrt_("udp_port");
 
-	p->udp_      = IUdpPort::create(ina, port, simLossPercent, ldScrambler);
-    p->withRssi_ = withRssi;
+	p->prt_      = IUdpPort::create(ina, port, simLossPercent, ldScrambler);
+    p->hasConn_  = (WITH_RSSI == withRssi);
 	if ( withRssi ) {
 		p->top_ = CRssiPort::create( true );
-		p->top_->attach( p->udp_ );
+		p->top_->attach( p->prt_ );
 	} else {
-		p->top_ = p->udp_;
+		p->top_ = p->prt_;
 	}
 	for ( prt = p->top_; prt; prt = prt->getUpstreamPort() )
 		prt->start();
 
+	return p;
+}
+
+IoPrt tcpPrtCreate(const char *ina, unsigned port)
+{
+ProtoPort  prt;
+IoPrt     p = new IoPrt_("tcp_port");
+	p->prt_      = ITcpPort::create(ina, port);
+    p->hasConn_  = 1;
+	p->top_      = p->prt_;
+	for ( prt = p->top_; prt; prt = prt->getUpstreamPort() )
+		prt->start();
 	return p;
 }
 
@@ -54,7 +66,7 @@ ProtoPort  prt;
 		prt->stop();
 
 	p->top_.reset();
-	p->udp_.reset();
+	p->prt_.reset();
 	delete p;
 }
 
@@ -90,7 +102,7 @@ BufChain bc;
 int ioPrtIsConn(IoPrt p)
 {
 CMtx::lg( &p->mtx_ );
-	return p->udp_->isConnected();
+	return p->prt_->isConnected();
 }
 
 static BufChain fill(void *buf, unsigned size)

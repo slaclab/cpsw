@@ -12,8 +12,10 @@
 #include <cpsw_error.h>
 
 #include <sys/socket.h>
+#include <netinet/tcp.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
 
 CSockSd::CSockSd(int type)
 : sd_(-1),
@@ -43,7 +45,7 @@ CSockSd::CSockSd(CSockSd &orig)
 
 void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
 {
-	int    optval = 1;
+	int    optval;
 
 	struct sockaddr_in me;
 
@@ -61,8 +63,16 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 		}
 	}
 
+	optval = 1;
 	if ( ::setsockopt(  sd_,  SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) ) {
 		throw IOError("setsockopt(SO_REUSEADDR) ", errno);
+	}
+
+	optval = 1;
+	if ( SOCK_STREAM == type_ ) {
+		if ( ::setsockopt( sd_,  IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval) ) ) {
+			throw IOError("setsockopt(TCP_NODELAY) ", errno);
+		}
 	}
 
 	if ( ::bind( sd_, (struct sockaddr*)me_p, sizeof(*me_p)) ) {
@@ -73,6 +83,7 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 	if ( dest ) {
 		if ( ::connect( sd_, (struct sockaddr*)dest, sizeof(*dest) ) )
 			throw IOError("connect failed ", errno);
+printf("CONNECTED to %s:%d\n", inet_ntoa(dest->sin_addr), ntohs(dest->sin_port));
 	}
 }
 

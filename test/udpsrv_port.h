@@ -38,8 +38,9 @@ int ioQueTrySend(IoQue , void *buf, unsigned size);
 #define WITH_RSSI    1
 #define WITHOUT_RSSI 0
 
-IoPrt  ioPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int hasRssi);
-void    ioPrtDestroy(IoPrt);
+IoPrt  udpPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int hasRssi);
+IoPrt  tcpPrtCreate(const char *ina, unsigned port);
+void   ioPrtDestroy(IoPrt);
 
 #ifdef __cplusplus
 };

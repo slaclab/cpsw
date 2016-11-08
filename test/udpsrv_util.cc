@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
@@ -808,6 +809,11 @@ public:
 	{
 		if ( (sd_ = socket(AF_INET, type, 0)) < 0 )
 			throw InternalError("Unable to create socket");
+		int yes = 1;
+		if ( setsockopt(sd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) )
+			throw InternalError("unable to set SO_REUSEADDR");
+		if ( setsockopt(sd_, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) )
+			throw InternalError("unable to set TCP_NODELAY");
 	}
 
 	int get() { return sd_; }
@@ -978,7 +984,7 @@ private:
 
 public:
 	CTcpPort(const char *ina, unsigned port)
-	: CRunnable("UDP RX"),
+	: CRunnable("TCP RX"),
 	  sd_( SOCK_STREAM ),
       conn_( -1 ),
 	  outQ_( IBufQueue::create(4) )
@@ -1034,25 +1040,23 @@ public:
 		if ( to ) 
 			throw InternalError("Not implemented");
 
-		if ( 0 == ntohs(peer_.sin_port) )
-			return false;
-
 		if ( conn_ < 0 )
 			return false;
 
-		Buf        b = bc->getHead();
-		uint32_t len = b->getSize();
+		Buf      b      = bc->getHead();
+		uint32_t len    = b->getSize();
+		uint32_t lenNBO = htonl(len);
 
-		len = htonl(len);
+		uint8_t *p = b->getPayload() - sizeof(lenNBO);
+		b->setPayload( p );
+		memcpy( p, &lenNBO, sizeof(lenNBO) );
 
-		if ( sizeof(len) != ::write( conn_, &len, sizeof(len) ) )
-			throw InternalError("Unable to write LEN");
-
-		uint8_t *p = b->getPayload();
+		len += sizeof(lenNBO);
 
 		while ( len > 0 ) {
-			if ( (put = ::send(conn_, p, len, flgs)) < 0 )
+			if ( (put = ::send(conn_, p, len, flgs)) < 0 ) {
 				return false;
+			}
 			p   += put;
 			len -= put;
 		}
@@ -1082,7 +1086,6 @@ public:
 	socklen_t sl;
 
 		while ( ( (sl = sizeof(peer_)), (conn_ = accept(sd_.get(), (struct sockaddr*)&peer_, &sl)) ) >= 0 ) {
-
 			while ( conn_ >= 0 ) {
 
 				BufChain bc = IBufChain::create();
@@ -1091,29 +1094,40 @@ public:
 				b->setPayload( NULL );
 
 				uint32_t len;
+				uint8_t  *p;
+				int       s;
 
-				if ( sizeof(len) != ::read(sd_.get(), &len, sizeof(len)) )
-					throw InternalError("TCP: unable to read length");
+				p = reinterpret_cast<uint8_t*>( &len );
+				s = sizeof(len);
+
+				while ( s > 0 ) {
+					got = ::read(conn_, &len, sizeof(len));
+					if ( got <= 0 ) {
+						fprintf(stderr,"TCP: unable to read length; resetting connection\n");
+						goto reconn;
+					}
+					p += got;
+					s -= got;
+				}
 
 				len = ntohl(len);
-
-				uint8_t *p = b->getPayload();
+				p   = b->getPayload();
+				b->setSize( len );
 
 				while ( len > 0 ) {
-					if ( (got = ::recv(sd_.get(), p, len, 0)) < 0 ) {
-						close(conn_);
-						conn_ = -1;
+					if ( (got = ::recv(conn_, p, len, 0)) <= 0 ) {
+						fprintf(stderr,"TCP: unable to read data; resetting connection\n");
 						goto reconn;
 					}
 					len -= got;
 					p   += got;
 				}
 
-				b->setSize( got );
-
 				outQ_->tryPush( bc );
 			}
 reconn:;
+			close(conn_);
+			conn_ = -1;
 		}
 
 		return NULL;
@@ -1143,4 +1157,10 @@ UdpPort IUdpPort::create(const char *ina, unsigned port, unsigned simLoss, unsig
 {
 CUdpPort *p = new CUdpPort(ina, port, simLoss, ldScrmbl);
 	return UdpPort(p);
+}
+
+TcpPort ITcpPort::create(const char *ina, unsigned port)
+{
+CTcpPort *p = new CTcpPort(ina, port);
+	return TcpPort(p);
 }
