@@ -13,6 +13,7 @@
 
 #include <cpsw_proto_mod_depack.h>
 #include <cpsw_proto_mod_udp.h>
+#include <cpsw_proto_mod_tcp.h>
 #include <cpsw_proto_mod_srpmux.h>
 #include <cpsw_proto_mod_rssi.h>
 #include <cpsw_proto_mod_tdestmux.h>
@@ -25,13 +26,16 @@ using boost::make_shared;
 using boost::dynamic_pointer_cast;
 
 class CProtoStackBuilder : public IProtoStackBuilder {
+	public:
+		typedef enum TransportProto { NONE = 0, UDP = 1, TCP = 2 } TransportProto;
 	private:
 		INetIODev::ProtocolVersion protocolVersion_;
 		uint64_t                   SRPTimeoutUS_;
 		int                        SRPDynTimeout_;
 		unsigned                   SRPRetryCount_;
-		unsigned                   UdpPort_;
-		unsigned                   UdpOutQueueDepth_;
+		TransportProto             Xprt_;
+		unsigned                   XprtPort_;
+		unsigned                   XprtOutQueueDepth_;
 		unsigned                   UdpNumRxThreads_;
 		int                        UdpPollSecs_;
 		bool                       hasRssi_;
@@ -53,8 +57,9 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			SRPTimeoutUS_           = 0;
 			SRPDynTimeout_          = -1;
 			SRPRetryCount_          = -1;
-			UdpPort_                = 8192;
-			UdpOutQueueDepth_       = 0;
+			Xprt_                   = UDP;
+			XprtPort_               = 8192;
+			XprtOutQueueDepth_      = 0;
 			UdpNumRxThreads_        = 0;
 			UdpPollSecs_            = -1;
 			hasRssi_                = false;
@@ -140,6 +145,11 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			return getUdpPort() != 0;
 		}
 
+		virtual bool            hasTcp()
+		{
+			return getTcpPort() != 0;
+		}
+
 		virtual void            useSRPDynTimeout(bool v)
 		{
 			SRPDynTimeout_ = (v ? 1 : 0);
@@ -152,29 +162,61 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			return SRPDynTimeout_ ? true : false;
 		}
 
-		virtual void            setUdpPort(unsigned v)
+		virtual void setXprtPort(unsigned v)
 		{
 			if ( v > 65535 || v == 0 )
 				throw InvalidArgError("Invalid UDP Port");
-			UdpPort_ = v;
+			XprtPort_ = v;
 		}
+
+		virtual void            setUdpPort(unsigned v)
+		{
+			setXprtPort(v);
+			Xprt_ = UDP;
+		}
+
+		virtual void            setTcpPort(unsigned v)
+		{
+			setXprtPort(v);
+			Xprt_ = TCP;
+		}
+
 
 		virtual unsigned        getUdpPort()
 		{
-			return UdpPort_;
+			return Xprt_ == UDP ? XprtPort_ : 0;
+		}
+
+		virtual unsigned        getTcpPort()
+		{
+			return Xprt_ == TCP ? XprtPort_ : 0;
 		}
 
 		virtual void            setUdpOutQueueDepth(unsigned v)
 		{
-			UdpOutQueueDepth_ = v;
+			XprtOutQueueDepth_ = v;
+			Xprt_              = UDP;
 		}
+
+		virtual void            setTcpOutQueueDepth(unsigned v)
+		{
+			XprtOutQueueDepth_ = v;
+			Xprt_              = TCP;
+		}
+
 
 		virtual unsigned        getUdpOutQueueDepth()
 		{
-			if ( 0 == UdpOutQueueDepth_ )
+			if ( 0 == XprtOutQueueDepth_ )
 				return 10;
-			return UdpOutQueueDepth_;
+			return XprtOutQueueDepth_;
 		}
+
+		virtual unsigned        getTcpOutQueueDepth()
+		{
+			return getUdpOutQueueDepth();
+		}
+
 
 		virtual void            setUdpNumRxThreads(unsigned v)
 		{
@@ -495,17 +537,20 @@ ProtoStackBuilder    bldr   = clone();
 bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVersion();
 
 	// sanity checks
-	if ( ! bldr->hasUdp() || (INADDR_NONE == bldr->getIPAddr()) )
-		throw ConfigurationError("Currently only UDP transport supported\n");
+	if ( ( ! bldr->hasUdp() && ! bldr->hasTcp() ) || (INADDR_NONE == bldr->getIPAddr()) )
+		throw ConfigurationError("Currently only UDP or TCP transport supported\n");
 
 	if ( ! hasSRP && bldr->hasSRPMux() ) {
 		throw ConfigurationError("Cannot configure SRP Demuxer w/o SRP protocol version");
 	}
 
-	cmp.udpDestPort_ = bldr->getUdpPort();
+	if ( bldr->hasUdp() )
+		cmp.udpDestPort_ = bldr->getUdpPort();
+	else
+		cmp.tcpDestPort_ = bldr->getTcpPort();
 
 #ifdef PSBLDR_DEBUG
-	printf("makeProtoPort for port %d\n", bldr->getUdpPort());
+	printf("makeProtoPort for %s port %d\n", bldr->hasUdp() ? "UDP" : "TCP" , bldr->hasUdp() ? bldr->getUdpPort() : bldr->getTcpPort());
 #endif
 
 	if ( findProtoPort( &cmp, existingPorts ) ) {
@@ -515,7 +560,7 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 		}
 
 #ifdef PSBLDR_DEBUG
-	printf("makeProtoPort port %d found\n", bldr->getUdpPort());
+	printf("makeProtoPort %s port %d found\n", bldr->hasUdp() ? "UDP" : "TCP" , bldr->hasUdp() ? bldr->getUdpPort() : bldr->getTcpPort());
 #endif
 
 		// existing RSSI configuration must match the requested one
@@ -612,11 +657,15 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 		struct sockaddr_in dst;
 
 		dst.sin_family      = AF_INET;
-		dst.sin_port        = htons( bldr->getUdpPort() );
+		dst.sin_port        = htons( bldr->hasUdp() ? bldr->getUdpPort() : bldr->getTcpPort() );
 		dst.sin_addr.s_addr = bldr->getIPAddr();
 
-		// Note: UDP module MUST have a queue if RSSI is used
-		rval = CShObj::create< ProtoModUdp >( &dst, bldr->getUdpOutQueueDepth(), bldr->getUdpNumRxThreads(), bldr->getUdpPollSecs() );
+		if ( bldr->hasUdp() ) {
+			// Note: transport module MUST have a queue if RSSI is used
+			rval = CShObj::create< ProtoModUdp >( &dst, bldr->getUdpOutQueueDepth(), bldr->getUdpNumRxThreads(), bldr->getUdpPollSecs() );
+		} else {
+			rval = CShObj::create< ProtoModTcp >( &dst, bldr->getTcpOutQueueDepth() );
+		}
 
 		if ( bldr->hasRssi() ) {
 #ifdef PSBLDR_DEBUG

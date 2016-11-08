@@ -149,6 +149,12 @@ public:
 	virtual void               setSRPRetryCount(unsigned)          = 0; // default: 10
 	virtual unsigned           getSRPRetryCount()                  = 0;
 
+	virtual bool               hasTcp()                            = 0; // default: NO
+    virtual void               setTcpPort(unsigned)                = 0; // default: 8192
+	virtual unsigned           getTcpPort()                        = 0;
+	virtual void               setTcpOutQueueDepth(unsigned)       = 0; // default: 10
+	virtual unsigned           getTcpOutQueueDepth()               = 0;
+
 	virtual bool               hasUdp()                            = 0; // default: YES
 	virtual void               setUdpPort(unsigned)                = 0; // default: 8192
 	virtual unsigned           getUdpPort()                        = 0;

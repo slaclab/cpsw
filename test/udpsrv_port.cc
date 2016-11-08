@@ -11,23 +11,23 @@
 #include <udpsrv_port.h>
 #include <udpsrv_rssi_port.h>
 
-struct UdpPrt_ {
+struct IoPrt_ {
 	UdpPort   udp_;
 	ProtoPort top_;
 	CMtx      mtx_;
 	int       withRssi_;
-	UdpPrt_(const char *mtxnm):mtx_(mtxnm){}
+	IoPrt_(const char *mtxnm):mtx_(mtxnm){}
 };
 
-int udpPrtRssiIsConn(UdpPrt prt)
+int ioPrtRssiIsConn(IoPrt prt)
 {
 	return prt->withRssi_ && prt->top_->isConnected();
 }
 
-UdpPrt udpPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int withRssi)
+IoPrt ioPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int withRssi)
 {
 ProtoPort  prt;
-UdpPrt     p = new UdpPrt_("udp_port");
+IoPrt     p = new IoPrt_("udp_port");
 
 	p->udp_      = IUdpPort::create(ina, port, simLossPercent, ldScrambler);
     p->withRssi_ = withRssi;
@@ -43,7 +43,7 @@ UdpPrt     p = new UdpPrt_("udp_port");
 	return p;
 }
 
-void udpPrtDestroy(UdpPrt p)
+void ioPrtDestroy(IoPrt p)
 {
 ProtoPort  prt;
 
@@ -70,7 +70,7 @@ unsigned bufsz = bc->getSize();
 	return size;
 }
 
-int udpPrtRecv(UdpPrt p, void *buf, unsigned size, struct timespec *abs_timeout)
+int ioPrtRecv(IoPrt p, void *buf, unsigned size, struct timespec *abs_timeout)
 {
 CMtx::lg( &p->mtx_ );
 
@@ -87,7 +87,7 @@ BufChain bc;
 	return xtrct(bc, buf, size);
 }
 
-int udpPrtIsConn(UdpPrt p)
+int ioPrtIsConn(IoPrt p)
 {
 CMtx::lg( &p->mtx_ );
 	return p->udp_->isConnected();
@@ -103,7 +103,7 @@ Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
 	return bc;
 }
 
-int udpPrtSend(UdpPrt p, void *buf, unsigned size)
+int ioPrtSend(IoPrt p, void *buf, unsigned size)
 {
 CMtx::lg( &p->mtx_ );
 
@@ -112,18 +112,18 @@ BufChain bc = fill(buf, size);
 	return p->top_->push(bc, NULL) ? size : -1;
 }
 
-struct UdpQue_ {
+struct IoQue_ {
 	BufQueue q_;
 };
 
-UdpQue udpQueCreate(unsigned depth)
+IoQue ioQueCreate(unsigned depth)
 {
-UdpQue rval = new UdpQue_();
+IoQue rval = new IoQue_();
 	rval->q_ = IBufQueue::create(depth);
 	return rval;
 }
 
-void   udpQueDestroy(UdpQue q)
+void   ioQueDestroy(IoQue q)
 {
 	if ( q ) {
 		q->q_.reset();
@@ -131,7 +131,7 @@ void   udpQueDestroy(UdpQue q)
 	}
 }
 
-int udpQueTryRecv(UdpQue q, void *buf, unsigned size)
+int ioQueTryRecv(IoQue q, void *buf, unsigned size)
 {
 BufChain bc = q->q_->tryPop();
 	if ( ! bc )
@@ -140,7 +140,7 @@ BufChain bc = q->q_->tryPop();
 	return xtrct(bc, buf, size);
 }
 
-int udpQueRecv(UdpQue q, void *buf, unsigned size, struct timespec *abs_timeout)
+int ioQueRecv(IoQue q, void *buf, unsigned size, struct timespec *abs_timeout)
 {
 CTimeout to( *abs_timeout );
 
@@ -152,7 +152,7 @@ BufChain bc = q->q_->pop( to.isIndefinite() ? NULL : &to );
 	return xtrct(bc, buf, size);
 }
 
-int udpQueTrySend(UdpQue q, void *buf, unsigned size)
+int ioQueTrySend(IoQue q, void *buf, unsigned size)
 {
 BufChain bc = fill(buf, size);
 	return q->q_->tryPush( bc ) ? size : -1;

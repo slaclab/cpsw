@@ -57,6 +57,7 @@
 #define YAML_KEY_TDESTMux  "TDESTMux"
 #define YAML_KEY_timeoutUS  "timeoutUS"
 #define YAML_KEY_UDP  "UDP"
+#define YAML_KEY_TCP  "TCP"
 #define YAML_KEY_value  "value"
 #define YAML_KEY_virtualChannel  "virtualChannel"
 #define YAML_KEY_wordSwap  "wordSwap"

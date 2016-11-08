@@ -86,6 +86,32 @@ public:
 	static UdpPort create(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler);
 };
 
+class ITcpPort;
+typedef shared_ptr<ITcpPort> TcpPort;
+
+class ITcpPort : public IProtoPort {
+public:
+	virtual BufChain pop(const CTimeout *)       = 0;
+	virtual BufChain tryPop()                    = 0;
+
+	virtual void attach(ProtoPort upstream)
+	{
+		throw InternalError("This must be a 'top' port");
+	}
+
+	virtual bool push(BufChain, const CTimeout *) = 0;
+	virtual bool tryPush(BufChain)                = 0;
+
+	virtual unsigned isConnected()                = 0;
+
+	virtual unsigned getTcpPort()                 = 0;
+
+	virtual ~ITcpPort() {}
+
+	static TcpPort create(const char *ina, unsigned port);
+};
+
+
 class ILoopbackPorts;
 typedef shared_ptr<ILoopbackPorts> LoopbackPorts;
 

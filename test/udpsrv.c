@@ -126,8 +126,8 @@ int i;
 #define SRP_OPT_BYTERES (1<<0)
 
 typedef struct streamer_args {
-	UdpPrt             port;
-	UdpQue             srpQ;
+	IoPrt             port;
+	IoQue             srpQ;
 	int                polled_stream_up;
 	unsigned           n_frags;
 	unsigned           fram;
@@ -143,7 +143,7 @@ typedef struct streamer_args {
 } streamer_args;
 
 typedef struct SrpArgs {
-	UdpPrt             port;
+	IoPrt             port;
 	int                vers;
 	unsigned           opts;
 	pthread_t          tid;
@@ -220,7 +220,7 @@ struct timespec to;
 
 			to.tv_sec  += STREAM_POLL_SECS;
 
-			got = udpPrtRecv( sa->port, buf, sizeof(buf), &to);
+			got = ioPrtRecv( sa->port, buf, sizeof(buf), &to);
 
 			if ( got < 0 )
 				sa->polled_stream_up = 0;
@@ -228,7 +228,7 @@ struct timespec to;
 		} while ( got < 0 );
 
 		if ( got < 4 ) {
-			fprintf(stderr,"Poller: Contacted by %d\n", udpPrtIsConn( sa->port ) );
+			fprintf(stderr,"Poller: Contacted by %d\n", ioPrtIsConn( sa->port ) );
 			sa->polled_stream_up = 1;
 		} else {
 			unsigned vers, fram, frag, tdest, tid, tusr1, tail;
@@ -287,7 +287,7 @@ struct timespec to;
 				if ( got < 9 + 12 ) {
 					fprintf(stderr,"UDPSRV: SRP request too small\n");
 				} else {
-					int put = udpQueTrySend( sa->srpQ, buf, got - 1 );
+					int put = ioQueTrySend( sa->srpQ, buf, got - 1 );
 
 					if ( put < 0 )
 						fprintf(stderr,"queueing SRP message failed\n");
@@ -351,7 +351,7 @@ Buf      bufmem;
 					to.tv_sec  += 1;
 				}
 
-				while ( (got = udpQueRecv( sa->srpQ, rbuf, sizeof(rbuf), &to )) > 0 ) {
+				while ( (got = ioQueRecv( sa->srpQ, rbuf, sizeof(rbuf), &to )) > 0 ) {
 
 					int put;
 					uint32_t *bufp  = bufp  = rbuf + 2;
@@ -386,11 +386,11 @@ Buf      bufmem;
 						tail  = *tailp; /* save */
 						insert_header( hp, sa->fram, frag, tdest);
 						append_tail( tailp, put > 0 ? 0 : 1 );
-						if ( udpPrtSend( sa->port, hp, chunk + 9 ) < 0 )
+						if ( ioPrtSend( sa->port, hp, chunk + 9 ) < 0 )
 							fprintf(stderr,"fragmenter: write error (sending SRP or STREAM reply)\n");
 #ifdef DEBUG
 						else if ( debug )
-							printf("Sent to port %d\n", udpPrtIsConn( sa->port ));
+							printf("Sent to port %d\n", ioPrtIsConn( sa->port ));
 #endif
 						*tailp = tail;
 						bufp  += chunk>>2;
@@ -430,7 +430,7 @@ printf("JAM cleared\n");
 
 		i += append_tail( &bufmem[i], end_of_frame );
 
-		if ( udpPrtSend( sa->port, bufmem, i ) < 0 ) {
+		if ( ioPrtSend( sa->port, bufmem, i ) < 0 ) {
 			fprintf(stderr, "fragmenter: write error\n");
 			break;
 		}
@@ -658,12 +658,12 @@ SrpArgs  *srp_arg = (SrpArgs*)arg;
 uintptr_t rval = 1;
 int      got, put;
 uint32_t rbuf[300];
-UdpPrt   port     = srp_arg->port;
+IoPrt   port     = srp_arg->port;
 int      bsize;
 
 	while ( 1 ) {
 
-		got = udpPrtRecv( port, rbuf, sizeof(rbuf), 0 );
+		got = ioPrtRecv( port, rbuf, sizeof(rbuf), 0 );
 		if ( got < 0 ) {
 			perror("read");
 			goto bail;
@@ -675,7 +675,7 @@ int      bsize;
 			goto bail;
 
 		if ( bsize > 0 ) {
-			if ( (put = udpPrtSend( port, rbuf, bsize )) < 0 ) {
+			if ( (put = ioPrtSend( port, rbuf, bsize )) < 0 ) {
 				perror("unable to send");
 				break;
 			}
@@ -739,12 +739,12 @@ int i;
 		if ( ! strm_args[i].port ) {
 			continue;
 		}
-		if (  ! udpPrtRssiIsConn( strm_args[i].port ) && ! strm_args[i].polled_stream_up ) {
+		if (  ! ioPrtRssiIsConn( strm_args[i].port ) && ! strm_args[i].polled_stream_up ) {
 			continue;
 		}
 #ifdef DEBUG
 		if ( debug ) {
-			if ( udpPrtRssiIsConn( strm_args[i].port ) )
+			if ( ioPrtRssiIsConn( strm_args[i].port ) )
 				printf("RSSI conn (chnl %d)\n", i);
 			if ( strm_args[i].polled_stream_up )
 				printf("Polled up (chnl %d)\n", i);
@@ -768,7 +768,7 @@ int i;
 
 		buf[5] = tdest;
 
-		udpQueTrySend( strm_args[i].srpQ, buf, size );
+		ioQueTrySend( strm_args[i].srpQ, buf, size );
 	}
 }
 
@@ -783,6 +783,7 @@ int      n_frags    = NFRAGS;
 int      sim_loss   = SIMLOSS_DEF;
 int      scramble   = SCRMBL_DEF;
 unsigned tdest      = 0;
+int      use_tcp    = 0;
 int      i;
 sigset_t sigset;
 int      tut_port   = 0;
@@ -794,7 +795,7 @@ int      nprts, nstrms;
 
 	signal( SIGINT, sh );
 
-	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:r:R:T:")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:r:R:tT:")) > 0 ) {
 		i_a = 0;
 		switch ( opt ) {
 			case 'h': usage(argv[0]);      return 0;
@@ -810,6 +811,7 @@ int      nprts, nstrms;
 			case 'r': i_a = &srpvars[V2_RSSI].port;         break;
 			case 'R': i_a = &strmvars[STRM_RSSI].port;      break;
 			case 'T': i_a = &tut_port;                      break;
+			case 't': use_tcp = 1;                          break;
 			default:
 				fprintf(stderr, "unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -863,12 +865,20 @@ int      nprts, nstrms;
 		nstrms = sizeof(strmvars)/sizeof(strmvars[0]);
 	}
 
+	if ( use_tcp ) {
+		for ( i=0; i<nstrms; i++ )
+			strmvars[i].haveRssi = WITHOUT_RSSI;
+		for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
+			srpvars[i].haveRssi = WITHOUT_RSSI;
+		}
+	}
+
 	for ( i=0; i<nstrms; i++ ) {
 		if ( strmvars[i].port <= 0 )
 			continue;
 
-		strm_args[i].port                 = udpPrtCreate( ina, strmvars[i].port, sim_loss, scramble, strmvars[i].haveRssi );
-		strm_args[i].srpQ                 = udpQueCreate(10);
+		strm_args[i].port                 = ioPrtCreate( ina, strmvars[i].port, sim_loss, scramble, strmvars[i].haveRssi );
+		strm_args[i].srpQ                 = ioQueCreate(10);
 		strm_args[i].n_frags              = n_frags;
 		strm_args[i].tdest                = tdest;
 		strm_args[i].fram                 = 0;
@@ -899,7 +909,7 @@ int      nprts, nstrms;
 		srpArgs[i].vers     = srpvars[i].vers;
 		srpArgs[i].opts     = srpvars[i].opts;
 		// don't scramble SRP - since SRP is synchronous (single request-response) it becomes extremely slow when scrambled
-		srpArgs[i].port     = udpPrtCreate( ina, srpvars[i].port, sim_loss, 0, srpvars[i].haveRssi );
+		srpArgs[i].port     = ioPrtCreate( ina, srpvars[i].port, sim_loss, 0, srpvars[i].haveRssi );
 		if ( pthread_create( &srpArgs[i].tid, 0, srpHandler, (void*)&srpArgs[i] ) ) {
 			perror("pthread_create [srpHandler]");
 			goto bail;
@@ -924,9 +934,9 @@ bail:
 			rval += (uintptr_t)res;
 		}
 		if ( strm_args[i].port )
-			udpPrtDestroy( strm_args[i].port );
+			ioPrtDestroy( strm_args[i].port );
 		if ( strm_args[i].srpQ )
-			udpQueDestroy( strm_args[i].srpQ );
+			ioQueDestroy( strm_args[i].srpQ );
 	}
 	for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
 		void *res;
@@ -936,7 +946,7 @@ bail:
 			rval += (uintptr_t)res;
 		}
 		if ( srpArgs[i].port )
-			udpPrtDestroy( srpArgs[i].port );
+			ioPrtDestroy( srpArgs[i].port );
 	}
 	return rval;
 }

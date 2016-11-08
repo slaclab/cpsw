@@ -18,28 +18,28 @@
 extern "C" {
 #endif
 
-typedef struct UdpPrt_ *UdpPrt;
-typedef struct UdpQue_ *UdpQue;
+typedef struct IoPrt_ *IoPrt;
+typedef struct IoQue_ *IoQue;
 
-int udpPrtRecv(UdpPrt , void *buf, unsigned size, struct timespec *abs_timeout);
-int udpPrtSend(UdpPrt , void *buf, unsigned size);
-int udpPrtIsConn(UdpPrt);
-int udpPrtRssiIsConn(UdpPrt prt);
+int ioPrtRecv(IoPrt , void *buf, unsigned size, struct timespec *abs_timeout);
+int ioPrtSend(IoPrt , void *buf, unsigned size);
+int ioPrtIsConn(IoPrt);
+int ioPrtRssiIsConn(IoPrt prt);
 
-UdpQue udpQueCreate(unsigned depth);
-void   udpQueDestroy(UdpQue);
+IoQue ioQueCreate(unsigned depth);
+void   ioQueDestroy(IoQue);
 // zero timeout -> forever!
-int udpQueRecv(UdpQue , void *buf, unsigned size, struct timespec *abs_timeout);
-int udpQueTryRecv(UdpQue , void *buf, unsigned size);
-int udpQueTrySend(UdpQue , void *buf, unsigned size);
+int ioQueRecv(IoQue , void *buf, unsigned size, struct timespec *abs_timeout);
+int ioQueTryRecv(IoQue , void *buf, unsigned size);
+int ioQueTrySend(IoQue , void *buf, unsigned size);
 
 
 
 #define WITH_RSSI    1
 #define WITHOUT_RSSI 0
 
-UdpPrt  udpPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int hasRssi);
-void    udpPrtDestroy(UdpPrt);
+IoPrt  ioPrtCreate(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, int hasRssi);
+void    ioPrtDestroy(IoPrt);
 
 #ifdef __cplusplus
 };

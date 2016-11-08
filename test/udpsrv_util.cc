@@ -804,9 +804,9 @@ class SD {
 private:
 	int sd_;
 public:
-	SD()
+	SD(int type = SOCK_DGRAM)
 	{
-		if ( (sd_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
+		if ( (sd_ = socket(AF_INET, type, 0)) < 0 )
 			throw InternalError("Unable to create socket");
 	}
 
@@ -967,6 +967,177 @@ public:
 		threadStop();
 	}
 };
+
+class CTcpPort : public ITcpPort, public CRunnable {
+private:
+	SD                 sd_;
+	int                conn_;
+	struct sockaddr_in peer_;
+	BufQueue           outQ_;
+	BufQueue           inpQ_;
+
+public:
+	CTcpPort(const char *ina, unsigned port)
+	: CRunnable("UDP RX"),
+	  sd_( SOCK_STREAM ),
+      conn_( -1 ),
+	  outQ_( IBufQueue::create(4) )
+	{
+	struct sockaddr_in sin;
+
+		sin.sin_family      = AF_INET;
+		sin.sin_addr.s_addr = ina ? inet_addr(ina) : INADDR_ANY;
+		sin.sin_port        = htons( (short)port );
+
+		if ( bind(sd_.get(), (struct sockaddr*) &sin, sizeof(sin)) < 0 ) 
+			throw InternalError("Unable to bind", errno);
+
+		if ( listen(sd_.get(), 1) )
+			throw InternalError("Unable to listen", errno);
+	}
+
+	virtual ProtoPort getUpstreamPort()
+	{
+		return ProtoPort();
+	}
+
+	virtual BufChain pop(const CTimeout *to)
+	{
+		return outQ_->pop( to );
+	}
+
+	unsigned isConnected()
+	{
+		return conn_ >= 0;
+	}
+
+	virtual BufChain tryPop()
+	{
+		return outQ_->tryPop();
+	}
+
+	virtual IEventSource *getReadEventSource()
+	{
+		return outQ_->getReadEventSource();
+	}
+
+	virtual void attach(ProtoPort upstream)
+	{
+		throw InternalError("This must be a 'top' port");
+	}
+
+	virtual bool doPush(BufChain bc, bool wait, const CTimeout *to)
+	{
+	int put;
+	int flgs = wait ? 0 : MSG_DONTWAIT;
+
+		if ( to ) 
+			throw InternalError("Not implemented");
+
+		if ( 0 == ntohs(peer_.sin_port) )
+			return false;
+
+		if ( conn_ < 0 )
+			return false;
+
+		Buf        b = bc->getHead();
+		uint32_t len = b->getSize();
+
+		len = htonl(len);
+
+		if ( sizeof(len) != ::write( conn_, &len, sizeof(len) ) )
+			throw InternalError("Unable to write LEN");
+
+		uint8_t *p = b->getPayload();
+
+		while ( len > 0 ) {
+			if ( (put = ::send(conn_, p, len, flgs)) < 0 )
+				return false;
+			p   += put;
+			len -= put;
+		}
+
+		return true;
+	}
+
+	virtual bool push(BufChain bc, const CTimeout *to)
+	{
+		return doPush(bc, true, to);
+	}
+
+	virtual unsigned getTcpPort()
+	{
+	struct sockaddr_in sin;
+	socklen_t          len = sizeof(sin);
+
+		sin.sin_family = AF_INET;
+
+		getsockname(sd_.get(), (struct sockaddr*)&sin, &len);
+		return ntohs(sin.sin_port);
+	}
+
+	virtual void *threadBody()
+	{
+	int       got;
+	socklen_t sl;
+
+		while ( ( (sl = sizeof(peer_)), (conn_ = accept(sd_.get(), (struct sockaddr*)&peer_, &sl)) ) >= 0 ) {
+
+			while ( conn_ >= 0 ) {
+
+				BufChain bc = IBufChain::create();
+				Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
+
+				b->setPayload( NULL );
+
+				uint32_t len;
+
+				if ( sizeof(len) != ::read(sd_.get(), &len, sizeof(len)) )
+					throw InternalError("TCP: unable to read length");
+
+				len = ntohl(len);
+
+				uint8_t *p = b->getPayload();
+
+				while ( len > 0 ) {
+					if ( (got = ::recv(sd_.get(), p, len, 0)) < 0 ) {
+						close(conn_);
+						conn_ = -1;
+						goto reconn;
+					}
+					len -= got;
+					p   += got;
+				}
+
+				b->setSize( got );
+
+				outQ_->tryPush( bc );
+			}
+reconn:;
+		}
+
+		return NULL;
+	}
+
+	virtual bool tryPush(BufChain bc)
+	{
+		return doPush(bc, false, NULL);
+	}
+
+	virtual void start()
+	{
+		threadStart();
+	}
+
+	virtual void stop()
+	{
+		threadStop();
+		if ( conn_ >= 0 )
+			close(conn_);
+		conn_ = -1;
+	}
+};
+
 
 UdpPort IUdpPort::create(const char *ina, unsigned port, unsigned simLoss, unsigned ldScrmbl)
 {

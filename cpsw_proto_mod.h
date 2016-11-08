@@ -176,11 +176,12 @@ public:
 		}
 
 	};
-	MatchParamUnsigned udpDestPort_, srpVersion_, srpVC_, tDest_;
+	MatchParamUnsigned tcpDestPort_, udpDestPort_, srpVersion_, srpVC_, tDest_;
 	MatchParam         haveRssi_, haveDepack_;
 
 	void reset()
 	{
+		tcpDestPort_.reset();
 		udpDestPort_.reset();
 		srpVersion_.reset();
 		srpVC_.reset();
@@ -192,6 +193,8 @@ public:
 	int requestedMatches()
 	{
 	int rval = 0;
+		if ( tcpDestPort_.doMatch_ )
+			rval++;
 		if ( udpDestPort_.doMatch_ )
 			rval++;
 		if ( haveDepack_.doMatch_ )
@@ -210,7 +213,8 @@ public:
 	int excluded()
 	{
 		return
-			  udpDestPort_.excluded()
+			  tcpDestPort_.excluded()
+			+ udpDestPort_.excluded()
 			+ haveDepack_.excluded()
 			+ srpVersion_.excluded()
 			+ srpVC_.excluded()
