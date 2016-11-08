@@ -18,6 +18,8 @@ typedef shared_ptr<CConstIntEntryImpl> ConstIntEntryImpl;
 class CConstIntEntryAdapt;
 typedef shared_ptr<CConstIntEntryAdapt> ConstIntEntryAdapt;
 
+class CConstDblEntryAdapt;
+typedef shared_ptr<CConstDblEntryAdapt> ConstDblEntryAdapt;
 
 class CConstIntEntryImpl : public CIntEntryImpl {
 public:
@@ -55,11 +57,16 @@ public:
 	virtual EntryAdapt createAdapter(IEntryAdapterKey &, Path, const std::type_info&) const;
 };
 
-class CConstIntEntryAdapt : public virtual CScalVal_ROAdapt, public virtual CDoubleVal_ROAdapt {
+class CConstIntEntryAdapt : public virtual CScalVal_ROAdapt {
 public:
 	CConstIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 
 	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0 );
+};
+
+class CConstDblEntryAdapt : public virtual CDoubleVal_ROAdapt {
+public:
+	CConstDblEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 
 	virtual unsigned getVal(double   *p, unsigned n, IndexRange *r=0);
 };

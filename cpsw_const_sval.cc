@@ -127,18 +127,31 @@ CConstIntEntryImpl::getDouble() const
 EntryAdapt
 CConstIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path path, const std::type_info &interfaceType) const
 {
-	if ( isInterface<ScalVal_RO>(interfaceType) || isInterface<DoubleVal_RO>(interfaceType) ) {
-		return _createAdapter<ConstIntEntryAdapt>(this, path);
+	if ( isInterface<Val_Base>(interfaceType) || isInterface<ScalVal_Base>(interfaceType) ) {
+		return _createAdapter< shared_ptr<IIntEntryAdapt> >( this, path );
+	} else if ( isInterface<ScalVal_RO>(interfaceType) ) {
+		if ( IScalVal_Base::IEEE_754 == getEncoding() ) {
+			throw InterfaceNotImplementedError("ScalVal_RO not available for IEEE_754 encoding");
+		}
+		return _createAdapter<ConstIntEntryAdapt>( this, path );
+	} else if ( isInterface<DoubleVal_RO>(interfaceType) ) {
+		return _createAdapter<ConstDblEntryAdapt>(this, path);
 	}
 	return EntryAdapt();
 }
 
 CConstIntEntryAdapt::CConstIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
 : IIntEntryAdapt(k, p, ie),
-  CScalVal_ROAdapt(k, p, ie),
+  CScalVal_ROAdapt(k, p, ie)
+{
+}
+
+CConstDblEntryAdapt::CConstDblEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+: IIntEntryAdapt(k, p, ie),
   CDoubleVal_ROAdapt(k, p, ie)
 {
 }
+
 
 unsigned
 CConstIntEntryAdapt::getVal(uint8_t  *buf, unsigned nelms, unsigned elsz, IndexRange *r)
@@ -172,7 +185,7 @@ uint64_t val = ie->getInt();
 }
 
 unsigned
-CConstIntEntryAdapt::getVal(double   *buf, unsigned nelms, IndexRange *r)
+CConstDblEntryAdapt::getVal(double   *buf, unsigned nelms, IndexRange *r)
 {
 SlicedPathIterator it( p_, r );
 unsigned nelmsOnPath = it.getNelmsLeft();
