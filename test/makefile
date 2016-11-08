@@ -50,6 +50,11 @@ cpsw_sval_tst_SRCS       = cpsw_sval_tst.cc
 cpsw_sval_tst_LIBS       = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_sval_tst
 
+cpsw_const_sval_tst_SRCS = cpsw_const_sval_tst.cc
+cpsw_const_sval_tst_LIBS = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_const_sval_tst
+
+
 cpsw_large_tst_SRCS      = cpsw_large_tst.cc
 cpsw_large_tst_LIBS      = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_large_tst
