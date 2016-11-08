@@ -36,6 +36,7 @@ public:
 
 	virtual int getSd() const { return sd_; }
 
+	virtual void init(struct sockaddr_in *dst, struct sockaddr_in *me, bool nonBlocking);
 };
 
 #endif

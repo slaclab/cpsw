@@ -13,6 +13,7 @@
 
 #include <sys/socket.h>
 #include <errno.h>
+#include <fcntl.h>
 
 CSockSd::CSockSd()
 {
@@ -33,6 +34,41 @@ CSockSd::CSockSd(CSockSd &orig)
 {
 	if ( ( sd_ = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
+	}
+}
+
+void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
+{
+	int    optval = 1;
+
+	struct sockaddr_in me;
+
+	if ( NULL == me_p ) {
+		me.sin_family      = AF_INET;
+		me.sin_addr.s_addr = INADDR_ANY;
+		me.sin_port        = htons( 0 );
+
+		me_p = &me;
+	}
+
+	if ( nblk ) {
+		if ( ::fcntl( sd_, F_SETFL, O_NONBLOCK ) ) {
+			throw IOError("fcntl(O_NONBLOCK) ", errno);
+		}
+	}
+
+	if ( ::setsockopt(  sd_,  SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) ) {
+		throw IOError("setsockopt(SO_REUSEADDR) ", errno);
+	}
+
+	if ( ::bind( sd_, (struct sockaddr*)me_p, sizeof(*me_p)) ) {
+		throw IOError("bind failed ", errno);
+	}
+
+	// connect - filters any traffic from other destinations/fpgas in the kernel
+	if ( dest ) {
+		if ( ::connect( sd_, (struct sockaddr*)dest, sizeof(*dest) ) )
+			throw IOError("connect failed ", errno);
 	}
 }
 

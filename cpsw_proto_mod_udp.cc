@@ -19,59 +19,22 @@
 #include <sys/select.h>
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-#include <sched.h>
 
 #include <cpsw_yaml.h>
 
 //#define UDP_DEBUG
 //#define UDP_DEBUG_STRM
 
-static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
-{
-	int    optval = 1;
-
-	struct sockaddr_in me;
-
-	if ( NULL == me_p ) {
-		me.sin_family      = AF_INET;
-		me.sin_addr.s_addr = INADDR_ANY;
-		me.sin_port        = htons( 0 );
-
-		me_p = &me;
-	}
-
-	if ( nblk ) {
-		if ( ::fcntl( sd, F_SETFL, O_NONBLOCK ) ) {
-			throw IOError("fcntl(O_NONBLOCK) ", errno);
-		}
-	}
-
-	if ( ::setsockopt(  sd,  SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) ) ) {
-		throw IOError("setsockopt(SO_REUSEADDR) ", errno);
-	}
-
-	if ( ::bind( sd, (struct sockaddr*)me_p, sizeof(*me_p)) ) {
-		throw IOError("bind failed ", errno);
-	}
-
-	// connect - filters any traffic from other destinations/fpgas in the kernel
-	if ( ::connect( sd, (struct sockaddr*)dest, sizeof(*dest) ) )
-		throw IOError("connect failed ", errno);
-}
-
 CUdpHandlerThread::CUdpHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me_p)
 : CRunnable(name)
 {
-	sockIni( sd_.getSd(), dest, me_p, false );
+	sd_.init( dest, me_p, false );
 }
 
 CUdpHandlerThread::CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me_p)
 : CRunnable(orig)
 {
-	sockIni( sd_.getSd(), dest, me_p, false );
+	sd_.init( dest, me_p, false );
 }
 
 #define NBUFS_MAX 8
@@ -264,7 +227,7 @@ CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, uns
  nTxDgrams_(0),
  poller_( NULL )
 {
-	sockIni( tx_.getSd(), dest, 0, true );
+	tx_.init( dest, 0, true );
 	createThreads( nRxThreads, pollSecs );
 }
 
@@ -286,7 +249,7 @@ CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)
  nTxDgrams_(0),
  poller_(orig.poller_)
 {
-	sockIni( tx_.getSd(), &dest_, 0, true );
+	tx_.init( &dest_, 0, true );
 	createThreads( orig.rxHandlers_.size(), -1 );
 }
 
