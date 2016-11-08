@@ -29,33 +29,6 @@
 //#define UDP_DEBUG
 //#define UDP_DEBUG_STRM
 
-CSockSd::CSockSd()
-{
-	if ( ( sd_ = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ) {
-		throw InternalError("Unable to create socket");
-	}
-}
-
-void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
-{
-	socklen_t l = sizeof(*addr_p);
-	if ( getsockname( getSd(), (struct sockaddr*)addr_p, &l ) ) {
-		throw IOError("getsockname() ", errno);
-	}
-}
-
-CSockSd::CSockSd(CSockSd &orig)
-{
-	if ( ( sd_ = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ) {
-		throw InternalError("Unable to create socket");
-	}
-}
-
-CSockSd::~CSockSd()
-{
-	close( sd_ );
-}
-
 static void sockIni(int sd, struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
 {
 	int    optval = 1;

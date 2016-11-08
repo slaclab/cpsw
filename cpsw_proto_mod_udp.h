@@ -13,10 +13,10 @@
 #include <cpsw_buf.h>
 #include <cpsw_proto_mod.h>
 #include <cpsw_thread.h>
+#include <cpsw_sock.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <pthread.h>
 
 #include <vector>
 
@@ -25,33 +25,8 @@
 using boost::shared_ptr;
 using boost::atomic;
 
-class CSockSd;
-typedef shared_ptr<CSockSd> SockSd;
-
 class CProtoModUdp;
 typedef shared_ptr<CProtoModUdp> ProtoModUdp;
-
-class CSockSd {
-private:
-	int sd_;
-	CSockSd & operator=(CSockSd &orig)
-	{
-		throw InternalError("Must not assign");
-	}
-
-public:
-
-	CSockSd();
-
-	CSockSd(CSockSd &orig);
-
-	virtual void getMyAddr(struct sockaddr_in *addr_p);
-
-	virtual ~CSockSd();
-
-	virtual int getSd() const { return sd_; }
-
-};
 
 class CUdpHandlerThread : public CRunnable {
 protected:
