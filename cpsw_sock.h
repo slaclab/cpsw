@@ -22,11 +22,12 @@ typedef shared_ptr<CSockSd> SockSd;
 class CSockSd {
 private:
 	int sd_;
+	int type_;
 	CSockSd & operator=(CSockSd &orig);
 
 public:
 
-	CSockSd();
+	CSockSd(int type = SOCK_DGRAM);
 
 	CSockSd(CSockSd &orig);
 

@@ -15,9 +15,11 @@
 #include <errno.h>
 #include <fcntl.h>
 
-CSockSd::CSockSd()
+CSockSd::CSockSd(int type)
+: sd_(-1),
+  type_(type)
 {
-	if ( ( sd_ = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ) {
+	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
 	}
 }
@@ -31,8 +33,10 @@ void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
 }
 
 CSockSd::CSockSd(CSockSd &orig)
+: sd_(-1),
+  type_(orig.type_)
 {
-	if ( ( sd_ = ::socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ) {
+	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
 	}
 }

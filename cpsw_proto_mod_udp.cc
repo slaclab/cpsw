@@ -32,7 +32,8 @@ CUdpHandlerThread::CUdpHandlerThread(const char *name, struct sockaddr_in *dest,
 }
 
 CUdpHandlerThread::CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me_p)
-: CRunnable(orig)
+: CRunnable(orig),
+  sd_(orig.sd_)
 {
 	sd_.init( dest, me_p, false );
 }
@@ -245,6 +246,7 @@ CProtoModUdp::dumpYaml(YAML::Node &node) const
 CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)
 :CProtoMod(orig, k),
  dest_(orig.dest_),
+ tx_(orig.tx_),
  nTxOctets_(0),
  nTxDgrams_(0),
  poller_(orig.poller_)
