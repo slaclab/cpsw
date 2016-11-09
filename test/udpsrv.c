@@ -69,6 +69,8 @@
 #define SIMLOSS_DEF          1
 #define NFRAGS_DEF        NFRAGS
 
+#define TDEST_DEF            0 /* SRP TDEST is TDEST_DEF + 1 */
+
 // byte swap ?
 #define bsl(x) (x)
 
@@ -111,7 +113,8 @@ static void usage(const char *nm)
 	fprintf(stderr, "           V3 (norssi                 ) is listening at  %d\n", V3PORT_DEF);
 	fprintf(stderr, "           V3 (norssi, byte-resolution) is listening at %d\n",  V3BPORT_DEF);
 	fprintf(stderr, "           V3 (rssi                   ) is listening at %d\n",  V3RSSIPORT_DEF);
-	fprintf(stderr, "           V3 (rssi,   stream         ) is listening at %d\n",  SRSSIPORT_V3_DEF);
+	fprintf(stderr, "           V3@TDEST%d (rssi,   stream @TDEST%d) is listening at %d\n", TDEST_DEF+1,  TDEST_DEF, SRSSIPORT_V3_DEF);
+	fprintf(stderr, "           V2@TDEST%d (rssi,   stream @TDEST%d) is listening at %d\n", TDEST_DEF+1,  TDEST_DEF, SRSSIPORT_DEF);
 }
 
 static void payload_swap(int v1, uint32_t *buf, int nelms)
@@ -786,7 +789,7 @@ const char *ina     = INA_DEF;
 int      n_frags    = NFRAGS;
 int      sim_loss   = SIMLOSS_DEF;
 int      scramble   = SCRMBL_DEF;
-unsigned tdest      = 0;
+unsigned tdest      = TDEST_DEF;
 int      use_tcp    = 0;
 int      i;
 sigset_t sigset;
