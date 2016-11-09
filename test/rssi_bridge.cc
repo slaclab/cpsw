@@ -9,18 +9,19 @@
 
 #include <arpa/inet.h>
 
-//#define RSSI_BR_DEBUG
+#define RSSI_BR_DEBUG
 
 class CMover : public CRunnable {
 private:
 	ProtoPort to_, from_;
+	int       dbg_;
 
 	CMover(const CMover&);
 	CMover &operator=(const CMover&);
 protected:
 	virtual void *threadBody();
 public:
-	CMover(const char *name, ProtoPort to, ProtoPort from);
+	CMover(const char *name, ProtoPort to, ProtoPort from, int debug);
 };
 
 void*
@@ -30,34 +31,45 @@ CMover::threadBody()
 		BufChain bc = from_->pop( NULL );
 		if ( bc ) {
 #ifdef RSSI_BR_DEBUG
-			printf("%s: got %ld bytes\n", getName().c_str(), bc->getSize());
+			if ( dbg_ ) {
+				printf("%s: got %ld bytes\n", getName().c_str(), bc->getSize());
+			}
 			bool st =
 #endif
 			          to_->push( bc, NULL );
 #ifdef RSSI_BR_DEBUG
-			printf("  push: %s\n", st ? "OK" : "FAIL");
+			if ( dbg_ ) {
+				printf("  push: %s\n", st ? "OK" : "FAIL");
+			}
 #endif
 		}
 	}
 	return NULL;
 }
 
-CMover::CMover(const char *name, ProtoPort to, ProtoPort from)
+CMover::CMover(const char *name, ProtoPort to, ProtoPort from, int debug)
 : CRunnable( name ),
   to_( to ),
-  from_( from )
+  from_( from ),
+  dbg_( debug )
 {
 }
 
 static void
 usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-h] -a <dest_ip>:<dest_port [-p <tcp_srv_port>]\n", nm);
+	fprintf(stderr,"Usage: %s [-hrd] -a <dest_ip>:<dest_port [-p <tcp_srv_port>]\n", nm);
 	fprintf(stderr,"       RSSI <-> TCP bridge\n");
 	fprintf(stderr,"       -a <dest_ip>:<dest_port>: remote address where a RSSI server is listening.\n");
 	fprintf(stderr,"       -p <tcp_srv_port>       : local TCP port where we are listening for a connection.\n");
 	fprintf(stderr,"                                 Defaults to <dest_port>\n");
 	fprintf(stderr,"       -h                      : This message\n");
+	fprintf(stderr,"       -r                      : Disable RSSI\n");
+#ifdef RSSI_BR_DEBUG
+	fprintf(stderr,"       -d                      : Enable debug messages\n");
+#else
+	fprintf(stderr,"       -d                      : Debug support not compiled\n");
+#endif
 }
 
 int
@@ -70,12 +82,14 @@ bool           my_port_set = false;
 int            rval        = 1;
 unsigned short *s_p;
 const char     *col;
+int            debug       = 0;
+int            rssi        = 1;
 
 int opt;
 
 	::strncpy( peer_ip, "127.0.0.1", sizeof(peer_ip) );
 
-	while ( (opt = getopt(argc, argv, "hp:a:")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "hp:a:dr")) > 0 ) {
 		s_p = NULL;
 		switch (opt) {
 			case 'h':
@@ -86,6 +100,14 @@ int opt;
 			case 'p':
 				my_port_set = true;
 				s_p = &my_port;
+				break;
+
+			case 'd':
+				debug = 1;
+				break;
+
+			case 'r':
+				rssi  = 0;
 				break;
 
 			case 'a':
@@ -119,25 +141,31 @@ int opt;
 try {
 
 UdpPort   udpPrt  = IUdpPort::create( NULL, 0, 0, 0 );
-RssiPort  rssiPrt = CRssiPort::create( false );
 TcpPort   tcpPrt  = ITcpPort::create( NULL, my_port );
 
-		rssiPrt->attach( udpPrt );
+ProtoPort top;
+
+		if ( rssi ) {
+			top = CRssiPort::create( false );
+			top->attach( udpPrt );
+		} else {
+			top = udpPrt;
+		}
 
 ProtoPort p;
 
 		udpPrt->connect( peer_ip, peer_port );
 
-		for ( p=rssiPrt; p; p=p->getUpstreamPort() )
+		for ( p=top; p; p=p->getUpstreamPort() )
 			p->start();
 		for ( p=tcpPrt; p; p=p->getUpstreamPort() )
 			p->start();
 
-		CMover rssiToTcp( "RSSI->TCP", tcpPrt, rssiPrt );
+		CMover rssiToTcp( "RSSI->TCP", tcpPrt, top, debug );
 
 		rssiToTcp.threadStart();
 
-		CMover tcpToRssi( "TCP->RSSI", rssiPrt, tcpPrt );
+		CMover tcpToRssi( "TCP->RSSI", top, tcpPrt, debug );
 
 		tcpToRssi.threadStart();
 
