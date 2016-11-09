@@ -6,8 +6,14 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <string.h>
+#include <vector>
 
 #include <arpa/inet.h>
+#include <boost/make_shared.hpp>
+
+#include <unistd.h>
+
+using boost::make_shared;
 
 #define RSSI_BR_DEBUG
 
@@ -22,6 +28,39 @@ protected:
 	virtual void *threadBody();
 public:
 	CMover(const char *name, ProtoPort to, ProtoPort from, int debug);
+
+	virtual ~CMover();
+};
+
+typedef shared_ptr<CMover> Mover;
+
+class Bridge {
+private:
+	Mover     udpToTcp_;
+	Mover     tcpToUdp_;
+	ProtoPort udpTop_;
+	ProtoPort tcpTop_;
+	unsigned  flags_;
+
+public:
+	typedef enum { NONE = 0, RSSI=1, DEBUG=2 } Flags;
+
+	Bridge(const char *peerIp, unsigned short peerPort, unsigned short myPort, Flags flags);
+
+
+	bool useRssi()
+	{
+		return !!(flags_ & RSSI);
+	}
+
+	bool debug()
+	{
+		return !!(flags_ & DEBUG);
+	}
+
+	void shutdown();
+
+	~Bridge();
 };
 
 void*
@@ -55,42 +94,100 @@ CMover::CMover(const char *name, ProtoPort to, ProtoPort from, int debug)
 {
 }
 
+CMover::~CMover()
+{
+	threadStop();
+}
+
+Bridge::Bridge(const char *peerIp, unsigned short peerPort, unsigned short myPort, Flags flags)
+: flags_(flags)
+{
+UdpPort   udpPrt  = IUdpPort::create( NULL, 0, 0, 0 );
+TcpPort   tcpPrt  = ITcpPort::create( NULL, myPort );
+
+		if ( useRssi() ) {
+			udpTop_ = CRssiPort::create( false );
+			udpTop_->attach( udpPrt );
+		} else {
+			udpTop_ = udpPrt;
+		}
+
+		tcpTop_ = tcpPrt;
+
+		udpPrt->connect( peerIp, peerPort );
+
+		for ( ProtoPort p=udpTop_; p; p=p->getUpstreamPort() )
+			p->start();
+		for ( ProtoPort p=tcpTop_; p; p=p->getUpstreamPort() )
+			p->start();
+
+		try {
+
+			udpToTcp_ = make_shared<CMover>( "UDP->TCP", tcpTop_, udpTop_, debug() );
+			udpToTcp_->threadStart();
+
+			tcpToUdp_ = make_shared<CMover>( "TCP->UDP", udpTop_, tcpTop_, debug() );
+			tcpToUdp_->threadStart();
+
+		} catch (...) {
+			shutdown();
+			throw;
+		}
+};
+
+void
+Bridge::shutdown()
+{
+	for ( ProtoPort p=udpTop_; p; p=p->getUpstreamPort() )
+		p->stop();
+	for ( ProtoPort p=tcpTop_; p; p=p->getUpstreamPort() )
+		p->stop();
+}
+
+Bridge::~Bridge()
+{
+	tcpToUdp_->threadCancel();
+	tcpToUdp_->threadJoin();
+	udpToTcp_->threadCancel();
+	udpToTcp_->threadJoin();
+	shutdown();
+}
+
 static void
 usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-hrd] -a <dest_ip>:<dest_port [-p <tcp_srv_port>]\n", nm);
+	fprintf(stderr,"Usage: %s [-hrd] -a <dest_ip> [-p <dst_port>[:<tcp_srv_port>]]\n", nm);
 	fprintf(stderr,"       RSSI <-> TCP bridge\n");
-	fprintf(stderr,"       -a <dest_ip>:<dest_port>: remote address where a RSSI server is listening.\n");
-	fprintf(stderr,"       -p <tcp_srv_port>       : local TCP port where we are listening for a connection.\n");
-	fprintf(stderr,"                                 Defaults to <dest_port>\n");
-	fprintf(stderr,"       -h                      : This message\n");
-	fprintf(stderr,"       -r                      : Disable RSSI\n");
+	fprintf(stderr,"       -a <dest_ip>              : remote address where a RSSI server is listening.\n");
+	fprintf(stderr,"       -p <dst_port>[:<tcp_port>]: <dst_port> identifies the remote UDP port and <tcp_port>\n");
+	fprintf(stderr,"                                   the local TCP port where this program is listening. It\n");
+	fprintf(stderr,"                                   defaults to <dst_port>.\n");
+	fprintf(stderr,"                                   Note that multiple -p options may be given in order to\n");
+	fprintf(stderr,"                                   bridge multiple connections.\n");
+	fprintf(stderr,"       -h                        : This message.\n");
+	fprintf(stderr,"       -r                        : Disable RSSI. Use pure UDP.\n");
 #ifdef RSSI_BR_DEBUG
-	fprintf(stderr,"       -d                      : Enable debug messages\n");
+	fprintf(stderr,"       -d                        : Enable debug messages\n");
 #else
-	fprintf(stderr,"       -d                      : Debug support not compiled\n");
+	fprintf(stderr,"       -d                        : Debug support not compiled\n");
 #endif
 }
+
+#define DFLT_PORT 8192
+
+typedef std::pair<unsigned short, unsigned short> PP;
 
 int
 main(int argc, char **argv)
 {
-char           peer_ip[128];
-unsigned short peer_port   = 8192;
-unsigned short my_port;
-bool           my_port_set = false;
+const char    *peerIp      = "127.0.0.1";
 int            rval        = 1;
-unsigned short *s_p;
-const char     *col;
-int            debug       = 0;
-int            rssi        = 1;
+int            opt;
+Bridge::Flags  flags       = Bridge::RSSI;
 
-int opt;
-
-	::strncpy( peer_ip, "127.0.0.1", sizeof(peer_ip) );
+std::vector< PP > ports;
 
 	while ( (opt = getopt(argc, argv, "hp:a:dr")) > 0 ) {
-		s_p = NULL;
 		switch (opt) {
 			case 'h':
 				rval = 0;
@@ -98,79 +195,57 @@ int opt;
 				usage( argv[0] );
 				return rval;
 			case 'p':
-				my_port_set = true;
-				s_p = &my_port;
+				unsigned short me, peer;
+				int st;
+				if ( ::strchr(optarg,':') ) {
+					st = (2 != sscanf(optarg, "%hi:%hi", &peer, &me) );
+				} else {
+					st = (1 != sscanf(optarg, "%hi", &peer));
+					me = peer;
+				}
+				if ( st ) {
+					fprintf(stderr,"Error: -%c argument misformed\n", opt);
+					return rval;
+				}
+				for ( std::vector<PP>::const_iterator it=ports.begin(); it != ports.end(); ++it ) {
+					if ( it->first == peer || it->second == me ) {
+						fprintf(stderr,"Error: ports cannot be used multiple times\n");
+						return rval;
+					}
+				}
+				ports.push_back( PP( peer, me ) );	
 				break;
 
 			case 'd':
-				debug = 1;
+				flags = (Bridge::Flags)(flags | Bridge::DEBUG);
 				break;
 
 			case 'r':
-				rssi  = 0;
+				flags = (Bridge::Flags)(flags & ~Bridge::RSSI);
 				break;
 
 			case 'a':
-				if ( ! (col = ::strchr(optarg,':')) ) {
-					fprintf(stderr,"Error: -a argument misformed; doesn't contain ':'\n");
+				if ( INADDR_NONE == inet_addr( optarg ) ) {
+					fprintf(stderr,"Error: invalid IP address in -%c\n", opt);
 					return rval;
 				}
-				if ( 1 != sscanf( col+1, "%hi", &peer_port ) || peer_port == 0 ) {
-					fprintf(stderr,"Error: bad or Nul peer port in -a\n");
-					return rval;
-				}
-				::strncpy( peer_ip, optarg, sizeof(peer_ip) );
-				peer_ip[col-optarg] = 0;
-
-				if ( INADDR_NONE == inet_addr( peer_ip ) ) {
-					fprintf(stderr,"Error: invalid IP address in -a\n");
-					return rval;
-				}
-
+				peerIp = optarg;
 				break;
-		}
-		if ( s_p && 1 != sscanf(optarg, "%hi", s_p ) ) {
-			fprintf(stderr,"Error: Unable to scan arg to option -%c\n", opt);
-			return rval;
 		}
 	}
 
-	if ( ! my_port_set )
-		my_port = peer_port;
+	if ( ports.empty() ) {
+		ports.push_back( PP( DFLT_PORT, DFLT_PORT ) );
+	}
 
 try {
+	std::vector< shared_ptr<Bridge> > bridges;
 
-UdpPort   udpPrt  = IUdpPort::create( NULL, 0, 0, 0 );
-TcpPort   tcpPrt  = ITcpPort::create( NULL, my_port );
+	for ( std::vector<PP>::const_iterator it = ports.begin(); it != ports.end(); ++it ) {
+		bridges.push_back( make_shared<Bridge>( peerIp, it->first, it->second, flags ) );
+	}
 
-ProtoPort top;
-
-		if ( rssi ) {
-			top = CRssiPort::create( false );
-			top->attach( udpPrt );
-		} else {
-			top = udpPrt;
-		}
-
-ProtoPort p;
-
-		udpPrt->connect( peer_ip, peer_port );
-
-		for ( p=top; p; p=p->getUpstreamPort() )
-			p->start();
-		for ( p=tcpPrt; p; p=p->getUpstreamPort() )
-			p->start();
-
-		CMover rssiToTcp( "RSSI->TCP", tcpPrt, top, debug );
-
-		rssiToTcp.threadStart();
-
-		CMover tcpToRssi( "TCP->RSSI", top, tcpPrt, debug );
-
-		tcpToRssi.threadStart();
-
-		rssiToTcp.threadJoin();
-		tcpToRssi.threadJoin();
+	pause();
 
 } catch (CPSWError &e) {
 	std::cerr <<  e.getInfo() << "\n";
