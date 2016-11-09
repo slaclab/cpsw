@@ -939,6 +939,28 @@ deliberately to use maps so that merge keys work across all levels).
             # Default: 0
           YAML_KEY_virtualChannel: <int>
 
+##### 2.8.1.1 TCP Module
+A TCP protocol module is also available. It is intended to 
+substitute UDP and RSSI. This module is useful when contacting
+a server implemented in software (as opposed to firmware).
+In software, TCP is readily available and provides a reliable
+data stream without the need for RSSI.
+
+The TCP module supports the following YAML properties:
+
+        YAML_KEY_TCP:
+
+            # The TCP port of the peer
+            # NOTE: a port number of 0 *disables* TCP
+            #
+            # Default: 8192
+          YAML_KEY_port:           <int>
+
+            # Depth of the queue up to the next module
+            # zero (default) picks a suitable value.
+          YAML_KEY_outQueueDepth:  <int>
+
+
 #### 2.8.2 Protocol Multiplexing
 
 There are two layers of protocol-multiplexers available
