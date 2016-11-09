@@ -71,7 +71,9 @@ public:
 		throw InternalError("This must be a 'top' port");
 	}
 
-	virtual unsigned getUdpPort()                 = 0;
+	virtual unsigned getUdpPort()                          = 0;
+
+	virtual void connect(const char *ina, unsigned port)   = 0;
 
 	virtual ~IUdpPort() {}
 

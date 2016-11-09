@@ -37,6 +37,12 @@ udpsrv_CXXFLAGS+= -DUDPSRV
 
 udpsrv_LIBS = tstaux $(CPSW_LIBS)
 
+rssi_bridge_SRCS = rssi_bridge.cc
+rssi_bridge_SRCS+= udpsrv_util.cc
+rssi_bridge_SRCS+= udpsrv_stream_state_monitor.cc
+
+rssi_bridge_LIBS = $(CPSW_LIBS)
+
 
 cpsw_path_tst_SRCS       = cpsw_path_tst.cc
 cpsw_path_tst_LIBS       = $(CPSW_LIBS)
@@ -118,7 +124,7 @@ TEST_AXIV_NO =cpsw_axiv_udp_tst
 TEST_AXIV    =NO
 DISABLED_TESTPROGRAMS=$(TEST_AXIV_$(TEST_AXIV))
 
-PROGRAMS = udpsrv
+PROGRAMS = udpsrv rssi_bridge
 include $(CPSW_DIR)/rules.mak
 
 # may override for individual test targets which will be

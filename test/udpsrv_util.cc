@@ -808,12 +808,14 @@ public:
 	SD(int type = SOCK_DGRAM)
 	{
 		if ( (sd_ = socket(AF_INET, type, 0)) < 0 )
-			throw InternalError("Unable to create socket");
+			throw InternalError("Unable to create socket", errno);
 		int yes = 1;
 		if ( setsockopt(sd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) )
-			throw InternalError("unable to set SO_REUSEADDR");
-		if ( setsockopt(sd_, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) )
-			throw InternalError("unable to set TCP_NODELAY");
+			throw InternalError("unable to set SO_REUSEADDR", errno);
+		if ( SOCK_STREAM == type ) {
+			if ( setsockopt(sd_, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) )
+				throw InternalError("unable to set TCP_NODELAY", errno);
+		}
 	}
 
 	int get() { return sd_; }
@@ -846,14 +848,24 @@ public:
 	{
 	struct sockaddr_in sin;
 
-		sin.sin_family      = AF_INET;
-		sin.sin_addr.s_addr = ina ? inet_addr(ina) : INADDR_ANY;
-		sin.sin_port        = htons( (short)port );
+		sin.sin_family        = AF_INET;
+		sin.sin_addr.s_addr   = ina ? inet_addr(ina) : INADDR_ANY;
+		sin.sin_port          = htons( (short)port );
 
-		peer_.sin_port      = htons(0);
+		peer_.sin_family      = AF_INET;
+		peer_.sin_addr.s_addr = INADDR_NONE;
+		peer_.sin_port        = htons(0);
 
-		if ( bind(sd_.get(), (struct sockaddr*) &sin, sizeof(sin)) < 0 ) 
+		if ( ::bind(sd_.get(), (struct sockaddr*) &sin, sizeof(sin)) < 0 ) 
 			throw InternalError("Unable to bind",errno);
+	}
+
+	virtual void connect(const char *ina, unsigned port)
+	{
+		peer_.sin_addr.s_addr = inet_addr( ina );
+		peer_.sin_port        = htons( (unsigned short) port );
+		if ( ::connect(sd_.get(), (struct sockaddr*)&peer_, sizeof(peer_)) )
+			throw InternalError("Unable to connect", errno);
 	}
 
 	virtual ProtoPort getUpstreamPort()
@@ -942,8 +954,6 @@ public:
 
 			BufChain bc = IBufChain::create();
 			Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
-
-			b->setPayload( NULL );
 
 			socklen_t sz = sizeof(peer_);
 
@@ -1090,8 +1100,6 @@ public:
 
 				BufChain bc = IBufChain::create();
 				Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
-
-				b->setPayload( NULL );
 
 				uint32_t len;
 				uint8_t  *p;
