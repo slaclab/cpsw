@@ -255,7 +255,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual bool            hasRssi()
 		{
-			return hasRssi_;
+			return hasRssi_ && hasUdp();
 		}
 
 		virtual void            useDepack(bool v)
