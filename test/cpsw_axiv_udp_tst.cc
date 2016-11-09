@@ -405,11 +405,12 @@ uint32_t    sysm_base = 0x00010000;
 uint32_t    prbs_base = 0x00030000;
 unsigned    byteResHack = 0x00000;
 const char *str;
+bool        useTcp    = false;
 
 const char *use_yaml  = 0;
 const char *dmp_yaml  = 0;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:sT:M:by:Y:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:mV:S:hn:p:rRd:D:stT:M:by:Y:")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr = optarg;     break;
@@ -426,6 +427,7 @@ const char *dmp_yaml  = 0;
 			case 'd': i_p     = &tDestSTRM; break;
 			case 'D': i_p     = &tDestSRP;  break;
 			case 'M': i_p     = &tDestMEM;  break;
+			case 't': useTcp  = true;       break;
 			case 'T': i_p     = &srpTo;     break;
 			case 'b': byteResHack = 0x10000;break;
 			case 'Y': use_yaml    = optarg; break;
@@ -542,7 +544,10 @@ uint16_t  u16;
 				case 3: protoVers = IProtoStackBuilder::SRP_UDP_V3; break;
 			}
 			bldr->setSRPVersion              (             protoVers );
-			bldr->setUdpPort                 (                  port );
+			if ( useTcp )
+				bldr->setTcpPort             (                  port );
+			else
+				bldr->setUdpPort             (                  port );
 			if ( srpTo > 0 ) {
 				u64 = srpTo;
 			} else {
@@ -554,7 +559,7 @@ uint16_t  u16;
 			bldr->setSRPTimeoutUS            (                   u64 );
 			bldr->setSRPRetryCount           (                     5 );
 			bldr->setSRPMuxVirtualChannel    (                     0 );
-			bldr->useRssi                    (               srpRssi );
+			bldr->useRssi                    (   ! useTcp && srpRssi );
 			if ( tDestSRP >= 0 ) {
 				bldr->setTDestMuxTDEST       (              tDestSRP );
 			}
@@ -573,13 +578,18 @@ uint16_t  u16;
 		if ( length > 0 ) {
 			ProtoStackBuilder bldr = IProtoStackBuilder::create();
 			bldr->setSRPVersion          ( IProtoStackBuilder::SRP_UDP_NONE );
-			bldr->setUdpPort             ( sport                            );
-			bldr->setUdpOutQueueDepth    (                               32 );
-			bldr->setUdpNumRxThreads     (                                2 );
+			if ( useTcp ) {
+				bldr->setTcpPort         ( sport                            );
+				bldr->setTcpOutQueueDepth(                               32 );
+			} else {
+				bldr->setUdpPort         ( sport                            );
+				bldr->setUdpOutQueueDepth(                               32 );
+				bldr->setUdpNumRxThreads (                                2 );
+			}
 			bldr->setDepackOutQueueDepth (                               16 );
 			bldr->setDepackLdFrameWinSize(                                4 );
 			bldr->setDepackLdFragWinSize (                                4 );
-			bldr->useRssi                (                          strRssi );
+			bldr->useRssi                (              ! useTcp && strRssi );
 			if ( tDestSTRM >= 0 )
 				bldr->setTDestMuxTDEST   (                        tDestSTRM );
 			comm->addAtAddress( IField::create("dataSource"), bldr );
