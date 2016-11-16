@@ -10,6 +10,7 @@
 #include <cpsw_api_user.h>
 #include <cpsw_yaml.h>
 #include <yaml-cpp/yaml.h>
+#include <cpsw_rssi.h>
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
 #include <boost/python/list.hpp>
@@ -667,6 +668,16 @@ Hub hc(h);
 	}
 
 	return boost::python::tuple( l );
+}
+
+static void
+wrap_setRssiDebugLevel(int l)
+{
+#ifdef RSSI_DEBUG
+	rssi_debug = l;
+#else
+	throw NotFoundError("cpsw compiled with RSSI_DEBUG unset");
+#endif
 }
 
 // without the overload macros (using 'arg' within 'def') there
@@ -1609,6 +1620,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 	ExceptionTranslatorInstallDerived(MissingOnceTagError,          CPSWError);
 	ExceptionTranslatorInstallDerived(MissingIncludeFileNameError,  CPSWError);
 	ExceptionTranslatorInstallDerived(NoYAMLSupportError,           CPSWError);
+
+	def("setRssiDebug", wrap_setRssiDebugLevel, (arg("level")));
 
 }
 
