@@ -208,7 +208,7 @@ class CDevImpl;
 typedef shared_ptr<CDevImpl> DevImpl;
 
 /* Template specializations to convert YAML nodes to CPSW entries
- * (ByteOrder, IIntField::Mode, Field, MMIODev, etc.)
+ * (ByteOrder, IVal_Base::Mode, Field, MMIODev, etc.)
  */
 
 namespace YAML {
@@ -353,36 +353,36 @@ namespace YAML {
 		};
 
 	template<>
-		struct convert<IIntField::Mode> {
-			static bool decode(const Node& node, IIntField::Mode& rhs) {
+		struct convert<IVal_Base::Mode> {
+			static bool decode(const Node& node, IVal_Base::Mode& rhs) {
 				if (!node.IsScalar())
 					return false;
 
 				std::string str = node.Scalar();
 
 				if( str.compare( "RO" ) == 0 )
-					rhs = IIntField::RO;
+					rhs = IVal_Base::RO;
 				else if (str.compare( "WO" ) == 0 )
 #if 0
 					// without caching and bit-level access at the SRP protocol level we cannot
 					// support write-only yet.
-					rhs = IIntField::WO;
+					rhs = IVal_Base::WO;
 #else
-				rhs = IIntField::RW;
+				rhs = IVal_Base::RW;
 #endif
 				else if (str.compare( "RW" ) == 0 )
-					rhs = IIntField::RW;
+					rhs = IVal_Base::RW;
 				else
 					return false;
 
 				return true;
 			}
-			static Node encode(const IIntField::Mode &rhs) {
+			static Node encode(const IVal_Base::Mode &rhs) {
 				Node node;
 				switch ( rhs ) {
-					case IIntField::RO: node = "RO"; break;
-					case IIntField::RW: node = "RW"; break;
-					case IIntField::WO: node = "WO"; break;
+					case IVal_Base::RO: node = "RO"; break;
+					case IVal_Base::RW: node = "RW"; break;
+					case IVal_Base::WO: node = "WO"; break;
 					default:
 										break;
 				}

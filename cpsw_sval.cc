@@ -130,7 +130,7 @@ unsigned byteSize = b2B(sizeBits_);
 	// merging a word-swapped entity with a bit-size that is
 	// not a multiple of 8 would require more complex bitmasks
 	// than what our current 'write' method supports.
-	if ( (sizeBits_ % 8) && wordSwap_ && mode_ != RO ) {
+	if ( (sizeBits_ % 8) && wordSwap_ && mode_ != IVal_Base::RO ) {
 		throw InvalidArgError("Word-swap only supported if size % 8 == 0");
 	}
 
@@ -273,7 +273,7 @@ CIntEntryImpl::setEnum(Key &k, Enum     v)
 int
 CIntEntryImpl::getDefaultConfigPrio() const
 {
-	return RW == mode_ ? DFLT_CONFIG_PRIO_RW : CONFIG_PRIO_OFF;
+	return IVal_Base::RW == mode_ ? DFLT_CONFIG_PRIO_RW : CONFIG_PRIO_OFF;
 }
 
 void
@@ -353,7 +353,7 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 	if ( isInterface<Val_Base>(interfaceType) || isInterface<ScalVal_Base>(interfaceType) ) {
 		return _createAdapter< shared_ptr<IIntEntryAdapt> >(this, p);
 	} else if ( isInterface<ScalVal>(interfaceType) ) {
-		if ( getMode() != RW ) {
+		if ( getMode() != IVal_Base::RW ) {
 			throw InterfaceNotImplementedError("ScalVal interface not supported (read- or write-only)");
 		}
 		if ( IScalVal_Base::IEEE_754 == getEncoding() ) {
@@ -361,12 +361,12 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 		}
 		return _createAdapter<ScalValAdapt>(this, p);
 	} else if ( isInterface<DoubleVal>(interfaceType) ) {
-		if ( getMode() != RW ) {
+		if ( getMode() != IVal_Base::RW ) {
 			throw InterfaceNotImplementedError("Double interface not supported (read- or write-only)");
 		}
 		return _createAdapter<DoubleValAdapt>(this, p);
 	} else if ( isInterface<ScalVal_RO>(interfaceType) ) {
-		if ( getMode() == WO ) {
+		if ( getMode() == IVal_Base::WO ) {
 			throw InterfaceNotImplementedError("ScalVal_RO interface not supported (write-only)");
 		}
 		if ( IScalVal_Base::IEEE_754 == getEncoding() ) {
@@ -374,7 +374,7 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 		}
 		return _createAdapter<ScalVal_ROAdapt>(this, p);
 	} else if ( isInterface<DoubleVal_RO>(interfaceType) ) {
-		if ( getMode() == WO ) {
+		if ( getMode() == IVal_Base::WO ) {
 			throw InterfaceNotImplementedError("Double_RO interface not supported (write-only)");
 		}
 		return _createAdapter<DoubleVal_ROAdapt>(this, p);
@@ -383,7 +383,7 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 	// without caching and bit-level access at the SRP protocol level we cannot
 	// support write-only yet.
 	else if ( isInterface<ScalVal_WO>(interfaceType) || isInterface<DoubleVal_WO>(interfaceType) ) {
-		if ( getMode() == RO ) {
+		if ( getMode() == IVal_Base::RO ) {
 			throw InterfaceNotImplementedError("ScalVal_WO/Double_WO interface not supported (read-only)");
 		}
 		return _createAdapter<ScalVal_WOAdapt>(this, p);
@@ -1095,7 +1095,7 @@ typedef union VU_ {
 uint64_t
 CIntEntryImpl::dumpMyConfigToYaml(Path p, YAML::Node &node) const
 {
-	if ( WO != getMode() ) {
+	if ( IVal_Base::WO != getMode() ) {
 		ScalVal_Base bas( IScalVal_Base::create( p ) );
 		unsigned     nelms = bas->getNelms();
 
@@ -1189,7 +1189,7 @@ CIntEntryImpl::loadMyConfigFromYaml(Path p, YAML::Node &n) const
 {
 unsigned nelms, i;
 
-	if ( RO == getMode() ) {
+	if ( IVal_Base::RO == getMode() ) {
 		throw ConfigurationError("Cannot load configuration into read-only ScalVal");
 	}
 
@@ -1306,7 +1306,7 @@ IIntField::Builder CIntEntryImpl::CBuilder::lsBit(int lsBit)
 IIntField::Builder CIntEntryImpl::CBuilder::mode(Mode mode)
 {
 	mode_     = mode;
-	if ( RW != mode )
+	if ( IVal_Base::RW != mode )
 		configPrio( CONFIG_PRIO_OFF );
 	return getSelfAs<BuilderImpl>();
 }
@@ -1354,7 +1354,7 @@ void CIntEntryImpl::CBuilder::init()
 	lsBit_      = DFLT_LS_BIT;
 	isSigned_   = DFLT_IS_SIGNED;
 	mode_       = DFLT_MODE;
-	configPrio_ = RW == DFLT_MODE ? DFLT_CONFIG_PRIO_RW : CONFIG_PRIO_OFF;
+	configPrio_ = IVal_Base::RW == DFLT_MODE ? DFLT_CONFIG_PRIO_RW : CONFIG_PRIO_OFF;
 	configBase_ = DFLT_CONFIG_BASE;
 	wordSwap_   = DFLT_WORD_SWAP;
 	encoding_   = DFLT_ENCODING;
@@ -1370,7 +1370,7 @@ IntField CIntEntryImpl::CBuilder::build(const char *name)
 	// merging a word-swapped entity with a bit-size that is
 	// not a multiple of 8 would require more complex bitmasks
 	// than what our current 'write' method supports.
-	if ( (sizeBits_ % 8) && wordSwap_ && mode_ != RO ) {
+	if ( (sizeBits_ % 8) && wordSwap_ && mode_ != IVal_Base::RO ) {
 		throw InvalidArgError("Word-swap only supported if size % 8 == 0 or mode == RO");
 	}
 

@@ -11,7 +11,7 @@
 #include <cpsw_yaml.h>
 
 CConstIntEntryImpl::CConstIntEntryImpl(Key &k, const char *name, bool isSigned, Enum enm)
-: CIntEntryImpl(k, name, 64, isSigned, 0, RO, 0, enm),
+: CIntEntryImpl(k, name, 64, isSigned, 0, IVal_Base::RO, 0, enm),
   intVal_(0),
   doubleVal_(0.)
 {
@@ -39,9 +39,9 @@ Enum         enm = getEnum();
 		throw InvalidArgError("CConstIntEntryImpl: Unsupported encoding");
 	}
 
-	setWordSwap(k,  0);
-	setMode    (k, RO);
-	setLsBit   (k,  0);
+	setWordSwap(k,             0);
+	setMode    (k, IVal_Base::RO);
+	setLsBit   (k,             0);
 
 	if ( ! readNode(n, YAML_KEY_value, &stringVal) ) {
 		throw InvalidArgError("CConstIntEntryImpl: *must* have a 'value'");

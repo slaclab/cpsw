@@ -262,7 +262,7 @@ while ( --run > 0 ) {
 
 		IIntField::Builder bldr = IIntField::IBuilder::create();
 
-		bldr->mode( IIntField::RW );
+		bldr->mode( IVal_Base::RW );
 
 		for ( bits_idx = 0; bits_idx < sizeof(bits)/sizeof(bits[0]); bits_idx++ ) {
 
@@ -302,7 +302,7 @@ while ( --run > 0 ) {
 								if ( wswap && (bits[bits_idx] & 7) ) {
 									IIntField::Builder bldrRO = bldr->clone();
 
-									bldrRO->mode( IIntField::RO );
+									bldrRO->mode( IVal_Base::RO );
 
 									entry = bldrRO->build( nm );
 								} else {

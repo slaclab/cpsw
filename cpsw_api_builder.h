@@ -326,12 +326,16 @@ typedef shared_ptr<IIntField> IntField;
 
 class IIntField: public virtual IField {
 public:
-	typedef enum Mode { RO = 1, WO = 2, RW = 3 } Mode;
+	// Introduce IIntField::Mode for BWDs compatibiliy
+    typedef IVal_Base::Mode Mode;
+	static const enum IVal_Base::Mode RW = IVal_Base::RW;
+	static const enum IVal_Base::Mode RO = IVal_Base::RO;
+	static const enum IVal_Base::Mode WO = IVal_Base::WO;
 
 	static const uint64_t DFLT_SIZE_BITS = 32;
 	static const bool     DFLT_IS_SIGNED = false;
 	static const int      DFLT_LS_BIT    =  0;
-	static const Mode     DFLT_MODE      = RW;
+	static const Mode     DFLT_MODE      = IVal_Base::RW;
 	static const unsigned DFLT_WORD_SWAP =  0;
 
 	class IBuilder;

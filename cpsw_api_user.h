@@ -451,6 +451,10 @@ public:
 	 */
 	virtual ConstPath getConstPath()    const = 0;
 
+	/*!
+	 * Access Mode
+	 */
+	typedef enum Mode { RO = 1, WO = 2, RW = 3 } Mode;
 
 	virtual ~IVal_Base() {}
 

@@ -179,7 +179,7 @@ public:
 	virtual uint64_t getSizeBits() const { return asIntEntry()->getSizeBits(); }
 	virtual unsigned getWordSwap() const { return asIntEntry()->getWordSwap(); }
 	virtual Encoding getEncoding() const { return asIntEntry()->getEncoding(); }
-	virtual IIntField::Mode     getMode()     const { return asIntEntry()->getMode(); }
+	virtual Mode     getMode()     const { return asIntEntry()->getMode(); }
 
 	virtual Enum     getEnum()     const { return asIntEntry()->getEnum(); }
 
