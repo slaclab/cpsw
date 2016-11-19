@@ -153,6 +153,12 @@ public:
 		return processYamlConfig( node, false );
 	}
 
+	virtual uint64_t    loadConfigFromYamlFile(const char* filename, const char *incdir = 0) const
+	{
+	YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYamlFile( filename, incdir ) );
+		return loadConfigFromYaml( conf );
+	}
+
 	virtual ~CPathImpl();
 
 protected:
