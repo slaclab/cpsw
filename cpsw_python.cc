@@ -224,6 +224,12 @@ Hub hc(h);
 	return IPath::create(hc);
 }
 
+static std::string
+wrap_Val_Base_repr(shared_ptr<IVal_Base> obj)
+{
+	return obj->getPath()->toString();
+}
+
 static boost::python::list wrap_Enum_getItems(Enum enm)
 {
 boost::python::list l;
@@ -883,6 +889,11 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"A 'NotFoundError' is thrown if the target of the operation does not exist."
 		)
+		.def("__add__",   &IPath::findByName,
+			( arg("self"), arg( "pathString" ) ),
+			"\n"
+			"Shortcut for 'findByName'"
+		)
 		.def("up",           &IPath::up,
 			( arg("self") ),
 			"\n"
@@ -1183,10 +1194,16 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"The Path used to instantiate a ScalVal may address an array\n"
 			"of scalar values. This method returns the number of array elements"
 		)
-		.def("getPath",      &IScalVal_Base::getPath,
+		.def("getPath",      &IVal_Base::getPath,
 			( arg("self") ),
 			"\n"
 			"Return a copy of the Path which was used to create this ScalVal."
+		)
+		.def("__repr__",     wrap_Val_Base_repr,
+			( arg("self") ),
+			"\n"
+			"Convert this ScalVal to a string representation\n"
+			"showing the Path that identifies it."
 		)
 		.def("create",       &IVal_Base::create,
 			( arg("path") ),
