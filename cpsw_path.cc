@@ -493,6 +493,11 @@ cout<<"starting at: "<<found->getName() << "\n";
 		while ( '/' == *s )
 			s++;
 
+		if ( ! *s ) {
+			// end of string reached; (this handles trailing slashes)
+			return rval;
+		}
+
 		sl = strchr(s,'/');
 
 		// Check for '..'
