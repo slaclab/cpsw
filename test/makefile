@@ -31,6 +31,7 @@ udpsrv_SRCS+= udpsrv_util.cc
 udpsrv_SRCS+= udpsrv_mod_mem.cc
 udpsrv_SRCS+= udpsrv_mod_axiprom.cc
 udpsrv_SRCS+= udpsrv_mod_pendsim.cc
+udpsrv_SRCS+= udpsrv_mod_genadc.cc
 udpsrv_SRCS+= udpsrv_stream_state_monitor.cc
 
 udpsrv_CXXFLAGS+= -DUDPSRV

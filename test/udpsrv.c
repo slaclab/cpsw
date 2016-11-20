@@ -81,6 +81,9 @@ typedef uint8_t Buf[FRAGLEN + HEADSIZE + TAILSIZE];
 
 static int debug = 0;
 
+// protocol wants LE
+#define bs32(v1, x) swp32(v1 ? BE : LE, x)
+
 static inline uint32_t swp32(int to, uint32_t x)
 {
 union { uint16_t s; uint8_t c[2]; } u = { .s = 1 };
@@ -89,10 +92,6 @@ union { uint16_t s; uint8_t c[2]; } u = { .s = 1 };
 	else
 		return __builtin_bswap32(x);
 }
-
-// protocol wants LE
-#define bs32(v1, x) swp32(v1 ? BE : LE, x)
-
 
 static void usage(const char *nm)
 {
@@ -361,7 +360,7 @@ Buf      bufmem;
 					unsigned  bufsz = sizeof(rbuf) - 2*sizeof(rbuf[0]);
 
 #ifdef DEBUG
-					if ( debug )
+					if ( debug > 2 )
 						printf("Got %d SRP octets\n", got);
 #endif
 
@@ -392,7 +391,7 @@ Buf      bufmem;
 						if ( ioPrtSend( sa->port, hp, chunk + 9 ) < 0 )
 							fprintf(stderr,"fragmenter: write error (sending SRP or STREAM reply)\n");
 #ifdef DEBUG
-						else if ( debug )
+						else if ( debug > 2 )
 							printf("Sent to port %d\n", ioPrtIsConn( sa->port ));
 #endif
 						*tailp = tail;
@@ -625,10 +624,11 @@ uint32_t status   =  0;
 #ifdef DEBUG
 					if (debug) {
 						if ( CMD_RD == cmd )
-							printf("Read ");
+							printf("Read");
 						else
-							printf("Wrote ");
+							printf("Wrote");
 
+						printf(": off 0x%"PRIx64", size %d; ", off, size);
 						printf("(xid %x)\n", xid);
 
 					}
@@ -750,7 +750,7 @@ int i;
 			continue;
 		}
 #ifdef DEBUG
-		if ( debug ) {
+		if ( debug > 2 ) {
 			if ( ioPrtRssiIsConn( strm_args[i].port ) )
 				printf("RSSI conn (chnl %d)\n", i);
 			if ( strm_args[i].polled_stream_up )
@@ -810,7 +810,7 @@ int      nprts, nstrms;
 			case 'P': i_a = &srpvars[V2_NORSSI].port;       break;
 			case 'p': i_a = &srpvars[V1_NORSSI].port;       break;
 			case 'a': ina = optarg;                         break;
-			case 'd': debug = 1;                            break;
+			case 'd': debug++;                              break;
 			case 's': i_a = &strmvars[STRM_NORSSI].port;    break;
 			case 'f': i_a = &n_frags;                       break;
 			case 'L': i_a = &sim_loss;                      break;

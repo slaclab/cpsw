@@ -12,6 +12,8 @@
 #ifndef UDPSRV_REGDEFS_H
 #define UDPSRV_REGDEFS_H
 
+#include <stdio.h>
+
 #define MEM_ADDR 0x00000000
 #define MEM_SIZE (1024*1024)
 
@@ -26,7 +28,9 @@
 #define REG_STRM_OFF (REG_ARR_OFF + REG_ARR_SZ)
 #define REG_STRM_SZ  4
 
-#define AXI_SPI_EEPROM_ADDR (MEM_ADDR + MEM_SIZE) /* 0x00100000 */
+#define MEM_END (MEM_ADDR + MEM_SIZE) /* 0x00100000 */
+
+#define AXI_SPI_EEPROM_ADDR           MEM_END /* 0x00100000 */
 #define AXI_SPI_EEPROM_32BIT_MODE_OFF 0x04
 #define AXI_SPI_EEPROM_ADDR_OFF       0x08
 #define AXI_SPI_EEPROM_CMD_OFF        0x0c
@@ -57,6 +61,29 @@
 
 #define PENDULUM_SIMULATOR_TDEST          44
 
+#define DAQMUX_ADDR                     (MEM_END + 0x1000)  /* 0x0101000 */
+#define DAQMUX_SIZE                     0x1000
+
+#define BSA_ADDR                        (DAQMUX_ADDR + DAQMUX_SIZE)         /* 0x0102000 */
+#define BSA_SIZE                        0x1000
+#define BSA_START_ADDR_OFF              0x0000
+#define BSA_START_ADDR_SIZE             (4*sizeof(uint64_t))
+#define BSA_END_ADDR_OFF                0x0200
+#define BSA_END_ADDR_SIZE               (4*sizeof(uint64_t))
+
+#define DAC_TABLE_0_ADDR                (MEM_END + 0x10000) /* 0x00110000 */
+#define DAC_TABLE_SIZE                  (0x10000)
+#define DAC_TABLE_1_ADDR                (DAC_TABLE_0_ADDR + DAC_TABLE_SIZE) /* 0x01200000 */
+#define DAC_TABLE_2_ADDR                (DAC_TABLE_1_ADDR + DAC_TABLE_SIZE) /* 0x01300000 */
+#define DAC_TABLE_3_ADDR                (DAC_TABLE_2_ADDR + DAC_TABLE_SIZE) /* 0x01400000 */
+#define DAC_TABLE_TBL_OFF               (0x00000)
+#define DAC_TABLE_TBL_SIZE              (0x1000*4)
+
+#define GENERICADC0_TDEST                50
+#define GENERICADC1_TDEST                51
+#define GENERICADC2_TDEST                52
+#define GENERICADC3_TDEST                53
+
 #define DEBUG
 
 #define __STDC_FORMAT_MACROS
@@ -64,11 +91,21 @@
 
 struct udpsrv_range;
 
+
+#define RANGE_VIOLATION(off,siz,regoff,regsiz) \
+	( (off) < (regoff) || ( (off) + (siz) > (regoff) + (regsiz)) )
+
 extern
 #ifdef __cplusplus
 "C"
 #endif
 struct udpsrv_range *udpsrv_ranges;
+
+inline int hostIsLE()
+{
+union { uint16_t s; uint8_t c[2]; } u = { .s = 1 };
+	return u.c[0];
+}
 
 struct udpsrv_range {
 	struct udpsrv_range *next;
@@ -86,6 +123,7 @@ struct udpsrv_range {
 	)
 	:next(udpsrv_ranges), base(base), size(size), read(read), write(write)
 	{
+printf("Registering range %x %x\n", base, size);
 		udpsrv_ranges = this;
 		if ( init )
 			init();
@@ -97,6 +135,8 @@ struct udpsrv_range {
 extern "C" {
 #endif
 	int streamIsRunning();
+
+#define STREAMBUF_HEADROOM 8
 
 	/* send a stream message; the buffer must have 8-bytes at
 	 * the head reserved for the packet header
