@@ -687,6 +687,11 @@ BOOST_PYTHON_FUNCTION_OVERLOADS( IPath_loadYamlFile_ol,
                                  IPath::loadYamlFile,
                                  1, 3 )
 
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS( IPath_loadConfigFromYamlFile_ol,
+                                 loadConfigFromYamlFile,
+                                 1, 2 )
+
+
 BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadYamlStream_ol,
                                  wrap_Path_loadYamlStream,
                                  1, 3 )
@@ -1025,13 +1030,15 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"See 'PathVisitor' for more information."
 		)
 		.def("loadConfigFromYamlFile", &IPath::loadConfigFromYamlFile,
-			( arg("self"), arg("configYamlFilename"), arg("yamlIncDirname") ),
+			IPath_loadConfigFromYamlFile_ol(
+			args("self", "configYamlFilename", "yamlIncDirname"),
 			"\n"
 			"Load a configuration file in YAML format and write out into the hardware.\n"
 			"\n"
 			"'yamlIncDirname' may point to a directory where included YAML files can\n"
 			"be found. Defaults to the directory where the YAML file is located.\n\n"
 			"RETURNS: number of values successfully written out."
+			)
 		)
 		.def("loadConfigFromYamlString", wrap_Path_loadConfigFromYamlString,
 			wrap_Path_loadConfigFromYamlString_ol(
