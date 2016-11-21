@@ -167,25 +167,35 @@ int rev = -1;
 	while ( '#' == current->peek() ) {
 		std::string line;
 		std::getline(*current, line );
+		bool onceHasNoTag;
 
-		if ( 0 == line.compare(1, 5, "once ") ) {
+		if ( 0 == line.compare(1, 4, "once")
+             && ( (onceHasNoTag = (line.size() < 6)) || (line[5] == ' ')  ) ) {
 
 			size_t beg = line.find_first_not_of(" \t", 5);
+			size_t len;
 
 			if ( std::string::npos == beg ) {
-				MissingOnceTagError e("YamlPreprocessor: #once line lacks a 'tag' -- in: ");
-				e.append( name );
-				throw e;
+				onceHasNoTag = true;
 			}
 
-			// maybe there is an '\r' (windows-generated file)
-			size_t len = line.find_first_of( " \t\r", beg );
+			if ( onceHasNoTag ) {
+				std::cerr << "WARNING: (YamlPreprocessor) #once line lacks a 'tag' -- in : " + name + " (will use filename for now but future version escalates to ERROR) \n";
+//				MissingOnceTagError e("YamlPreprocessor: #once line lacks a 'tag' -- in: ");
+//				e.append( name );
+//				throw e;
+			} else {
+				// maybe there is an '\r' (windows-generated file)
+				len = line.find_first_of( " \t\r", beg );
 
-			if ( std::string::npos != len )
-				len -= beg;
+				if ( std::string::npos != len )
+					len -= beg;
+			}
+
+			const std::string &tag = onceHasNoTag ? name : line.substr(beg, len);
 
 			// if tag exist already then ignore rest of file
-			if ( check_exists( line.substr(beg, len) ) )
+			if ( check_exists( tag ) )
 				return; 
 
 		} else if ( 0 == line.compare(1, 8, "include ") ) {
