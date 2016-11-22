@@ -220,8 +220,9 @@ int rev = -1;
 				len -= beg;
 
 			// recursively process included file
-			// in same directory
-			std::string incFnam( path_ + line.substr(beg, len) );
+			bool absPath = (0 == line.compare(beg ,1, "/"));
+
+			std::string incFnam( absPath ? line.substr(beg, len) : path_ + line.substr(beg, len) );
 
 			if ( getVerbose() ) {
 				mux_->pushbuf( StreamMuxBuf::mkstrm( line ) );
