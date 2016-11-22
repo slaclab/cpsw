@@ -34,6 +34,13 @@
 #define DAQMUX_CSR_HWTRIG      (1<<3)
 #define DAQMUX_CSR_HDR_EN      (1<<6)
 
+#define DAQMUX_FORMAT_OFF     0xc0
+#define DAQMUX_FORMAT_AVG_EN (1<<7)
+#define DAQMUX_DECRATE_OFF    0x08
+
+// max. supported decimation rate
+#define DEC_MAX               16
+
 static uint32_t daqmux_regs[DAQMUX_SIZE/sizeof(uint32_t)];
 
 static uint32_t daqmuxGet(unsigned off)
@@ -43,6 +50,7 @@ static uint32_t daqmuxGet(unsigned off)
 	uint32_t rval = daqmux_regs[off/sizeof(uint32_t)];
 	if ( ! hostIsLE() )
 		rval = __builtin_bswap32( rval );
+//printf("DAQMUX: reading reg(%d): 0x%08"PRIx32"\n", off/(int)sizeof(uint32_t), rval); 
 	return rval;
 }
 
@@ -50,6 +58,7 @@ static void daqmuxSet(unsigned off, uint32_t val)
 {
 	if ( off > DAQMUX_SIZE/sizeof(uint32_t) - 1 )
 		throw "Offset out of range"; // internal error
+//printf("DAQMUX: writing reg(%d): 0x%08"PRIx32"\n", off/(int)sizeof(uint32_t), val); 
 	if ( ! hostIsLE() )
 		val = __builtin_bswap32( val );
 	daqmux_regs[off/sizeof(uint32_t)] = val;
@@ -275,10 +284,10 @@ static CBSA     theBSA( 1000 );
 void *CBSA::threadBody()
 {
 struct   timespec    dly       = dly_;
-unsigned             maxsz     = DAC_TABLE_TBL_SIZE + TIMING_HEADER_SIZE + STREAMBUF_HEADROOM;
+unsigned             maxsz     = DEC_MAX*DAC_TABLE_TBL_SIZE + TIMING_HEADER_SIZE + STREAMBUF_HEADROOM;
 std::vector<uint8_t> streambuf;
 
-unsigned             actsz;
+unsigned             actOsz, actIsz;
 
 	streambuf.reserve( maxsz );
 
@@ -294,6 +303,12 @@ unsigned             actsz;
 
 		uint32_t daqmux_depth = daqmuxGet( DAQMUX_BUFFER_SIZE_OFF );
 		uint32_t daqmux_csr   = daqmuxGet( DAQMUX_CSR_OFF         );
+		uint32_t dec_rate     = daqmuxGet( DAQMUX_DECRATE_OFF     ) & 0xffff;
+
+		if ( dec_rate == 0 )
+			dec_rate = 1; // dunno if the firmware does the same thing here
+		if ( dec_rate > DEC_MAX )
+			throw "ERROR decimation rate > 16 not supported";
 
 		if ( daqmux_depth && (daqmux_csr & DAQMUX_CSR_HWTRIG) ) {
 
@@ -315,25 +330,61 @@ unsigned             actsz;
 				memcpy( payload + TIMING_TS_OFF_HI, &ts[0], sizeof(ts[0]) );
 				memcpy( payload + TIMING_TS_OFF_LO, &ts[1], sizeof(ts[1]) );
 
-				actsz = theBSA.getSize( inst );
+				actOsz = theBSA.getSize( inst );
 
-				if ( daqmux_depth * sizeof(uint32_t) != actsz ) {
+				if ( daqmux_depth * sizeof(uint32_t) != actOsz ) {
 					printf("WARNING DAQ/BSA size mismatch\n");
 				}
 
 				unsigned thdrsz = (daqmux_csr & DAQMUX_CSR_HDR_EN) ? TIMING_HEADER_SIZE : 0;
 
-				if ( actsz < thdrsz ) {
+				actIsz = (actOsz - thdrsz) * dec_rate + thdrsz;
+
+				if ( actOsz < thdrsz ) {
 					printf("BSA size < min; clamping\n");
-					actsz = thdrsz;
+					actOsz = thdrsz;
 				}
 
-				if ( actsz > maxsz )
+				if ( actIsz > maxsz )
 					throw "ERROR: requested size out of range";
 
-				theModlAdcs[inst]->readReg( payload + thdrsz, actsz - thdrsz, (uint64_t)0, 0 );
+				theModlAdcs[inst]->readReg( payload + thdrsz, actIsz - thdrsz, (uint64_t)0, 0 );
 
-				streamSend( &streambuf[0], actsz + STREAMBUF_HEADROOM, theModlAdcs[inst]->getTDEST());
+				if ( dec_rate > 1 ) {
+					bool doAvg = !!(daqmuxGet( DAQMUX_FORMAT_OFF + sizeof(uint32_t)*inst ) & DAQMUX_FORMAT_AVG_EN);
+					unsigned avg_shft = 0;
+					unsigned avg_step = doAvg ? 1 : dec_rate;
+					if ( doAvg ) {
+						unsigned tmp;
+						while ( (tmp = (1<<avg_shft)) < DEC_MAX ) {
+							if ( tmp == dec_rate )
+								break;
+							avg_shft++;
+						}
+						if ( tmp >= DEC_MAX )
+							throw "ERROR: averaging MUST use power-of-two decimation rate"; // FW restriction
+					}
+
+					{
+						unsigned skip = dec_rate * sizeof(int16_t); // in bytes
+						unsigned ioff = thdrsz;
+						unsigned ooff = thdrsz;
+						while ( ioff < actIsz ) {
+							int16_t val;
+							int32_t acc = 0;
+							for ( unsigned k = 0; k < dec_rate; k+=avg_step ) {
+								memcpy( &val, payload + ioff, sizeof(int16_t) );
+								acc += val;
+							}
+							val = acc >> avg_shft;
+							memcpy( payload + ooff, &val, sizeof(int16_t) );
+							ioff += skip;
+							ooff += sizeof(int16_t);
+						}
+					}
+				}
+
+				streamSend( &streambuf[0], actOsz + STREAMBUF_HEADROOM, theModlAdcs[inst]->getTDEST());
 			}
 		}
 		/* should mutex here but who cares... */
