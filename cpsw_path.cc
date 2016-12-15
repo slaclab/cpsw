@@ -474,7 +474,7 @@ cout<<"using origin\n";
 	} else {
 		tailp = back().c_p_->getEntryImpl();
 #ifdef PATH_DEBUG
-cout<<"starting at: "<<found->getName() << "\n";
+cout<<"starting at: "<<tailp->getName() << "\n";
 #endif
 	}
 
@@ -506,7 +506,7 @@ cout<<"starting at: "<<found->getName() << "\n";
 			const char *mi = op ? strchr(op,'-') : 0;
 
 			if ( ! (h = tailp->isConstDevImpl()) ) {
-				throw NotDevError( found->getName() );
+				throw NotDevError( tailp->getName() );
 			}
 
 
