@@ -289,7 +289,7 @@ std::vector<uint8_t> streambuf;
 
 unsigned             actOsz, actIsz;
 
-	streambuf.reserve( maxsz );
+	streambuf.reserve( maxsz + 8 ); // simulate extra data sent by FW (11/22/16)
 
 	for ( unsigned i = 0; i<maxsz; ++i )
 		streambuf.push_back( 0 );
@@ -384,6 +384,10 @@ unsigned             actOsz, actIsz;
 					}
 				}
 
+				// simulate extra data sent by FW (11/22/16)
+				{
+				memset( &streambuf[actOsz + STREAMBUF_HEADROOM], 0x80, 8 );
+				}
 				streamSend( &streambuf[0], actOsz + STREAMBUF_HEADROOM, theModlAdcs[inst]->getTDEST());
 			}
 		}
