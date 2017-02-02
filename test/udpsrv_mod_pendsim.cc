@@ -208,7 +208,7 @@ printf("InitState: %g %g %g %g %g\n", state_[0], state_[1], state_[2], state_[3]
 		threadStart();
 	}
 
-	int readreg(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+	int readreg(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 	{
 	int rval = 0;
 		rval += av_.readReg(   &data, &nbytes, &off, debug );
@@ -234,7 +234,7 @@ printf("InitState: %g %g %g %g %g\n", state_[0], state_[1], state_[2], state_[3]
 		return rval;
 	}
 
-	int writereg(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+	int writereg(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 	{
 	int rval = 0;
 		rval += av_.writeReg(   &data, &nbytes, &off, debug );
@@ -407,17 +407,17 @@ void CPendSim::ydot(double t, double *dotState, double *state)
 
 static CPendSim theSim(50.);
 
-static int readreg(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int readreg(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
-	theSim.readreg(data, nbytes, off, debug);
+	theSim.readreg(r, data, nbytes, off, debug);
 	return 0; // indicates success
 }
 
-static int writereg(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int writereg(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
-	theSim.writereg(data, nbytes, off, debug);
+	theSim.writereg(r, data, nbytes, off, debug);
 	return 0; // indicates success
 }
 
 
-static struct udpsrv_range pendsim_range(PENDULUM_SIMULATOR_ADDR, PENDULUM_SIMULATOR_SIZE, readreg, writereg, 0);
+static struct udpsrv_range pendsim_range("PENDSIM", PENDULUM_SIMULATOR_ADDR, PENDULUM_SIMULATOR_SIZE, readreg, writereg, 0);

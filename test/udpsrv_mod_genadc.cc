@@ -250,7 +250,7 @@ CAdcModl::writeReg(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 }
 
 static int
-readDaq(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+readDaq(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	if ( RANGE_VIOLATION(off, nbytes, 0, DAQMUX_SIZE) )
 		return -1;
@@ -259,7 +259,7 @@ readDaq(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 }
 
 static int
-writeDaq(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+writeDaq(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	if ( RANGE_VIOLATION(off, nbytes, 0, DAQMUX_SIZE) )
 		return -1;
@@ -400,61 +400,61 @@ unsigned             actOsz, actIsz;
 	return 0;
 }
 
-static int readreg0(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int readreg0(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	return theModlAdc0.readReg(data, nbytes, off, debug);
 }
 
-static int writereg0(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int writereg0(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	return theModlAdc0.writeReg(data, nbytes, off, debug);
 }
 
-static int readreg1(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int readreg1(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	return theModlAdc1.readReg(data, nbytes, off, debug);
 }
 
-static int writereg1(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int writereg1(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	return theModlAdc1.writeReg(data, nbytes, off, debug);
 }
 
-static int readreg2(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int readreg2(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	return theModlAdc2.readReg(data, nbytes, off, debug);
 }
 
-static int writereg2(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int writereg2(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	return theModlAdc2.writeReg(data, nbytes, off, debug);
 }
 
-static int readreg3(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int readreg3(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	return theModlAdc3.readReg(data, nbytes, off, debug);
 }
 
-static int writereg3(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int writereg3(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	return theModlAdc3.writeReg(data, nbytes, off, debug);
 }
 
-static int readregBsa(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int readregBsa(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	return theBSA.readReg(data, nbytes, off, debug);
 }
 
-static int writeregBsa(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int writeregBsa(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	return theBSA.writeReg(data, nbytes, off, debug);
 }
 
-static struct udpsrv_range genAdc0Range(DAC_TABLE_0_ADDR, DAC_TABLE_SIZE, readreg0, writereg0, 0);
-static struct udpsrv_range genAdc1Range(DAC_TABLE_1_ADDR, DAC_TABLE_SIZE, readreg1, writereg1, 0);
-static struct udpsrv_range genAdc2Range(DAC_TABLE_2_ADDR, DAC_TABLE_SIZE, readreg2, writereg2, 0);
-static struct udpsrv_range genAdc3Range(DAC_TABLE_3_ADDR, DAC_TABLE_SIZE, readreg3, writereg3, 0);
+static struct udpsrv_range genAdc0Range("GENADC_CH0", DAC_TABLE_0_ADDR, DAC_TABLE_SIZE, readreg0, writereg0, 0);
+static struct udpsrv_range genAdc1Range("GENADC_CH1", DAC_TABLE_1_ADDR, DAC_TABLE_SIZE, readreg1, writereg1, 0);
+static struct udpsrv_range genAdc2Range("GENADC_CH2", DAC_TABLE_2_ADDR, DAC_TABLE_SIZE, readreg2, writereg2, 0);
+static struct udpsrv_range genAdc3Range("GENADC_CH3", DAC_TABLE_3_ADDR, DAC_TABLE_SIZE, readreg3, writereg3, 0);
 
-static struct udpsrv_range daqMuxRange (DAQMUX_ADDR, DAQMUX_SIZE, readDaq, writeDaq, 0);
+static struct udpsrv_range daqMuxRange ("GENADC_DAQ", DAQMUX_ADDR, DAQMUX_SIZE, readDaq, writeDaq, 0);
 
-static struct udpsrv_range bsaRange    (BSA_ADDR, BSA_SIZE, readregBsa, writeregBsa, 0);
+static struct udpsrv_range bsaRange    ("GENADC_BSA", BSA_ADDR, BSA_SIZE, readregBsa, writeregBsa, 0);

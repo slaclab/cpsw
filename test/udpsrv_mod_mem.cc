@@ -18,8 +18,7 @@ int streamIsRunning()
 	return !! (mem[REGBASE + REG_STRM_OFF] & 1);
 }
 
-#ifdef DEBUG
-static void memdbg(int rd, uint32_t off, uint32_t nbytes)
+void range_io_debug(struct udpsrv_range *r, int rd, uint64_t off, uint32_t nbytes)
 {
 unsigned n;
 	if ( rd )
@@ -27,7 +26,7 @@ unsigned n;
 	else
 		printf("Writing to");
 
-	printf(" %x (%d); %d bytes\n", off, off, nbytes);
+	printf(" %"PRIx64" (%"PRId64"); %d bytes\n", off, off, nbytes);
 
 	for ( n=0; n<nbytes; n++ ) {
 		printf("%02x ",mem[off+n]);	
@@ -36,19 +35,18 @@ unsigned n;
 	if ( n & 15 )
 		printf("\n");
 }
-#endif
 
-static int memread(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int memread(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	memcpy(data, mem+off, nbytes);
 #ifdef DEBUG
 	if ( debug )
-		memdbg(1, off, nbytes);
+		range_io_debug(r, 1, off, nbytes);
 #endif
 	return 0;
 }
 
-static int memwrite(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int memwrite(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 int      i;
 
@@ -111,13 +109,13 @@ int      i;
 
 #ifdef DEBUG
 	if ( debug )
-		memdbg(0, off, nbytes);
+		range_io_debug(r, 0, off, nbytes);
 #endif
 
 	return 0;
 }
 
-static void memini()
+static void memini(struct udpsrv_range *r)
 {
 unsigned i;
 char    *dst = (char*)&mem[0x800];
@@ -130,4 +128,4 @@ char    *dst = (char*)&mem[0x800];
 }
 
 
-static struct udpsrv_range memhdl(MEM_ADDR, sizeof(mem), memread, memwrite, memini);
+static struct udpsrv_range memhdl("MEMORY", MEM_ADDR, sizeof(mem), memread, memwrite, memini);

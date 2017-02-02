@@ -109,24 +109,26 @@ union { uint16_t s; uint8_t c[2]; } u = { .s = 1 };
 
 struct udpsrv_range {
 	struct udpsrv_range *next;
-	uint64_t base;
-	uint64_t size;
-	int    (*read) (uint8_t *data, uint32_t nbytes, uint64_t off, int debug);
-	int    (*write)(uint8_t *data, uint32_t nbytes, uint64_t off, int debug);
+	uint64_t             base;
+	uint64_t             size;
+	const char          *name;
+	int    (*read) (struct udpsrv_range *self, uint8_t *data, uint32_t nbytes, uint64_t off, int debug);
+	int    (*write)(struct udpsrv_range *self, uint8_t *data, uint32_t nbytes, uint64_t off, int debug);
 #ifdef __cplusplus
 	udpsrv_range(
-		uint32_t base,
-		uint32_t size,
-		int    (*read)(uint8_t *data, uint32_t nbytes, uint64_t off, int debug),
-		int    (*write)(uint8_t *data, uint32_t nbytes, uint64_t off, int debug),
-		void   (*init)()
+		const char *name,
+		uint64_t    base,
+		uint64_t    size,
+		int       (*read)(struct udpsrv_range *self, uint8_t *data, uint32_t nbytes, uint64_t off, int debug),
+		int       (*write)(struct udpsrv_range *self, uint8_t *data, uint32_t nbytes, uint64_t off, int debug),
+		void      (*init)(struct udpsrv_range *self)
 	)
-	:next(udpsrv_ranges), base(base), size(size), read(read), write(write)
+	:next(udpsrv_ranges), base(base), size(size), name(name), read(read), write(write)
 	{
-printf("Registering range %x %x\n", base, size);
+printf("Registering range %"PRIx64" %"PRIx64"\n", base, size);
 		udpsrv_ranges = this;
 		if ( init )
-			init();
+			init( this );
 	}
 #endif
 };
@@ -142,6 +144,12 @@ extern "C" {
 	 * the head reserved for the packet header
 	 */
 	void streamSend(uint8_t *buf, int size, uint8_t tdest);
+
+	
+	void range_io_debug(struct udpsrv_range *r, int rd, uint64_t off, uint32_t nbytes);
+
+	int  register_io_range_1(const char *sysfs_name_and_off);
+	int  register_io_range  (const char *sysfs_name, uint64_t start_addr);
 
 #ifdef __cplusplus
 };

@@ -104,6 +104,12 @@ static void usage(const char *nm)
 #ifdef DEBUG
 	fprintf(stderr, "        -d          : enable debugging messages (may slow down)\n");
 #endif
+	fprintf(stderr, "        -t          : use TCP transport\n");
+	fprintf(stderr, "        -D <hwdev>  : attach to real hardware device; use packetized V3 channel; ignore\n");
+	fprintf(stderr, "                      ALL other settings (but -t and -s which sets the port).\n");
+	fprintf(stderr, "                      Devices are specified as:\n\n");
+	fprintf(stderr, "                        sysfs_path,base_addr\n\n");
+	fprintf(stderr, "                      e.g., /sys/class/uio/uio0,0x43c00000\n");
 	fprintf(stderr, "        -S <lddepth>: scramble packet order (arg is ld2(scrambler-depth))\n");
 	fprintf(stderr, "        -L <percent>: lose/drop <percent> packets\n");
 	fprintf(stderr, "        -T <port>   : run in TUTORIAL mode on <port>; use RSSI, SRPV3 and\n");
@@ -615,11 +621,11 @@ uint32_t status   =  0;
 					fprintf(stderr,"range base 0x%"PRIx64", size %"PRId64"\n", range->base, range->size);
 				} else {
 					if ( CMD_RD == cmd ) {
-						st = range->read( (uint8_t*)&rbuf[ooff], size, off - range->base, debug );
+						st = range->read( range, (uint8_t*)&rbuf[ooff], size, off - range->base, debug );
 						payload_swap( v1, &rbuf[ooff], (size + 3)/4 );
 					} else {
 						payload_swap( v1, &rbuf[ooff], (got-expected)/4 );
-						st = range->write( (uint8_t*)&rbuf[ooff], size, off - range->base, debug );
+						st = range->write( range, (uint8_t*)&rbuf[ooff], size, off - range->base, debug );
 					}
 #ifdef DEBUG
 					if (debug) {
@@ -794,6 +800,7 @@ int      use_tcp    = 0;
 int      i;
 sigset_t sigset;
 int      tut_port   = 0;
+int      nDevs      = 0;
 
 int      nprts, nstrms;
 
@@ -802,7 +809,7 @@ int      nprts, nstrms;
 
 	signal( SIGINT, sh );
 
-	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:r:R:tT:")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "dP:p:a:hs:f:S:L:r:R:tT:D:")) > 0 ) {
 		i_a = 0;
 		switch ( opt ) {
 			case 'h': usage(argv[0]);      return 0;
@@ -819,6 +826,14 @@ int      nprts, nstrms;
 			case 'R': i_a = &strmvars[STRM_RSSI].port;      break;
 			case 'T': i_a = &tut_port;                      break;
 			case 't': use_tcp = 1;                          break;
+
+			case 'D':
+				if ( register_io_range_1(optarg) ) {
+					goto bail;
+				}
+				nDevs++;
+				break;
+
 			default:
 				fprintf(stderr, "unknown option '%c'\n", opt);
 				usage(argv[0]);
@@ -838,6 +853,10 @@ int      nprts, nstrms;
 	}
 
 	nprts = 0;
+
+	if ( nDevs ) {
+		tut_port = strmvars[STRM_NORSSI].port;
+	}
 
 	if ( tut_port ) {
 		if ( tut_port < 0 || tut_port > 65535 ) {

@@ -75,7 +75,7 @@ static void reset()
 	resetEn = false;
 }
 
-static int readreg(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int readreg(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 	memset(data, 0, nbytes);
 
@@ -146,7 +146,7 @@ static int mcheck(bool is32, void (*proc)())
 	return -1;
 }
 
-static int writereg(uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
+static int writereg(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, int debug)
 {
 uint32_t msk = (modereg & MODE_32) ? 0xffffffff : 0x00ffffff;
 uint32_t ncmd;
@@ -242,4 +242,4 @@ fault:
 	return -1;
 }
 
-static struct udpsrv_range axiprom_range(AXI_SPI_EEPROM_ADDR, AXI_SPI_EEPROM_SIZE, readreg, writereg, 0);
+static struct udpsrv_range axiprom_range("AXI_PROM", AXI_SPI_EEPROM_ADDR, AXI_SPI_EEPROM_SIZE, readreg, writereg, 0);
