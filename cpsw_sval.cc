@@ -1235,7 +1235,7 @@ unsigned nelms, i;
 	}
 
 	if ( nelms > nelmsFromPath ) {
-		fprintf(stderr,"WARNING: loadMyConfigFromYaml -- excess elements in YAML Node; IGNORED\n");
+		fprintf(stderr,"WARNING: loadMyConfigFromYaml -- excess elements in YAML Node (%s); IGNORED\n", p->toString().c_str());
 		nelms = nelmsFromPath;
 	}
 
