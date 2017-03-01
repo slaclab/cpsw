@@ -61,7 +61,7 @@ public:
 
 	TmpBuf(size_t nelms)
 	: nelms_( nelms ),
-	  onStack_ ( nelms > STACK_BREAK ),
+	  onStack_ ( nelms < STACK_BREAK ),
 	  buff_( onStack_ ? static_cast<EL*>( alloca( sizeof(EL) * nelms_ ) ) : new EL[nelms_] )
 	{
 	}
