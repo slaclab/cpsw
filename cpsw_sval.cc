@@ -29,6 +29,13 @@ const int CIntEntryImpl::DFLT_CONFIG_PRIO_RW;
 class CStreamAdapt;
 typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
+/* Must make this a macro so that the on-stack array is within the user's
+ * stack frame!
+ */
+#define TMP_BUF_DECL(EL, name, nelms) \
+    EL         name##_stackBuf[TmpBuf<EL>::onStack(nelms)]; \
+    TmpBuf<EL> name( name##_stackBuf, nelms );
+
 template <typename EL> class TmpBuf {
 private:
     size_t     nelms_;
@@ -38,6 +45,12 @@ private:
 	static const size_t STACK_BREAK = 4096*10;
 
 public:
+
+	static size_t onStack(size_t nelms)
+	{
+		return nelms * sizeof(EL) < STACK_BREAK ? nelms : 0;
+	}
+
 	size_t getNelms() const
 	{
 		return nelms_;
@@ -59,18 +72,25 @@ public:
 			delete [] buff_;
 	}
 
-	TmpBuf(size_t nelms)
+	TmpBuf(EL *stackBuf, size_t nelms)
 	: nelms_( nelms ),
-	  onStack_ ( nelms < STACK_BREAK ),
-	  buff_( onStack_ ? static_cast<EL*>( alloca( sizeof(EL) * nelms_ ) ) : new EL[nelms_] )
+	  onStack_ ( !!onStack(nelms) ),
+	  buff_( onStack_ ? stackBuf : new EL[nelms_] )
 	{
 	}
 };
 
+/* Must make this a macro so that the on-stack array is within the user's
+ * stack frame!
+ */
+#define VALS_BUF_DECL(EL, VL, name, nelms) \
+    EL          name##_stackBuf[TmpBuf<EL>::onStack(nelms)]; \
+    Vals<EL,VL> name( name##_stackBuf, nelms );
+
 template <typename EL, typename VL> class Vals : public TmpBuf<EL> {
 public:
-	Vals(unsigned nelms)
-	: TmpBuf<EL>( nelms )
+	Vals(EL *stackBuf, unsigned nelms)
+	: TmpBuf<EL>( stackBuf, nelms )
 	{
 	}
 
@@ -683,7 +703,7 @@ unsigned         nelmsOnPath  = it.getNelmsLeft();
 	else
 		ibuf_nchars = 0;
 
-	TmpBuf<uint8_t> ibuf( ibuf_nchars );
+	TMP_BUF_DECL(uint8_t, ibuf, ibuf_nchars );
 
 	uint8_t *ibufp = ibuf_nchars ? ibuf.getBufp() : buf;
 	uint8_t *obufp = buf;
@@ -784,7 +804,7 @@ unsigned         nelmsOnPath  = it.getNelmsLeft();
 
 unsigned CScalVal_ROAdapt::getVal(CString *strs, unsigned nelms, IndexRange *range)
 {
-TmpBuf<uint64_t> buf(nelms);
+TMP_BUF_DECL(uint64_t, buf, nelms);
 unsigned         got,i;
 Enum             enm = getEnum();
 
@@ -818,14 +838,14 @@ unsigned rval;
 		if ( 64 == getSizeBits() ) {
 			rval = IIntEntryAdapt::getVal<double>( buf, nelms, range );
 		} else {
-			TmpBuf<float> tmpBuf( nelms );
+			TMP_BUF_DECL(float, tmpBuf, nelms );
 			rval = IIntEntryAdapt::getVal<float>( tmpBuf.getBufp(), nelms, range );
 			for ( unsigned i=0; i<nelms; i++ ) {
 				buf[i] = (double)tmpBuf[i];
 			}
 		}
 	} else {
-		TmpBuf<uint64_t> tmpBuf( nelms );
+		TMP_BUF_DECL(uint64_t, tmpBuf, nelms );
 		rval = IIntEntryAdapt::getVal<uint64_t>( tmpBuf.getBufp(), nelms, range );
 		int2dbl( buf, tmpBuf.getBufp(), nelms );
 	}
@@ -879,7 +899,7 @@ unsigned         nelmsOnPath = it.getNelmsLeft();
 
 	size_t  obuf_nchars = need_work ? dbytes * nelms : 0;
 
-	TmpBuf<uint8_t> obuf( obuf_nchars );
+	TMP_BUF_DECL(uint8_t, obuf, obuf_nchars );
 
 	uint8_t *ibufp = buf;
 	uint8_t *obufp = need_work ? obuf.getBufp() : buf;
@@ -987,7 +1007,7 @@ prib("byte-swapped", obufp + oidx);
 
 unsigned CScalVal_WOAdapt::setVal(const char* *strs, unsigned nelms, IndexRange *range)
 {
-TmpBuf<uint64_t> buf( nelms );
+TMP_BUF_DECL(uint64_t, buf, nelms );
 unsigned         i;
 Enum             enm = getEnum();
 
@@ -1012,7 +1032,7 @@ Enum             enm = getEnum();
 unsigned CScalVal_WOAdapt::setVal(const char *v, IndexRange *range)
 {
 unsigned nelms = nelmsFromIdx( range );
-Vals<const char*, const char *> vals(nelms);
+VALS_BUF_DECL( const char*, const char *, vals, nelms);
 	return vals.setVal(this, range, v);
 }
 
@@ -1026,14 +1046,14 @@ unsigned rval;
 		if ( 64 == getSizeBits() ) {
 			rval = IIntEntryAdapt::setVal<double>( buf, nelms, range );
 		} else {
-			TmpBuf<float> tmpBuf( nelms );
+			TMP_BUF_DECL(float, tmpBuf, nelms );
 			for ( unsigned i=0; i<nelms; i++ ) {
 				tmpBuf[i] = (float)buf[i];
 			}
 			rval = IIntEntryAdapt::setVal<float>( tmpBuf.getBufp(), nelms, range );
 		}
 	} else {
-		TmpBuf<uint64_t> tmpBuf( nelms );
+		TMP_BUF_DECL(uint64_t, tmpBuf, nelms );
 		dbl2int( tmpBuf.getBufp(), buf, nelms );
 		rval = IIntEntryAdapt::setVal<uint64_t>( tmpBuf.getBufp(), nelms, range );
 	}
@@ -1043,7 +1063,7 @@ unsigned rval;
 
 unsigned CDoubleVal_WOAdapt::setVal(double v, IndexRange *range)
 {
-TmpBuf<uint64_t> buf( nelmsFromIdx( range ) );
+TMP_BUF_DECL(uint64_t, buf, nelmsFromIdx( range ) );
 uint64_t         lu;
 
 	dbl2dbl( &v, 1 );
@@ -1073,16 +1093,16 @@ unsigned nelms = nelmsFromIdx(r);
 
 	// since writes may be collapsed at a lower layer we simply build an array here
 	if ( getSize() <= sizeof(uint8_t) ) {
-		Vals<uint8_t, uint64_t> vals( nelms );
+		VALS_BUF_DECL( uint8_t, uint64_t, vals, nelms );
 		return vals.setVal( this, r, v );
 	} else if ( getSize() <= sizeof(uint16_t) ) {
-		Vals<uint16_t, uint64_t> vals( nelms );
+		VALS_BUF_DECL( uint16_t, uint64_t, vals, nelms );
 		return vals.setVal( this, r, v );
 	} else if ( getSize() <= sizeof(uint32_t) ) {
-		Vals<uint32_t, uint64_t> vals( nelms );
+		VALS_BUF_DECL( uint32_t, uint64_t, vals, nelms );
 		return vals.setVal( this, r, v );
 	} else {
-		Vals<uint64_t, uint64_t> vals( nelms );
+		VALS_BUF_DECL( uint64_t, uint64_t, vals, nelms );
 		return vals.setVal( this, r, v );
 	}
 }
@@ -1104,7 +1124,7 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p, YAML::Node &node) const
 			return 0;
 		}
 
-		TmpBuf<VU>   valBuf( nelms );
+		TMP_BUF_DECL(VU,   valBuf, nelms );
 
 		unsigned     got;
 		unsigned     i;
@@ -1241,7 +1261,7 @@ unsigned nelms, i;
 		}
 		nelms = nelmsFromPath;
 	} else {
-		TmpBuf<VU> valBuf( nelms );
+		TMP_BUF_DECL(VU, valBuf, nelms );
 		if ( isFloat ) {
 			for ( i=0; i<nelms; i++ ) {
 				valBuf[i].d = n[i].as<double>();
