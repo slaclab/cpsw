@@ -184,7 +184,7 @@ public:
 		return tid_;
 	}
 
-	virtual void complete(BufChain) = 0;
+	virtual void complete(BufChain, uint8_t *payload) = 0;
 
 	virtual ~SRPTransaction()
 	{
@@ -222,7 +222,7 @@ public:
 	void
 	reset(const CSRPAddressImpl *srpAddr, int nWords, int expected);
 
-	virtual void complete(BufChain);
+	virtual void complete(BufChain, uint8_t *payload);
 
 };
 
@@ -234,9 +234,7 @@ private:
     unsigned        headBytes_;
 	int             xbufWords_;
 	int             expected_;
-#ifdef SRPADDR_DEBUG
 	unsigned        hdrWords_;
-#endif
 	SRPWord         xbuf_[5];
 
 
@@ -279,7 +277,7 @@ public:
 	post(ProtoDoor);
 
     virtual void
-	complete(BufChain);
+	complete(BufChain rchn, uint8_t *payload);
 };
 
 SRPTransaction::SRPTransaction(
@@ -361,7 +359,6 @@ SRPReadTransaction::resetMe(
 )
 {
 int	     nWords;
-unsigned hdrWords;
 
 	dst_      = dst;
 	off_      = off;
@@ -384,7 +381,7 @@ unsigned hdrWords;
 		xbuf_[xbufWords_++] = nWords   - 1;
 		xbuf_[xbufWords_++] = 0;
 		expected_          += 3;
-		hdrWords            = 2;
+		hdrWords_           = 2;
 	} else {
 		xbuf_[xbufWords_++] = CMD_READ_V3 | PROTO_VERS_3;
 		xbuf_[xbufWords_++] = getTid();
@@ -392,7 +389,7 @@ unsigned hdrWords;
 		xbuf_[xbufWords_++] = off_ >> 32;
 		xbuf_[xbufWords_++] = ( srpAddr->getByteResolution() ? getTotbytes() : (nWords << 2) ) - 1;
 		expected_          += 6;
-		hdrWords            = 5;
+		hdrWords_           = 5;
 	}
 
 	// V2,V3 uses LE, V1 network (aka BE) layout
@@ -407,35 +404,19 @@ unsigned hdrWords;
 		iov_[iovLen_].iov_len  = sizeof( v1Header_ );
 		iovLen_++;
 	}
-	iov_[iovLen_].iov_base = rHdrBuf_;
-	iov_[iovLen_].iov_len  = hdrWords  * sizeof(SRPWord) + headBytes_;
-	iovLen_++;
-
-	iov_[iovLen_].iov_base = dst_;
-	iov_[iovLen_].iov_len  = sbytes_;
-	iovLen_++;
 
 	if ( getTotbytes() & (sizeof(SRPWord)-1) ) {
 		tailBytes_      = sizeof(SRPWord) - (getTotbytes() & (sizeof(SRPWord)-1));
-		// padding if not word-aligned
-		iov_[iovLen_].iov_base = rTailBuf_;
-		iov_[iovLen_].iov_len  = tailBytes_;
-		iovLen_++;
 	}
 
-	iov_[iovLen_].iov_base = &srpStatus_;
-	iov_[iovLen_].iov_len  = sizeof(srpStatus_);
-	iovLen_++;
-#ifdef SRPADDR_DEBUG
-	hdrWords_ = hdrWords;
-#endif
 }
 
 void
-SRPWriteTransaction::complete(BufChain rchn)
+SRPWriteTransaction::complete(BufChain rchn, uint8_t *payload)
 {
 int     got = rchn->getSize();
 SRPWord status;
+
 
 	if ( got != (int)sizeof(SRPWord)*(nWords_ + expected_) ) {
 		if ( got < (int)sizeof(SRPWord)*expected_ ) {
@@ -495,13 +476,39 @@ unsigned tidOff = getProtoVersion() == IProtoStackBuilder::SRP_UDP_V2 ? 0 : 4;
 }
 
 void
-SRPReadTransaction::complete(BufChain rchn)
+SRPReadTransaction::complete(BufChain rchn, uint8_t *dst)
 {
 int	     got = rchn->getSize();
 unsigned bufoff;
 unsigned i;
 int      j;
 int	     nWords   = getNWords();
+
+	if ( ! dst_ && ! dst && sbytes_ ) {
+		throw InvalidArgError("SRPReadTransaction has no destination address");
+	}
+
+	if ( dst )
+		dst_ = dst;
+
+	iov_[iovLen_].iov_base = rHdrBuf_;
+	iov_[iovLen_].iov_len  = hdrWords_ * sizeof(SRPWord) + headBytes_;
+	iovLen_++;
+
+	iov_[iovLen_].iov_base = dst_;
+	iov_[iovLen_].iov_len  = sbytes_;
+	iovLen_++;
+
+	if ( tailBytes_ ) {
+		// padding if not word-aligned
+		iov_[iovLen_].iov_base = rTailBuf_;
+		iov_[iovLen_].iov_len  = tailBytes_;
+		iovLen_++;
+	}
+
+	iov_[iovLen_].iov_base = &srpStatus_;
+	iov_[iovLen_].iov_len  = sizeof(srpStatus_);
+	iovLen_++;
 
 	for ( bufoff=0, i=0; i<iovLen_; i++ ) {
 		rchn->extract(iov_[i].iov_base, bufoff, iov_[i].iov_len);
@@ -640,7 +647,7 @@ struct timespec retry_then;
 		if ( useDynTimeout_ )
 			dynTimeout_.update( &now, &then );
 
-		xact.complete( rchn );
+		xact.complete( rchn, 0 );
 
 		return sbytes;
 
@@ -967,7 +974,7 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 		if ( useDynTimeout_ )
 			dynTimeout_.update( &now, &then );
 
-		xact.complete( rchn );
+		xact.complete( rchn, 0 );
 
 		return dbytes;
 retry:
