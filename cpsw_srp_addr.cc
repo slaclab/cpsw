@@ -165,15 +165,56 @@ typedef struct srp_iovec {
 
 class SRPTransaction {
 private:
+	const uint32_t  tid_;
+protected:
+	const bool      doSwapV1_; // V1 sends payload in network byte order. We want to transform to restore
+	                           // the standard AXI layout which is little-endian
+
+	const bool      doSwap_;   // header info needs to be swapped to host byte order since we interpret it
+
+public:
+	SRPTransaction(
+		const CSRPAddressImpl *srpAddr
+	);
+
+	virtual uint32_t getTid() const 
+	{
+		return tid_;
+	}
+
+	virtual void complete(BufChain) = 0;
+
+	virtual ~SRPTransaction()
+	{
+	}
+};
+
+class SRPWriteTransaction : public SRPTransaction {
+private:
+	int             nWords_;
+	int             expected_;
+public:
+	SRPWriteTransaction(
+		const CSRPAddressImpl *srpAddr,
+		int   nWords,
+		int   expected
+	)
+	: SRPTransaction( srpAddr ),
+	  nWords_( nWords ),
+	  expected_( expected )
+	{
+	}
+
+	virtual void complete(BufChain);
+
+};
+
+class SRPReadTransaction : public SRPTransaction {
+private:
 	uint8_t        *dst_;
     uint64_t        off_;
     const unsigned  sbytes_;
     const unsigned  headBytes_;
-	bool            doSwapV1_; // V1 sends payload in network byte order. We want to transform to restore
-	                           // the standard AXI layout which is little-endian
-
-	bool            doSwap_;   // header info needs to be swapped to host byte order since we interpret it
-    const uint32_t  tid_;
 	int             xbufWords_;
 	int             expected_;
 #ifdef SRPADDR_DEBUG
@@ -191,7 +232,7 @@ private:
 	unsigned        tailBytes_;
 
 public:
-	SRPTransaction(
+	SRPReadTransaction(
 		const CSRPAddressImpl *srpAddr,
 		uint8_t               *dst,
 		uint64_t               off,
@@ -210,32 +251,33 @@ public:
 		return (getTotbytes() + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 	}
 
-	uint32_t
-	getTid() const
-	{
-		return tid_;
-	}
-
-    void
+    virtual void
 	post(ProtoDoor);
 
-    void
+    virtual void
 	complete(BufChain);
 };
 
 SRPTransaction::SRPTransaction(
+	const CSRPAddressImpl *srpAddr
+)
+ : tid_      ( srpAddr->getTid() ),
+   doSwapV1_ ( srpAddr->needsPayloadSwap() ),
+   doSwap_   ( srpAddr->needsHdrSwap()     )
+{
+}
+
+SRPReadTransaction::SRPReadTransaction(
 	const CSRPAddressImpl *srpAddr,
 	uint8_t               *dst,
 	uint64_t               off,
 	unsigned               sbytes
 )
- : dst_      ( dst    ),
+ : SRPTransaction( srpAddr ),
+   dst_      ( dst    ),
    off_      ( off    ),
    sbytes_   ( sbytes ),
    headBytes_( srpAddr->getByteResolution() ? 0 : (off_ & (sizeof(SRPWord)-1)) ),
-   doSwapV1_ ( srpAddr->needsPayloadSwap() ),
-   doSwap_   ( srpAddr->needsHdrSwap()     ),
-   tid_      ( srpAddr->getTid() ),
    xbufWords_( 0      ),
    expected_ ( 0      ),
    iovLen_   ( 0      ),
@@ -303,7 +345,44 @@ unsigned hdrWords;
 }
 
 void
-SRPTransaction::post(ProtoDoor door)
+SRPWriteTransaction::complete(BufChain rchn)
+{
+int     got = rchn->getSize();
+SRPWord status;
+
+	if ( got != (int)sizeof(SRPWord)*(nWords_ + expected_) ) {
+		if ( got < (int)sizeof(SRPWord)*expected_ ) {
+			printf("got %i, nw %i, exp %i\n", got, nWords_, expected_);
+			throw IOError("Received message (write response) truncated");
+		} else {
+			rchn->extract( &status, got - sizeof(status), sizeof(status) );
+			if ( doSwap_ )
+				swp32( &status );
+			throw BadStatusError("SRP Write terminated with bad status", status);
+		}
+	}
+
+/* We don't really care about the V1 header word; if we did then this is
+ * how it could be extracted
+	if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
+		rchn->extract( &header, 0, sizeof(header) );
+		if ( LE == hostByteOrder() ) {
+			swp32( &header );
+		}
+	} else {
+		header = 0;
+	}
+*/
+	rchn->extract( &status, got - sizeof(SRPWord), sizeof(SRPWord) );
+	if ( doSwap_ ) {
+		swp32( &status );
+	}
+	if ( status )
+		throw BadStatusError("writing SRP", status);
+}
+
+void
+SRPReadTransaction::post(ProtoDoor door)
 {
 BufChain xchn = IBufChain::create();
 
@@ -325,11 +404,11 @@ unsigned tidOff = getProtoVersion() == IProtoStackBuilder::SRP_UDP_V2 ? 0 : 4;
 	if ( needsHdrSwap() ) {
 		swp32( &msgTid );
 	}
-	return msgTid;
+	return toTid( msgTid );
 }
 
 void
-SRPTransaction::complete(BufChain rchn)
+SRPReadTransaction::complete(BufChain rchn)
 {
 int	     got = rchn->getSize();
 unsigned bufoff;
@@ -437,7 +516,7 @@ struct timespec retry_then;
 	if ( sbytes == 0 )
 		return 0;
 
-	SRPTransaction xact( this, dst, off, sbytes );
+	SRPReadTransaction xact( this, dst, off, sbytes );
 
 	unsigned attempt = 0;
 
@@ -567,8 +646,6 @@ int      j;
 uint64_t CSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
 SRPWord  xbuf[5];
-SRPWord  status;
-SRPWord  header;
 SRPWord  zero = 0;
 SRPWord  pad  = 0;
 uint8_t  first_word[sizeof(SRPWord)];
@@ -578,7 +655,6 @@ unsigned i;
 unsigned headbytes       = ( byteResolution_ ? 0 : (off & (sizeof(SRPWord)-1)) );
 unsigned totbytes;
 IOVec    iov[5];
-int      got;
 int      nWords;
 uint32_t tid;
 int      iov_pld = -1;
@@ -586,7 +662,6 @@ int      iov_pld = -1;
 struct timespec retry_then;
 #endif
 int      expected;
-int      tidoff;
 int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initialized use
 
 	if ( dbytes == 0 )
@@ -701,11 +776,9 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 
 	if ( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 ) {
 		expected    = 3;
-		tidoff      = 0;
 		if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
 			xbuf[put++] = vc_ << 24;
 			expected++;
-			tidoff  = 4;
 		}
 		xbuf[put++] = tid;
 		xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
@@ -716,7 +789,6 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 		xbuf[put++] = off >> 32;
 		xbuf[put++] = ( byteResolution_ ? totbytes : nWords << 2 ) - 1;
 		expected    = 6;
-		tidoff      = 4;
 	}
 
 	if ( doSwap ) {
@@ -775,11 +847,11 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 	}
 
 	unsigned attempt = 0;
-	uint32_t got_tid;
 	unsigned iovlen  = i;
 
-	do {
+	SRPWriteTransaction xact( this, nWords, expected );
 
+	do {
 		BufChain xchn = assembleXBuf(iov, iovlen, iov_pld, toput);
 
 		BufChain rchn;
@@ -803,44 +875,13 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 				throw IOError("clock_gettime(now) failed", errno);
 			}
 
-			got = rchn->getSize();
-
-			rchn->extract( &got_tid, tidoff, sizeof(SRPWord) );
-			if ( doSwap ) {
-				swp32( &got_tid );
-			}
-
-		} while ( tid != (got_tid & tidMsk_) );
+		} while ( ! tidMatch( extractTid( rchn ), tid ) );
 
 		if ( useDynTimeout_ )
 			dynTimeout_.update( &now, &then );
 
-		if ( got != (int)sizeof(SRPWord)*(nWords + expected) ) {
-			if ( got < (int)sizeof(SRPWord)*expected ) {
-				printf("got %i, nw %i, exp %i\n", got, nWords, expected);
-				throw IOError("Received message (write response) truncated");
-			} else {
-				rchn->extract( &status, got - sizeof(status), sizeof(status) );
-				if ( doSwap )
-					swp32( &status );
-				throw BadStatusError("SRP Write terminated with bad status", status);
-			}
-		}
+		xact.complete( rchn );
 
-		if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
-			rchn->extract( &header, 0, sizeof(header) );
-			if ( LE == hostByteOrder() ) {
-				swp32( &header );
-			}
-		} else {
-			header = 0;
-		}
-		rchn->extract( &status, got - sizeof(SRPWord), sizeof(SRPWord) );
-		if ( doSwap ) {
-			swp32( &status );
-		}
-		if ( status )
-			throw BadStatusError("writing SRP", status);
 		return dbytes;
 retry:
 		if ( useDynTimeout_ )
