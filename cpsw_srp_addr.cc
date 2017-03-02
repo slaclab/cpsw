@@ -165,17 +165,19 @@ typedef struct srp_iovec {
 
 class SRPTransaction {
 private:
-	const uint32_t  tid_;
-protected:
-	const bool      doSwapV1_; // V1 sends payload in network byte order. We want to transform to restore
+	uint32_t  tid_;
+	bool      doSwapV1_; // V1 sends payload in network byte order. We want to transform to restore
 	                           // the standard AXI layout which is little-endian
 
-	const bool      doSwap_;   // header info needs to be swapped to host byte order since we interpret it
+	bool      doSwap_;   // header info needs to be swapped to host byte order since we interpret it
 
 public:
 	SRPTransaction(
 		const CSRPAddressImpl *srpAddr
 	);
+
+	void
+	reset(const CSRPAddressImpl *srpAddr);
 
 	virtual uint32_t getTid() const 
 	{
@@ -187,23 +189,38 @@ public:
 	virtual ~SRPTransaction()
 	{
 	}
+
+	virtual bool
+	needsHdrSwap() const
+	{
+		return doSwap_;
+	}
+
+	virtual bool
+	needsPayloadSwap() const
+	{
+		return doSwapV1_;
+	}
 };
 
 class SRPWriteTransaction : public SRPTransaction {
 private:
-	int             nWords_;
-	int             expected_;
+	int        nWords_;
+	int        expected_;
+
+protected:
+	void
+	resetMe(const CSRPAddressImpl *srpAddr, int nWords, int expected);
+
 public:
 	SRPWriteTransaction(
 		const CSRPAddressImpl *srpAddr,
 		int   nWords,
 		int   expected
-	)
-	: SRPTransaction( srpAddr ),
-	  nWords_( nWords ),
-	  expected_( expected )
-	{
-	}
+	);
+
+	void
+	reset(const CSRPAddressImpl *srpAddr, int nWords, int expected);
 
 	virtual void complete(BufChain);
 
@@ -213,8 +230,8 @@ class SRPReadTransaction : public SRPTransaction {
 private:
 	uint8_t        *dst_;
     uint64_t        off_;
-    const unsigned  sbytes_;
-    const unsigned  headBytes_;
+    unsigned        sbytes_;
+    unsigned        headBytes_;
 	int             xbufWords_;
 	int             expected_;
 #ifdef SRPADDR_DEBUG
@@ -231,6 +248,10 @@ private:
 	uint8_t         rTailBuf_[sizeof(SRPWord)];
 	unsigned        tailBytes_;
 
+protected:
+	void
+	resetMe(const CSRPAddressImpl *srpAddr, uint8_t *dst, uint64_t off, unsigned sbytes);
+
 public:
 	SRPReadTransaction(
 		const CSRPAddressImpl *srpAddr,
@@ -238,6 +259,9 @@ public:
 		uint64_t               off,
 		unsigned               sbytes
 	);
+
+	void
+	reset(const CSRPAddressImpl *srpAddr, uint8_t *dst, uint64_t off, unsigned sbytes);
 
 	int
 	getTotbytes() const
@@ -261,10 +285,49 @@ public:
 SRPTransaction::SRPTransaction(
 	const CSRPAddressImpl *srpAddr
 )
- : tid_      ( srpAddr->getTid() ),
-   doSwapV1_ ( srpAddr->needsPayloadSwap() ),
-   doSwap_   ( srpAddr->needsHdrSwap()     )
 {
+	reset(srpAddr);
+}
+
+void
+SRPTransaction::reset(
+	const CSRPAddressImpl *srpAddr
+)
+{
+	tid_      = srpAddr->getTid();
+	doSwapV1_ = srpAddr->needsPayloadSwap();
+	doSwap_   = srpAddr->needsHdrSwap();
+}
+
+SRPWriteTransaction::SRPWriteTransaction(
+	const CSRPAddressImpl *srpAddr,
+	int                    nWords,
+	int                    expected
+) : SRPTransaction( srpAddr )
+{
+	resetMe( srpAddr, nWords, expected );
+}
+
+void
+SRPWriteTransaction::resetMe(
+	const CSRPAddressImpl *srpAddr,
+	int                    nWords,
+	int                    expected
+)
+{
+	nWords_   = nWords;
+	expected_ = expected;
+}
+
+void
+SRPWriteTransaction::reset(
+	const CSRPAddressImpl *srpAddr,
+	int                    nWords,
+	int                    expected
+)
+{
+	SRPTransaction::reset( srpAddr );
+	resetMe( srpAddr, nWords, expected );
 }
 
 SRPReadTransaction::SRPReadTransaction(
@@ -272,20 +335,44 @@ SRPReadTransaction::SRPReadTransaction(
 	uint8_t               *dst,
 	uint64_t               off,
 	unsigned               sbytes
-)
- : SRPTransaction( srpAddr ),
-   dst_      ( dst    ),
-   off_      ( off    ),
-   sbytes_   ( sbytes ),
-   headBytes_( srpAddr->getByteResolution() ? 0 : (off_ & (sizeof(SRPWord)-1)) ),
-   xbufWords_( 0      ),
-   expected_ ( 0      ),
-   iovLen_   ( 0      ),
-   tailBytes_( 0      )
+) : SRPTransaction( srpAddr )
 {
+	resetMe( srpAddr, dst, off, sbytes );
+}
 
-int	     nWords   = getNWords();
+void
+SRPReadTransaction::reset(
+	const CSRPAddressImpl *srpAddr,
+	uint8_t               *dst,
+	uint64_t               off,
+	unsigned               sbytes
+)
+{
+	SRPTransaction::reset( srpAddr );
+	resetMe( srpAddr, dst, off, sbytes );
+}
+
+void
+SRPReadTransaction::resetMe(
+	const CSRPAddressImpl *srpAddr,
+	uint8_t               *dst,
+	uint64_t               off,
+	unsigned               sbytes
+)
+{
+int	     nWords;
 unsigned hdrWords;
+
+	dst_      = dst;
+	off_      = off;
+	sbytes_   = sbytes;
+	headBytes_= srpAddr->getByteResolution() ? 0 : (off_ & (sizeof(SRPWord)-1));
+	xbufWords_= 0;
+	expected_ = 0;
+	iovLen_   = 0;
+	tailBytes_= 0;
+
+	nWords = getNWords();
 
 	if ( srpAddr->getProtoVersion() == IProtoStackBuilder::SRP_UDP_V1 ) {
 		xbuf_[xbufWords_++] = srpAddr->getVC() << 24;
@@ -309,7 +396,7 @@ unsigned hdrWords;
 	}
 
 	// V2,V3 uses LE, V1 network (aka BE) layout
-	if ( doSwap_ ) {
+	if ( needsHdrSwap() ) {
 		for ( int j=0; j<xbufWords_; j++ ) {
 			swp32( &xbuf_[j] );
 		}
@@ -356,7 +443,7 @@ SRPWord status;
 			throw IOError("Received message (write response) truncated");
 		} else {
 			rchn->extract( &status, got - sizeof(status), sizeof(status) );
-			if ( doSwap_ )
+			if ( needsHdrSwap() )
 				swp32( &status );
 			throw BadStatusError("SRP Write terminated with bad status", status);
 		}
@@ -374,7 +461,7 @@ SRPWord status;
 	}
 */
 	rchn->extract( &status, got - sizeof(SRPWord), sizeof(SRPWord) );
-	if ( doSwap_ ) {
+	if ( needsHdrSwap() ) {
 		swp32( &status );
 	}
 	if ( status )
@@ -445,13 +532,13 @@ int	     nWords   = getNWords();
 			throw IOError("Received message (read response) truncated");
 		} else {
 			rchn->extract( &srpStatus_, got - sizeof(srpStatus_), sizeof(srpStatus_) );
-			if ( doSwap_ )
+			if ( needsHdrSwap() )
 				swp32( &srpStatus_ );
 			throw BadStatusError("SRP Read terminated with bad status", srpStatus_);
 		}
 	}
 
-	if ( doSwapV1_ ) {
+	if ( needsPayloadSwap() ) {
 		// switch payload back to LE
 		uint8_t  tmp[sizeof(SRPWord)];
 		unsigned hoff = 0;
@@ -494,7 +581,7 @@ int	     nWords   = getNWords();
 		for ( i=0; i< sbytes_; i++ ) printf("swapped dst[%i]: %x\n", i, dst_[i]);
 #endif
 	}
-	if ( doSwap_ ) {
+	if ( needsHdrSwap() ) {
 		swp32( &srpStatus_ );
 		swp32( &v1Header_  );
 	}
