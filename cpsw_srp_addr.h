@@ -61,7 +61,8 @@ private:
 	mutable unsigned nWrites_;
 	mutable unsigned nReads_;
 	uint8_t          vc_;
-	bool             needSwap_;
+	bool             needsSwap_;
+	bool             needsPldSwap_;
 	mutable uint32_t tid_;
 	uint32_t         tidMsk_;
 	uint32_t         tidLsb_;
@@ -95,13 +96,19 @@ public:
 	virtual CSRPAddressImpl *clone(AKey k) { return new CSRPAddressImpl( *this, k ); }
 	virtual void     setTimeoutUs(unsigned timeoutUs);
 	virtual void     setRetryCount(unsigned retryCnt);
-	virtual unsigned getTimeoutUs()                      const { return usrTimeout_.getUs(); }
-	virtual unsigned getDynTimeoutUs()                   const { return dynTimeout_.get().getUs(); }
-	virtual unsigned getRetryCount()                     const { return retryCnt_;  }
-	virtual INetIODev::ProtocolVersion getProtoVersion() const { return protoVersion_; }
-	virtual uint8_t  getVC()                             const { return vc_; }
-	virtual uint32_t getTid()                            const { return tid_ = (tid_ + tidLsb_) & tidMsk_; }
-	virtual void dumpYamlPart(YAML::Node &) const;
+	virtual unsigned getTimeoutUs()                      const { return usrTimeout_.getUs();               }
+	virtual unsigned getDynTimeoutUs()                   const { return dynTimeout_.get().getUs();         }
+	virtual unsigned getRetryCount()                     const { return retryCnt_;                         }
+	virtual INetIODev::ProtocolVersion getProtoVersion() const { return protoVersion_;                     }
+	virtual bool     getByteResolution()                 const { return byteResolution_;                   }
+	virtual uint8_t  getVC()                             const { return vc_;                               }
+	virtual uint32_t toTid(uint32_t bits)                const { return bits & tidMsk_;                    }
+	virtual uint32_t getTid()                            const { return toTid( tid_ = (tid_ + tidLsb_) );  }
+	virtual bool     tidMatch(uint32_t a, uint32_t b)    const { return ! ((a ^ b) & tidMsk_);             }
+	virtual bool     needsHdrSwap()                      const { return needsSwap_;                        }
+	virtual bool     needsPayloadSwap()                  const { return needsPldSwap_;                     }
+	virtual void     dumpYamlPart(YAML::Node &) const;
+	virtual uint32_t extractTid(BufChain msg) const;
 };
 
 #endif

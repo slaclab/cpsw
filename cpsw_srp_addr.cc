@@ -57,6 +57,8 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort sta
  nWrites_(0),
  nReads_(0),
  vc_(bldr->getSRPMuxVirtualChannel()),
+ needsSwap_   ( (protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ? LE : BE) == hostByteOrder() ),
+ needsPldSwap_(  protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ),
  tid_(0),
  byteResolution_( bldr->getSRPVersion() >= IProtoStackBuilder::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
  maxWordsRx_( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 || !hasDepack( stack) ? MAXWORDS : (1<<28) ),
@@ -161,120 +163,297 @@ typedef struct srp_iovec {
 	size_t iov_len;
 } IOVec;
 
+class SRPTransaction {
+private:
+	uint8_t        *dst_;
+    uint64_t        off_;
+    const unsigned  sbytes_;
+    const unsigned  headBytes_;
+	bool            doSwapV1_; // V1 sends payload in network byte order. We want to transform to restore
+	                           // the standard AXI layout which is little-endian
+
+	bool            doSwap_;   // header info needs to be swapped to host byte order since we interpret it
+    const uint32_t  tid_;
+	int             xbufWords_;
+	int             expected_;
+#ifdef SRPADDR_DEBUG
+	unsigned        hdrWords_;
+#endif
+	SRPWord         xbuf_[5];
+
+
+    SRPWord         v1Header_;
+    SRPWord         srpStatus_;
+	IOVec           iov_[5];
+	unsigned        iovLen_;
+	SRPWord         rHdrBuf_[5];
+	uint8_t         rTailBuf_[sizeof(SRPWord)];
+	unsigned        tailBytes_;
+
+public:
+	SRPTransaction(
+		const CSRPAddressImpl *srpAddr,
+		uint8_t               *dst,
+		uint64_t               off,
+		unsigned               sbytes
+	);
+
+	int
+	getTotbytes() const
+	{
+		return headBytes_ + sbytes_;
+	}
+
+	int
+	getNWords()   const
+	{
+		return (getTotbytes() + sizeof(SRPWord) - 1)/sizeof(SRPWord);
+	}
+
+	uint32_t
+	getTid() const
+	{
+		return tid_;
+	}
+
+    void
+	post(ProtoDoor);
+
+    void
+	complete(BufChain);
+};
+
+SRPTransaction::SRPTransaction(
+	const CSRPAddressImpl *srpAddr,
+	uint8_t               *dst,
+	uint64_t               off,
+	unsigned               sbytes
+)
+ : dst_      ( dst    ),
+   off_      ( off    ),
+   sbytes_   ( sbytes ),
+   headBytes_( srpAddr->getByteResolution() ? 0 : (off_ & (sizeof(SRPWord)-1)) ),
+   doSwapV1_ ( srpAddr->needsPayloadSwap() ),
+   doSwap_   ( srpAddr->needsHdrSwap()     ),
+   tid_      ( srpAddr->getTid() ),
+   xbufWords_( 0      ),
+   expected_ ( 0      ),
+   iovLen_   ( 0      ),
+   tailBytes_( 0      )
+{
+
+int	     nWords   = getNWords();
+unsigned hdrWords;
+
+	if ( srpAddr->getProtoVersion() == IProtoStackBuilder::SRP_UDP_V1 ) {
+		xbuf_[xbufWords_++] = srpAddr->getVC() << 24;
+		expected_ += 1;
+	}
+	if ( srpAddr->getProtoVersion() < IProtoStackBuilder::SRP_UDP_V3 ) {
+		xbuf_[xbufWords_++] = getTid();
+		xbuf_[xbufWords_++] = (off_ >> 2) & 0x3fffffff;
+		xbuf_[xbufWords_++] = nWords   - 1;
+		xbuf_[xbufWords_++] = 0;
+		expected_          += 3;
+		hdrWords            = 2;
+	} else {
+		xbuf_[xbufWords_++] = CMD_READ_V3 | PROTO_VERS_3;
+		xbuf_[xbufWords_++] = getTid();
+		xbuf_[xbufWords_++] =   srpAddr->getByteResolution() ? off_          : (off_ & ~3ULL);
+		xbuf_[xbufWords_++] = off_ >> 32;
+		xbuf_[xbufWords_++] = ( srpAddr->getByteResolution() ? getTotbytes() : (nWords << 2) ) - 1;
+		expected_          += 6;
+		hdrWords            = 5;
+	}
+
+	// V2,V3 uses LE, V1 network (aka BE) layout
+	if ( doSwap_ ) {
+		for ( int j=0; j<xbufWords_; j++ ) {
+			swp32( &xbuf_[j] );
+		}
+	}
+
+	if ( srpAddr->getProtoVersion() == IProtoStackBuilder::SRP_UDP_V1 ) {
+		iov_[iovLen_].iov_base = &v1Header_;
+		iov_[iovLen_].iov_len  = sizeof( v1Header_ );
+		iovLen_++;
+	}
+	iov_[iovLen_].iov_base = rHdrBuf_;
+	iov_[iovLen_].iov_len  = hdrWords  * sizeof(SRPWord) + headBytes_;
+	iovLen_++;
+
+	iov_[iovLen_].iov_base = dst_;
+	iov_[iovLen_].iov_len  = sbytes_;
+	iovLen_++;
+
+	if ( getTotbytes() & (sizeof(SRPWord)-1) ) {
+		tailBytes_      = sizeof(SRPWord) - (getTotbytes() & (sizeof(SRPWord)-1));
+		// padding if not word-aligned
+		iov_[iovLen_].iov_base = rTailBuf_;
+		iov_[iovLen_].iov_len  = tailBytes_;
+		iovLen_++;
+	}
+
+	iov_[iovLen_].iov_base = &srpStatus_;
+	iov_[iovLen_].iov_len  = sizeof(srpStatus_);
+	iovLen_++;
+#ifdef SRPADDR_DEBUG
+	hdrWords_ = hdrWords;
+#endif
+}
+
+void
+SRPTransaction::post(ProtoDoor door)
+{
+BufChain xchn = IBufChain::create();
+
+	xchn->insert( xbuf_, 0, sizeof(xbuf_[0])*xbufWords_ );
+
+	door->push( xchn, 0, IProtoPort::REL_TIMEOUT );
+}
+
+uint32_t
+CSRPAddressImpl::extractTid(BufChain rchn) const
+{
+uint32_t msgTid;
+
+unsigned tidOff = getProtoVersion() == IProtoStackBuilder::SRP_UDP_V2 ? 0 : 4;
+
+	if ( 0 == rchn->extract( &msgTid, tidOff, sizeof(msgTid) ) ) {
+		throw InternalError("No TID found in SRP message\n");
+	}
+	if ( needsHdrSwap() ) {
+		swp32( &msgTid );
+	}
+	return msgTid;
+}
+
+void
+SRPTransaction::complete(BufChain rchn)
+{
+int	     got = rchn->getSize();
+unsigned bufoff;
+unsigned i;
+int      j;
+int	     nWords   = getNWords();
+
+	for ( bufoff=0, i=0; i<iovLen_; i++ ) {
+		rchn->extract(iov_[i].iov_base, bufoff, iov_[i].iov_len);
+		bufoff += iov_[i].iov_len;
+	}
+
+#ifdef SRPADDR_DEBUG
+	printf("got %i bytes, off 0x%"PRIx64", sbytes %i, nWords %i\n", got, off_, sbytes_, nWords );
+	printf("got %i bytes\n", got);
+	for (i=0; i<hdrWords_; i++ )
+		printf("header[%i]: %x\n", i, rHdrBuf_[i]);
+	for ( i=0; i<headBytes_; i++ ) {
+		printf("headbyte[%i]: %x\n", i, ((uint8_t*)&rHdrBuf_[hdrWords_])[i]);
+	}
+
+	for ( i=0; (unsigned)i<sbytes_; i++ ) {
+		printf("chr[%i]: %x %c\n", i, dst_[i], dst_[i]);
+	}
+
+	for ( i=0; i < tailBytes_; i++ ) {
+		printf("tailbyte[%i]: %x\n", i, rTailBuf_[i]);
+	}
+#endif
+
+	if ( got != (int)sizeof(rHdrBuf_[0])*(nWords + expected_) ) {
+		if ( got < (int)sizeof(rHdrBuf_[0])*expected_ ) {
+			printf("got %i, nw %i, exp %i\n", got, nWords, expected_);
+			throw IOError("Received message (read response) truncated");
+		} else {
+			rchn->extract( &srpStatus_, got - sizeof(srpStatus_), sizeof(srpStatus_) );
+			if ( doSwap_ )
+				swp32( &srpStatus_ );
+			throw BadStatusError("SRP Read terminated with bad status", srpStatus_);
+		}
+	}
+
+	if ( doSwapV1_ ) {
+		// switch payload back to LE
+		uint8_t  tmp[sizeof(SRPWord)];
+		unsigned hoff = 0;
+		if ( headBytes_ ) {
+			hoff += sizeof(SRPWord) - headBytes_;
+			memcpy(tmp, &rHdrBuf_[2], headBytes_);
+			if ( hoff > sbytes_ ) {
+				// special case where a single word covers rHdrBuf_, dst_ and rTailBuf_
+				memcpy(tmp + headBytes_          , dst_     , sbytes_);
+				// note: since headBytes < 4 -> hoff < 4
+				//       and since sbytes < hoff -> sbytes < 4 -> sbytes == sbytes % 4
+				//       then we have: headBytes = off % 4
+				//                     totbytes  = off % 4 + sbytes  and totbytes % 4 == (off + sbytes) % 4 == headBytes + sbytes
+				//                     tailbytes =  4 - (totbytes % 4)
+				//       and thus: headBytes + tailbytes + sbytes  == 4
+				memcpy(tmp + headBytes_ + sbytes_, rTailBuf_, tailBytes_);
+			} else {
+				memcpy(tmp + headBytes_          , dst_     , hoff);
+			}
+#ifdef SRPADDR_DEBUG
+			for (i=0; i< sizeof(SRPWord); i++) printf("headbytes tmp[%i]: %x\n", i, tmp[i]);
+#endif
+			swpw( tmp );
+			memcpy(dst_, tmp+headBytes_, hoff);
+		}
+		int jend =(((int)(sbytes_ - hoff)) & ~(sizeof(SRPWord)-1));
+		for ( j = 0; j < jend; j+=sizeof(SRPWord) ) {
+			swpw( dst_ + hoff + j );
+		}
+		if ( tailBytes_ && (hoff <= sbytes_) ) { // cover the special case mentioned above
+			memcpy(tmp, dst_ + hoff + j, sizeof(SRPWord) - tailBytes_);
+			memcpy(tmp + sizeof(SRPWord) - tailBytes_, rTailBuf_, tailBytes_);
+#ifdef SRPADDR_DEBUG
+			for (i=0; i< sizeof(SRPWord); i++) printf("tailbytes tmp[%i]: %"PRIx8"\n", i, tmp[i]);
+#endif
+			swpw( tmp );
+			memcpy(dst_ + hoff + j, tmp, sizeof(SRPWord) - tailBytes_);
+		}
+#ifdef SRPADDR_DEBUG
+		for ( i=0; i< sbytes_; i++ ) printf("swapped dst[%i]: %x\n", i, dst_[i]);
+#endif
+	}
+	if ( doSwap_ ) {
+		swp32( &srpStatus_ );
+		swp32( &v1Header_  );
+	}
+	if ( srpStatus_ ) {
+		throw BadStatusError("reading SRP", srpStatus_);
+	}
+}
+
 uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
 {
-SRPWord  bufh[5];
-unsigned hwrds;
-uint8_t  buft[sizeof(SRPWord)];
-SRPWord  xbuf[5];
-SRPWord  header;
-SRPWord  status;
-unsigned i;
-int      j, put;
-unsigned headbytes = (byteResolution_ ? 0 : (off & (sizeof(SRPWord)-1)) );
-unsigned tailbytes = 0;
-int      totbytes;
-IOVec    iov[5];
-int      got;
-int      nWords;
-int      expected = 0;
-int      tidoffwrd;
-uint32_t tid = getTid();
 #ifdef SRPADDR_DEBUG
 struct timespec retry_then;
 #endif
 
-	// V1 sends payload in network byte order. We want to transform to restore
-	// the standard AXI layout which is little-endian
-	bool doSwapV1 = (IProtoStackBuilder::SRP_UDP_V1 == protoVersion_);
-	// header info needs to be swapped to host byte order since we interpret it
-	bool doSwap   =	( ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ? LE : BE ) == hostByteOrder() );
-
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP readBlk_unlocked off %"PRIx64"; sbytes %d, swapV1 %d, swap %d protoVersion %d\n", off, sbytes, doSwapV1, doSwap, protoVersion_);
+	fprintf(stderr, "SRP readBlk_unlocked off %"PRIx64"; sbytes %d, protoVersion %d\n", off, sbytes, protoVersion_);
 #endif
 
 	if ( sbytes == 0 )
 		return 0;
 
-	totbytes = headbytes + sbytes;
+	SRPTransaction xact( this, dst, off, sbytes );
 
-	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
-
-	put = expected = 0;
-	if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
-		xbuf[put++] = vc_ << 24;
-		expected += 1;
-	}
-	if ( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 ) {
-		xbuf[put++] = tid;
-		xbuf[put++] = (off >> 2) & 0x3fffffff;
-		xbuf[put++] = nWords   - 1;
-		xbuf[put++] = 0;
-		expected += 3;
-		hwrds       = 2;
-		tidoffwrd   = 0;
-	} else {
-		xbuf[put++] = CMD_READ_V3 | PROTO_VERS_3;
-		xbuf[put++] = tid;
-		xbuf[put++] =   byteResolution_ ? off       : off & ~3ULL;
-		xbuf[put++] = off >> 32;
-		xbuf[put++] = ( byteResolution_ ? totbytes : (nWords << 2) ) - 1;
-		expected += 6;
-		hwrds       = 5;
-		tidoffwrd   = 1;
-	}
-
-	// V2,V3 uses LE, V1 network (aka BE) layout
-	if ( doSwap ) {
-		for ( j=0; j<put; j++ ) {
-			swp32( &xbuf[j] );
-		}
-	}
-
-	i = 0;
-	if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
-		iov[i].iov_base = &header;
-		iov[i].iov_len  = sizeof( header );
-		i++;
-	}
-	iov[i].iov_base = bufh;
-	iov[i].iov_len  = hwrds*sizeof(SRPWord) + headbytes;
-	i++;
-
-	iov[i].iov_base = dst;
-	iov[i].iov_len  = sbytes;
-	i++;
-
-	if ( totbytes & (sizeof(SRPWord)-1) ) {
-		tailbytes       = sizeof(SRPWord) - (totbytes & (sizeof(SRPWord)-1));
-		// padding if not word-aligned
-		iov[i].iov_base = buft;
-		iov[i].iov_len  = tailbytes;
-		i++;
-	}
-
-	iov[i].iov_base = &status;
-	iov[i].iov_len  = sizeof(SRPWord);
-	i++;
-
-	unsigned iovlen  = i;
 	unsigned attempt = 0;
 
 	do {
-		BufChain xchn = IBufChain::create();
+		uint32_t tidBits;
 		BufChain rchn;
 
-		xchn->insert( xbuf, 0, sizeof(xbuf[0])*put );
+		xact.post( door_ );
 
 		struct timespec then, now;
 		if ( clock_gettime(CLOCK_REALTIME, &then) ) {
 			throw IOError("clock_gettime(then) failed", errno);
 		}
 
-		door_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
-
 		do {
+
 			rchn = door_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
 #ifdef SRPADDR_DEBUG
@@ -287,102 +466,15 @@ struct timespec retry_then;
 				throw IOError("clock_gettime(now) failed", errno);
 			}
 
-			got = rchn->getSize();
+			tidBits = extractTid( rchn );
 
-			unsigned bufoff = 0;
 
-			for ( i=0; i<iovlen; i++ ) {
-				rchn->extract(iov[i].iov_base, bufoff, iov[i].iov_len);
-				bufoff += iov[i].iov_len;
-			}
-
-#ifdef SRPADDR_DEBUG
-			printf("got %i bytes, off 0x%"PRIx64", sbytes %i, nWords %i\n", got, off, sbytes, nWords  );
-			printf("got %i bytes\n", got);
-			for (i=0; i<hwrds; i++ )
-				printf("header[%i]: %x\n", i, bufh[i]);
-			for ( i=0; i<headbytes; i++ ) {
-				printf("headbyte[%i]: %x\n", i, ((uint8_t*)&bufh[hwrds])[i]);
-			}
-
-			for ( i=0; (unsigned)i<sbytes; i++ ) {
-				printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
-			}
-
-			for ( i=0; i < tailbytes; i++ ) {
-				printf("tailbyte[%i]: %x\n", i, buft[i]);
-			}
-#endif
-			if ( doSwap ) {
-				swp32( &bufh[tidoffwrd] );
-			}
-		} while ( (bufh[tidoffwrd] & tidMsk_) != tid );
+		} while ( ! tidMatch( tidBits , xact.getTid() ) );
 
 		if ( useDynTimeout_ )
 			dynTimeout_.update( &now, &then );
 
-		if ( got != (int)sizeof(bufh[0])*(nWords + expected) ) {
-			if ( got < (int)sizeof(bufh[0])*expected ) {
-				printf("got %i, nw %i, exp %i\n", got, nWords, expected);
-				throw IOError("Received message (read response) truncated");
-			} else {
-				rchn->extract( &status, got - sizeof(status), sizeof(status) );
-				if ( doSwap )
-					swp32( &status );
-				throw BadStatusError("SRP Read terminated with bad status", status);
-			}
-		}
-
-		if ( doSwapV1 ) {
-			// switch payload back to LE
-			uint8_t  tmp[sizeof(SRPWord)];
-			unsigned hoff = 0;
-			if ( headbytes ) {
-				hoff += sizeof(SRPWord) - headbytes;
-				memcpy(tmp, &bufh[2], headbytes);
-				if ( hoff > sbytes ) {
-					// special case where a single word covers bufh, dst and buft
-					memcpy(tmp+headbytes,        dst , sbytes);
-					// note: since headbytes < 4 -> hoff < 4
-					//       and since sbytes < hoff -> sbytes < 4 -> sbytes == sbytes % 4
-					//       then we have: headbytes = off % 4
-					//                     totbytes  = off % 4 + sbytes  and totbytes % 4 == (off + sbytes) % 4 == headbytes + sbytes
-					//                     tailbytes =  4 - (totbytes % 4)
-					//       and thus: headbytes + tailbytes + sbytes  == 4
-					memcpy(tmp+headbytes+sbytes, buft, tailbytes);
-				} else {
-					memcpy(tmp+headbytes, dst, hoff);
-				}
-#ifdef SRPADDR_DEBUG
-				for (i=0; i< sizeof(SRPWord); i++) printf("headbytes tmp[%i]: %x\n", i, tmp[i]);
-#endif
-				swpw( tmp );
-				memcpy(dst, tmp+headbytes, hoff);
-			}
-			int jend =(((int)(sbytes - hoff)) & ~(sizeof(SRPWord)-1));
-			for ( j = 0; j < jend; j+=sizeof(SRPWord) ) {
-				swpw( dst + hoff + j );
-			}
-			if ( tailbytes && (hoff <= sbytes) ) { // cover the special case mentioned above
-				memcpy(tmp, dst + hoff + j, sizeof(SRPWord) - tailbytes);
-				memcpy(tmp + sizeof(SRPWord) - tailbytes, buft, tailbytes);
-#ifdef SRPADDR_DEBUG
-				for (i=0; i< sizeof(SRPWord); i++) printf("tailbytes tmp[%i]: %"PRIx8"\n", i, tmp[i]);
-#endif
-				swpw( tmp );
-				memcpy(dst + hoff + j, tmp, sizeof(SRPWord) - tailbytes);
-			}
-#ifdef SRPADDR_DEBUG
-			for ( i=0; i< sbytes; i++ ) printf("swapped dst[%i]: %x\n", i, dst[i]);
-#endif
-		}
-		if ( doSwap ) {
-			swp32( &status );
-			swp32( &header );
-		}
-		if ( status ) {
-			throw BadStatusError("reading SRP", status);
-		}
+		xact.complete( rchn );
 
 		return sbytes;
 
@@ -501,8 +593,8 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 		return 0;
 
 	// these look similar but are different...
-	bool doSwapV1 =  (protoVersion_ == IProtoStackBuilder::SRP_UDP_V1);
-	bool doSwap   = ((protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ? LE : BE) == hostByteOrder() );
+	bool doSwapV1 = needsPayloadSwap();
+	bool doSwap   = needsHdrSwap();
 
 	totbytes = headbytes + dbytes;
 
