@@ -10,6 +10,7 @@
 #include <cpsw_shared_obj.h>
 #include <cpsw_event.h>
 #include <cpsw_mutex.h>
+#include <cpsw_condvar.h>
 #include <vector>
 
 #include <pthread.h>
@@ -21,31 +22,6 @@
 using std::vector;
 using boost::make_shared;
 using boost::weak_ptr;
-
-class CondInitFailed   {};
-class CondWaitFailed   {};
-class CondSignalFailed {};
-
-class CCond {
-private:
-	pthread_cond_t cond_;
-
-	CCond(const CCond&);
-	CCond & operator=(const CCond&);
-public:
-	CCond()
-	{
-		if ( pthread_cond_init( &cond_, NULL ) )
-			throw CondInitFailed();
-	}
-
-	~CCond()
-	{
-		pthread_cond_destroy( &cond_ );
-	}
-
-	pthread_cond_t *getp() { return &cond_; }
-};
 
 class CEventSet : public IEventSet, public CShObj {
 protected:
