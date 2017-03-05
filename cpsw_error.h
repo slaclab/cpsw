@@ -54,6 +54,14 @@ public:
 	}
 };
 
+class NoError: public CPSWError {
+public:
+	NoError()
+	: CPSWError("No Error")
+	{
+	}
+};
+
 class DuplicateNameError: public CPSWError {
 public:
 	DuplicateNameError(const char *n)
