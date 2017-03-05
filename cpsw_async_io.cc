@@ -46,14 +46,6 @@ private:
 	friend class CAsyncIOTransactionManager;
 };
 
-static void mutex_unlock_wrapper(void *m)
-{
-int err;
-	if ( (err = pthread_mutex_unlock( (pthread_mutex_t*) m )) ) {
-		throw InternalError("CAsyncIOTransactionManager -- unable to unlock mutex", err);
-	}
-}
-
 class CAsyncIOTransactionManager : public CRunnable, public IAsyncIOTransactionManager {
 private:
 	CMtx          pendingMtx_;  // protect pendingList_
@@ -197,7 +189,7 @@ CAsyncIOTransactionManager::threadBody()
 	while ( 1 ) {
 		{
 			pendingMtx_.l();
-			pthread_cleanup_push( mutex_unlock_wrapper, (void*)pendingMtx_.getp() );
+			pthread_cleanup_push( CCond::pthread_mutex_unlock_wrapper, (void*)pendingMtx_.getp() );
 
 			while ( ! (xact = getHead_unl()) ) {
 				if ( pthread_cond_wait( havePending_.getp(), pendingMtx_.getp() ) ) {
