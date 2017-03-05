@@ -123,9 +123,12 @@ public:
 	virtual Binding *getEvent(bool wait, const CTimeout *abs_timeout)
 	{
 	int         st;
-	Binding  *rval;
+	Binding   *rval;
+	CPSWError *theError = 0;
 
-	CMtx::lg guard( &mutx_ );
+		mutx_.l();
+
+		pthread_cleanup_push( CCond::pthread_mutex_unlock_wrapper, (void*)mutx_.getp() );
 
 		if ( wait && abs_timeout ) {
 			if ( abs_timeout->isNone() ) {
@@ -135,26 +138,41 @@ public:
 			}
 		}
 
-		while ( ! (rval = pollAll()) ) {
+		try {
+			while ( ! (rval = pollAll()) ) {
 
-			if ( wait ) {
-				if ( abs_timeout ) {
-					st = pthread_cond_timedwait( cnd_.getp(), mutx_.getp(), &abs_timeout->tv_ );
+				if ( wait ) {
+					if ( abs_timeout ) {
+						st = pthread_cond_timedwait( cnd_.getp(), mutx_.getp(), &abs_timeout->tv_ );
+					} else {
+						st = pthread_cond_wait( cnd_.getp(), mutx_.getp() );
+					}
+
+					if ( st ) {
+						if ( ETIMEDOUT == st )
+							break; // rval is NULL
+
+						throw CondWaitFailed();
+					}
+
 				} else {
-					st = pthread_cond_wait( cnd_.getp(), mutx_.getp() );
+					break; // rval is NULL
 				}
-
-				if ( st ) {
-					if ( ETIMEDOUT == st )
-						return NULL;
-
-					throw CondWaitFailed();
-				}
-
-			} else {
-				return NULL;
 			}
+		} catch ( CPSWError &err ) {
+			// it is not possible to preserve the precise type
+			// of the error (unless we put down a full list of catch clauses :-().
+			// We must preserve across pthread_cleanup_pop :-(
+			theError = new CPSWError( err );
+		}
 
+		pthread_cleanup_pop( 1 ); // unlocks mutx_
+
+		if ( theError ) {
+			// Assume this is rare...
+			CPSWError aCopy( *theError );
+			delete theError;
+			throw aCopy;
 		}
 
 		return rval;
