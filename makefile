@@ -54,6 +54,7 @@ cpsw_SRCS+= cpsw_thread.cc
 cpsw_SRCS+= cpsw_yaml.cc
 cpsw_SRCS+= cpsw_preproc.cc
 cpsw_SRCS+= cpsw_version.cc
+cpsw_SRCS+= cpsw_async_io.cc
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h
