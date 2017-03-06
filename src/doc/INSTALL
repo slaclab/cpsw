@@ -19,16 +19,16 @@ shared- and static libraries and programs.
 The makefiles also support building applications which are
 layered on top of CPSW (and do not share the CPSW source directory
 but may be located at an arbitrary location in the filesystem).
-Consult 'makefile.template' for further information.
+Consult 'src/makefile.template' for further information.
 
 The makefiles consist of (you can skip this explanation if you
 want to proceed with a vanilla build)
 
- - `rules.mak`:<br> 
+ - `src/rules.mak`:<br> 
      generic rules; should NOT be modified; lives in the CPSW source
      directory (included by derived libraries and applications).
 
- - `defs.mak`:<br>
+ - `src/defs.mak`:<br>
      generic definitions; should NOT be modified; lives in the CPSW
      source directory (included by derived libraries and applications). 
 
@@ -42,7 +42,7 @@ want to proceed with a vanilla build)
      derived libraries and apps); lives in the CPSW source directory.
      SEE BELOW for what this is for.
 
- - `makefile`:<br>
+ - `src/makefile`:<br>
      Defines application/library-specific variables, i.e., mostly
      lists the targets to build and the files that are required
      for them (see makefile.template). Can also contain app-specific
@@ -96,7 +96,7 @@ Binaries for all architectures are build in a `O.<arch>` subdirectory,
 e.g., `O.linuxRT-x86_64`. Installation (`make install`) also deposits
 binaries and libraries into a architecture-specific subdirectory, e.g.,
 
-        $(INSTALL_DIR)/lib/linuxRT-x86_64/
+        $(INSTALL_DIR)/linuxRT-x86_64/lib
 
 Note that the host architecture is `host` by default. This name may
 be changed by setting the `HARCH` variable, e.g.,
@@ -281,15 +281,15 @@ information).
 
 `make install` installs headers into
 
-        $(INSTALL_DIR)/include
+        $(INSTALL_DIR)/<ARCH>/include
 
 libraries into
 
-        $(INSTALL_DIR)/lib/<architecture>
+        $(INSTALL_DIR)/<ARCH>/lib/<architecture>
 
 and binaries into
 
-        $(INSTALL_DIR)/bin/<architecture>
+        $(INSTALL_DIR)/<ARCH>/bin/<architecture>
 
 ## 3. Running `make`
 
