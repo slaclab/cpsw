@@ -32,6 +32,9 @@ multi-test: sub-$(HARCH)$(TSEP)run_tests
 multi-clean: clean
 	@true
 
+multi-uninstall: $(patsubst %, sub-%$(TSEP)%,$(ARCHES))
+	@true
+
 # 'multi-target'; execute a target for all architectures:
 # If the user has a target 'xxx' defined in his/her makefile
 # then 'multi-arch-xxx' builds that target in all arch-subdirs.
@@ -50,7 +53,7 @@ multi-subdir-%: $(patsubst %,sub-./%$(TSEP)%,$(SUBDIRS))
 multi-postsubdir-%: $(patsubst %,sub-./%$(TSEP)%,$(POSTBUILD_SUBDIRS))
 	@true
 
-multi-%: generate_srcs install_headers multi-subdir-% multi-arch-% multi-postsubdir-%
+multi-%: generate_srcs multi-subdir-% multi-arch-% multi-postsubdir-%
 	@true
 
 # convert '.' and '-' in a name to '_' since the former must not
@@ -92,10 +95,6 @@ sub-./%:
 
 # No need to step into O.<arch> subdir to clean; it will be removed anyways
 sub-%$(TSEP)clean:
-	@true
-
-# No need to step into O.<arch> subdir to install headers
-sub-%$(TSEP)install_headers:
 	@true
 
 # arch-subdir make
@@ -244,7 +243,7 @@ $(BINTGTS): LIBARGS += $(addprefix -L,$(INSTALL_DIR:%=%/lib/$(TARCH)))
 $(BINTGTS): LIBARGS += $(foreach lib,$(LIBS:%=-l%),$(lib:%.a=-Wl,-Bstatic % -Wl,-Bdynamic))
 
 $(BINTGTS): $(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
-	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS) $(addprefix -Wl$(COMMA__)-rpath$(COMMA__),$(abspath $(INSTALL_DIR:%=%/lib/$(TARCH))))
+	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS) $(addprefix -Wl$(COMMA__)-rpath$(COMMA__),$(abspath $(INSTALL_DIR:%=%$(TARCH)/lib)))
 
 build: $(TGTS)
 
@@ -292,37 +291,42 @@ clean: multi-subdir-clean multi-postsubdir-clean clean_local
 generate_srcs: $(GENERATED_SRCS)
 	@true
 
-install_headers:
+do_install: install_local
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
-		echo "Installing Headers $(HEADERS)" ; \
-		if [ -n "$(HEADERS)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/include ;\
-			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(HEADERS)) $(INSTALL_DIR)/include ;\
+		if [ -n "$(DOCS)" ] ; then \
+			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(DOCS)) $(INSTALL_DIR) ;\
 		fi ;\
-	fi
-
-do_install: install_headers install_local
-	@if [ -n "$(INSTALL_DIR)" ] ; then \
+		if [ -n "$(HEADERS)" ] ; then \
+			mkdir -p $(INSTALL_DIR)/$(TARCH)/include ;\
+			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(HEADERS)) $(INSTALL_DIR)/$(TARCH)/include ;\
+		fi ;\
 		if [ -n "$(STATIC_LIBRARIES)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/lib/$(TARCH) ;\
+			mkdir -p $(INSTALL_DIR)/$(TARCH)/lib ;\
 			echo "Installing Libraries $(STATIC_LIBRARIES:%=%lib.a)" ; \
-			$(INSTALL) $(foreach lib,$(STATIC_LIBRARIES),$(lib:%=lib%.a)) $(INSTALL_DIR)/lib/$(TARCH) ;\
+			$(INSTALL) $(foreach lib,$(STATIC_LIBRARIES),$(lib:%=lib%.a)) $(INSTALL_DIR)/$(TARCH)/lib ;\
 		fi ;\
 		if [ -n "$(SHARED_LIBRARIES)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/lib/$(TARCH) ;\
+			mkdir -p $(INSTALL_DIR)/$(TARCH)/lib ;\
 			echo "Installing Libraries $(SHARED_LIBRARIES:%=%lib.so)" ; \
-			$(INSTALL) $(foreach lib,$(SHARED_LIBRARIES),$(lib:%=lib%.so)) $(INSTALL_DIR)/lib/$(TARCH) ;\
+			$(INSTALL) $(foreach lib,$(SHARED_LIBRARIES),$(lib:%=lib%.so)) $(INSTALL_DIR)/$(TARCH)/lib ;\
 		fi ;\
 		if [ -n "$(PROGRAMS)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/bin/$(TARCH) ;\
+			mkdir -p $(INSTALL_DIR)/$(TARCH)/bin ;\
 			echo "Installing Programs $(PROGRAMS)" ; \
-			$(INSTALL) $(PROGRAMS) $(INSTALL_DIR)/bin/$(TARCH) ;\
+			$(INSTALL) $(PROGRAMS) $(INSTALL_DIR)/$(TARCH)/bin ;\
 		fi ;\
 		if [ -n "$(SHARED_OBJS)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/lib/$(TARCH) ;\
+			mkdir -p $(INSTALL_DIR)/$(TARCH)/lib ;\
 			echo "Installing Shared Objects $(SHARED_OBJS)" ; \
-			$(INSTALL) $(SHARED_OBJS) $(INSTALL_DIR)/lib/$(TARCH) ;\
+			$(INSTALL) $(SHARED_OBJS) $(INSTALL_DIR)/$(TARCH)/lib ;\
 		fi \
+	fi
+
+uninstall: uninstall_local
+	@if [ -n "$(INSTALL_DIR)" ] ; then \
+		echo "Uninstalling the following Architectures: $(ARCHES)" ;\
+		rm -rfv $(addprefix $(INSTALL_DIR)/, $(ARCHES)) ;\
+		rm $(addprefix $(INSTALL_DIR)/,$(DOCS));\
 	fi
 
 git_version_string.h: FORCE
@@ -338,7 +342,8 @@ git_version_string.h: FORCE
 
 FORCE:
 
-.PHONY: install_local install_headers clean_local
+.PHONY: install_local clean_local uninstall_local
+
 
 ifdef TARCH
 -include deps
