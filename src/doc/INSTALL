@@ -19,37 +19,37 @@ shared- and static libraries and programs.
 The makefiles also support building applications which are
 layered on top of CPSW (and do not share the CPSW source directory
 but may be located at an arbitrary location in the filesystem).
-Consult 'makefile.template' for further information.
+Consult 'src/makefile.template' for further information.
 
 The makefiles consist of (you can skip this explanation if you
 want to proceed with a vanilla build)
 
- - `rules.mak`:<br> 
+ - `src/rules.mak`:
      generic rules; should NOT be modified; lives in the CPSW source
      directory (included by derived libraries and applications).
 
- - `defs.mak`:<br>
+ - `src/defs.mak`:
      generic definitions; should NOT be modified; lives in the CPSW
      source directory (included by derived libraries and applications). 
 
- - `config.mak`:<br>
+ - `config.mak`:
      site-specific settings of certain variables that affect the build
      (AND the build of derived libraries and apps); lives in the CPSW
-     source directory.
+     top directory.
 
- - `config.local.mak`:<br>
+ - `config.local.mak`:
      local tweaks of variables that affect the build (AND the build of
-     derived libraries and apps); lives in the CPSW source directory.
+     derived libraries and apps); lives in the CPSW top directory.
      SEE BELOW for what this is for.
 
- - `makefile`:<br>
+ - `src/makefile`:
      Defines application/library-specific variables, i.e., mostly
      lists the targets to build and the files that are required
      for them (see makefile.template). Can also contain app-specific
      rules. Lives in the application source directory. Binaries
      are built under 'O.<architecture>' directories.
 
- - `local.mak`:<br>
+ - `src/local.mak`:
      Local tweaks which are application/library-specific; lives
      in the application source directory.
 
@@ -78,7 +78,7 @@ In the common case of
 
  - native-only build - no cross-compilation
  - 'boost' and 'yaml-cpp' packages natively available (e.g., installed
-     by your distro's package manager)
+   by your distro's package manager)
 
 there is no need for any settings in `config.mak` -- an empty file will
 do. However, you may want to define the installation location (5. above).
@@ -90,18 +90,22 @@ The following section discusses the settings 1..5 above:
 Each desired target architecture must be added to the `ARCHES` variable
 using the `+=` operator, e.g.:
 
-        ARCHES += linuxRT-x86_64
+        ARCHES += buildroot-2016.11.1-x86_64
 
 Binaries for all architectures are build in a `O.<arch>` subdirectory,
 e.g., `O.linuxRT-x86_64`. Installation (`make install`) also deposits
 binaries and libraries into a architecture-specific subdirectory, e.g.,
 
-        $(INSTALL_DIR)/lib/linuxRT-x86_64/
+        $(INSTALL_DIR)/buildroot-2016.11.1-x86_64/lib
 
 Note that the host architecture is `host` by default. This name may
 be changed by setting the `HARCH` variable, e.g.,
 
         HARCH = linux-x86_64
+
+Another example, for some systems with multiple linux distributions:
+
+        HARCH = rhel6-x86_64
 
 `HARCH` is automatically added to `ARCHES`, so there is no need to do so.
 
@@ -281,15 +285,19 @@ information).
 
 `make install` installs headers into
 
-        $(INSTALL_DIR)/include
+        $(INSTALL_DIR)/<ARCH>/include
 
 libraries into
 
-        $(INSTALL_DIR)/lib/<architecture>
+        $(INSTALL_DIR)/<architecture>/lib/
 
-and binaries into
+binaries into
 
-        $(INSTALL_DIR)/bin/<architecture>
+        $(INSTALL_DIR)/<architecture>/bin/
+
+and documentation into
+
+        $(INSTALL_DIR)/<architecture>/doc/
 
 ## 3. Running `make`
 
@@ -306,12 +314,12 @@ which indicates the set of architectures for which the goal should
 be built. The most common cases are
 
         multi-<goal>      => builds <goal> for all architectures
-        sub-<arch>-<goal> => builds <goal> for <arch> only
+        sub-<arch>@<goal> => builds <goal> for <arch> only
 
 Thus, e.g., the aforementioned `all` target is actually an alias for
 `multi-build`. Since the test programs can only be executed by make
 on the host system, the 'test' goal is actually an alias for
-`sub-$(HARCH)-run_tests`.
+`sub-$(HARCH)@run_tests`.
 
 For building the CPSW package it is sufficient to execute
 
@@ -323,6 +331,8 @@ and optionally
 
 Note that the latter requires `INSTALL_DIR` to be defined either in
 config.mak or on the command line.
+
+For easy de-installation a 'make uninstall' target is available.
 
 ## 4. Further Information
 
