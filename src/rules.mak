@@ -294,7 +294,7 @@ generate_srcs: $(GENERATED_SRCS)
 do_install: install_local
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		if [ -n "$(DOCS)" ] ; then \
-			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(DOCS)) $(INSTALL_DIR) ;\
+			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(DOCS)) $(INSTALL_DIR)/$(TARCH)/docs ;\
 		fi ;\
 		if [ -n "$(HEADERS)" ] ; then \
 			mkdir -p $(INSTALL_DIR)/$(TARCH)/include ;\

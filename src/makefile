@@ -17,10 +17,7 @@ HEADERS = cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h
 DOCS = README.yamlDefinition README.yamlDefinition.html README.configData.html INSTALL.html
 
 GENERATED_SRCS += git_version_string.h
-GENERATED_SRCS += README.yamlDefinition
-GENERATED_SRCS += README.yamlDefinition.html
-GENERATED_SRCS += README.configData.html
-GENERATED_SRCS += INSTALL.html
+GENERATED_SRCS += $(DOCS)
 
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
