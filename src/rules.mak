@@ -294,7 +294,8 @@ generate_srcs: $(GENERATED_SRCS)
 do_install: install_local
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		if [ -n "$(DOCS)" ] ; then \
-			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(DOCS)) $(INSTALL_DIR)/$(TARCH)/docs ;\
+			mkdir -p $(INSTALL_DIR)/$(TARCH)/doc ;\
+			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(DOCS)) $(INSTALL_DIR)/$(TARCH)/doc ;\
 		fi ;\
 		if [ -n "$(HEADERS)" ] ; then \
 			mkdir -p $(INSTALL_DIR)/$(TARCH)/include ;\
@@ -326,7 +327,6 @@ uninstall: uninstall_local
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		echo "Uninstalling the following Architectures: $(ARCHES)" ;\
 		rm -rfv $(addprefix $(INSTALL_DIR)/, $(ARCHES)) ;\
-		rm $(addprefix $(INSTALL_DIR)/,$(DOCS));\
 	fi
 
 git_version_string.h: FORCE
