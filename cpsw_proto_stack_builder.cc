@@ -333,7 +333,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual void            setSRPMuxVirtualChannel(unsigned v)
 		{
-			if ( v > 255 )
+			if ( v > 127 )
 				throw InvalidArgError("Requested SRP Mux Virtual Channel out of range");
 			useSRPMux( true );
 			SRPMuxVirtualChannel_ = v;
