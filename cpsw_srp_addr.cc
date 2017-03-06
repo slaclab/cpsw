@@ -79,9 +79,12 @@ int                  nbits;
 	if ( ! srpMuxMod )
 		throw InternalError("No SRP Mux? Found");
 
+
 	tidLsb_ = 1 << srpMuxMod->getTidLsb();
 	nbits   = srpMuxMod->getTidNumBits();
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
+
+	asyncIOPort_ = srpMuxMod->createPort( vc_ | 0x80 );
 }
 
 void
@@ -184,7 +187,7 @@ public:
 		return tid_;
 	}
 
-	virtual void complete(BufChain, uint8_t *payload) = 0;
+	virtual void complete(BufChain) = 0;
 
 	virtual ~SRPTransaction()
 	{
@@ -222,7 +225,7 @@ public:
 	void
 	reset(const CSRPAddressImpl *srpAddr, int nWords, int expected);
 
-	virtual void complete(BufChain, uint8_t *payload);
+	virtual void complete(BufChain);
 
 };
 
@@ -277,7 +280,7 @@ public:
 	post(ProtoDoor);
 
     virtual void
-	complete(BufChain rchn, uint8_t *payload);
+	complete(BufChain rchn);
 };
 
 SRPTransaction::SRPTransaction(
@@ -412,7 +415,7 @@ int	     nWords;
 }
 
 void
-SRPWriteTransaction::complete(BufChain rchn, uint8_t *payload)
+SRPWriteTransaction::complete(BufChain rchn)
 {
 int     got = rchn->getSize();
 SRPWord status;
@@ -476,7 +479,7 @@ unsigned tidOff = getProtoVersion() == IProtoStackBuilder::SRP_UDP_V2 ? 0 : 4;
 }
 
 void
-SRPReadTransaction::complete(BufChain rchn, uint8_t *dst)
+SRPReadTransaction::complete(BufChain rchn)
 {
 int	     got = rchn->getSize();
 unsigned bufoff;
@@ -484,12 +487,9 @@ unsigned i;
 int      j;
 int	     nWords   = getNWords();
 
-	if ( ! dst_ && ! dst && sbytes_ ) {
+	if ( ! dst_ && sbytes_ ) {
 		throw InvalidArgError("SRPReadTransaction has no destination address");
 	}
-
-	if ( dst )
-		dst_ = dst;
 
 	iov_[iovLen_].iov_base = rHdrBuf_;
 	iov_[iovLen_].iov_len  = hdrWords_ * sizeof(SRPWord) + headBytes_;
@@ -647,7 +647,7 @@ struct timespec retry_then;
 		if ( useDynTimeout_ )
 			dynTimeout_.update( &now, &then );
 
-		xact.complete( rchn, 0 );
+		xact.complete( rchn );
 
 		return sbytes;
 
@@ -662,6 +662,36 @@ retry:
 		dynTimeout_.reset( usrTimeout_ );
 
 	throw IOError("No response -- timeout");
+}
+
+
+int
+CSRPAddressImpl::open (CompositePathIterator *node)
+{
+CMtx::lg guard( & doorMtx_ );
+
+int rval = CAddressImpl::open( node );
+
+	if ( 0 == rval ) {
+		door_        = getProtoStack()->open();
+		// open a second VC for asynchronous communication
+		asyncIODoor_ = asyncIOPort_->open();
+	}
+
+	return rval;
+}
+
+int
+CSRPAddressImpl::close(CompositePathIterator *node)
+{
+CMtx::lg guard( &doorMtx_ );
+
+int rval = CAddressImpl::close( node );
+	if ( 1 == rval ) {
+		door_.reset();
+		asyncIODoor_.reset();
+	}
+	return rval;
 }
 	
 uint64_t CSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
@@ -974,7 +1004,7 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 		if ( useDynTimeout_ )
 			dynTimeout_.update( &now, &then );
 
-		xact.complete( rchn, 0 );
+		xact.complete( rchn );
 
 		return dbytes;
 retry:

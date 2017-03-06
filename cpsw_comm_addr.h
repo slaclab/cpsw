@@ -20,7 +20,6 @@ protected:
 	bool           running_;
 	ProtoDoor      door_;
 
-private:
 	CMtx           doorMtx_;
 
 public:

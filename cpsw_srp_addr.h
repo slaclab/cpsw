@@ -19,12 +19,12 @@ private:
 	static const uint64_t AVG_SHFT  = 6; // time-constant for averager v(n+1) = v(n) + (x - v(n))/(1<<AVG_SHFT)
 	static const uint64_t MARG_SHFT = 2; // timeout is avg << MARG_SHFT
 	static const uint64_t CAP_US    = 5000; // empirical low-limit (under non-RT system)
-	CTimeout maxRndTrip_;
-	uint64_t avgRndTrip_;
-	CTimeout lastUpdate_;
-	CTimeout dynTimeout_;
-	unsigned nSinceLast_;
-	uint64_t timeoutCap_;
+	CTimeout  maxRndTrip_;
+	uint64_t  avgRndTrip_;
+	CTimeout  lastUpdate_;
+	CTimeout  dynTimeout_;
+	unsigned  nSinceLast_;
+	uint64_t  timeoutCap_;
 protected:
 	void  setLastUpdate();
 public:
@@ -69,6 +69,8 @@ private:
 	bool             byteResolution_;
 	unsigned         maxWordsRx_;
 	unsigned         maxWordsTx_;
+	ProtoPort        asyncIOPort_;
+	ProtoDoor        asyncIODoor_;
 
 protected:
 	mutable CMtx     mutex_;
@@ -87,6 +89,8 @@ public:
 	}
 
 	virtual ~CSRPAddressImpl();
+	virtual int      open (CompositePathIterator *node);
+	virtual int      close(CompositePathIterator *node);
 	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
