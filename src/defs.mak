@@ -132,6 +132,6 @@ TOPDIR=$(UPDIR)
 endif
 
 # definitions
-include $(CPSW_DIR)/config.mak
--include $(CPSW_DIR)/config.local.mak
+include $(CPSW_DIR)/../config.mak
+-include $(CPSW_DIR)/../config.local.mak
 -include $(SRCDIR)/local.mak
