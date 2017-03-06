@@ -124,9 +124,12 @@ WITH_SHARED_LIBRARIES_default=YES
 #
 #WITH_PYCPSW_default   = NO
 # WITH_PYCPSW_host    = YES
+WITH_PYCPSW_rhel6_x86_64    = YES
 #
 # You may also have to set boost_DIR_<arch> or boostinc_DIR_<arch>
 # and py_DIR_<arch> or pyinc_DIR_<arch> (see above)
+py_DIR_rhel6_x86_64=/afs/slac/g/lcls/package/python/python2.7.9/rhel6-linux-x86_64/bin/
+pyinc_DIR_rhel6_x86_64=/afs/slac/g/lcls/package/python/python2.7.9/rhel6-linux-x86_64/include/python2.7/
 
 # Define an install location
 INSTALL_DIR=../
