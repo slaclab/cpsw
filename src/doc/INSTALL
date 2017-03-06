@@ -90,18 +90,22 @@ The following section discusses the settings 1..5 above:
 Each desired target architecture must be added to the `ARCHES` variable
 using the `+=` operator, e.g.:
 
-        ARCHES += linuxRT-x86_64
+        ARCHES += buildroot-2016.11.1-x86_64
 
 Binaries for all architectures are build in a `O.<arch>` subdirectory,
 e.g., `O.linuxRT-x86_64`. Installation (`make install`) also deposits
 binaries and libraries into a architecture-specific subdirectory, e.g.,
 
-        $(INSTALL_DIR)/linuxRT-x86_64/lib
+        $(INSTALL_DIR)/buildroot-2016.11.1-x86_64/lib
 
 Note that the host architecture is `host` by default. This name may
 be changed by setting the `HARCH` variable, e.g.,
 
         HARCH = linux-x86_64
+
+Another example, for some systems with multiple linux distributions:
+
+        HARCH = rhel6-x86_64
 
 `HARCH` is automatically added to `ARCHES`, so there is no need to do so.
 
@@ -285,11 +289,15 @@ information).
 
 libraries into
 
-        $(INSTALL_DIR)/<ARCH>/lib/<architecture>
+        $(INSTALL_DIR)/<architecture>/lib/
 
-and binaries into
+binaries into
 
-        $(INSTALL_DIR)/<ARCH>/bin/<architecture>
+        $(INSTALL_DIR)/<architecture>/bin/
+
+and documentation into
+
+        $(INSTALL_DIR)/<architecture>/doc/
 
 ## 3. Running `make`
 
