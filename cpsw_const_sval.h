@@ -61,14 +61,14 @@ class CConstIntEntryAdapt : public virtual CScalVal_ROAdapt {
 public:
 	CConstIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 
-	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0 );
+	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0, IAsyncIO *aio = 0 );
 };
 
 class CConstDblEntryAdapt : public virtual CDoubleVal_ROAdapt {
 public:
 	CConstDblEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 
-	virtual unsigned getVal(double   *p, unsigned n, IndexRange *r=0);
+	virtual unsigned getVal(double   *p, unsigned n, IndexRange *r=0, IAsyncIO *aio = 0);
 };
 
 #endif
