@@ -1636,6 +1636,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 	ExceptionTranslatorInstallDerived(MissingOnceTagError,          CPSWError);
 	ExceptionTranslatorInstallDerived(MissingIncludeFileNameError,  CPSWError);
 	ExceptionTranslatorInstallDerived(NoYAMLSupportError,           CPSWError);
+	ExceptionTranslatorInstallDerived(NoError,                      CPSWError);
+	ExceptionTranslatorInstallDerived(MultipleInstantiationError,   CPSWError);
+	ExceptionTranslatorInstallDerived(BadSchemaVersionError,        CPSWError);
+	ExceptionTranslatorInstallDerived(TimeoutError,                 CPSWError);
 
 	def("setRssiDebug", wrap_setRssiDebugLevel, (arg("level")));
 

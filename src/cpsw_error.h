@@ -366,4 +366,12 @@ public:
 	}
 };
 
+//!!!!!!!!!!!!
+//
+// When added new exceptions -- don't forget to register them with
+// Python (cpsw_python.cc -- ExceptionTranslatorInstall)
+//
+//!!!!!!!!!!!!
+
+
 #endif
