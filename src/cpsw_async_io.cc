@@ -260,6 +260,3 @@ AsyncIOTransaction xact;
 		delete xact;
 	}
 }
-
-
-

@@ -679,57 +679,88 @@ CDoubleVal_WOAdapt::dbl2int(uint64_t *dst, double *src, unsigned nelms)
 
 typedef shared_ptr<IIntEntryAdapt> IntEntryAdapt;
 
-class CGetValContext {
-private:
-	unsigned        dbytes_;
-	ByteOrder       targetEndian_;
-	IntEntryAdapt   adapter_;
-	unsigned        nelms_;
-
+class CGetValContext : public IAsyncIO {
+protected:
 	static const unsigned ALLOC_BRK = 512;
 
+	IntEntryAdapt   adapter_;
+
+private:
+	AsyncIO         stack_;
 	uint8_t         tmpBuf_[ALLOC_BRK];
 	uint8_t        *tmpBufAlloc_;
 	unsigned        tmpBufSz_;
 
-	uint8_t        *obufp_;
-	uint8_t        *ibufp_;
+protected:
 
-
-public:
-	CGetValContext()
-	: tmpBufAlloc_ ( 0 ),
-	  tmpBufSz_    ( 0 )
+	CGetValContext(IntEntryAdapt adapter, AsyncIO aio = AsyncIO())
+	: adapter_ ( adapter ),
+	  stack_   ( aio     ),
+	  tmpBufSz_( 0       )
 	{
 	}
 
-	virtual void reset(uint8_t *buf, unsigned nelms, unsigned dbytes, ByteOrder targetEndian, IntEntryAdapt adapter)
+	uint8_t *mkbuf(unsigned buf_bytes)
+	{
+	uint8_t *rval;
+		if ( buf_bytes <= ALLOC_BRK ) {
+			// use internal buffer
+			rval   = tmpBuf_;
+		} else if ( buf_bytes <= tmpBufSz_ ) {
+			// use existing buffer
+			rval   = tmpBufAlloc_;
+		} else {
+			if ( tmpBufSz_ )
+				delete [] tmpBufAlloc_;
+			tmpBufSz_    = buf_bytes;
+			tmpBufAlloc_ = new uint8_t[tmpBufSz_];
+			rval         = tmpBufAlloc_;
+		}
+		return rval;
+	}
+
+	virtual void complete() = 0;
+
+public:
+	virtual void callback ()
+	{
+		complete();
+		if ( stack_ )
+			stack_->callback();
+	}
+
+	virtual ~CGetValContext()
+	{
+		if ( tmpBufSz_ )
+			delete [] tmpBufAlloc_;
+	}
+
+};
+
+class CGetIntValContext : public CGetValContext {
+private:
+	unsigned        dbytes_;
+	ByteOrder       targetEndian_;
+	unsigned        nelms_;
+
+	uint8_t        *obufp_;
+	uint8_t        *ibufp_;
+
+public:
+	CGetIntValContext(IntEntryAdapt adapter, uint8_t *buf, unsigned nelms, unsigned dbytes, ByteOrder targetEndian, AsyncIO aio = AsyncIO())
+	: CGetValContext( adapter, aio )
 	{
 	unsigned sbytes = adapter->getSize();
 
-		obufp_        = buf;
-		nelms_        = nelms;
 		dbytes_       = dbytes;
-		targetEndian_ = targetEndian,
-		adapter_      = adapter;
+		targetEndian_ = targetEndian;
+		nelms_        = nelms;
+		obufp_        = buf;
 
 		if ( sbytes > dbytes_ ) {
-			unsigned buf_bytes = sbytes * nelms_;
-			if ( buf_bytes <= ALLOC_BRK ) {
-				// use internal buffer
-				ibufp_ = tmpBuf_;
-			} else if ( buf_bytes <= tmpBufSz_ ) {
-				// use existing buffer
-				ibufp_ = tmpBufAlloc_;
-			} else {
-				if ( tmpBufAlloc_ )
-					delete [] tmpBufAlloc_;
-				tmpBufSz_    = buf_bytes;
-				tmpBufAlloc_ = new uint8_t[tmpBufSz_];
-				ibufp_       = tmpBufAlloc_;
-			}
+			ibufp_ = mkbuf( sbytes * nelms_ );
 		} else {
-			ibufp_       = buf;
+			ibufp_ = buf;
 		}
 
 		if ( dbytes_ > sbytes ) {
@@ -832,20 +863,12 @@ public:
 		}
 	}
 
-	virtual ~CGetValContext()
-	{
-		if ( tmpBufAlloc_ )
-			delete [] tmpBufAlloc_;
-	}
-
 };
 
-unsigned IIntEntryAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range, IAsyncIO *aio)
+unsigned IIntEntryAdapt::getVal(AsyncIO aio, uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
 {
 SlicedPathIterator it( p_, range );
 Address            cl           = it->c_p_;
-uint64_t           off          = 0;
-unsigned           dbytes       = elsz;
 ByteOrder          targetEndian = cl->getByteOrder();
 unsigned           nelmsOnPath  = it.getNelmsLeft();
 
@@ -857,33 +880,63 @@ unsigned           nelmsOnPath  = it.getNelmsLeft();
 
 	CReadArgs args;
 
-	CGetValContext ctxt;
+	shared_ptr<CGetIntValContext> ctxt = make_shared<CGetIntValContext> (
+	                                             getSelfAs<IntEntryAdapt>(),
+	                                             buf,
+                                                 nelms,
+                                                 elsz,
+                                                 targetEndian,
+                                                 aio );
+	args.cacheable_ = ie_->getCacheable();
+	args.off_       = 0;
 
-	ctxt.reset( buf, nelms, dbytes, targetEndian, getSelfAs<IntEntryAdapt>() );
+	ctxt->getReadParms( &args );
+
+	cl->read( &it, &args );
+
+	return nelms;
+}
+
+unsigned IIntEntryAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
+{
+SlicedPathIterator it( p_, range );
+Address            cl           = it->c_p_;
+ByteOrder          targetEndian = cl->getByteOrder();
+unsigned           nelmsOnPath  = it.getNelmsLeft();
+
+	if ( nelms >= nelmsOnPath ) {
+		nelms = nelmsOnPath;
+	} else {
+		throw InvalidArgError("Invalid Argument: buffer too small");
+	}
+
+	CReadArgs args;
+
+	CGetIntValContext ctxt( getSelfAs<IntEntryAdapt>(), buf, nelms, elsz, targetEndian );
 
 	args.cacheable_ = ie_->getCacheable();
-	args.off_       = off;
-
+	args.off_       = 0;
 	ctxt.getReadParms( &args );
 
 	cl->read( &it, &args );
 
-	ctxt.complete();
+	ctxt.callback();
 	return nelms;
 
 }
 
-unsigned CScalVal_ROAdapt::getVal(CString *strs, unsigned nelms, IndexRange *range, IAsyncIO *aio)
+unsigned CScalVal_ROAdapt::getVal(AsyncIO aio, CString *strs, unsigned nelms, IndexRange *range)
+{
+	throw InternalError("AIO for strings not implemented yet");
+}
+
+unsigned CScalVal_ROAdapt::getVal(CString *strs, unsigned nelms, IndexRange *range)
 {
 TMP_BUF_DECL(uint64_t, buf, nelms);
 unsigned         got,i;
 Enum             enm = getEnum();
 
-	if ( aio ) {
-		throw InternalError("AIO for strings not implemented yet");
-	}
-
-	got = getVal(buf.getBufp(), nelms, range, aio);
+	got = getVal(buf.getBufp(), nelms, range);
 
 	if ( enm ) {
 		for ( i=0; i < got; i++ ) {
@@ -905,31 +958,29 @@ Enum             enm = getEnum();
 	return got;
 }
 
-class CGetDoubleValContext : public IAsyncIO {
+class CGetDoubleValContext : public CGetValContext {
+private:
+	// we can't easily obtain a shared pointer for the  DoubleVal_ROAdapter
+	// (CShObj is a virtual base). However, CGetValContext already
+	// holds a handle to a base class so we are save with a normal pointer here...
+	CDoubleVal_ROAdapt *adapter_;
+	double             *buf_;
+	unsigned            nelms_;
+	AsyncIO             stack_;
+
 public:
-	IAsyncIO         *pre_;
-	unsigned          nelms_;
-	double           *buf_;
-	DoubleVal_ROAdapt adapter_;
-
-	CGetDoubleValContext()
+	CGetDoubleValContext(IntEntryAdapt handle, CDoubleVal_ROAdapt *adapter, double *buf, unsigned nelms, AsyncIO stack = AsyncIO())
+	: CGetValContext( handle, stack ),
+	  adapter_ ( adapter ),
+	  buf_     ( buf     ),
+	  nelms_   ( nelms   ),
+	  stack_   ( stack   )  
 	{
 	}
 
-	void reset(DoubleVal_ROAdapt adapter, double *buf, unsigned nelms, IAsyncIO *aio)
-	{
-		pre_     = aio;
-		nelms_   = nelms;
-		buf_     = buf;
-		adapter_ = adapter;
-	}
-
-	void callback()
+	void complete()
 	{
 	int i;
-
-		if ( pre_ )
-			pre_->callback();
 
 		if ( IScalVal_Base::IEEE_754 == adapter_->getEncoding() ) {
 			if ( 64 != adapter_->getSizeBits() ) {
@@ -946,41 +997,29 @@ public:
 		}
 
 		adapter_->dbl2dbl( buf_, nelms_ );
-
-		if ( pre_ )
-			delete this;
-		else
-			this->~CGetDoubleValContext();
 	}
 };
 
-unsigned CDoubleVal_ROAdapt::getVal(double *buf, unsigned nelms, IndexRange *range, IAsyncIO *aio)
+unsigned CDoubleVal_ROAdapt::getVal(AsyncIO aio, double *buf, unsigned nelms, IndexRange *range)
+{
+unsigned sz = IScalVal_Base::IEEE_754 == getEncoding() && 64 != getSizeBits() ? sizeof(float) : sizeof(double);
+
+shared_ptr<CGetDoubleValContext> ctxt = make_shared<CGetDoubleValContext>( getSelfAs<IntEntryAdapt>(), this, buf, nelms, aio );
+
+	return IIntEntryAdapt::getVal(ctxt, reinterpret_cast<uint8_t*>(buf), nelms, sz, range );
+}
+
+unsigned CDoubleVal_ROAdapt::getVal(double *buf, unsigned nelms, IndexRange *range)
 {
 unsigned sz = IScalVal_Base::IEEE_754 == getEncoding() && 64 != getSizeBits() ? sizeof(float) : sizeof(double);
 unsigned rval;
 
-#warning FIXME
-DoubleVal_ROAdapt me = boost::dynamic_pointer_cast<DoubleVal_ROAdapt::element_type>( getSelfAs<IntEntryAdapt>() );
+	CGetDoubleValContext ctxt( getSelfAs<IntEntryAdapt>(), this, buf, nelms );
 
-	CGetDoubleValContext *ctxt;
+	rval = IIntEntryAdapt::getVal( reinterpret_cast<uint8_t*>(buf), nelms, sz, range );
 
-	if ( aio ) {
-		ctxt = new CGetDoubleValContext();
-		aio  = ctxt;
-	} else {
-		/* place on stack; this is implicitly exception safe
-		 * since the memory is popped...
-		 */
-		ctxt = new (alloca(sizeof(CGetDoubleValContext))) CGetDoubleValContext();
-	}
+	ctxt.callback();
 
-	ctxt->reset( me, buf, nelms, aio );
-
-	rval = IIntEntryAdapt::getVal( reinterpret_cast<uint8_t*>(buf), nelms, sz, range, aio );
-
-	if ( ! aio ) {
-		ctxt->callback();
-	}
 	return rval;
 }
 
@@ -1262,10 +1301,10 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p, YAML::Node &node) const
 
 		if ( (isFloat = (IScalVal_Base::IEEE_754 == getEncoding())) ) {
 			DoubleVal_RO val( IDoubleVal_RO::create( p ) );
-			got = val->getVal( & valBuf[0].d, nelms, 0, 0 );
+			got = val->getVal( & valBuf[0].d, nelms, 0 );
 		} else {
 			ScalVal_RO val( IScalVal_RO::create( p ) );
-			got = val->getVal( & valBuf[0].u, nelms, 0, 0 );
+			got = val->getVal( & valBuf[0].u, nelms, 0 );
 		}
 
 		if ( nelms != got ) {

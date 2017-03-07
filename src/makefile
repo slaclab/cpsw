@@ -52,6 +52,7 @@ cpsw_SRCS+= cpsw_thread.cc
 cpsw_SRCS+= cpsw_yaml.cc
 cpsw_SRCS+= cpsw_preproc.cc
 cpsw_SRCS+= cpsw_version.cc
+cpsw_SRCS+= cpsw_async_io.cc
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h
@@ -89,6 +90,7 @@ DEP_HEADERS += cpsw_mutex.h
 DEP_HEADERS += cpsw_command.h
 DEP_HEADERS += cpsw_yaml.h
 DEP_HEADERS += cpsw_preproc.h
+DEP_HEADERS += cpsw_async_io.h
 
 STATIC_LIBRARIES_YES+=cpsw
 SHARED_LIBRARIES_YES+=cpsw

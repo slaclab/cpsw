@@ -188,12 +188,19 @@ public:
 protected:
 	virtual shared_ptr<const CIntEntryImpl> asIntEntry() const { return static_pointer_cast<const CIntEntryImpl, const CEntryImpl>(ie_); }
 
-	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0, IAsyncIO *aio = 0 );
+	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
+	virtual unsigned getVal(AsyncIO aio, uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
 
-	template <typename E> unsigned getVal(E *e, unsigned nelms, IndexRange *r, IAsyncIO *aio)
+	template <typename E> unsigned getVal(E *e, unsigned nelms, IndexRange *r)
 	{
-		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r, aio );
+		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
 	}
+
+	template <typename E> unsigned getVal(AsyncIO aio, E *e, unsigned nelms, IndexRange *r)
+	{
+		return getVal(aio, reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
+	}
+
 
 	virtual unsigned setVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
 
@@ -208,27 +215,48 @@ class CScalVal_ROAdapt : public virtual IScalVal_RO, public virtual IIntEntryAda
 public:
 	CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 
-	virtual unsigned getVal(uint64_t *p, unsigned n, IndexRange *r=0, IAsyncIO *aio=0)
+	virtual unsigned getVal(uint64_t *p, unsigned n, IndexRange *r=0)
 	{
-		return IIntEntryAdapt::getVal<uint64_t>(p,n,r,aio);
+		return IIntEntryAdapt::getVal<uint64_t>(p,n,r);
 	}
 
-	virtual unsigned getVal(uint32_t *p, unsigned n, IndexRange *r=0, IAsyncIO *aio=0)
+	virtual unsigned getVal(AsyncIO aio, uint64_t *p, unsigned n, IndexRange *r=0)
 	{
-		return IIntEntryAdapt::getVal<uint32_t>(p,n,r,aio);
+		return IIntEntryAdapt::getVal<uint64_t>(aio, p,n,r);
 	}
 
-	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0, IAsyncIO *aio=0)
+	virtual unsigned getVal(uint32_t *p, unsigned n, IndexRange *r=0)
 	{
-		return IIntEntryAdapt::getVal<uint16_t>(p,n,r,aio);
+		return IIntEntryAdapt::getVal<uint32_t>(p,n,r);
 	}
 
-	virtual unsigned getVal(uint8_t  *p, unsigned n, IndexRange *r=0, IAsyncIO *aio=0)
+	virtual unsigned getVal(AsyncIO aio, uint32_t *p, unsigned n, IndexRange *r=0)
 	{
-		return IIntEntryAdapt::getVal<uint8_t> (p,n,r,aio);
+		return IIntEntryAdapt::getVal<uint32_t>(aio, p,n,r);
 	}
 
-	virtual unsigned getVal(CString  *p, unsigned n, IndexRange *r=0, IAsyncIO *aio=0);
+	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint16_t>(p,n,r);
+	}
+
+	virtual unsigned getVal(AsyncIO aio, uint16_t *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint16_t>(aio, p,n,r);
+	}
+
+	virtual unsigned getVal(uint8_t  *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint8_t> (p,n,r);
+	}
+
+	virtual unsigned getVal(AsyncIO aio, uint8_t *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint8_t>(aio, p,n,r);
+	}
+
+	virtual unsigned getVal(CString  *p, unsigned n, IndexRange *r=0);
+	virtual unsigned getVal(AsyncIO aio, CString  *p, unsigned n, IndexRange *r=0);
 };
 
 class CDoubleVal_ROAdapt : public virtual IDoubleVal_RO, public virtual IIntEntryAdapt {
@@ -238,7 +266,8 @@ public:
 	virtual void     int2dbl(double *dst, uint64_t *src, unsigned n);
 	virtual void     dbl2dbl(double *dst, unsigned n);
 
-	virtual unsigned getVal(double   *p, unsigned n, IndexRange *r=0, IAsyncIO *aio=0);
+	virtual unsigned getVal(double   *p, unsigned n, IndexRange *r=0);
+	virtual unsigned getVal(AsyncIO aio, double   *p, unsigned n, IndexRange *r=0);
 };
 
 class CScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {

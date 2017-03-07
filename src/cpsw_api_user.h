@@ -593,6 +593,10 @@ public:
 	virtual ~IndexRange(){}
 };
 
+class IAsyncIO;
+
+typedef shared_ptr<IAsyncIO> AsyncIO;
+
 class IAsyncIO {
 public:
 	virtual void callback() = 0;
@@ -626,16 +630,21 @@ public:
 	 *       to use the ScalVal_RO interface (as opposed to ScalVal)
 	 *       since the underlying endpoint may be read-only.
 	 */
-	virtual unsigned getVal(uint64_t *p, unsigned nelms = 1, IndexRange *range = 0, IAsyncIO * = 0)      = 0;
-	virtual unsigned getVal(uint32_t *p, unsigned nelms = 1, IndexRange *range = 0, IAsyncIO * = 0)      = 0;
-	virtual unsigned getVal(uint16_t *p, unsigned nelms = 1, IndexRange *range = 0, IAsyncIO * = 0)      = 0;
-	virtual unsigned getVal(uint8_t  *p, unsigned nelms = 1, IndexRange *range = 0, IAsyncIO * = 0)      = 0;
+	virtual unsigned getVal(uint64_t *p, unsigned nelms = 1, IndexRange *range = 0)               = 0;
+	virtual unsigned getVal(AsyncIO aio, uint64_t *p, unsigned nelms = 1, IndexRange *range = 0)  = 0;
+	virtual unsigned getVal(uint32_t *p, unsigned nelms = 1, IndexRange *range = 0)               = 0;
+	virtual unsigned getVal(AsyncIO aio, uint32_t *p, unsigned nelms = 1, IndexRange *range = 0)  = 0;
+	virtual unsigned getVal(uint16_t *p, unsigned nelms = 1, IndexRange *range = 0)               = 0;
+	virtual unsigned getVal(AsyncIO aio, uint16_t *p, unsigned nelms = 1, IndexRange *range = 0)  = 0;
+	virtual unsigned getVal(uint8_t  *p, unsigned nelms = 1, IndexRange *range = 0)               = 0;
+	virtual unsigned getVal(AsyncIO aio, uint8_t  *p, unsigned nelms = 1, IndexRange *range = 0)  = 0;
 	/*!
 	 * If the underlying element has an Enum menu attached then reading strings
 	 * from the interface will cause the raw numerical values to be mapped through
 	 * the Enum into strings.
 	 */
-	virtual unsigned getVal(CString  *p, unsigned nelms = 1, IndexRange *range = 0, IAsyncIO * = 0)      = 0;
+	virtual unsigned getVal(CString  *p, unsigned nelms = 1, IndexRange *range = 0)               = 0;
+	virtual unsigned getVal(AsyncIO aio, CString *p, unsigned nelms = 1, IndexRange *range = 0)   = 0;
 	virtual ~IScalVal_RO () {}
 
 	/*!
@@ -782,7 +791,8 @@ public:
 	/*!
 	 * Read values -- see ScalVal_RO::getVal().
 	 */
-	virtual unsigned getVal(double *p, unsigned nelms = 1, IndexRange *range = 0, IAsyncIO * = 0)      = 0;
+	virtual unsigned getVal(double *p, unsigned nelms = 1, IndexRange *range = 0)              = 0;
+	virtual unsigned getVal(AsyncIO aio, double *p, unsigned nelms = 1, IndexRange *range = 0) = 0;
 
 	virtual ~IDoubleVal_RO(){}
 

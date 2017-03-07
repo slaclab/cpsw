@@ -152,9 +152,17 @@ CConstDblEntryAdapt::CConstDblEntryAdapt(Key &k, Path p, shared_ptr<const CIntEn
 {
 }
 
+unsigned
+CConstIntEntryAdapt::getVal(AsyncIO aio, uint8_t  *buf, unsigned nelms, unsigned elsz, IndexRange *r)
+{
+unsigned rval = getVal(buf, nelms, elsz, r);
+	// always synchronous -- there is no communication going on
+	aio->callback();
+	return rval;
+}
 
 unsigned
-CConstIntEntryAdapt::getVal(uint8_t  *buf, unsigned nelms, unsigned elsz, IndexRange *r, IAsyncIO *aio)
+CConstIntEntryAdapt::getVal(uint8_t  *buf, unsigned nelms, unsigned elsz, IndexRange *r)
 {
 SlicedPathIterator it( p_, r );
 unsigned nelmsOnPath = it.getNelmsLeft();
@@ -181,14 +189,19 @@ uint64_t val = ie->getInt();
 		buf += elsz;
 	}
 
-	if ( aio )
-		aio->callback();
-
 	return nelms;
 }
 
 unsigned
-CConstDblEntryAdapt::getVal(double   *buf, unsigned nelms, IndexRange *r, IAsyncIO *aio)
+CConstDblEntryAdapt::getVal(AsyncIO aio, double   *buf, unsigned nelms, IndexRange *r)
+{
+unsigned rval = getVal(buf, nelms, r);
+	aio->callback();
+	return rval;
+}
+
+unsigned
+CConstDblEntryAdapt::getVal(double   *buf, unsigned nelms, IndexRange *r)
 {
 SlicedPathIterator it( p_, r );
 unsigned nelmsOnPath = it.getNelmsLeft();
@@ -205,9 +218,6 @@ double doubleVal = ie->getDouble();
 	for ( unsigned n = 0; n < nelms; n++ ) {
 		buf[n] = doubleVal;
 	}
-
-	if ( aio )
-		aio->callback();
 
 	return nelms;
 }
