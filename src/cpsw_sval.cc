@@ -15,6 +15,7 @@
 #include <cpsw_entry_adapt.h>
 #include <cpsw_sval.h>
 #include <cpsw_address.h>
+#include <cpsw_async_io.h>
 
 #include <string>
 
@@ -679,14 +680,13 @@ CDoubleVal_WOAdapt::dbl2int(uint64_t *dst, double *src, unsigned nelms)
 
 typedef shared_ptr<IIntEntryAdapt> IntEntryAdapt;
 
-class CGetValContext : public IAsyncIO {
+class CGetValContext : public CAsyncIOCompletion {
 protected:
 	static const unsigned ALLOC_BRK = 512;
 
 	IntEntryAdapt   adapter_;
 
 private:
-	AsyncIO         stack_;
 	uint8_t         tmpBuf_[ALLOC_BRK];
 	uint8_t        *tmpBufAlloc_;
 	unsigned        tmpBufSz_;
@@ -694,8 +694,8 @@ private:
 protected:
 
 	CGetValContext(IntEntryAdapt adapter, AsyncIO aio = AsyncIO())
-	: adapter_ ( adapter ),
-	  stack_   ( aio     ),
+	: CAsyncIOCompletion( aio ),
+	  adapter_ ( adapter ),
 	  tmpBufSz_( 0       )
 	{
 	}
@@ -722,13 +722,6 @@ protected:
 	virtual void complete() = 0;
 
 public:
-	virtual void callback ()
-	{
-		complete();
-		if ( stack_ )
-			stack_->callback();
-	}
-
 	virtual ~CGetValContext()
 	{
 		if ( tmpBufSz_ )
@@ -889,6 +882,7 @@ unsigned           nelmsOnPath  = it.getNelmsLeft();
                                                  aio );
 	args.cacheable_ = ie_->getCacheable();
 	args.off_       = 0;
+	args.aio_       = ctxt;
 
 	ctxt->getReadParms( &args );
 
@@ -920,7 +914,7 @@ unsigned           nelmsOnPath  = it.getNelmsLeft();
 
 	cl->read( &it, &args );
 
-	ctxt.callback();
+	ctxt.callback( 0 );
 	return nelms;
 
 }
@@ -966,15 +960,13 @@ private:
 	CDoubleVal_ROAdapt *adapter_;
 	double             *buf_;
 	unsigned            nelms_;
-	AsyncIO             stack_;
 
 public:
 	CGetDoubleValContext(IntEntryAdapt handle, CDoubleVal_ROAdapt *adapter, double *buf, unsigned nelms, AsyncIO stack = AsyncIO())
 	: CGetValContext( handle, stack ),
 	  adapter_ ( adapter ),
 	  buf_     ( buf     ),
-	  nelms_   ( nelms   ),
-	  stack_   ( stack   )  
+	  nelms_   ( nelms   )
 	{
 	}
 
@@ -1018,7 +1010,7 @@ unsigned rval;
 
 	rval = IIntEntryAdapt::getVal( reinterpret_cast<uint8_t*>(buf), nelms, sz, range );
 
-	ctxt.callback();
+	ctxt.callback( 0 );
 
 	return rval;
 }

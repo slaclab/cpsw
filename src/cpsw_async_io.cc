@@ -4,6 +4,7 @@
 #include <cpsw_mutex.h>
 #include <cpsw_thread.h>
 #include <cpsw_condvar.h>
+#include <cpsw_error.h>
 
 #include <boost/make_shared.hpp>
 
@@ -64,6 +65,9 @@ private:
 		node->addBefore( &pendingList_ );
 	}
 
+protected:
+	virtual void doComplete(AsyncIOTransaction xact, BufChain bc = BufChain());
+
 public:
 
 	CAsyncIOTransactionManager(uint64_t timeoutUs);
@@ -82,7 +86,7 @@ public:
 	}
 
 	virtual void
-	post(AsyncIOTransaction xact, TID tid);
+	post(AsyncIOTransaction xact, TID tid, AsyncIO callback);
 
 	virtual int
 	complete(BufChain bc, TID tid);
@@ -105,13 +109,14 @@ CAsyncIOTransactionManager::CAsyncIOTransactionManager(uint64_t timeoutUs)
 }
 
 void
-CAsyncIOTransactionManager::post(AsyncIOTransaction xact, TID tid)
+CAsyncIOTransactionManager::post(AsyncIOTransaction xact, TID tid, AsyncIO callback)
 {
 	xact->tid_        = tid;
 
 	clock_gettime( CLOCK_MONOTONIC, &xact->timeout_.tv_ );
 
 	xact->timeout_   += timeout_;
+	xact->aio_        = callback;
 	{
 		CMtx::lg guard( &pendingMtx_ );
 		bool     wakeup = pendingListEmpty();
@@ -144,7 +149,7 @@ CAsyncIOTransactionManager::complete(BufChain bc, TID tid)
 		xact->remove();
 	}
 
-	(Completer (xact))(bc);
+	doComplete( xact, bc );
 
 	return 0;
 }
@@ -189,7 +194,7 @@ bail:
 		// pendingMtx_ released at this point
 
 		if ( xact ) {
-			(Completer(xact))( BufChain() );
+			doComplete( xact );
 		} else {
 			// if pthread_cond_wait incurred an error then 'xact == 0' since
 			// otherwise we wouldn't have waited in the first place
@@ -200,6 +205,26 @@ bail:
 		}
 	}
 	return 0;
+}
+
+void
+CAsyncIOTransactionManager::doComplete(AsyncIOTransaction xact, BufChain bc )
+{
+Completer cmpl( xact );
+AsyncIO   aio;
+
+	xact->aio_.swap( aio );
+
+	try {
+		cmpl( bc );
+		if ( aio ) {	
+			TimeoutError err;
+			aio->callback( bc ? 0 : &err );
+		}
+	} catch (CPSWError &err) {
+		if ( aio )
+			aio->callback( &err );
+	}
 }
 
 CAsyncIOTransactionManager::~CAsyncIOTransactionManager()
@@ -213,8 +238,7 @@ AsyncIOTransaction xact;
 	while ( (xact = getHead_unl()) ) {
 		xact->remove();
 		pendingMtx_.u();
-		(Completer(xact))( BufChain() );
-
+		doComplete( xact );
 		pendingMtx_.l();
 	}
 	pendingMtx_.u();
@@ -258,5 +282,29 @@ AsyncIOTransaction xact;
 	while ( (xact = freeList_) ) {
 		freeList_ = freeList_->next_;
 		delete xact;
+	}
+}
+
+CAsyncIOCompletion::CAsyncIOCompletion(AsyncIO parent)
+: stack_(parent)
+{
+}
+
+void
+CAsyncIOCompletion::callback (CPSWError *upstreamError)
+{
+	if ( stack_ ) {
+		if ( upstreamError ) {
+			stack_->callback( upstreamError );
+		} else {
+			try {
+				complete();
+				stack_->callback( 0 );
+			} catch ( CPSWError &err ) {
+				stack_->callback( &err );
+			}
+		}
+	} else {
+		complete();
 	}
 }

@@ -711,6 +711,10 @@ unsigned nWords;
 	totbytes = headbytes + sbytes;
 	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
+	if ( args->aio_ && nWords > maxWordsRx_ ) {
+		throw InternalError("Asynchronous SRP reads covering multiple blocks not supported");
+	}
+
 	CMtx::lg GUARD( &mutex_ );
 
 	while ( nWords > maxWordsRx_ ) {

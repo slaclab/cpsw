@@ -37,6 +37,7 @@ public:
 	unsigned          nbytes_;
 	uint64_t          off_;
 	CTimeout          timeout_;
+	AsyncIO           aio_;
 	CReadArgs()
 	: cacheable_ ( IField::UNKNOWN_CACHEABLE ),
 	  dst_       ( NULL ),

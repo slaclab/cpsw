@@ -599,7 +599,8 @@ typedef shared_ptr<IAsyncIO> AsyncIO;
 
 class IAsyncIO {
 public:
-	virtual void callback() = 0;
+	// Callback with an error message or NULL (SUCCESS)
+	virtual void callback(CPSWError *status) = 0;
 	virtual ~IAsyncIO() {}
 };
 

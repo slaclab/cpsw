@@ -37,9 +37,9 @@ main(int argc, char **argv)
 AsyncIOTransactionManager mgr = IAsyncIOTransactionManager::create();
 Pool                     pool = CAsyncIOTransactionPool<MyCallback>::create();
 
-	mgr->post( pool->getTransaction()->setId(1), 1 );
-	mgr->post( pool->getTransaction()->setId(2), 2 );
-	mgr->post( pool->getTransaction()->setId(3), 2 );
+	mgr->post( pool->getTransaction()->setId(1), 1, AsyncIO() );
+	mgr->post( pool->getTransaction()->setId(2), 2, AsyncIO() );
+	mgr->post( pool->getTransaction()->setId(3), 3, AsyncIO() );
 
 	mgr->complete(BufChain(), 2);
 

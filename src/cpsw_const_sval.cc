@@ -157,7 +157,7 @@ CConstIntEntryAdapt::getVal(AsyncIO aio, uint8_t  *buf, unsigned nelms, unsigned
 {
 unsigned rval = getVal(buf, nelms, elsz, r);
 	// always synchronous -- there is no communication going on
-	aio->callback();
+	aio->callback( 0 );
 	return rval;
 }
 
@@ -196,7 +196,7 @@ unsigned
 CConstDblEntryAdapt::getVal(AsyncIO aio, double   *buf, unsigned nelms, IndexRange *r)
 {
 unsigned rval = getVal(buf, nelms, r);
-	aio->callback();
+	aio->callback( 0 );
 	return rval;
 }
 

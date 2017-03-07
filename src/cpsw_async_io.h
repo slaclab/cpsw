@@ -1,6 +1,7 @@
 #ifndef CPSW_ASYNC_TRANSACTION_H
 #define CPSW_ASYNC_TRANSACTION_H
 
+#include <cpsw_api_user.h>
 #include <cpsw_buf.h>
 #include <cpsw_mutex.h>
 #include <cpsw_shared_obj.h>
@@ -78,8 +79,8 @@ class IAsyncIOTransactionManager {
 public:
 	typedef uint32_t TID;	
 
-	virtual void post(AsyncIOTransaction, TID) = 0;
-	virtual int  complete(BufChain, TID)       = 0;
+	virtual void post(AsyncIOTransaction, TID, AsyncIO callback) = 0;
+	virtual int  complete(BufChain, TID)                         = 0;
 
 	virtual ~IAsyncIOTransactionManager() {}
 
@@ -94,6 +95,7 @@ private:
 	IAsyncIOTransactionManager::TID tid_;
 	CTimeout                        timeout_;
 	AsyncIOTransactionPool          pool_;
+	AsyncIO                         aio_;
 
 	CAsyncIOTransaction(const CAsyncIOTransaction &);
 	CAsyncIOTransaction & operator=(const CAsyncIOTransaction &);
@@ -145,6 +147,8 @@ public:
 
 	virtual void free()
 	{
+		if ( aio_ )
+			throw InternalError("Callback never executed");
 		pool_->put( this );
 	}
 
@@ -154,6 +158,15 @@ public:
 	friend class CAsyncIOTransactionPoolBase;
 };
 
+class CAsyncIOCompletion : public IAsyncIO {
+private:
+	AsyncIO stack_;
+public:
+	CAsyncIOCompletion(AsyncIO parent);
 
+	virtual void callback (CPSWError *upstreamError);
+
+	virtual void complete() = 0;
+};
 
 #endif

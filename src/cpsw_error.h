@@ -348,4 +348,22 @@ public:
 	}
 };
 
+class TimeoutError : public CPSWError {
+public:
+	TimeoutError(const char *s)
+	: CPSWError(s)
+	{
+	}
+
+	TimeoutError(const std::string &s)
+	: CPSWError(s)
+	{
+	}
+
+	TimeoutError()
+	: CPSWError("Timeout")
+	{
+	}
+};
+
 #endif

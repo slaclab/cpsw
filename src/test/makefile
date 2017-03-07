@@ -96,6 +96,10 @@ rssi_tst_SRCS            = rssi_tst.cc udpsrv_port.cc udpsrv_util.cc udpsrv_stre
 rssi_tst_LIBS            = $(CPSW_LIBS)
 TESTPROGRAMS            += rssi_tst
 
+tst_SRCS=tst.cc
+tst_LIBS=$(CPSW_LIBS)
+TESTPROGRAMS            += tst
+
 cpsw_srpv3_large_tst_SRCS += cpsw_srpv3_large_tst.cc
 cpsw_srpv3_large_tst_LIBS += $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_srpv3_large_tst
