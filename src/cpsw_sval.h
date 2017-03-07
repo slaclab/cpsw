@@ -188,19 +188,33 @@ public:
 protected:
 	virtual shared_ptr<const CIntEntryImpl> asIntEntry() const { return static_pointer_cast<const CIntEntryImpl, const CEntryImpl>(ie_); }
 
-	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
-	virtual unsigned getVal(AsyncIO aio, uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
+	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, SlicedPathIterator *it);
+	virtual unsigned getVal(AsyncIO aio, uint8_t  *, unsigned, unsigned, SlicedPathIterator *it);
 
 	template <typename E> unsigned getVal(E *e, unsigned nelms, IndexRange *r)
 	{
-		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
+	SlicedPathIterator it(p_, r);
+		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), &it );
 	}
 
 	template <typename E> unsigned getVal(AsyncIO aio, E *e, unsigned nelms, IndexRange *r)
 	{
-		return getVal(aio, reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
+	SlicedPathIterator it(p_, r);
+		return getVal(aio, reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), &it );
 	}
 
+	template <typename E> unsigned getVal(E *e, unsigned nelms, SlicedPathIterator *it)
+	{
+		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), it );
+	}
+
+	template <typename E> unsigned getVal(AsyncIO aio, E *e, unsigned nelms, SlicedPathIterator *it)
+	{
+		return getVal(aio, reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), it );
+	}
+
+
+	virtual unsigned checkNelms(unsigned nelms, SlicedPathIterator *it);
 
 	virtual unsigned setVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
 

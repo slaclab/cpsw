@@ -687,7 +687,8 @@ protected:
 	IntEntryAdapt   adapter_;
 
 private:
-	uint8_t         tmpBuf_[ALLOC_BRK];
+	typedef union { uint8_t c; uint64_t u; } BufEl;
+	BufEl           tmpBuf_[(ALLOC_BRK + sizeof(BufEl) - 1)/sizeof(BufEl)];
 	uint8_t        *tmpBufAlloc_;
 	unsigned        tmpBufSz_;
 
@@ -705,7 +706,7 @@ protected:
 	uint8_t *rval;
 		if ( buf_bytes <= ALLOC_BRK ) {
 			// use internal buffer
-			rval   = tmpBuf_;
+			rval   = &tmpBuf_[0].c;
 		} else if ( buf_bytes <= tmpBufSz_ ) {
 			// use existing buffer
 			rval   = tmpBufAlloc_;
@@ -858,18 +859,25 @@ public:
 
 };
 
-unsigned IIntEntryAdapt::getVal(AsyncIO aio, uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
+
+unsigned IIntEntryAdapt::checkNelms(unsigned nelms, SlicedPathIterator *it)
 {
-SlicedPathIterator it( p_, range );
-Address            cl           = it->c_p_;
-ByteOrder          targetEndian = cl->getByteOrder();
-unsigned           nelmsOnPath  = it.getNelmsLeft();
+unsigned nelmsOnPath  = (*it).getNelmsLeft();
 
 	if ( nelms >= nelmsOnPath ) {
 		nelms = nelmsOnPath;
 	} else {
 		throw InvalidArgError("Invalid Argument: buffer too small");
 	}
+	return nelms;
+}
+
+unsigned IIntEntryAdapt::getVal(AsyncIO aio, uint8_t *buf, unsigned nelms, unsigned elsz, SlicedPathIterator *it)
+{
+Address            cl           = (*it)->c_p_;
+ByteOrder          targetEndian = cl->getByteOrder();
+
+	nelms = checkNelms(nelms, it);
 
 	CReadArgs args;
 
@@ -886,23 +894,17 @@ unsigned           nelmsOnPath  = it.getNelmsLeft();
 
 	ctxt->getReadParms( &args );
 
-	cl->read( &it, &args );
+	cl->read( it, &args );
 
 	return nelms;
 }
 
-unsigned IIntEntryAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
+unsigned IIntEntryAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, SlicedPathIterator *it)
 {
-SlicedPathIterator it( p_, range );
-Address            cl           = it->c_p_;
+Address            cl           = (*it)->c_p_;
 ByteOrder          targetEndian = cl->getByteOrder();
-unsigned           nelmsOnPath  = it.getNelmsLeft();
 
-	if ( nelms >= nelmsOnPath ) {
-		nelms = nelmsOnPath;
-	} else {
-		throw InvalidArgError("Invalid Argument: buffer too small");
-	}
+	nelms = checkNelms( nelms, it );
 
 	CReadArgs args;
 
@@ -912,44 +914,89 @@ unsigned           nelmsOnPath  = it.getNelmsLeft();
 	args.off_       = 0;
 	ctxt.getReadParms( &args );
 
-	cl->read( &it, &args );
+	cl->read( it, &args );
 
 	ctxt.callback( 0 );
 	return nelms;
 
 }
 
+class CGetStringValContext : public CGetValContext {
+private:
+	uint64_t      *buf_;
+	unsigned       nelms_;
+	CString       *strs_;
+
+public:
+	CGetStringValContext(IntEntryAdapt handle, CString *strs, unsigned nelms, AsyncIO stack = AsyncIO())
+	: CGetValContext( handle, stack ),
+	  nelms_   ( nelms   ),
+	  strs_    ( strs    )
+	{
+		buf_ = reinterpret_cast<uint64_t*>( mkbuf( sizeof(*buf_)*nelms_ ) );
+	}
+
+	uint64_t *getTmpBuf()
+	{
+		return buf_;
+	}
+
+	void complete()
+	{
+	Enum     enm = adapter_->getEnum();
+	unsigned i;
+
+		if ( enm ) {
+			for ( i=0; i < nelms_; i++ ) {
+				IEnum::Item item = enm->map( buf_[i] );
+				strs_[i] = item.first;
+			}
+		} else {
+			char strbuf[100];
+			const char *fmt = adapter_->isSigned() ? "%" PRIi64 : "%" PRIu64;
+			strbuf[sizeof(strbuf)-1] = 0;
+			for ( i=0; i < nelms_; i++ ) {
+				::snprintf(strbuf, sizeof(strbuf) - 1, fmt, buf_[i]);
+				strs_[i] = make_shared<string>( strbuf );
+			}
+		}
+		while ( i < nelms_ )
+			strs_[i].reset();
+	}
+};
+
 unsigned CScalVal_ROAdapt::getVal(AsyncIO aio, CString *strs, unsigned nelms, IndexRange *range)
 {
-	throw InternalError("AIO for strings not implemented yet");
+SlicedPathIterator it(p_, range);
+unsigned           rval;
+
+	nelms = checkNelms(nelms, &it);
+
+	shared_ptr<CGetStringValContext> ctxt = make_shared<CGetStringValContext>( getSelfAs<IntEntryAdapt>(), strs, nelms, aio);
+
+	uint64_t *tmpBuf = ctxt->getTmpBuf();
+
+	rval = IIntEntryAdapt::getVal<uint64_t>( ctxt, tmpBuf, nelms, &it );
+
+	return rval;
 }
 
 unsigned CScalVal_ROAdapt::getVal(CString *strs, unsigned nelms, IndexRange *range)
 {
-TMP_BUF_DECL(uint64_t, buf, nelms);
-unsigned         got,i;
-Enum             enm = getEnum();
+SlicedPathIterator it(p_, range);
+unsigned           rval;
 
-	got = getVal(buf.getBufp(), nelms, range);
+	nelms = checkNelms(nelms, &it);
 
-	if ( enm ) {
-		for ( i=0; i < got; i++ ) {
-			IEnum::Item item = enm->map(buf[i]);
-			strs[i] = item.first;
-		}
-	} else {
-		char strbuf[100];
-		const char *fmt = isSigned() ? "%" PRIi64 : "%" PRIu64;
-		strbuf[sizeof(strbuf)-1] = 0;
-		for ( i=0; i < got; i++ ) {
-			snprintf(strbuf, sizeof(strbuf) - 1, fmt, buf[i]);
-			strs[i] = make_shared<string>( strbuf );
-		}
-	}
-	while ( i < nelms )
-		strs[i].reset();
+	CGetStringValContext ctxt( getSelfAs<IntEntryAdapt>(), strs, nelms );
 
-	return got;
+	uint64_t *tmpBuf = ctxt.getTmpBuf();
+
+	rval = IIntEntryAdapt::getVal<uint64_t>( tmpBuf, nelms, &it );
+
+	ctxt.callback( 0 );
+
+	return rval;
 }
 
 class CGetDoubleValContext : public CGetValContext {
@@ -994,21 +1041,40 @@ public:
 
 unsigned CDoubleVal_ROAdapt::getVal(AsyncIO aio, double *buf, unsigned nelms, IndexRange *range)
 {
-unsigned sz = IScalVal_Base::IEEE_754 == getEncoding() && 64 != getSizeBits() ? sizeof(float) : sizeof(double);
+SlicedPathIterator it(p_, range);
+
+unsigned rval;
+
+	nelms = checkNelms(nelms, &it);
 
 shared_ptr<CGetDoubleValContext> ctxt = make_shared<CGetDoubleValContext>( getSelfAs<IntEntryAdapt>(), this, buf, nelms, aio );
 
-	return IIntEntryAdapt::getVal(ctxt, reinterpret_cast<uint8_t*>(buf), nelms, sz, range );
+	if ( IScalVal_Base::IEEE_754 == getEncoding() && 64 != getSizeBits() ) {
+		float *fBuf = reinterpret_cast<float*>(buf);
+		rval = IIntEntryAdapt::getVal<float>( fBuf, nelms, &it );
+	} else {
+		rval = IIntEntryAdapt::getVal<double>( buf, nelms, &it );
+	}
+
+	return rval;
 }
 
 unsigned CDoubleVal_ROAdapt::getVal(double *buf, unsigned nelms, IndexRange *range)
 {
-unsigned sz = IScalVal_Base::IEEE_754 == getEncoding() && 64 != getSizeBits() ? sizeof(float) : sizeof(double);
+SlicedPathIterator it(p_, range);
+
 unsigned rval;
+
+	nelms = checkNelms(nelms, &it);
 
 	CGetDoubleValContext ctxt( getSelfAs<IntEntryAdapt>(), this, buf, nelms );
 
-	rval = IIntEntryAdapt::getVal( reinterpret_cast<uint8_t*>(buf), nelms, sz, range );
+	if ( IScalVal_Base::IEEE_754 == getEncoding() && 64 != getSizeBits() ) {
+		float *fBuf = reinterpret_cast<float*>(buf);
+		rval = IIntEntryAdapt::getVal<float>( fBuf, nelms, &it );
+	} else {
+		rval = IIntEntryAdapt::getVal<double>( buf, nelms, &it );
+	}
 
 	ctxt.callback( 0 );
 
@@ -1040,12 +1106,8 @@ ByteOrder        hostEndian= hostByteOrder();
 ByteOrder        targetEndian = cl->getByteOrder();
 uint8_t          msk1     = 0x00;
 uint8_t          mskn     = 0x00;
-unsigned         nelmsOnPath = it.getNelmsLeft();
 
-	if ( nelms >= nelmsOnPath )
-		nelms = nelmsOnPath;
-	else
-		throw InvalidArgError("not enough values supplied");
+	nelms = checkNelms( nelms, &it );
 
 	bool sign_extend = sizeBits > 8*sbytes;
 	bool truncate    = sizeBits < 8*sbytes;
