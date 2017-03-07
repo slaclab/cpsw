@@ -71,14 +71,11 @@ void *
 CSRPAsyncHandler::threadBody()
 {
 	while ( 1 ) {
-printf("XXX\n");
 		BufChain rchn = door_->pop( 0, true );
 
 		uint32_t tid_bits = srp_->extractTid( rchn );
 
-	printf("Got something: TID %lu\n", tid_bits);
-
-		xactMgr_->complete( rchn, srp_->extractTid( rchn ) );
+		xactMgr_->complete( rchn, tid_bits );
 	}
 	return 0;
 }
