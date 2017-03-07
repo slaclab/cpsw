@@ -11,6 +11,8 @@
 #define CPSW_SRP_ADDRESS_H
 
 #include <cpsw_comm_addr.h>
+#include <cpsw_thread.h>
+#include <cpsw_async_io.h>
 
 
 // Dynamical timeout based on round-trip times
@@ -50,30 +52,62 @@ public:
 
 };
 
+class CSRPAddressImpl;
+
+class CSRPAsyncHandler : CRunnable {
+private:
+	AsyncIOTransactionManager xactMgr_;	
+	CSRPAddressImpl          *srp_;
+	ProtoDoor                 door_;
+	virtual bool threadStop(void **);
+protected:
+	virtual void *threadBody();
+public:
+	CSRPAsyncHandler(AsyncIOTransactionManager, CSRPAddressImpl *);
+	virtual void threadStart(ProtoDoor);
+	virtual bool threadStop()
+	{
+		return CRunnable::threadStop();
+	}
+
+	virtual ProtoDoor getDoor() const
+	{
+		return door_;
+	}
+};
+
+class CSRPAsyncReadTransaction;
+typedef CSRPAsyncReadTransaction *SRPAsyncReadTransaction;
+
+typedef shared_ptr< CAsyncIOTransactionPool<CSRPAsyncReadTransaction> > SRPAsyncReadXactPool;
+
 class CSRPAddressImpl : public CCommAddressImpl {
 private:
 	INetIODev::ProtocolVersion protoVersion_;
-	CTimeout         usrTimeout_;
-	mutable DynTimeout dynTimeout_;
-	bool             useDynTimeout_;
-	unsigned         retryCnt_;
-	mutable unsigned nRetries_;
-	mutable unsigned nWrites_;
-	mutable unsigned nReads_;
-	uint8_t          vc_;
-	bool             needsSwap_;
-	bool             needsPldSwap_;
-	mutable uint32_t tid_;
-	uint32_t         tidMsk_;
-	uint32_t         tidLsb_;
-	bool             byteResolution_;
-	unsigned         maxWordsRx_;
-	unsigned         maxWordsTx_;
-	ProtoPort        asyncIOPort_;
-	ProtoDoor        asyncIODoor_;
+	CTimeout                  usrTimeout_;
+	mutable DynTimeout        dynTimeout_;
+	bool                      useDynTimeout_;
+	unsigned                  retryCnt_;
+	mutable unsigned          nRetries_;
+	mutable unsigned          nWrites_;
+	mutable unsigned          nReads_;
+	uint8_t                   vc_;
+	bool                      needsSwap_;
+	bool                      needsPldSwap_;
+	mutable uint32_t          tid_;
+	uint32_t                  tidMsk_;
+	uint32_t                  tidLsb_;
+	bool                      byteResolution_;
+	unsigned                  maxWordsRx_;
+	unsigned                  maxWordsTx_;
+	ProtoPort                 asyncIOPort_;
+	AsyncIOTransactionManager asyncXactMgr_;
+	CSRPAsyncHandler          asyncIOHandler_;
+	SRPAsyncReadXactPool      asyncReadXactPool_;
 
 protected:
 	mutable CMtx     mutex_;
+	virtual uint64_t readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes, AsyncIO aio) const;
 	virtual uint64_t readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const;
 	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 
@@ -83,7 +117,8 @@ public:
 	CSRPAddressImpl(CSRPAddressImpl &orig, AKey k)
 	: CCommAddressImpl(orig, k),
 	  dynTimeout_(orig.dynTimeout_.get()),
-	  nRetries_(0)
+	  nRetries_(0),
+	  asyncIOHandler_( AsyncIOTransactionManager(), 0 )
 	{
 		throw InternalError("Clone not implemented"); /* need to clone mutex, ... */
 	}

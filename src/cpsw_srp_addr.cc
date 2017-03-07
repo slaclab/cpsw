@@ -45,6 +45,44 @@ ProtoPortMatchParams cmp;
 	return cmp.requestedMatches() == cmp.findMatches( stack );
 }
 
+CSRPAsyncHandler::CSRPAsyncHandler(AsyncIOTransactionManager xactMgr, CSRPAddressImpl *srp)
+: CRunnable("SRP Async Handler"),
+  xactMgr_ ( xactMgr           ),
+  srp_     ( srp               )
+{
+}
+
+bool
+CSRPAsyncHandler::threadStop(void **join_p)
+{
+bool rval = CRunnable::threadStop(join_p);
+	door_.reset();
+	return rval;
+}
+
+void
+CSRPAsyncHandler::threadStart(ProtoDoor door)
+{
+	door_ = door;
+	CRunnable::threadStart();
+}
+
+void *
+CSRPAsyncHandler::threadBody()
+{
+	while ( 1 ) {
+printf("XXX\n");
+		BufChain rchn = door_->pop( 0, true );
+
+		uint32_t tid_bits = srp_->extractTid( rchn );
+
+	printf("Got something: TID %lu\n", tid_bits);
+
+		xactMgr_->complete( rchn, srp_->extractTid( rchn ) );
+	}
+	return 0;
+}
+
 
 CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort stack)
 :CCommAddressImpl(key, stack),
@@ -63,6 +101,9 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort sta
  byteResolution_( bldr->getSRPVersion() >= IProtoStackBuilder::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
  maxWordsRx_( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 || !hasDepack( stack) ? MAXWORDS : (1<<28) ),
  maxWordsTx_( MAXWORDS ),
+ asyncXactMgr_( IAsyncIOTransactionManager::create( usrTimeout_.getUs() ) ),
+ asyncIOHandler_( asyncXactMgr_, this ),
+ asyncReadXactPool_( SRPAsyncReadXactPool::element_type::create() ),
  mutex_( CMtx::AttrRecursive(), "SRPADDR" )
 {
 ProtoModSRPMux       srpMuxMod( dynamic_pointer_cast<ProtoModSRPMux::element_type>( stack->getProtoMod() ) );
@@ -166,7 +207,7 @@ typedef struct srp_iovec {
 	size_t iov_len;
 } IOVec;
 
-class SRPTransaction {
+class CSRPTransaction {
 private:
 	uint32_t  tid_;
 	bool      doSwapV1_; // V1 sends payload in network byte order. We want to transform to restore
@@ -175,7 +216,7 @@ private:
 	bool      doSwap_;   // header info needs to be swapped to host byte order since we interpret it
 
 public:
-	SRPTransaction(
+	CSRPTransaction(
 		const CSRPAddressImpl *srpAddr
 	);
 
@@ -189,7 +230,7 @@ public:
 
 	virtual void complete(BufChain) = 0;
 
-	virtual ~SRPTransaction()
+	virtual ~CSRPTransaction()
 	{
 	}
 
@@ -206,7 +247,7 @@ public:
 	}
 };
 
-class SRPWriteTransaction : public SRPTransaction {
+class CSRPWriteTransaction : public CSRPTransaction {
 private:
 	int        nWords_;
 	int        expected_;
@@ -216,7 +257,7 @@ protected:
 	resetMe(const CSRPAddressImpl *srpAddr, int nWords, int expected);
 
 public:
-	SRPWriteTransaction(
+	CSRPWriteTransaction(
 		const CSRPAddressImpl *srpAddr,
 		int   nWords,
 		int   expected
@@ -229,7 +270,7 @@ public:
 
 };
 
-class SRPReadTransaction : public SRPTransaction {
+class CSRPReadTransaction : public CSRPTransaction {
 private:
 	uint8_t        *dst_;
     uint64_t        off_;
@@ -254,7 +295,7 @@ protected:
 	resetMe(const CSRPAddressImpl *srpAddr, uint8_t *dst, uint64_t off, unsigned sbytes);
 
 public:
-	SRPReadTransaction(
+	CSRPReadTransaction(
 		const CSRPAddressImpl *srpAddr,
 		uint8_t               *dst,
 		uint64_t               off,
@@ -283,15 +324,38 @@ public:
 	complete(BufChain rchn);
 };
 
-SRPTransaction::SRPTransaction(
+class CSRPAsyncReadTransaction : public CAsyncIOTransaction, public CSRPReadTransaction {
+public:
+	CSRPAsyncReadTransaction(
+		AsyncIOTransactionPool        pool,
+		const CAsyncIOTransactionKey &key);
+
+	virtual void complete(BufChain bc)
+	{
+		// if bc is NULL then a timeout occurred and we don't do anything
+		if ( bc )
+			CSRPReadTransaction::complete(bc);
+	}
+};
+
+CSRPAsyncReadTransaction::CSRPAsyncReadTransaction(
+		AsyncIOTransactionPool        pool,
+		const CAsyncIOTransactionKey &key)
+: CAsyncIOTransaction( pool, key ),
+  CSRPReadTransaction( 0, 0, 0, 0 )
+{
+}
+
+CSRPTransaction::CSRPTransaction(
 	const CSRPAddressImpl *srpAddr
 )
 {
-	reset(srpAddr);
+	if ( srpAddr )
+		reset(srpAddr);
 }
 
 void
-SRPTransaction::reset(
+CSRPTransaction::reset(
 	const CSRPAddressImpl *srpAddr
 )
 {
@@ -300,17 +364,18 @@ SRPTransaction::reset(
 	doSwap_   = srpAddr->needsHdrSwap();
 }
 
-SRPWriteTransaction::SRPWriteTransaction(
+CSRPWriteTransaction::CSRPWriteTransaction(
 	const CSRPAddressImpl *srpAddr,
 	int                    nWords,
 	int                    expected
-) : SRPTransaction( srpAddr )
+) : CSRPTransaction( srpAddr )
 {
-	resetMe( srpAddr, nWords, expected );
+	if ( srpAddr )
+		resetMe( srpAddr, nWords, expected );
 }
 
 void
-SRPWriteTransaction::resetMe(
+CSRPWriteTransaction::resetMe(
 	const CSRPAddressImpl *srpAddr,
 	int                    nWords,
 	int                    expected
@@ -321,40 +386,41 @@ SRPWriteTransaction::resetMe(
 }
 
 void
-SRPWriteTransaction::reset(
+CSRPWriteTransaction::reset(
 	const CSRPAddressImpl *srpAddr,
 	int                    nWords,
 	int                    expected
 )
 {
-	SRPTransaction::reset( srpAddr );
+	CSRPTransaction::reset( srpAddr );
 	resetMe( srpAddr, nWords, expected );
 }
 
-SRPReadTransaction::SRPReadTransaction(
+CSRPReadTransaction::CSRPReadTransaction(
 	const CSRPAddressImpl *srpAddr,
 	uint8_t               *dst,
 	uint64_t               off,
 	unsigned               sbytes
-) : SRPTransaction( srpAddr )
+) : CSRPTransaction( srpAddr )
 {
-	resetMe( srpAddr, dst, off, sbytes );
+	if ( srpAddr )
+		resetMe( srpAddr, dst, off, sbytes );
 }
 
 void
-SRPReadTransaction::reset(
+CSRPReadTransaction::reset(
 	const CSRPAddressImpl *srpAddr,
 	uint8_t               *dst,
 	uint64_t               off,
 	unsigned               sbytes
 )
 {
-	SRPTransaction::reset( srpAddr );
+	CSRPTransaction::reset( srpAddr );
 	resetMe( srpAddr, dst, off, sbytes );
 }
 
 void
-SRPReadTransaction::resetMe(
+CSRPReadTransaction::resetMe(
 	const CSRPAddressImpl *srpAddr,
 	uint8_t               *dst,
 	uint64_t               off,
@@ -415,7 +481,7 @@ int	     nWords;
 }
 
 void
-SRPWriteTransaction::complete(BufChain rchn)
+CSRPWriteTransaction::complete(BufChain rchn)
 {
 int     got = rchn->getSize();
 SRPWord status;
@@ -453,7 +519,7 @@ SRPWord status;
 }
 
 void
-SRPReadTransaction::post(ProtoDoor door)
+CSRPReadTransaction::post(ProtoDoor door)
 {
 BufChain xchn = IBufChain::create();
 
@@ -479,7 +545,7 @@ unsigned tidOff = getProtoVersion() == IProtoStackBuilder::SRP_UDP_V2 ? 0 : 4;
 }
 
 void
-SRPReadTransaction::complete(BufChain rchn)
+CSRPReadTransaction::complete(BufChain rchn)
 {
 int	     got = rchn->getSize();
 unsigned bufoff;
@@ -488,7 +554,7 @@ int      j;
 int	     nWords   = getNWords();
 
 	if ( ! dst_ && sbytes_ ) {
-		throw InvalidArgError("SRPReadTransaction has no destination address");
+		throw InvalidArgError("CSRPReadTransaction has no destination address");
 	}
 
 	iov_[iovLen_].iov_base = rHdrBuf_;
@@ -597,6 +663,21 @@ int	     nWords   = getNWords();
 	}
 }
 
+uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes, AsyncIO aio) const
+{
+SRPAsyncReadTransaction xact = asyncReadXactPool_->getTransaction();
+
+	xact->reset( this, dst, off, sbytes );
+
+	// post this transaction to the manager
+	asyncXactMgr_->post( xact, xact->getTid(), aio );
+
+	// If we are open then the async door must also be open
+	xact->post( asyncIOHandler_.getDoor() );
+	
+	return 0;
+}
+
 uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
 {
 #ifdef SRPADDR_DEBUG
@@ -610,7 +691,7 @@ struct timespec retry_then;
 	if ( sbytes == 0 )
 		return 0;
 
-	SRPReadTransaction xact( this, dst, off, sbytes );
+	CSRPReadTransaction xact( this, dst, off, sbytes );
 
 	unsigned attempt = 0;
 
@@ -675,7 +756,7 @@ int rval = CAddressImpl::open( node );
 	if ( 0 == rval ) {
 		door_        = getProtoStack()->open();
 		// open a second VC for asynchronous communication
-		asyncIODoor_ = asyncIOPort_->open();
+		asyncIOHandler_.threadStart( asyncIOPort_->open() );
 	}
 
 	return rval;
@@ -689,7 +770,7 @@ CMtx::lg guard( &doorMtx_ );
 int rval = CAddressImpl::close( node );
 	if ( 1 == rval ) {
 		door_.reset();
-		asyncIODoor_.reset();
+		asyncIOHandler_.threadStop();
 	}
 	return rval;
 }
@@ -711,7 +792,7 @@ unsigned nWords;
 	totbytes = headbytes + sbytes;
 	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
-	if ( args->aio_ && nWords > maxWordsRx_ ) {
+	if ( args->aio_ && ( nWords > maxWordsRx_ ) ) {
 		throw InternalError("Asynchronous SRP reads covering multiple blocks not supported");
 	}
 
@@ -727,7 +808,11 @@ unsigned nWords;
 		headbytes = 0;
 	}
 
-	rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes);
+	if ( args->aio_ ) {
+		rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes, args->aio_);
+	} else {
+		rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes);
+	}
 
 	nReads_++;
 
@@ -977,7 +1062,7 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 	unsigned attempt = 0;
 	unsigned iovlen  = i;
 
-	SRPWriteTransaction xact( this, nWords, expected );
+	CSRPWriteTransaction xact( this, nWords, expected );
 
 	do {
 		BufChain xchn = assembleXBuf(iov, iovlen, iov_pld, toput);
