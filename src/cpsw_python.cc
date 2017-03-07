@@ -613,6 +613,9 @@ IndexRange rng(from, to);
 
 // wrap IPathVisitor to call back into python (assuming the visitor
 // is implemented there, of course)
+//
+// Since shared_ptr<WrapPathVisitor> is a base class (of the wrapped class)
+// the python refcound of 'self' is automatically taken care of :-)
 class WrapPathVisitor : public IPathVisitor {
 private:
 	PyObject *self_;
