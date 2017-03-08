@@ -35,13 +35,17 @@ udpsrv_SRCS+= udpsrv_stream_state_monitor.cc
 
 udpsrv_CXXFLAGS+= -DUDPSRV
 
-udpsrv_LIBS = tstaux $(CPSW_LIBS)
+udpsrv_LIBS_NO = tstaux $(CPSW_LIBS)
+udpsrv_LIBS_YES= tstaux.a cpsw.a pthread rt
+udpsrv_LIBS=$(udpsrv_LIBS_$(WITH_STATIC_LIBRARIES))
 
 rssi_bridge_SRCS = rssi_bridge.cc
 rssi_bridge_SRCS+= udpsrv_util.cc
 rssi_bridge_SRCS+= udpsrv_stream_state_monitor.cc
 
-rssi_bridge_LIBS = $(CPSW_LIBS)
+rssi_bridge_LIBS_NO = $(CPSW_LIBS)
+rssi_bridge_LIBS_YES= cpsw.a pthread rt
+rssi_bridge_LIBS=$(rssi_bridge_LIBS_$(WITH_STATIC_LIBRARIES))
 
 
 cpsw_path_tst_SRCS       = cpsw_path_tst.cc
