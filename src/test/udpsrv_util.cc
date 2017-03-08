@@ -1131,8 +1131,11 @@ public:
 					p   += got;
 				}
 
-				outQ_->tryPush( bc );
+				if ( ! outQ_->push( bc, 0 ) ) {
+					throw InternalError("unable to push", errno);
+				}
 			}
+
 reconn:;
 			close(conn_);
 			conn_ = -1;

@@ -148,7 +148,7 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 			// retry replies they will only discover
 			// next time they care about reading from
 			// this VC...
-			owner_->pushDown( bufch, &TIMEOUT_NONE );
+			owner_->pushDown( bufch, &TIMEOUT_INDEFINITE );
 
 #ifdef TCP_DEBUG
 			if ( st )

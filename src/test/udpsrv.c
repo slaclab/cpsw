@@ -781,7 +781,9 @@ int i;
 
 		buf[5] = tdest;
 
-		ioQueTrySend( strm_args[i].srpQ, buf, size );
+		if ( ioQueTrySend( strm_args[i].srpQ, buf, size ) < 0 ) {
+			fprintf(stderr,"INFO: Stream message dropped\n");
+		}
 	}
 }
 
