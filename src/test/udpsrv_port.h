@@ -30,6 +30,7 @@ IoQue ioQueCreate(unsigned depth);
 void   ioQueDestroy(IoQue);
 // zero timeout -> forever!
 int ioQueRecv(IoQue , void *buf, unsigned size, struct timespec *abs_timeout);
+int ioQueSend(IoQue , void *buf, unsigned size, struct timespec *abs_timeout);
 int ioQueTryRecv(IoQue , void *buf, unsigned size);
 int ioQueTrySend(IoQue , void *buf, unsigned size);
 
