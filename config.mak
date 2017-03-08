@@ -26,33 +26,35 @@ HARCH=rhel6-x86_64
 
 # ARCHES += xxx yyy
 
-#ARCHES += linuxRT-x86_64 buildroot-2016.11.1-x86_64
 ARCHES += buildroot-2016.11.1-x86_64 buildroot-2015.02-x86_64
 
 
 # Next, you need to define prefixes (which may include
 # absolute paths) so that e.g., $(CROSS_xxx)gcc can be
-# used as a C compiler, e.g.:
-BR2016_VERSION=2016.11.1
-BR2015_VERSION=2015.02
-
-BR_HARCH=linux-x86_64
-
-BR_PATH=/afs/slac/package/linuxRT/buildroot-$(1)/host/$(BR_HARCH)/$(2)/usr/bin/$(2)-linux-
-
+# used as a C compiler e.g.,
+# 
 # CROSS_xxx = path_to_xxx_tools/xxx-
 # CROSS_yyy = path_to_yyy_tools/yyy-
 #
-#CROSS_linux_x86_64  =# host build needs no prefix
-#CROSS_linuxRT_x86_64=$(call BR_PATH,x86_64)
-#CROSS_linuxRT_x86   =$(call BR_PATH,i686)
-#CROSS_linuxRT_zynq  =$(call BR_PATH,arm)
-CROSS_rhel6_x86_64   =#
-CROSS_buildroot_2016_11_1_x86_64=$(call BR_PATH,$(BR2016_VERSION),x86_64)
-CROSS_buildroot_2015_02_x86_64=$(call BR_PATH,$(BR2015_VERSION),x86_64)
-
-
 # (you can override 'gcc' by another compiler by setting CC_<arch>)
+
+# definitions for multiple buildroot targets
+
+BR_HARCH=linux-x86_64
+
+# extract version and target
+BR_VERSN=$(word 2,$(subst -, ,$(TARCH)))
+BR_TARCH=$(word 3,$(subst -, ,$(TARCH)))
+
+# cross compiler path
+BR_CROSS=/afs/slac/package/linuxRT/buildroot-$(BR_VERSN)/host/$(BR_HARCH)/$(BR_TARCH)/usr/bin/$(BR_TARCH)-linux-
+
+# map target arch-name into a make variable name
+BR_ARNAMS=$(subst .,_,$(subst -,_,$(filter buildroot-%,$(ARCHES))))
+
+# for all buildroot targets create
+# CROSS_buildroot_<version>_<target>
+$(foreach brarnam,$(BR_ARNAMS),$(eval CROSS_$(brarnam)=$$(BR_CROSS)))
 
 # CPSW requires 'boost'. If this installed at a non-standard
 # location (where it cannot be found automatically by the tools)
@@ -93,11 +95,7 @@ CROSS_buildroot_2015_02_x86_64=$(call BR_PATH,$(BR2015_VERSION),x86_64)
 BOOST_VERSION=1.63.0
 BOOST_PATH=$(PACKAGE_TOP)/boost/$(BOOST_VERSION)
 
-#boost_DIR_linux_x86_64  =$(BOOST_PATH)/rhel6-x86_64
-#boost_DIR_linuxRT_x86_64=$(BOOST_PATH)/buildroot-$(BR_VERSION)-x86_64
-boost_DIR_rhel6_x86_64  =$(BOOST_PATH)/rhel6-x86_64
-boost_DIR_buildroot_2016_11_1_x86_64=$(BOOST_PATH)/buildroot-$(BR2016_VERSION)-x86_64
-boost_DIR_buildroot_2015_02_x86_64=$(BOOST_PATH)/buildroot-$(BR2015_VERSION)-x86_64
+boost_DIR_default=$(BOOST_PATH)/$(TARCH)
 
 # YAML-CPP
 #
@@ -108,11 +106,7 @@ boost_DIR_buildroot_2015_02_x86_64=$(BOOST_PATH)/buildroot-$(BR2015_VERSION)-x86
 YAML_CPP_VERSION         = yaml-cpp-0.5.3
 YAML_CPP_PATH            = $(PACKAGE_TOP)/yaml-cpp/$(YAML_CPP_VERSION)
 
-#yaml_cpp_DIR_linux_x86_64  =$(YAML_CPP_PATH)/rhel6-x86_64
-#yaml_cpp_DIR_linuxRT_x86_64=$(YAML_CPP_PATH)/buildroot-$(BR_VERSION)-x86_64
-yaml_cpp_DIR_rhel6_x86_64  =$(YAML_CPP_PATH)/rhel6-x86_64
-yaml_cpp_DIR_buildroot_2016_11_1_x86_64=$(YAML_CPP_PATH)/buildroot-$(BR2016_VERSION)-x86_64
-yaml_cpp_DIR_buildroot_2015_02_x86_64=$(YAML_CPP_PATH)/buildroot-$(BR2015_VERSION)-x86_64
+yaml_cpp_DIR_default=$(YAML_CPP_PATH)/$(TARCH)
 
 # Whether to build static libraries (YES/NO)
 WITH_STATIC_LIBRARIES_default=YES
@@ -120,16 +114,16 @@ WITH_STATIC_LIBRARIES_default=YES
 WITH_SHARED_LIBRARIES_default=YES
 
 # Whether to build the python wrapper (this requires boost/python and python >= 2.7).
-# The choice may be target specific, e.g.,
+# The choice may be target specific in the usual way
 #
-#WITH_PYCPSW_default   = NO
-# WITH_PYCPSW_host    = YES
-WITH_PYCPSW_rhel6_x86_64    = YES
+# build python if the 'py_DIR' variable is defined and
+# pointing to an existing 'libboost_python'
 #
-# You may also have to set boost_DIR_<arch> or boostinc_DIR_<arch>
-# and py_DIR_<arch> or pyinc_DIR_<arch> (see above)
-py_DIR_rhel6_x86_64=/afs/slac/g/lcls/package/python/python2.7.9/rhel6-linux-x86_64/bin/
-pyinc_DIR_rhel6_x86_64=/afs/slac/g/lcls/package/python/python2.7.9/rhel6-linux-x86_64/include/python2.7/
+FOUND_BOOST_PY=$(if $(wildcard $(boostlib_DIR)/libboost_python*),YES,NO)
+WITH_PYCPSW_default=$(if $(py_DIR),$(FOUND_BOOST_PY),NO)
+
+py_DIR_default=/afs/slac/g/lcls/package/python/python2.7.9/$(TARCH)
+pyinc_DIR_default=$(addsuffix /include/python2.7/,$(py_DIR))
 
 # Define an install location
 INSTALL_DIR=../
