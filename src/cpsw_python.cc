@@ -8,6 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #include <cpsw_api_user.h>
+#include <cpsw_path.h>
 #include <cpsw_yaml.h>
 #include <yaml-cpp/yaml.h>
 #include <cpsw_rssi.h>
@@ -18,6 +19,8 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+
+using boost::static_pointer_cast;
 
 using namespace boost::python;
 
@@ -312,66 +315,202 @@ IndexRange rng(from, to);
 	throw InvalidArgError("Unable to convert python argument");
 }
 
+class CGetValWrapperContext {
+private:
+	typedef enum { NONE, STRING, SIGNED, UNSIGNED, DOUBLE } ValType;
+
+	Val_Base              val_;
+	ValType               type_;
+	unsigned              nelms_;
+	std::vector<CString>  stringBuf_;
+	std::vector<uint64_t> v64_;
+	std::vector<double>   d64_;
+	IndexRange            range_;
+
+public:
+
+	virtual void prepare(Val_Base val, int from, int to)
+	{
+		val_   = val;
+		nelms_ = val_->getNelms();
+		range_ = IndexRange( from, to );
+
+		if ( from >= 0 || to >= 0 ) {
+			// index range may reduce nelms
+			SlicedPathIterator it( val_->getPath(), &range_ );
+			nelms_ = it.getNelmsLeft();
+		}
+	}
+
+	virtual boost::python::object complete(CPSWError *err)
+	{
+		if ( err ) {
+			std::cerr << "CGetValWrapper -- exception in callback: " << err->getInfo() << "\n";
+			return boost::python::object( );
+		}
+		if ( STRING == type_ ) {
+			if ( 1 == nelms_ ) {
+				return boost::python::object( *stringBuf_[0] );
+			}
+
+			boost::python::list l;
+			for ( unsigned i = 0; i<nelms_; i++ ) {
+				l.append( *stringBuf_[i] );
+			}
+			return l;
+		} else if ( DOUBLE == type_ ) {
+			if ( 1 == nelms_ ) {
+				return boost::python::object( d64_[0] );
+			}
+
+			boost::python::list l;
+			for ( unsigned i = 0; i<nelms_; i++ ) {
+				l.append( d64_[i] );
+			}
+			return l;
+		} else {
+			if ( 1 == nelms_ ) {
+				if ( SIGNED == type_ ) {
+					int64_t ival = (int64_t)v64_[0];
+					return boost::python::object( ival );
+				} else {
+					return boost::python::object( v64_[0] );
+				}
+			}
+
+			boost::python::list l;
+			if ( SIGNED == type_ ) {
+				for ( unsigned i = 0; i<nelms_; i++ ) {
+					int64_t ival = (int64_t)v64_[i];
+					l.append( ival );
+				}
+			} else {
+				for ( unsigned i = 0; i<nelms_; i++ ) {
+					l.append( v64_[i] );
+				}
+			}
+			return l;
+		}
+	}
+
+
+	virtual unsigned issueGetVal(ScalVal_RO val, int from, int to, bool forceNumeric, AsyncIO aio)
+	{
+	GILUnlocker allowThreadingWhileWaiting;
+
+		prepare( val, from , to );
+
+		if ( ! forceNumeric && val->getEnum() ) {
+			type_ = STRING;
+		} else {
+			type_ = val->isSigned() ? SIGNED : UNSIGNED;
+		}
+
+		if ( STRING == type_ ) {
+			// must not use 'reserve' which doesn't construct invalid shared pointers!
+			stringBuf_ = std::vector<CString>( nelms_, CString() );
+
+			if ( aio ) {
+				return val->getVal( aio, &stringBuf_[0], nelms_, &range_ );
+			} else {
+				return val->getVal( &stringBuf_[0], nelms_, &range_ );
+			}
+		} else {
+			v64_.reserve( nelms_ );
+
+			if ( aio ) {
+				return val->getVal( aio, &v64_[0], nelms_, &range_ );
+			} else {
+				return val->getVal( &v64_[0], nelms_, &range_ );
+			}
+		}
+	}
+
+	virtual unsigned issueGetVal(DoubleVal_RO val, int from, int to, AsyncIO aio)
+	{
+	GILUnlocker allowThreadingWhileWaiting;
+
+		prepare( val, from , to );
+		type_ = DOUBLE;
+		d64_.reserve( nelms_ );
+
+		if ( aio ) {
+			return val->getVal( aio, &d64_[0], nelms_, &range_ );
+		} else {
+			return val->getVal( &d64_[0], nelms_, &range_ );
+		}
+	}
+
+	CGetValWrapperContext()
+	: type_ ( NONE ),
+	  nelms_( 0    ),
+	  range_( -1, -1 )
+	{
+	}
+
+		~CGetValWrapperContext()
+	{
+	}
+};
+
+class IPyAsyncIO {
+public:
+	virtual void py_callback(boost::python::object) = 0;
+
+	~IPyAsyncIO()
+	{
+	}
+};
+
+class CAsyncGetValWrapperContext : public CGetValWrapperContext, public IAsyncIO, public IPyAsyncIO {
+private:
+	PyObject *self_;
+
+public:
+	CAsyncGetValWrapperContext(PyObject *self)
+	: self_( self )
+	{
+	}
+
+	virtual void
+	py_callback(boost::python::object arg)
+	{
+		call_method<void>(self_, "callback", arg );
+	}
+
+	virtual void callback(CPSWError *err)
+	{
+		PyGILState_STATE state_ = PyGILState_Ensure();
+		/* Call into Python */
+
+		py_callback( complete( err ) );
+
+		PyGILState_Release( state_ );
+
+	}
+
+	~CAsyncGetValWrapperContext()
+	{
+	}
+};
+
+typedef shared_ptr<CAsyncGetValWrapperContext> AsyncGetValWrapperContext;
+
+static boost::python::object wrap_ScalVal_RO_getValAsync(ScalVal_RO val, AsyncGetValWrapperContext ctxt, int from, int to, bool forceNumeric)
+{
+	unsigned rval = ctxt->issueGetVal( val, from, to, forceNumeric, ctxt );
+
+	return boost::python::object( rval );
+}
 
 
 static boost::python::object wrap_ScalVal_RO_getVal(ScalVal_RO val, int from, int to, bool forceNumeric)
 {
-Enum       enm   = val->getEnum();
-unsigned   nelms = val->getNelms();
-unsigned   got;
-IndexRange rng(from, to);
+	CGetValWrapperContext ctxt;
 
-	if ( enm && ! forceNumeric ) {
+	ctxt.issueGetVal( val, from, to, forceNumeric, AsyncIO() );
 
-	// must not use 'reserve' which doesn't construct invalid shared pointers!
-	std::vector<CString>  str(nelms, CString());
-
-		{
-		GILUnlocker allowThreadingWhileWaiting;
-		got = val->getVal( &str[0], nelms, &rng );
-		}
-		if ( 1 == got ) {
-			return boost::python::object( *str[0] );
-		}
-
-		boost::python::list l;
-		for ( unsigned i = 0; i<got; i++ ) {
-			l.append( *str[i] );
-		}
-		return l;
-
-	} else {
-
-	std::vector<uint64_t> v64;
-
-		v64.reserve(nelms);
-
-		{
-		GILUnlocker allowThreadingWhileWaiting;
-		got = val->getVal( &v64[0], nelms, &rng );
-		}
-		if ( 1 == got ) {
-			if ( val->isSigned() ) {
-				int64_t ival = (int64_t)v64[0];
-				return boost::python::object( ival );
-			} else {
-				return boost::python::object( v64[0] );
-			}
-		}
-
-		boost::python::list l;
-		if ( val->isSigned() ) {
-			for ( unsigned i = 0; i<got; i++ ) {
-				int64_t ival = (int64_t)v64[i];
-				l.append( ival );
-			}
-		} else {
-			for ( unsigned i = 0; i<got; i++ ) {
-				l.append( v64[i] );
-			}
-		}
-		return l;
-	}
+	return ctxt.complete( 0 );
 }
 
 static unsigned wrap_ScalVal_setVal(ScalVal val, object &o, int from, int to)
@@ -559,29 +698,21 @@ Py_buffer view;
 	}
 }
 
+static boost::python::object wrap_DoubleVal_RO_getValAsync(DoubleVal_RO val, AsyncGetValWrapperContext ctxt, int from, int to)
+{
+unsigned rval = ctxt->issueGetVal( val, from, to, ctxt );
+
+	return boost::python::object( rval );
+}
+
+
 static boost::python::object wrap_DoubleVal_RO_getVal(DoubleVal_RO val, int from, int to)
 {
-unsigned   nelms = val->getNelms();
-unsigned   got;
-IndexRange rng(from, to);
+	CGetValWrapperContext ctxt;
 
-	std::vector<double> v64;
+	ctxt.issueGetVal( val, from, to, AsyncIO() );
 
-	v64.reserve(nelms);
-
-	{
-	GILUnlocker allowThreadingWhileWaiting;
-	got = val->getVal( &v64[0], nelms, &rng );
-	}
-	if ( 1 == got ) {
-		return boost::python::object( v64[0] );
-	}
-
-	boost::python::list l;
-	for ( unsigned i = 0; i<got; i++ ) {
-		l.append( v64[i] );
-	}
-	return l;
+	return ctxt.complete( 0 );
 }
 
 static unsigned wrap_DoubleVal_setVal(DoubleVal val, object &o, int from, int to)
@@ -713,6 +844,8 @@ BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_dumpConfigToYamlString_ol,
 
 BOOST_PYTHON_MODULE(pycpsw)
 {
+	PyEval_InitThreads();
+
 	register_ptr_to_python<Child                          >();
 	register_ptr_to_python<Children                       >();
 	register_ptr_to_python<Hub                            >();
@@ -1226,6 +1359,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.staticmethod(			"create")
 	;
 
+	// Asynchronous IO interface
+	class_<IPyAsyncIO, CAsyncGetValWrapperContext, boost::noncopyable, AsyncGetValWrapperContext > ("AsyncIO")
+	;
+
 	// wrap 'IScalVal_Base' interface
 	class_<IScalVal_Base, bases<IVal_Base>, boost::noncopyable>
 	ScalVal_BaseClazz(
@@ -1336,6 +1473,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"underlying hardware are mapped back to strings which are returned by 'getVal()'.\n"
 			"The optional 'forceNumeric' argument, when set to 'True', suppresses this\n"
 			"conversion and fetches the raw numerical values."
+		)
+		.def("getValAsync",             wrap_ScalVal_RO_getValAsync,
+			( arg("self"), arg("AsyncIO"), arg("fromIdx") = -1, arg("toIdx") = -1, arg("forceNumeric") = false ),
+			"Provide an asynchronous callback which will be executed once data arrive"
 		)
 		.def(			"getVal",       wrap_ScalVal_RO_getVal_into,
 			( arg(			"self"), arg("bufObject"), arg("fromIdx") = -1, arg("toIdx") = -1),
@@ -1470,6 +1611,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"If both 'fromIdx' and 'toIdx' are negative then all elements are included.\n"
 			"A negative 'toIdx' is equivalent to 'toIdx' == 'fromIdx' and results in only\n"
 			"the single element at 'fromIdx' to be read.\n"
+		)
+		.def("getValAsync",             wrap_DoubleVal_RO_getValAsync,
+			( arg("self"), arg("AsyncIO"), arg("fromIdx") = -1, arg("toIdx") = -1 ),
+			"Provide an asynchronous callback which will be executed once data arrive"
 		)
 		.def(			"create",       &IDoubleVal_RO::create,
 			( arg("path") ),
