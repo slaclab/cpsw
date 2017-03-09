@@ -154,7 +154,7 @@ BufChain bc = q->q_->tryPop();
 
 int ioQueRecv(IoQue q, void *buf, unsigned size, struct timespec *abs_timeout)
 {
-CTimeout to( *abs_timeout );
+CTimeout to( abs_timeout ? *abs_timeout : TIMEOUT_INDEFINITE );
 
 BufChain bc = q->q_->pop( to.isIndefinite() ? NULL : &to );
 
@@ -162,6 +162,13 @@ BufChain bc = q->q_->pop( to.isIndefinite() ? NULL : &to );
 		return -1;
 
 	return xtrct(bc, buf, size);
+}
+
+int ioQueSend(IoQue q, void *buf, unsigned size, struct timespec *abs_timeout)
+{
+CTimeout to( abs_timeout ? *abs_timeout : TIMEOUT_INDEFINITE );
+BufChain bc = fill(buf, size);
+	return q->q_->push( bc, to.isIndefinite() ? NULL : &to )  ? size : -1;
 }
 
 int ioQueTrySend(IoQue q, void *buf, unsigned size)

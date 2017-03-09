@@ -143,11 +143,7 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 #ifdef TCP_DEBUG
 		bool st=
 #endif
-			// do NOT wait indefinitely
-			// could be that the queue is full with
-			// retry replies they will only discover
-			// next time they care about reading from
-			// this VC...
+
 			owner_->pushDown( bufch, &TIMEOUT_INDEFINITE );
 
 #ifdef TCP_DEBUG

@@ -36,6 +36,8 @@
 
 #define V3VERS 3
 
+#define WITH_TCP 1
+
 #include <udpsrv_regdefs.h>
 #include <udpsrv_port.h>
 
@@ -141,6 +143,7 @@ typedef struct streamer_args {
 	unsigned           fram;
 	unsigned           tdest;
     int                rssi;
+	int                tcp;
 	unsigned           jam;
 	int                srp_vers;
 	unsigned           srp_opts;
@@ -153,6 +156,7 @@ typedef struct streamer_args {
 typedef struct SrpArgs {
 	IoPrt             port;
 	int                vers;
+	int                tcp;
 	unsigned           opts;
 	pthread_t          tid;
 	int                haveThread;
@@ -295,7 +299,13 @@ struct timespec to;
 				if ( got < 9 + 12 ) {
 					fprintf(stderr,"UDPSRV: SRP request too small\n");
 				} else {
-					int put = ioQueTrySend( sa->srpQ, buf, got - 1 );
+					int put;
+
+					if ( sa->rssi || sa->tcp ) {
+					 	put = ioQueSend( sa->srpQ, buf, got - 1, NULL );
+					} else {
+					 	put = ioQueTrySend( sa->srpQ, buf, got - 1 );
+					}
 
 					if ( put < 0 )
 						fprintf(stderr,"queueing SRP message failed\n");
@@ -781,8 +791,11 @@ int i;
 
 		buf[5] = tdest;
 
-		if ( ioQueTrySend( strm_args[i].srpQ, buf, size ) < 0 ) {
-			fprintf(stderr,"INFO: Stream message dropped\n");
+		if ( strm_args[i].rssi || strm_args[i].tcp ) {
+		 	ioQueSend( strm_args[i].srpQ, buf, size, NULL );
+		} else {
+		 	if ( ioQueTrySend( strm_args[i].srpQ, buf, size ) < 0 )
+				fprintf(stderr,"INFO: Stream message dropped\n");
 		}
 	}
 }
@@ -827,7 +840,7 @@ int      nprts, nstrms;
 			case 'r': i_a = &srpvars[V2_RSSI].port;         break;
 			case 'R': i_a = &strmvars[STRM_RSSI].port;      break;
 			case 'T': i_a = &tut_port;                      break;
-			case 't': use_tcp = 1;                          break;
+			case 't': use_tcp = WITH_TCP;                   break;
 
 			case 'D':
 				if ( register_io_range_1(optarg) ) {
@@ -894,8 +907,9 @@ int      nprts, nstrms;
 	}
 
 	if ( use_tcp ) {
-		for ( i=0; i<nstrms; i++ )
+		for ( i=0; i<nstrms; i++ ) {
 			strmvars[i].haveRssi = WITHOUT_RSSI;
+		}
 		for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
 			srpvars[i].haveRssi = WITHOUT_RSSI;
 		}
@@ -917,6 +931,7 @@ int      nprts, nstrms;
 		strm_args[i].jam                  = 0;
 		strm_args[i].srp_vers             = strmvars[i].srpvers;
 		strm_args[i].rssi                 = strmvars[i].haveRssi;
+		strm_args[i].tcp                  = use_tcp;
 		strm_args[i].srp_tdest            = (tdest + 1) & 0xff;
 
 		if ( ! strm_args[i].port )
@@ -943,6 +958,7 @@ int      nprts, nstrms;
 		// don't scramble SRP - since SRP is synchronous (single request-response) it becomes extremely slow when scrambled
 		if ( use_tcp ) {
 			srpArgs[i].port = tcpPrtCreate( ina, srpvars[i].port );
+			srpArgs[i].tcp  = WITH_TCP;
 		} else {
 			srpArgs[i].port = udpPrtCreate( ina, srpvars[i].port, sim_loss, 0, srpvars[i].haveRssi );
 		}
