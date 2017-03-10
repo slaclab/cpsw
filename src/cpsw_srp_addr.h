@@ -59,6 +59,7 @@ private:
 	AsyncIOTransactionManager xactMgr_;	
 	CSRPAddressImpl          *srp_;
 	ProtoDoor                 door_;
+	volatile unsigned         stats_;
 	virtual bool threadStop(void **);
 protected:
 	virtual void *threadBody();
@@ -73,6 +74,11 @@ public:
 	virtual ProtoDoor getDoor() const
 	{
 		return door_;
+	}
+
+	virtual unsigned getMsgCount() const
+	{
+		return stats_;
 	}
 };
 

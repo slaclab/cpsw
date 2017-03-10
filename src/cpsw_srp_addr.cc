@@ -73,6 +73,8 @@ CSRPAsyncHandler::threadBody()
 	while ( 1 ) {
 		BufChain rchn = door_->pop( 0, true );
 
+		++stats_;
+
 		uint32_t tid_bits = srp_->extractTid( rchn );
 
 		xactMgr_->complete( rchn, tid_bits );
@@ -1160,6 +1162,7 @@ void CSRPAddressImpl::dump(FILE *f) const
 	fprintf(f,"  # of writes (OK)  : %8u\n",   nWrites_);
 	fprintf(f,"  # of reads  (OK)  : %8u\n",   nReads_);
 	fprintf(f,"  Virtual Channel   : %8u\n",   vc_);
+	fprintf(f,"  Async Messages    : %8u\n",   asyncIOHandler_.getMsgCount());
 	CCommAddressImpl::dump(f);
 }
 
