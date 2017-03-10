@@ -207,9 +207,10 @@ private:
 
 public:
 
-	virtual uint8_t* getPayload()  { return dat_ + off_; }
-	virtual size_t   getSize()     { return len_; }
-	virtual size_t   getCapacity() { return sizeof(dat_); }
+	virtual uint8_t* getPayload()  { return dat_ + off_;                }
+	virtual size_t   getSize()     { return len_;                       }
+	virtual size_t   getCapacity() { return sizeof(dat_);               }
+	virtual size_t   getAvail()    { return sizeof(dat_) - off_ - len_; }
 
 	virtual unsigned getLen()      { return chl_;         }
 
@@ -243,10 +244,11 @@ public:
 
 	virtual void setSize(size_t   len)
 	{
-		if ( off_ + len > sizeof(dat_) )
-			len_ = sizeof(dat_) - len;
-		else
+		if ( off_ + len > sizeof(dat_) ) {
+			throw InternalError("Requested buffer size too large");
+		} else {
 			len_ = len;
+		}
 	}
 
 	virtual ~CBuf ()
@@ -295,7 +297,6 @@ public:
 	virtual BufChain yield_ownership()   { throw InternalError("Not Implemented"); }
 	virtual void     addAtHead(Buf)      { throw InternalError("Not Implemented"); }
 	virtual void     addAtTail(Buf)      { throw InternalError("Not Implemented"); }
-	virtual size_t   getAvail()          { throw InternalError("Not Implemented"); }
 	virtual size_t   getHeadroom()       { return off_;                            }
 	virtual bool     adjPayload(ssize_t) { throw InternalError("Not Implemented"); }
 	virtual void     reinit()            { throw InternalError("Not Implemented"); }
@@ -957,7 +958,7 @@ public:
 
 			socklen_t sz = sizeof(peer_);
 
-			if ( (got = ::recvfrom(sd_.get(), b->getPayload(), b->getCapacity(), 0, (struct sockaddr*)&peer_, &sz)) < 0 )
+			if ( (got = ::recvfrom(sd_.get(), b->getPayload(), b->getAvail(), 0, (struct sockaddr*)&peer_, &sz)) < 0 )
 				throw InternalError("recvfrom failed", errno);
 
 			b->setSize( got );
@@ -1109,7 +1110,7 @@ public:
 				s = sizeof(len);
 
 				while ( s > 0 ) {
-					got = ::read(conn_, &len, sizeof(len));
+					got = ::read(conn_, p, s);
 					if ( got <= 0 ) {
 						fprintf(stderr,"TCP: unable to read length; resetting connection\n");
 						goto reconn;
