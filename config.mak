@@ -119,7 +119,8 @@ WITH_SHARED_LIBRARIES_default=YES
 # build python if the 'py_DIR' variable is defined and
 # pointing to an existing 'libboost_python'
 #
-FOUND_BOOST_PY=$(if $(wildcard $(boostlib_DIR)/libboost_python*),YES,NO)
+FOUND_BOOST_PY=$(if $(boostlib_DIR),$(if $(wildcard $(boostlib_DIR)/libboost_python*),YES,NO),YES)
+
 WITH_PYCPSW_default=$(if $(py_DIR),$(FOUND_BOOST_PY),NO)
 
 py_DIR_default=/afs/slac/g/lcls/package/python/python2.7.9/$(TARCH)
