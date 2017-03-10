@@ -244,10 +244,11 @@ public:
 
 	virtual void setSize(size_t   len)
 	{
-		if ( off_ + len > sizeof(dat_) )
-			len_ = sizeof(dat_) - len;
-		else
+		if ( off_ + len > sizeof(dat_) ) {
+			throw InternalError("Requested buffer size too large");
+		} else {
 			len_ = len;
+		}
 	}
 
 	virtual ~CBuf ()
