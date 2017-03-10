@@ -207,9 +207,10 @@ private:
 
 public:
 
-	virtual uint8_t* getPayload()  { return dat_ + off_; }
-	virtual size_t   getSize()     { return len_; }
-	virtual size_t   getCapacity() { return sizeof(dat_); }
+	virtual uint8_t* getPayload()  { return dat_ + off_;                }
+	virtual size_t   getSize()     { return len_;                       }
+	virtual size_t   getCapacity() { return sizeof(dat_);               }
+	virtual size_t   getAvail()    { return sizeof(dat_) - off_ - len_; }
 
 	virtual unsigned getLen()      { return chl_;         }
 
@@ -295,7 +296,6 @@ public:
 	virtual BufChain yield_ownership()   { throw InternalError("Not Implemented"); }
 	virtual void     addAtHead(Buf)      { throw InternalError("Not Implemented"); }
 	virtual void     addAtTail(Buf)      { throw InternalError("Not Implemented"); }
-	virtual size_t   getAvail()          { throw InternalError("Not Implemented"); }
 	virtual size_t   getHeadroom()       { return off_;                            }
 	virtual bool     adjPayload(ssize_t) { throw InternalError("Not Implemented"); }
 	virtual void     reinit()            { throw InternalError("Not Implemented"); }
