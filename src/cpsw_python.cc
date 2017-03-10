@@ -164,16 +164,24 @@ public:
 	register_exception_translator<clazz>( tr_##clazz );
 };
 
+static uint64_t wrap_Path_loadConfigFromYamlFile(Path p, const char *yamlFile,  const char *yaml_dir = 0)
+{
+GILUnlocker allowThreadingWhileWaiting;
+	return p->loadConfigFromYamlFile( yamlFile, yaml_dir );
+}
+
 static uint64_t wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir = 0)
 {
-YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
+GILUnlocker allowThreadingWhileWaiting;
+YAML::Node  conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
 	return p->loadConfigFromYaml( conf );
 }
 
 static uint64_t wrap_Path_dumpConfigToYamlFile(Path p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0)
 {
-uint64_t   rval;
-YAML::Node conf;
+GILUnlocker allowThreadingWhileWaiting;
+uint64_t    rval;
+YAML::Node  conf;
 
 	if ( templFilename ) {
 		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
@@ -192,7 +200,8 @@ std::fstream strm( filename, std::fstream::out );
 
 static std::string wrap_Path_dumpConfigToYamlString(Path p, const char *templFilename = 0, const char *yaml_dir = 0)
 {
-YAML::Node conf;
+GILUnlocker allowThreadingWhileWaiting;
+YAML::Node  conf;
 
 	if ( templFilename ) {
 		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
@@ -247,6 +256,20 @@ IEnum::iterator ite = enm->end();
 	return l;
 }
 
+// It is OK to release the GIL while holding
+// a reference to the Py_buffer.
+//
+// I tested with python2.7.12 and python3.5 --
+// when trying to resize a buffer (from python)
+// which has an exported view this will be
+// rejected:
+//
+// (numpy.array, python2.7)
+// ValueError: cannot resize an array that references or is referenced
+// by another array in this way.
+//
+// (bytearray, python3.5)
+// BufferError: Existing exports of data: object cannot be re-sized
 class ViewGuard {
 private:
 	Py_buffer *theview_;
@@ -578,7 +601,6 @@ bool enumScalar = false;
 
 	if ( ! PySequence_Check( op ) ) {
 		// a single string (attempt to set enum) is also a sequence
-		GILUnlocker allowThreadingWhileWaiting;
 		// boost::python::extract() is not very useful here
 		// since it does a range check (and produces a mysterious
 		// segfault [g++-5.4/python3.5] if the number if out of
@@ -595,7 +617,10 @@ bool enumScalar = false;
 		} else {
         	num64 = PyLong_AsUnsignedLongLongMask( op );
 		}
-		return val->setVal( num64, &rng );
+		{
+			GILUnlocker allowThreadingWhileWaiting;
+			return val->setVal( num64, &rng );
+		}
 	}
 
 	unsigned nelms = enumScalar ? 1 : len(o);
@@ -665,14 +690,10 @@ Py_buffer view;
 	if ( timeoutUs >= 0 )
 		timeout.set( (uint64_t)timeoutUs );
 
-
 	{
 	GILUnlocker allowThreadingWhileWaiting;
-		if ( 0 == val->read( NULL, 0, timeout ) )
-			return 0;
+		return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 	}
-	// we have already waited
-	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, TIMEOUT_NONE );
 }
 
 static int64_t wrap_Stream_write(Stream val, object &o, int64_t timeoutUs)
@@ -690,12 +711,15 @@ Py_buffer view;
 		timeout.set( (uint64_t)timeoutUs );
 
 	{
-	// hopefully it's OK to release the GIL while operating on the buffer view...
-	// UPDATE: we assume that write is not a frequent operation and it rarely blocks.
-	//         Just to be safe...
-	// GILUnlocker allowThreadingWhileWaiting;
+	GILUnlocker allowThreadingWhileWaiting;
 	return val->write( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 	}
+}
+
+static void wrap_Command_execute(Command command)
+{
+GILUnlocker allowThreadingWhileWaiting;
+	command->execute();
 }
 
 static boost::python::object wrap_DoubleVal_RO_getValAsync(DoubleVal_RO val, AsyncGetValWrapperContext ctxt, int from, int to)
@@ -747,6 +771,9 @@ IndexRange rng(from, to);
 //
 // Since shared_ptr<WrapPathVisitor> is a base class (of the wrapped class)
 // the python refcound of 'self' is automatically taken care of :-)
+//
+// There is no need to acquire the GIL since we didn't release it in
+// the first place (IPath::explore)
 class WrapPathVisitor : public IPathVisitor {
 private:
 	PyObject *self_;
@@ -821,9 +848,9 @@ BOOST_PYTHON_FUNCTION_OVERLOADS( IPath_loadYamlFile_ol,
                                  IPath::loadYamlFile,
                                  1, 3 )
 
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS( IPath_loadConfigFromYamlFile_ol,
-                                 loadConfigFromYamlFile,
-                                 1, 2 )
+BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadConfigFromYamlFile_ol,
+                                 wrap_Path_loadConfigFromYamlFile,
+                                 2, 3 )
 
 
 BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadYamlStream_ol,
@@ -894,7 +921,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Return the description string (if any) of this Entry."
 		)
-		.def("getPollSecs", &IEntry::getPollSecs,
+		.def("getPollSecs",    &IEntry::getPollSecs,
 			( arg("self") ),
 			"\n"
 			"Return the suggested polling interval for this Entry."
@@ -1030,7 +1057,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"A 'NotFoundError' is thrown if the target of the operation does not exist."
 		)
-		.def("__add__",   &IPath::findByName,
+		.def("__add__",      &IPath::findByName,
 			( arg("self"), arg( "pathString" ) ),
 			"\n"
 			"Shortcut for 'findByName'"
@@ -1046,7 +1073,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Test if this Path is empty returning 'True'/'False'"
 		)
-		.def(YAML_KEY_size,         &IPath::size,
+		.def(YAML_KEY_size,  &IPath::size,
 			( arg("self") ),
 			"\n"
 			"Return the depth of this Path, i.e., how many '/' separated\n"
@@ -1165,8 +1192,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"See 'PathVisitor' for more information."
 		)
-		.def("loadConfigFromYamlFile", &IPath::loadConfigFromYamlFile,
-			IPath_loadConfigFromYamlFile_ol(
+		.def("loadConfigFromYamlFile", wrap_Path_loadConfigFromYamlFile,
+			wrap_Path_loadConfigFromYamlFile_ol(
 			args("self", "configYamlFilename", "yamlIncDirname"),
 			"\n"
 			"Load a configuration file in YAML format and write out into the hardware.\n"
@@ -1739,7 +1766,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 	);
 
 	Command_Clazz
-		.def("execute",      &ICommand::execute,
+		.def("execute",      wrap_Command_execute,
 			"\n"
 			"Execute the command implemented by the endpoint addressed by the\n"
 			"path which was created when instantiating the Command interface."
