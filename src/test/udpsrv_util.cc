@@ -958,7 +958,7 @@ public:
 
 			socklen_t sz = sizeof(peer_);
 
-			if ( (got = ::recvfrom(sd_.get(), b->getPayload(), b->getCapacity(), 0, (struct sockaddr*)&peer_, &sz)) < 0 )
+			if ( (got = ::recvfrom(sd_.get(), b->getPayload(), b->getAvail(), 0, (struct sockaddr*)&peer_, &sz)) < 0 )
 				throw InternalError("recvfrom failed", errno);
 
 			b->setSize( got );
