@@ -1453,7 +1453,10 @@ unsigned nelms, i;
 
 	// A scalar means we will write all elements to same value
 	if ( nelms < nelmsFromPath  && !n.IsScalar() ) {
-		throw InvalidArgError("CIntEntryImpl::loadMyConfigFromYaml --  elements in YAML node < number expected from PATH");
+		std::string str("CIntEntryImpl::loadMyConfigFromYaml --  elements in YAML node(");
+                    str += p->toString();
+                    str += ") < number expected from PATH";
+		throw InvalidArgError(str);
 	}
 
 	if ( nelms > nelmsFromPath ) {

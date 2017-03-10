@@ -262,7 +262,7 @@ void CRssi::sendACK()
 {
 BufChain   bc = IBufChain::create();
 Buf        b  = bc->createAtHead( IBuf::CAPA_ETH_HDR );
-RssiHeader hdr( b->getPayload(), b->getCapacity(), false, RssiHeader::SET );
+RssiHeader hdr( b->getPayload(), b->getAvail(), false, RssiHeader::SET );
 
 	hdr.setFlags( RssiHeader::FLG_ACK );
 	hdr.setSeqNo( lastSeqSent_ + 1 );
@@ -284,7 +284,7 @@ void CRssi::sendRST()
 {
 BufChain   bc = IBufChain::create();
 Buf        b  = bc->createAtHead( IBuf::CAPA_ETH_HDR );
-RssiHeader hdr( b->getPayload(), b->getCapacity(), false, RssiHeader::SET );
+RssiHeader hdr( b->getPayload(), b->getAvail(), false, RssiHeader::SET );
 
 	hdr.setFlags( RssiHeader::FLG_ACK | RssiHeader::FLG_RST );
 	hdr.setSeqNo( ++lastSeqSent_ );
@@ -316,7 +316,7 @@ bool CRssi::sendNUL()
 	} else {
 		BufChain   bc = IBufChain::create();
 		Buf        b  = bc->createAtHead( IBuf::CAPA_ETH_HDR );
-		RssiHeader hdr( b->getPayload(), b->getCapacity(), false, RssiHeader::SET );
+		RssiHeader hdr( b->getPayload(), b->getAvail(), false, RssiHeader::SET );
 
 		hdr.setFlags( RssiHeader::FLG_ACK | RssiHeader::FLG_NUL );
 		hdr.setSeqNo( ++lastSeqSent_ );
@@ -341,7 +341,7 @@ void CRssi::sendSYN(bool doAck)
 {
 BufChain      bc    = IBufChain::create();
 Buf           b     = bc->createAtHead( IBuf::CAPA_ETH_HDR );
-RssiSynHeader synHdr( b->getPayload(), b->getCapacity(), false, RssiHeader::SET );
+RssiSynHeader synHdr( b->getPayload(), b->getAvail(), false, RssiHeader::SET );
 uint8_t       flags = RssiHeader::FLG_SYN;
 
 	if ( doAck ) {

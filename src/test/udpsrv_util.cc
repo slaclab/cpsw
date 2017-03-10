@@ -244,10 +244,11 @@ public:
 
 	virtual void setSize(size_t   len)
 	{
-		if ( off_ + len > sizeof(dat_) )
-			len_ = sizeof(dat_) - len;
-		else
+		if ( off_ + len > sizeof(dat_) ) {
+			throw InternalError("Requested buffer size too large");
+		} else {
 			len_ = len;
+		}
 	}
 
 	virtual ~CBuf ()
@@ -1109,7 +1110,7 @@ public:
 				s = sizeof(len);
 
 				while ( s > 0 ) {
-					got = ::read(conn_, &len, sizeof(len));
+					got = ::read(conn_, p, s);
 					if ( got <= 0 ) {
 						fprintf(stderr,"TCP: unable to read length; resetting connection\n");
 						goto reconn;
