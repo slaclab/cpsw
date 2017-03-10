@@ -1110,7 +1110,7 @@ public:
 				s = sizeof(len);
 
 				while ( s > 0 ) {
-					got = ::read(conn_, &len, sizeof(len));
+					got = ::read(conn_, p, s);
 					if ( got <= 0 ) {
 						fprintf(stderr,"TCP: unable to read length; resetting connection\n");
 						goto reconn;
