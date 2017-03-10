@@ -181,6 +181,8 @@ public:
 	virtual bool               hasSRPMux()                         = 0;
 	virtual void               setSRPMuxVirtualChannel(unsigned)   = 0; // default: 0
 	virtual unsigned           getSRPMuxVirtualChannel()           = 0;
+	virtual void               setSRPMuxOutQueueDepth(unsigned)    = 0; // default: 50 (async queue)
+	virtual unsigned           getSRPMuxOutQueueDepth()            = 0;
 
 	virtual void               useTDestMux(bool)                   = 0; // default: NO
 	virtual bool               hasTDestMux()                       = 0;
@@ -188,7 +190,7 @@ public:
 	virtual unsigned           getTDestMuxTDEST()                  = 0;
 	virtual void               setTDestMuxStripHeader(bool)        = 0; // default: YES if SRP, NO if no SRP
 	virtual bool               getTDestMuxStripHeader()            = 0;
-	virtual void               setTDestMuxOutQueueDepth(unsigned)  = 0; // default: 1 if SRP, 50 if no SRP
+	virtual void               setTDestMuxOutQueueDepth(unsigned)  = 0; // default: 50
 	virtual unsigned           getTDestMuxOutQueueDepth()          = 0;
 
 	virtual void               setIPAddr(uint32_t)                 = 0;

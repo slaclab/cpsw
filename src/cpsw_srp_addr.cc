@@ -124,7 +124,7 @@ int                  nbits;
 	nbits   = srpMuxMod->getTidNumBits();
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
 
-	asyncIOPort_ = srpMuxMod->createPort( vc_ | 0x80 );
+	asyncIOPort_ = srpMuxMod->createPort( vc_ | 0x80, bldr->getSRPMuxOutQueueDepth() );
 }
 
 void

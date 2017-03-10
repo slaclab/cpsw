@@ -47,6 +47,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		unsigned                   DepackLdFragWinSize_;
 		int                        hasSRPMux_;
 		unsigned                   SRPMuxVirtualChannel_;
+		unsigned                   SRPMuxOutQueueDepth_;
 		bool                       hasTDestMux_;
 		unsigned                   TDestMuxTDEST_;
 		int                        TDestMuxStripHeader_;
@@ -70,6 +71,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			DepackLdFrameWinSize_   = 0;
 			DepackLdFragWinSize_    = 0;
 			hasSRPMux_              = -1;
+			SRPMuxOutQueueDepth_    = 0;
 			SRPMuxVirtualChannel_   = 0;
 			hasTDestMux_            = false;
 			TDestMuxTDEST_          = 0;
@@ -344,6 +346,20 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			return SRPMuxVirtualChannel_;
 		}
 
+		virtual void            setSRPMuxOutQueueDepth(unsigned v)
+		{
+			SRPMuxOutQueueDepth_ = v;
+			useSRPMux( true );
+		}
+
+		virtual unsigned        getSRPMuxOutQueueDepth()
+		{
+			if ( 0 == SRPMuxOutQueueDepth_ )
+				return 50;
+			return SRPMuxOutQueueDepth_;
+		}
+
+
 		virtual void            useTDestMux(bool v)
 		{
 			hasTDestMux_ = v;
@@ -390,7 +406,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual unsigned        getTDestMuxOutQueueDepth()
 		{
 			if ( 0 == TDestMuxOutQueueDepth_ )
-				return hasSRP() ? 1 : 50;
+				return 50;
 			return TDestMuxOutQueueDepth_;
 		}
 
@@ -489,6 +505,8 @@ int                        i;
 			bldr->useSRPMux( true );
 			if ( readNode(nn, YAML_KEY_virtualChannel, &u) )
 				bldr->setSRPMuxVirtualChannel( u );
+			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
+				bldr->setSRPMuxOutQueueDepth( u );
 		}
 	}
 	{
@@ -720,12 +738,14 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 	if ( bldr->hasSRPMux() ) {
 		if ( ! srpMuxMod ) {
 #ifdef PSBLDR_DEBUG
-	printf("  creating SRP mux module\n");
+			printf("  creating SRP mux module\n");
 #endif
 			srpMuxMod   = CShObj::create< ProtoModSRPMux >( bldr->getSRPVersion() );
 			rval->addAtPort( srpMuxMod );
 		}
-		rval = srpMuxMod->createPort( bldr->getSRPMuxVirtualChannel() );
+		// reserve enough queue depth - must potentially hold replies to synchronous retries
+		// until the synchronous reader comes along for the next time!
+		rval = srpMuxMod->createPort( bldr->getSRPMuxVirtualChannel(), 2 * bldr->getSRPRetryCount() );
 #ifdef PSBLDR_DEBUG
 	printf("  creating SRP mux port\n");
 #endif

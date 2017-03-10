@@ -935,9 +935,14 @@ deliberately to use maps so that merge keys work across all levels).
         YAML_KEY_SRPMux:
 
             # Virtual Channel number (see note) to use.
-            # A number in the range 0..255.
+            # A number in the range 0..127.
             # Default: 0
           YAML_KEY_virtualChannel: <int>
+
+            # Depth of the queue where asynchronous
+            # replies are posted.
+            # zero (default) picks a suitable value.
+          YAML_KEY_outQueueDepth:  <int>
 
 ##### 2.8.1.1 TCP Module
 A TCP protocol module is also available. It is intended to 
