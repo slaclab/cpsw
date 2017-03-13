@@ -13,7 +13,7 @@
 
 #include <cpsw_yaml.h>
 
-#undef  MMIODEV_DEBUG
+//#define MMIODEV_DEBUG
 
 CMMIOAddressImpl::CMMIOAddressImpl(
 			AKey      key,
@@ -89,12 +89,21 @@ CWriteArgs nargs = *args;
 		nargs.nbytes_ *= (*node)->idxt_ - (*node)->idxf_ + 1;
 		to             = (*node)->idxf_;
 		range_p        = &singleElement;
+#ifdef MMIODEV_DEBUG
+		printf("MMIO write; collapsing range\n");
+#endif
 	} else {
 		to             = (*node)->idxt_;
 		range_p        = 0;
+#ifdef MMIODEV_DEBUG
+		printf("MMIO write; NOT collapsing range\n");
+#endif
 	}
 	nargs.off_ += this->offset_ + (*node)->idxf_ * getStride();
 
+#ifdef MMIODEV_DEBUG
+	printf("MMIO write; iterating from %d -> %d\n", (*node)->idxf_, to);
+#endif
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		SlicedPathIterator it( *node, range_p );
 		rval += CAddressImpl::write(&it, &nargs);
