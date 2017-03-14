@@ -199,6 +199,11 @@ fprintf(stderr,"%s OTH rejected (state %s)\n", context->getName(), getName());
 			}
 		}
 
+		// clean out our outgoing buffer
+		context->processAckNumber( hdr.getFlags(), hdr.getAckNo() );
+
+		// cache the busy flag (header no longer valid further down);
+		bool peerNowBSY = !! (hdr.getFlags() & RssiHeader::FLG_BSY);
 
 		if ( hasPayload || (flags & RssiHeader::FLG_NUL) ) {
 
@@ -213,6 +218,9 @@ fprintf(stderr," (state %s)\n", getName());
 }
 #endif
 
+				// AFTER THIS SEQUENCE OF OPERATIONS WE NO LONGER OWN THE BUFFER
+				// NOR THE INCLUDED HEADER, I.E., MUST CACHE HEADER VALUES USED
+				// THEREAFTER!
 				b.reset();
 				context->unOrderedSegs_.store( hdr.getSeqNo(), bc );
 
@@ -228,13 +236,8 @@ fprintf(stderr," (state %s)\n", getName());
 
 		}
 
-
-		// clean out our outgoing buffer
-		context->processAckNumber( hdr.getFlags(), hdr.getAckNo() );
-
-		bool peerWasBSY = context->peerBSY_;
-
-		context->peerBSY_ = !! (hdr.getFlags() & RssiHeader::FLG_BSY);
+		bool peerWasBSY   = context->peerBSY_;
+		context->peerBSY_ = peerNowBSY;
 
 		if ( context->peerBSY_ ) {
 			context->stats_.busyFlagsCounted_++;
