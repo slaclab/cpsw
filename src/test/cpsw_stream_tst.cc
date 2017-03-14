@@ -17,7 +17,7 @@
 
 #define NGOOD 200
 
-#undef  DEBUG
+//#define DEBUG
 
 class TestFailed {};
 
@@ -67,7 +67,7 @@ unsigned*i_p;
 unsigned ngood = NGOOD;
 unsigned nUdpThreads = 4;
 unsigned useRssi     = 0;
-unsigned tDest       = -1;
+unsigned tDest       = 0;
 unsigned sport       = 8193;
 const char *dmp_yaml = 0;
 const char *use_yaml = 0;
@@ -184,6 +184,11 @@ Hub      root;
 			fprintf(stderr,"Read -- timeout. Is udpsrv running?\n");
 			throw StrmRxFailed();
 		}
+
+#ifdef DEBUG
+		for ( unsigned k = 0; k<8; k++ )
+			printf("FRM/FRG 0x%"PRIx8"\n", buf[k]);
+#endif
 
 		// udpsrv computes CRC over payload only (excluding stream header + tail byte)
 		if ( CRC32_LE_POSTINVERT_GOOD ^ -1 ^ crc32_le_t4(-1, buf + 8, got - 9) ) {
