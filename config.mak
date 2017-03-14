@@ -15,6 +15,8 @@
 # arbitrarily but should not characters besides
 # [0-9][a-z][A-Z][.][-][_]
 
+PACKAGE_TOP=/afs/slac/g/lcls/package
+
 # By default the 'host' architecture is built. But
 # you can redefine the name of the host architecture:
 # HARCH = www
