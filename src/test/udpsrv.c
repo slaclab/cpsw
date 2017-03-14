@@ -375,12 +375,13 @@ Buf      bufmem;
 					uint32_t *bufp  = bufp  = rbuf + 2;
 					unsigned  bufsz = sizeof(rbuf) - 2*sizeof(rbuf[0]);
 
-#ifdef DEBUG
-					if ( debug > 2 )
-						printf("Got %d SRP octets\n", got);
-#endif
 
 					unsigned tdest = ((uint8_t*)rbuf)[5];
+
+#ifdef DEBUG
+					if ( debug > 2 )
+						printf("Fragger got %d octets (TDSET %d)\n", got, tdest);
+#endif
 
 					if ( tdest == sa->srp_tdest ) {
 						if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, bufsz - 1, got - 2*sizeof(rbuf[0]))) <= 0 ) {
@@ -454,7 +455,7 @@ printf("JAM cleared\n");
 		}
 #ifdef DEBUG
 		if ( debug )
-			printf("fragger sent %d[%d]!\n", sa->fram, frag);
+			printf("fragger sent %d[%d] CRC %"PRIx32"!\n", sa->fram, frag, crc);
 #endif
 
 		if ( ++frag >= sa->n_frags ) {
@@ -781,6 +782,13 @@ int i;
 			// frame numbers - which we don't want to mess up...
 			continue;
 		}
+
+#ifdef DEBUG
+		if ( debug > 2 ) {
+			printf("Sending stream %d bytes to TDEST %d\n", size, tdest);
+		}
+#endif
+
 		if ( tdest == strm_args[i].srp_tdest ) {
 			fprintf(stderr,"ERROR: cannot post to stream on TDEST %d -- already used by SRP\n", tdest);
 			exit(1);
