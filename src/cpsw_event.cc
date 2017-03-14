@@ -46,6 +46,10 @@ public:
 	{
 	unsigned i;
 
+	// Source hold the last reference to 'this' event set.
+	// Make sure the rug is not pulled out...
+	EventSet holdOn = getSelfAs<EventSetImpl>();
+
 	// always lock source before the event set
 	CMtx::lg guard( &src->mtx_ );
 
@@ -72,6 +76,10 @@ public:
 	{
 	unsigned i,j;
 
+	// Source hold the last reference to 'this' event set.
+	// Make sure the rug is not pulled out...
+	EventSet holdOn = getSelfAs<EventSetImpl>();
+
 	// always lock source before the event set
 	CMtx::lg guard( &src->mtx_ );
 
@@ -93,6 +101,10 @@ public:
 	virtual void del(IEventHandler *h)
 	{
 	unsigned attempt = 0;
+
+	// Source hold the last reference to 'this' event set.
+	// Make sure the rug is not pulled out...
+	EventSet holdOn = getSelfAs<EventSetImpl>();
 
 		while ( ! tryRemoveSrc( h ) ) {
 			if ( ++attempt > 10 ) {
@@ -299,6 +311,10 @@ bool CEventSet::tryRemoveSrc(IEventHandler *h)
 {
 IEventSource *src;
 unsigned     i,j;
+
+// Source hold the last reference to 'this' event set.
+// Make sure the rug is not pulled out...
+EventSet holdOn = getSelfAs<EventSetImpl>();
 
 // can't lock the source yet -- unknown
 
