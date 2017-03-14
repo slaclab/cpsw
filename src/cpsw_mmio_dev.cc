@@ -84,8 +84,13 @@ IndexRange *range_p;
 
 CWriteArgs nargs = *args;
 
-	if ( nargs.nbytes_ == getStride()  && getEntryImpl()->getCacheable() >= IField::WB_CACHEABLE ) {
-		// if strides == size then we can try to read all in one chunk
+	if (    nargs.nbytes_ == getStride()
+	     && getEntryImpl()->getCacheable() >= IField::WB_CACHEABLE
+	     && nargs.msk1_ == 0
+	     && nargs.mskn_ == 0
+	   ) {
+		// if strides == size and we don't have to merge bits
+		// then we can try to write all in one chunk
 		nargs.nbytes_ *= (*node)->idxt_ - (*node)->idxf_ + 1;
 		to             = (*node)->idxf_;
 		range_p        = &singleElement;
