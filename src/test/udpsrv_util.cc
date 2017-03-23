@@ -172,9 +172,10 @@ private:
 				
 			}
 			return rval;
+#endif
 		}
 
-		void put(void *p)
+		void put(CBuf *p)
 		{
 			if ( p ) {
 				CMtx::lg guard( &mtx_ );
@@ -198,8 +199,9 @@ private:
 
 		class D {
 		public:
-			void operator()(void *p)
+			void operator()(CBuf *p)
 			{
+				p->~CBuf();
 				theFL().put(p);
 			}
 		};
