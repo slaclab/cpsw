@@ -172,7 +172,6 @@ private:
 				
 			}
 			return rval;
-#endif
 		}
 
 		void put(CBuf *p)
