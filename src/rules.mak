@@ -303,12 +303,12 @@ do_install: install_local
 		fi ;\
 		if [ -n "$(STATIC_LIBRARIES)" ] ; then \
 			mkdir -p $(INSTALL_DIR)/$(TARCH)/lib ;\
-			echo "Installing Libraries $(STATIC_LIBRARIES:%=%lib.a)" ; \
+			echo "Installing Libraries $(STATIC_LIBRARIES:%=lib%.a)" ; \
 			$(INSTALL) $(foreach lib,$(STATIC_LIBRARIES),$(lib:%=lib%.a)) $(INSTALL_DIR)/$(TARCH)/lib ;\
 		fi ;\
 		if [ -n "$(SHARED_LIBRARIES)" ] ; then \
 			mkdir -p $(INSTALL_DIR)/$(TARCH)/lib ;\
-			echo "Installing Libraries $(SHARED_LIBRARIES:%=%lib.so)" ; \
+			echo "Installing Libraries $(SHARED_LIBRARIES:%=lib%.so)" ; \
 			$(INSTALL) $(foreach lib,$(SHARED_LIBRARIES),$(lib:%=lib%.so)) $(INSTALL_DIR)/$(TARCH)/lib ;\
 		fi ;\
 		if [ -n "$(PROGRAMS)" ] ; then \
