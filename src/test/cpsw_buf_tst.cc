@@ -207,11 +207,11 @@ try {
 
 	if ( s_orig + b[2]->getSize() + b[3]->getSize() + 20 + 40 - 13 != ch0->getSize() )
 		throw TestFailed("buffer size test 2 failed");
-		
+
 	try {
 		b[1]->split();
 		throw TestFailed("splitting a chain should fail!");
-	} catch (InternalError e) {
+	} catch (InvalidArgError e) {
 	}
 
 	b[1]->unlink();
