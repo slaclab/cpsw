@@ -13,6 +13,7 @@
 #include <string>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <exception>
 
 class CPSWError : public std::exception {
@@ -172,27 +173,32 @@ public:
 	InternalError()
 	: ErrnoError("Internal Error")
 	{
+		abort(); // so core-dump gets stack trace from where this was thrown
 	}
 
 	InternalError(const char*s)
 	: ErrnoError(s)
 	{
+		abort(); // so core-dump gets stack trace from where this was thrown
 	}
 
 	InternalError(const std::string &s)
 	: ErrnoError(s)
 	{
+		abort(); // so core-dump gets stack trace from where this was thrown
 	}
 
 	InternalError(const std::string &s, int err)
 	: ErrnoError(s, err)
 	{
+		abort(); // so core-dump gets stack trace from where this was thrown
 	}
 
 
 	InternalError(const char*s, int err)
 	: ErrnoError(s, err)
 	{
+		abort(); // so core-dump gets stack trace from where this was thrown
 	}
 };
 
