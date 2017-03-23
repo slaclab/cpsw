@@ -1,3 +1,19 @@
+R3.5.3      14-Mar-2017    Till Straumann (strauman)
+    Improved error message when reading config fails
+    Use buffers getAvail() instead of getCapacity when reading RSSI header
+    add getAvail to udpsrv_util's buffer implementation
+    Bugfix: udpsrv's TCP handler
+    cpsw_stream_tst should always use a TDEST muxer
+    Bugfix: cannot collapse writes when the caller supplies bitmasks
+    Bugfix: must not use header after buffer ownership is relinquished
+    Bugfix: cpsw_event.cc - shared_pointer released prematurely
+
+R3.5.2      08-Mar-2017    Till Straumann (strauman)
+    TCP must not discard messages but wait for queue to drain
+    Cleanup in config.mak
+    Added ioQueSend() (blocking send with timeout)
+    Use blocking send when a reliable channel is involved (TCP/RSSI)
+
 R3.5.1      5-Mar-2017     H. Slepicka (slepicka)
     Changes on the package structure
         Move source code to src folder
