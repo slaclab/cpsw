@@ -925,6 +925,11 @@ public:
 
 			Buf b = bc->getHead();
 
+			if ( !b ) {
+				fprintf(stderr,"CUdpPort::doPush -- ignoring empty chain\n");
+				return true;
+			}
+
 			if ( (put = ::sendto(sd_.get(), b->getPayload(), b->getSize(), flgs, (struct sockaddr*)&peer_, sizeof(peer_))) < 0 )
 				return false;
 
@@ -1057,6 +1062,12 @@ public:
 			return false;
 
 		Buf      b      = bc->getHead();
+
+		if ( !b ) {
+			fprintf(stderr,"CTcpPort -- ignoring empty chain");
+			return true;
+		}
+
 		uint32_t len    = b->getSize();
 		uint32_t lenNBO = htonl(len);
 
