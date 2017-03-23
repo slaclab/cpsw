@@ -194,6 +194,8 @@ public:
 		NODE *b = construct( CFreeListNodeKey<NODE>() );
 		if ( ! b )
 			throw InternalError("Unable to allocate Buffer");
+		// do not use DTOR with a NULL pointer - it will still
+		// be used...
 		shared_ptr<NODE> rval = shared_ptr<NODE>( b, DTOR(this) );
 		rval->setSelf( rval );
 		return rval;
@@ -204,6 +206,8 @@ public:
 		NODE *b = construct( CFreeListNodeKey<NODE>(), a );
 		if ( ! b )
 			throw InternalError("Unable to allocate Buffer");
+		// do not use DTOR with a NULL pointer - it will still
+		// be used...
 		shared_ptr<NODE> rval = shared_ptr<NODE>( b, DTOR(this) );
 		rval->setSelf( rval );
 		return rval;

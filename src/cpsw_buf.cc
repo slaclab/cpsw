@@ -242,7 +242,7 @@ BufChainImpl c  = getChainImpl();
 BufChainImpl pc = p->getChainImpl();
 
 	if ( c )
-		throw InternalError("buffer already on a chain");
+		throw InvalidArgError("buffer already on a chain");
 
 	if ( pc ) {
 		chain_ = c = pc;
@@ -269,19 +269,19 @@ BufImpl  me = getSelf();
 size_t   s = 0;
 unsigned l = 0;
 	if ( c->getHead() || c->getTail() )
-		throw InternalError("can use this method only to initialize an empty chain"); 
+		throw InvalidArgError("can use this method only to initialize an empty chain"); 
 
 	h = t = me;
 	for ( p=me; p; t=p, p=p->getNextImpl() ) {
 		if ( p->getChainImpl() )
-			throw InternalError("buffer already on a chain");
+			throw InvalidArgError("buffer already on a chain");
 		s += p->getSize();
 		l++;
 		p->chain_ = c;
 	}
 	for ( p=me->getPrevImpl(); p; h=p, p=p->getPrevImpl() ) {
 		if ( p->getChainImpl() )
-			throw InternalError("buffer already on a chain");
+			throw InvalidArgError("buffer already on a chain");
 		s += p->getSize();
 		l++;
 		p->chain_ = c;
@@ -322,7 +322,7 @@ BufImpl me = getSelf();
 	if ( pi && pi != me ) {
 
 		if ( getNextImpl() || getPrevImpl() )
-			throw InternalError("Cannot enqueue non-empty node");
+			throw InvalidArgError("Cannot enqueue non-empty node");
 
 		addToChain( pi, false ); // no exceptions must happen after this
 
@@ -343,7 +343,7 @@ BufImpl me = getSelf();
 	if ( pi && pi != me ) {
 
 		if ( getNextImpl() || getPrevImpl() )
-			throw InternalError("Cannot enqueue non-empty node");
+			throw InvalidArgError("Cannot enqueue non-empty node");
 
 		addToChain( pi, true); // no exceptions must happen after this
 
@@ -372,7 +372,7 @@ void CBufImpl::unlink()
 void CBufImpl::split()
 {
 	if ( getChainImpl() ) {
-		throw InternalError("Cannot split buffers which are on a chain");
+		throw InvalidArgError("Cannot split buffers which are on a chain");
 	}
 	if ( getPrevImpl() ) {
 		getPrevImpl()->next_ = NULLBUF;
@@ -393,7 +393,7 @@ CFreeList<CBufImpl> *flp = &freeListBig;
 		if ( clip ) {
 			capa = maxcap;
 		} else {
-			throw InternalError("ATM all buffers are std. MTU size");
+			throw InvalidArgError("ATM all buffers are std. MTU size");
 		}
 	}
 
