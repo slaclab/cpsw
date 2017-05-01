@@ -322,9 +322,9 @@ div_t d;
 	}
 	std::string::iterator here = s->end();
 	do {
-		d = div(i, 10);
-		s->insert(here, d.rem + '0');
-		i = d.quot;
+		d    = div(i, 10);
+		here = s->insert(here, d.rem + '0');
+		i    = d.quot;
 	} while ( i );
 }
 
