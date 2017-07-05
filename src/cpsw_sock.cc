@@ -19,11 +19,17 @@
 
 CSockSd::CSockSd(int type)
 : sd_(-1),
-  type_(type)
+  type_(type),
+  dest_(NULL),
+  nblk_(false),
+  isConn_(false)
 {
 	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
 	}
+	me_.sin_family      = AF_INET;
+	me_.sin_addr.s_addr = INADDR_ANY;
+	me_.sin_port        = htons( 0 );
 }
 
 void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
@@ -36,10 +42,28 @@ void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
 
 CSockSd::CSockSd(CSockSd &orig)
 : sd_(-1),
-  type_(orig.type_)
+  type_(orig.type_),
+  me_(orig.me_),
+  dest_(orig.dest_ ? new struct sockaddr_in(*orig.dest_) : NULL),
+  nblk_(orig.nblk_),
+  isConn_(orig.isConn_)
 {
 	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
+	}
+	if ( isConn_ ) {
+		init( dest_, NULL, nblk_ );
+	}
+}
+
+void CSockSd::reconnect()
+{
+	close( sd_ );
+	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
+		throw InternalError("Unable to create socket");
+	}
+	if ( isConn_ ) {
+		init( dest_, NULL, nblk_ );
 	}
 }
 
@@ -47,17 +71,11 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 {
 	int    optval;
 
-	struct sockaddr_in me;
-
-	if ( NULL == me_p ) {
-		me.sin_family      = AF_INET;
-		me.sin_addr.s_addr = INADDR_ANY;
-		me.sin_port        = htons( 0 );
-
-		me_p = &me;
+	if ( me_p ) {
+		me_ = *me_p;
 	}
 
-	if ( nblk ) {
+	if ( (nblk_ = nblk) ) {
 		if ( ::fcntl( sd_, F_SETFL, O_NONBLOCK ) ) {
 			throw IOError("fcntl(O_NONBLOCK) ", errno);
 		}
@@ -75,19 +93,32 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 		}
 	}
 
-	if ( ::bind( sd_, (struct sockaddr*)me_p, sizeof(*me_p)) ) {
+	if ( ::bind( sd_, (struct sockaddr*)&me_, sizeof(me_)) ) {
 		throw IOError("bind failed ", errno);
 	}
 
 	// connect - filters any traffic from other destinations/fpgas in the kernel
 	if ( dest ) {
-		if ( ::connect( sd_, (struct sockaddr*)dest, sizeof(*dest) ) )
-			throw IOError("connect failed ", errno);
-printf("CONNECTED to %s:%d\n", inet_ntoa(dest->sin_addr), ntohs(dest->sin_port));
+		struct sockaddr_in *tmp = dest_;
+
+		dest_ = new struct sockaddr_in(*dest);
+		// they may pass in dest_ which must not be deleted until now
+		if ( tmp )
+			delete tmp;
 	}
+
+	if ( dest_ ) {
+		if ( ::connect( sd_, (struct sockaddr*)dest_, sizeof(*dest_) ) )
+			throw IOError("connect failed ", errno);
+printf("CONNECTED to %s:%d\n", inet_ntoa(dest_->sin_addr), ntohs(dest_->sin_port));
+	}
+
+	isConn_ = true;
 }
 
 CSockSd::~CSockSd()
 {
 	close( sd_ );
+	if ( dest_ )
+		delete dest_;
 }

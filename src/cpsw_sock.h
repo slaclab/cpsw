@@ -21,8 +21,12 @@ typedef shared_ptr<CSockSd> SockSd;
 
 class CSockSd {
 private:
-	int sd_;
-	int type_;
+	int                sd_;
+	int                type_;
+	struct sockaddr_in me_;
+	struct sockaddr_in *dest_;
+	bool               nblk_;
+	bool               isConn_;
 	CSockSd & operator=(CSockSd &orig);
 
 public:
@@ -38,6 +42,8 @@ public:
 	virtual int getSd() const { return sd_; }
 
 	virtual void init(struct sockaddr_in *dst, struct sockaddr_in *me, bool nonBlocking);
+
+	virtual void reconnect();
 };
 
 #endif
