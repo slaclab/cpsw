@@ -15,6 +15,15 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <exception>
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
+
+using boost::shared_ptr;
+using boost::make_shared;
+
+/* Use shared pointers if we have to hand error objects around */
+class CPSWError;
+typedef shared_ptr<CPSWError> CPSWErrorHdl;
 
 class CPSWError : public std::exception {
 private:
@@ -27,6 +36,9 @@ public:
 	CPSWError(const char *n):name_(n)
 	{
 	}
+
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 
 	virtual void
 	prepend(const std::string &s)
@@ -61,6 +73,9 @@ public:
 	: CPSWError("No Error")
 	{
 	}
+
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class DuplicateNameError: public CPSWError {
@@ -69,6 +84,8 @@ public:
 	: CPSWError(n)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class NotDevError: public CPSWError {
@@ -77,6 +94,8 @@ public:
 	: CPSWError(n)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class NotFoundError: public CPSWError {
@@ -90,6 +109,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class InvalidPathError: public CPSWError {
@@ -98,6 +119,8 @@ public:
 	: CPSWError(n)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class InvalidIdentError: public CPSWError {
@@ -111,6 +134,8 @@ public:
 	: CPSWError(n)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class InvalidArgError: public CPSWError {
@@ -124,6 +149,8 @@ public:
 	: CPSWError(n)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class AddressAlreadyAttachedError: public CPSWError {
@@ -132,6 +159,8 @@ public:
 	: CPSWError(n)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class ConfigurationError: public CPSWError {
@@ -145,6 +174,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class ErrnoError: public CPSWError {
@@ -173,6 +204,8 @@ public:
 	  err_( err )
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 
@@ -208,6 +241,8 @@ public:
 	{
 		abort(); // so core-dump gets stack trace from where this was thrown
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class AddrOutOfRangeError: public CPSWError {
@@ -216,6 +251,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class ConversionError: public CPSWError {
@@ -224,6 +261,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 
@@ -233,6 +272,8 @@ public:
 	: CPSWError( s )
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class IOError: public ErrnoError {
@@ -257,6 +298,8 @@ public:
 	: ErrnoError( s, err )
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class BadStatusError: public CPSWError {
@@ -268,6 +311,8 @@ public:
 	 status_(status)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class IntrError: public CPSWError {
@@ -276,6 +321,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class StreamDoneError : public CPSWError {
@@ -289,6 +336,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class FailedStreamError : public CPSWError {
@@ -302,6 +351,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class MissingOnceTagError : public CPSWError {
@@ -310,6 +361,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class MissingIncludeFileNameError : public CPSWError {
@@ -318,6 +371,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class NoYAMLSupportError : public CPSWError {
@@ -326,6 +381,8 @@ public:
 	: CPSWError("No YAML support compiled in")
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class MultipleInstantiationError : public CPSWError {
@@ -339,6 +396,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class BadSchemaVersionError : public CPSWError {
@@ -352,6 +411,8 @@ public:
 	: CPSWError(s)
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 class TimeoutError : public CPSWError {
@@ -370,6 +431,8 @@ public:
 	: CPSWError("Timeout")
 	{
 	}
+	// every subclass MUST implement 'clone'
+	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
 };
 
 //!!!!!!!!!!!!
