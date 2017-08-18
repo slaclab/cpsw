@@ -1051,9 +1051,9 @@ shared_ptr<CGetDoubleValContext> ctxt = make_shared<CGetDoubleValContext>( getSe
 
 	if ( IScalVal_Base::IEEE_754 == getEncoding() && 64 != getSizeBits() ) {
 		float *fBuf = reinterpret_cast<float*>(buf);
-		rval = IIntEntryAdapt::getVal<float>( fBuf, nelms, &it );
+		rval = IIntEntryAdapt::getVal<float>( ctxt, fBuf, nelms, &it );
 	} else {
-		rval = IIntEntryAdapt::getVal<double>( buf, nelms, &it );
+		rval = IIntEntryAdapt::getVal<double>( ctxt, buf, nelms, &it );
 	}
 
 	return rval;
