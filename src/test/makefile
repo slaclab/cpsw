@@ -49,6 +49,9 @@ rssi_bridge_LIBS_NO = $(CPSW_LIBS)
 rssi_bridge_LIBS_YES= cpsw.a pthread rt
 rssi_bridge_LIBS=$(rssi_bridge_LIBS_$(WITH_STATIC_LIBRARIES))
 
+cpsw_xx_SRCS = cpsw_xx.cc
+cpsw_xx_LIBS       = $(CPSW_LIBS)
+TESTPROGRAMS            += cpsw_xx
 
 cpsw_path_tst_SRCS       = cpsw_path_tst.cc
 cpsw_path_tst_LIBS       = $(CPSW_LIBS)
@@ -99,10 +102,6 @@ TESTPROGRAMS            += cpsw_enum_tst
 rssi_tst_SRCS            = rssi_tst.cc udpsrv_port.cc udpsrv_util.cc udpsrv_stream_state_monitor.cc
 rssi_tst_LIBS            = $(CPSW_LIBS)
 TESTPROGRAMS            += rssi_tst
-
-tst_SRCS=tst.cc
-tst_LIBS=$(CPSW_LIBS)
-TESTPROGRAMS            += tst
 
 cpsw_srpv3_large_tst_SRCS += cpsw_srpv3_large_tst.cc
 cpsw_srpv3_large_tst_LIBS += $(CPSW_LIBS)
