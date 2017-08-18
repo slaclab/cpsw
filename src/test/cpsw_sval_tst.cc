@@ -34,6 +34,31 @@ public: const char *info;
 	TestFailed(const char *info):info(info){}
 };
 
+class AioTester : public IAsyncIO {
+volatile bool done_;
+public:
+	AioTester()
+	: done_(false)
+	{
+	}
+
+	virtual void callback(CPSWError *status)
+	{
+		if ( status )
+			throw TestFailed(status->getInfo().c_str());
+		done_ = true;
+	}
+
+	virtual void wait()
+	{
+		while ( ! done_ ) {
+			sleep(1);
+			printf("still Sleeping\n");
+		}
+		done_ = false;
+	}
+};
+
 int64_t rrr()
 {
 	int64_t r = 0;
@@ -593,14 +618,20 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 			sprintf(nam, "mmio/le/i16-0-s-0");
 			d_arr = IDoubleVal::create( root->findByName( nam ) );
 
-			got = d_arr->getVal(dbl, nelms);
+			memset(dbl, 0, sizeof(dbl));
 
+			shared_ptr<AioTester> wai = make_shared<AioTester>();
+
+			got = d_arr->getVal(wai, dbl, nelms);
 			if ( got != nelms )
 				throw TestFailed("double readback -- got less elements than expected");
+			wai->wait();
 
 			for ( int i=0; i<(int)nelms; i++ ) {
-				if ( fabs( dbl[i] - (double)(i-4)) > .000001 )
+				if ( fabs( dbl[i] - (double)(i-4)) > .000001 ) {
+					printf("dbl[%d]: %g - expected %d\n", i, dbl[i], i-4);
 					throw TestFailed("unsigned <-> double mismatch");
+				}
 			}
 	}
 
