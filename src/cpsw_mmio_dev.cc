@@ -34,6 +34,52 @@ void CMMIOAddressImpl::dump(FILE *f) const
 	CAddressImpl::dump( f ); fprintf(f, "+0x%"PRIx64" (stride %"PRId64")", offset_, stride_);
 }
 
+
+class CParallelReadCtxt;
+typedef shared_ptr<CParallelReadCtxt> ParallelReadCtxt;
+
+class CParallelReadCtxt : public IAsyncIO {
+private:
+	AsyncIO      aio_;
+	CPSWErrorHdl err_;
+	CMtx         mtx_;
+public:
+	CParallelReadCtxt(AsyncIO aio)
+	: aio_(aio)
+	{
+#ifdef MMIODEV_DEBUG
+printf("Parallel Ctxt CREAT\n");
+#endif
+	}
+
+	virtual void callback(CPSWError *err)
+	{
+		/* No real work to do; simply record the first error (in a thread safe way) */
+		if ( err && ! err_ ) {
+			CMtx::lg GUARD( &mtx_ );
+
+			if ( ! err_ ) {
+				err_ = err->clone();
+			}
+		}
+	}
+
+	// Use the shared pointer which references this object
+	// as a reference-counter.
+	virtual ~CParallelReadCtxt()
+	{
+#ifdef MMIODEV_DEBUG
+printf("Parallel Ctxt DEST\n");
+#endif
+		aio_->callback( err_ ? err_.get() : 0 );
+	}
+
+	static ParallelReadCtxt create(AsyncIO aio)
+	{
+		return make_shared<CParallelReadCtxt>(aio);
+	}
+};
+
 uint64_t CMMIOAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 int        rval      = 0, to;
@@ -58,6 +104,17 @@ CReadArgs  nargs = *args;
 	}
 
 	nargs.off_ += this->offset_ + (*node)->idxf_ * getStride();
+
+	/* If we break the read into multiple operations and this is an asynchronous operation
+	 * then we must only notify our caller whan all the operations are complete.
+	 * We use the 'ParallelReadCtxt' to hold the original aio; when the last
+	 * shared pointer to the parallel context goes out of scope (= when all the
+	 * parallel read operations are complete) then we can conveniently execute
+	 * the original callback from the parallel context's destructor.
+	 */
+	if ( to > (*node)->idxf_ && nargs.aio_ ) {
+		nargs.aio_ = CParallelReadCtxt::create( nargs.aio_ );
+	}
 
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		SlicedPathIterator it( *node, range_p );
