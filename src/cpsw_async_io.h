@@ -169,4 +169,41 @@ public:
 	virtual void complete() = 0;
 };
 
+/* A utility class which can be used of the work for the parent request
+ * is parallelized.
+ * In that case, the parent callback should only be executed once
+ * all of the sub-work is finished.
+ * We accomplish this by submitting a shared pointer to a single
+ * CAsyncIOParallelCompletion object to all of the sub-work tasks.
+ * And we then execute the parent callback from the CAsyncIOParallelCompletion's
+ * destructor, this letting the shared pointer keeping track for us.
+ */
+
+class CAsyncIOParallelCompletion;
+typedef shared_ptr<CAsyncIOParallelCompletion> AsyncIOParallelCompletion;
+
+class CAsyncIOParallelCompletion : public IAsyncIO {
+private:
+	AsyncIO      parent_;
+	bool         recordLastError_;
+	CMtx         mutex_;
+	CPSWErrorHdl error_;
+
+	CAsyncIOParallelCompletion(AsyncIO parent, bool recordLastError);
+
+	CAsyncIOParallelCompletion(const CAsyncIOParallelCompletion &);
+	CAsyncIOParallelCompletion operator=(const CAsyncIOParallelCompletion&);
+
+public:
+	// the callback is executed by all the sub-work tasks and merely
+	// records either the first or the last error encountered.
+	virtual void callback(CPSWError *subWorkError);
+
+	// once the last reference to this object goes out of scope
+	// the parent's callback is executed from this destructor.
+	virtual ~CAsyncIOParallelCompletion();
+
+	static AsyncIOParallelCompletion create(AsyncIO parent, bool recordLastError = false);
+};
+
 #endif

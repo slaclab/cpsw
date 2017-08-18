@@ -308,3 +308,43 @@ CAsyncIOCompletion::callback (CPSWError *upstreamError)
 		complete();
 	}
 }
+
+CAsyncIOParallelCompletion::CAsyncIOParallelCompletion(AsyncIO parent, bool recordLastError)
+: parent_          ( parent          ),
+  recordLastError_ ( recordLastError )
+{
+}
+
+	AsyncIO      parent_;
+	bool         recordLastError_;
+	CMtx         mutex_;
+	CPSWErrorHdl error_;
+
+void
+CAsyncIOParallelCompletion::callback(CPSWError *err)
+{
+	/* No real work to do; simply record the first (or last) error (in a thread safe way) */
+	if ( err &&  (recordLastError_ || ! error_) ) {
+		CMtx::lg GUARD( &mutex_ );
+
+		if ( recordLastError_ || ! error_ ) {
+			error_ = err->clone();
+		}
+	}
+}
+
+CAsyncIOParallelCompletion::~CAsyncIOParallelCompletion()
+{
+	parent_->callback( error_ ? error_.get() : 0 );
+}
+
+AsyncIOParallelCompletion
+CAsyncIOParallelCompletion::create(AsyncIO parent, bool recordLastError)
+{
+	// Cannot use 'make_shared' here since the constructor is private.
+	// However, if the constructor throws then there are no relevant
+	// side-effects to consider.
+	return AsyncIOParallelCompletion( new CAsyncIOParallelCompletion( parent, recordLastError ) );
+}
+
+
