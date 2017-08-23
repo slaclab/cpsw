@@ -1534,7 +1534,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 
 
 	// wrap 'IStream' interface
-	class_<IStream, boost::noncopyable>
+	class_<IStream, bases<IEntry>, boost::noncopyable>
 	Stream_Clazz(
 		"Stream",
 		"\n"

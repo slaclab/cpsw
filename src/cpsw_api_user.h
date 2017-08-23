@@ -715,7 +715,7 @@ class CTimeout;
 /*!
  * Interface for endpoints with support streaming of raw data.",
  */
-class IStream {
+class IStream : public virtual IEntry {
 public:
 	/*!
 	 * Read raw bytes from a streaming interface into a buffer and return the number of bytes read.
