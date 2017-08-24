@@ -49,10 +49,6 @@ rssi_bridge_LIBS_NO = $(CPSW_LIBS)
 rssi_bridge_LIBS_YES= cpsw.a pthread rt
 rssi_bridge_LIBS=$(rssi_bridge_LIBS_$(WITH_STATIC_LIBRARIES))
 
-cpsw_xx_SRCS = cpsw_xx.cc
-cpsw_xx_LIBS       = $(CPSW_LIBS)
-TESTPROGRAMS            += cpsw_xx
-
 cpsw_path_tst_SRCS       = cpsw_path_tst.cc
 cpsw_path_tst_LIBS       = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_path_tst
