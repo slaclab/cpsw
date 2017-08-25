@@ -239,11 +239,11 @@ $(BINTGTS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$($(call nam2varnam,
 # don't apply ADD_updir to cpswlib_DIRS because CPSW_DIR already was 'upped'.
 # This means that e.g. yaml_cpplib_DIR must be absolute or relative to CPSW_DIR
 $(BINTGTS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
-$(BINTGTS): LIBARGS += $(addprefix -L,$(INSTALL_DIR:%=%/lib/$(TARCH)))
+$(BINTGTS): LIBARGS += $(addprefix -L,$(INSTALL_DIR:%=%/$(TARCH)/lib))
 $(BINTGTS): LIBARGS += $(foreach lib,$(LIBS:%=-l%),$(lib:%.a=-Wl,-Bstatic % -Wl,-Bdynamic))
 
 $(BINTGTS): $(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
-	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS) $(addprefix -Wl$(COMMA__)-rpath$(COMMA__),$(abspath $(INSTALL_DIR:%=%$(TARCH)/lib)))
+	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS) $(addprefix -Wl$(COMMA__)-rpath$(COMMA__),$(abspath $(INSTALL_DIR:%=%/$(TARCH)/lib)))
 
 build: $(TGTS)
 
