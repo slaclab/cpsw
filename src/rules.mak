@@ -349,11 +349,15 @@ git_version_string.h: FORCE
 
 FORCE:
 
+PHONYTARGETS = all install uninstall build clean test run_tests generate_srcs do_install 
+
 .PHONY: install_local clean_local uninstall_local
-.PHONY: all install uninstall build clean test run_tests generate_srcs do_install
-.PHONY: multi-%
-
-
+.PHONY: $(PHONYTARGETS)
+.PHONY: $(addprefix multi-,$(PHONYTARGETS))
+.PHONY: $(addprefix multi-subdir-,$(PHONYTARGETS))
+.PHONY: $(addprefix multi-arch-,$(PHONYTARGETS))
+.PHONY: $(addprefix multi-postsubdir-,$(PHONYTARGETS))
+ 
 ifdef TARCH
 -include deps
 endif
