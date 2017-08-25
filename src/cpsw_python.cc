@@ -15,6 +15,7 @@
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
 #include <boost/python/list.hpp>
+#include <boost/weak_ptr.hpp>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -23,6 +24,7 @@
 using boost::static_pointer_cast;
 
 using namespace boost::python;
+using boost::weak_ptr;
 
 namespace cpsw_python {
 
@@ -716,6 +718,137 @@ Py_buffer view;
 	}
 }
 
+// CPSW Streams are (implicitly) opened/closed during construction/destruction.
+// Because python does not make any guarantees when destruction actually happens
+// there could be a problem: as long a a stream is open, CPSW delivers data to it
+// and possibly blocks if the data are never read.
+// If multiple streams or other protocols share a common channel (e.g., RSSI) then
+// stalling a stream might stall all other protocols, too.
+// Therefore it is imperative that a Stream is destroyed in a controlled fashion.
+// In python this is only possible via a context manager.
+// Hence we introduce a StreamMgr wrapper class (which, alas, must delegate all
+// member access via some trampoline code :-()
+// The underlying interface is created/destroyed from __enter__ and __exit,
+// respectively.
+
+class CStreamMgr;
+
+typedef shared_ptr<CStreamMgr> StreamMgr;
+
+class CStreamMgr : public virtual IStream, boost::noncopyable {
+private:
+	Path                 p_;
+	Stream               theStream_;
+	weak_ptr<CStreamMgr> self_;
+
+	CStreamMgr(Path p)
+	: p_( p->clone() )
+	{
+	}
+
+	Stream s() const
+	{
+		if ( theStream_ )
+			return theStream_;
+		throw FailedStreamError("Stream can only be used from the block of a 'with' statement!");
+	}
+
+public:
+
+	StreamMgr
+	__enter__()
+	{
+		theStream_ = IStream::create( p_ );
+		return StreamMgr( self_ );
+	}
+
+	bool
+	__exit__(
+		boost::python::object &exc_type,
+		boost::python::object &exc_value,
+		boost::python::object &traceback)
+	{
+		theStream_.reset(); // closes the stream
+		return false; // re-raise exception
+	}
+
+	// now there follows a lot of ugly boiler-plate code :-(
+
+	// IEntry
+	virtual const char *getName()        const
+	{
+		return s()->getName();
+	}
+
+	virtual uint64_t    getSize()        const
+	{
+		return s()->getSize();
+	}
+
+	virtual const char *getDescription() const
+	{
+		return s()->getDescription();
+	}
+
+	virtual double      getPollSecs()    const
+	{
+		return s()->getPollSecs();
+	}
+
+	virtual Hub         isHub()          const
+	{
+		return s()->isHub();
+	}
+
+	virtual void         dump(FILE *f)   const
+	{
+		return s()->dump( f );
+	}
+
+	virtual       void      dump()       const
+	{
+		return s()->dump();
+	}
+
+	// IVal_Base
+	virtual unsigned getNelms()
+	{
+		return s()->getNelms();
+	}
+
+	// getPath/getConstPath also should work w/o an open stream
+	virtual Path     getPath()          const
+	{
+		return theStream_ ? theStream_->getPath() : p_->clone();
+	}
+
+	virtual ConstPath getConstPath()    const
+	{
+		return theStream_ ? theStream_->getConstPath() : p_;
+	}
+
+	// IStream
+	virtual int64_t read(uint8_t *buf, uint64_t size,  const CTimeout timeoutUs, uint64_t off)
+	{
+		return s()->read( buf, size, timeoutUs, off );
+	}
+
+	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeoutUs)
+	{
+		return s()->write( buf, size, timeoutUs );
+	}
+
+	static StreamMgr create(Path path);
+};
+
+StreamMgr
+CStreamMgr::create(Path path)
+{
+StreamMgr theMgr  = StreamMgr( new CStreamMgr( path ) );
+	theMgr->self_ = theMgr;
+	return theMgr;
+}
+
 static void wrap_Command_execute(Command command)
 {
 GILUnlocker allowThreadingWhileWaiting;
@@ -887,6 +1020,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 	register_ptr_to_python<DoubleVal                      >();
 	register_ptr_to_python<Command                        >();
 	register_ptr_to_python<Stream                         >();
+	register_ptr_to_python<StreamMgr                      >();
 
 	register_ptr_to_python< shared_ptr<std::string const> >();
 
@@ -1709,11 +1843,16 @@ BOOST_PYTHON_MODULE(pycpsw)
 
 
 	// wrap 'IStream' interface
-	class_<IStream, bases<IEntry>, boost::noncopyable>
+	class_<IStream, bases<IVal_Base>, boost::noncopyable>
 	Stream_Clazz(
 		"Stream",
 		"\n"
-		"Interface for endpoints with support streaming of raw data.",
+		"Interface for endpoints with support streaming of raw data.\n"
+		"NOTE: A stream must be explicitly managed (i.e., destroyed/closed\n"
+		"      when nobody reads from it in order to avoid RSSI stalls).\n"
+        "      In python you must use a StreamMgr as a context manager\n"
+		"      and use the stream within a 'with' statement."
+		,
 		no_init
 	);
 
@@ -1742,13 +1881,43 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"in micro-seconds may be specified. A negative timeout blocks\n"
 			"indefinitely."
 		)
-		.def("create",       &IStream::create,
+		.def("create",    &CStreamMgr::create,
 			( arg("path") ),
 			"\n"
-			"Instantiate a 'Stream' interface at the endpoint identified by 'path'\n"
+			"Instantiate a ***'StreamMgr'*** context manager. Note that the Stream itself\n"
+			"is created/deleted by the manager's __enter__/__exit__."
 			"\n"
+		)
+		.staticmethod("create")
+	;
+
+	class_<CStreamMgr, bases<IStream>, boost::noncopyable>
+	StreamMgr_Clazz(
+		"StreamMgr",
+		"\n"
+		"Context Manager for CPSW Stream",
+		no_init
+	);
+
+	StreamMgr_Clazz
+		.def("__enter__", &CStreamMgr::__enter__,
+			( arg("self") ),
+            "\n"
+            "Entering the context instantiates the actual Stream; it may now be used.\n"
 			"NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does\n"
 			"      not support this interface."
+		)
+		.def("__exit__",  &CStreamMgr::__exit__,
+			( arg("self"), arg("exc_type"), arg("exc_value"), arg("traceback") ),
+			"\n"
+			"Leave the context and destroy the Stream associated with the context."
+		)
+		.def("create",    &CStreamMgr::create,
+			( arg("path") ),
+			"\n"
+			"Instantiate a 'StreamMgr' context manager. Note that the Stream itself\n"
+			"is created/deleted by the manager's __enter__/__exit__."
+			"\n"
 		)
 		.staticmethod("create")
 	;

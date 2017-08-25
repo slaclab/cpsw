@@ -119,5 +119,4 @@ doc/README.yamlDefinition:doc/README.yamlDefinition.in
 %.html: %
 	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@
 
-test: sub-./test@test
-	@true
+

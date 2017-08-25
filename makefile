@@ -1,9 +1,9 @@
-TOPTARGETS := all clean install uninstall
-SUBDIRS := src 
+CPSW_DIR=src
+SRCDIR=.
 
-$(TOPTARGETS): $(SUBDIRS)
+-include $(SRCDIR)/release.mak
+include $(CPSW_DIR)/defs.mak
 
-$(SUBDIRS):
-	cd $@ && $(MAKE) $(MAKECMDGOALS)
+SUBDIRS = src
 
-.PHONY: $(TOPTARGETS) $(SUBDIRS) 
+include $(CPSW_DIR)/rules.mak

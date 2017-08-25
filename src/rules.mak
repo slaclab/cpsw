@@ -25,8 +25,15 @@ all: multi-build
 install: multi-build multi-do_install
 	@true
 
-# run tests (on host only)
-multi-test: sub-$(HARCH)$(TSEP)run_tests
+test: $(addsuffix @test,$(addprefix sub-./,$(POSTBUILD_SUBDIRS) $(SUBDIRS)))
+	@true
+
+# run tests
+#  - recurse into subdirs to run tests
+#  - run in current dir on host only
+multi-test: $(addsuffix @test,$(addprefix sub-./,$(POSTBUILD_SUBDIRS) $(SUBDIRS))) sub-$(HARCH)$(TSEP)run_tests
+	echo "MULTI_TEST: $^"
+	echo "MULTI_TEST: SUBDIRS: $(SUBDIRS)"
 	@true
 
 multi-clean: clean
@@ -342,9 +349,11 @@ git_version_string.h: FORCE
 
 FORCE:
 
+PHONYTARGETS = all install uninstall build clean test run_tests generate_srcs do_install 
+
 .PHONY: install_local clean_local uninstall_local
-
-
+.PHONY: $(PHONYTARGETS)
+ 
 ifdef TARCH
 -include deps
 endif

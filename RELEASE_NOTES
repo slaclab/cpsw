@@ -1,5 +1,24 @@
+R3.6.1
+	Makefile fixes
 
-    Feature: derive IStream from IEntry; allows to obtain
+	Added more targets to .PHONY:
+	Recurse 'test' into SUBDIRS, POSTBUILD_SUBDIRS
+	Moved 'test' target to rules.mak
+	Let top-level 'makefile' use 'rules.mak' & friends
+
+R3.6.0
+    Feature/Fix: PYTHON: instantiate Streams via a context manager;
+             i.e., streams can only be used inside a 'with' block!
+             *** NOTE *** this is a python interface change; it is
+             no longer possible to read from a newly created stream
+             (Stream.create() now returns a context manager)!
+             Instead, you must read from the block of a 'with'
+             statement:
+
+                with Stream.create() as s:
+                  s.read( buf )
+
+    Feature: derive IStream from IVal_Base; allows to obtain
              basic properties from the stream interface.
 
 R3.5.4	    4-May-2017	   Till Straumann (strauman)
