@@ -1,3 +1,13 @@
+
+    Feature: derive IStream from IEntry; allows to obtain
+             basic properties from the stream interface.
+
+R3.5.4	    4-May-2017	   Till Straumann (strauman)
+    Bugfix: Path->toString() segfault
+    UDP/TCP: ignore empty buffer chains (but don't deref!)
+    Bugfix: when releasing a buffer our allocator never called the destructor
+    Changed exceptions in cpsw_buf.cc from InternalError -> InvalidArgError
+
 R3.5.3      14-Mar-2017    Till Straumann (strauman)
     Improved error message when reading config fails
     Use buffers getAvail() instead of getCapacity when reading RSSI header
