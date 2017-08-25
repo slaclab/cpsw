@@ -659,14 +659,15 @@ public:
 		return s()->getNelms();
 	}
 
+	// getPath/getConstPath also should work w/o an open stream
 	virtual Path     getPath()          const
 	{
-		return s()->getPath();
+		return theStream_ ? theStream_->getPath() : p_->clone();
 	}
 
 	virtual ConstPath getConstPath()    const
 	{
-		return s()->getConstPath();
+		return theStream_ ? theStream_->getConstPath() : p_;
 	}
 
 	// IStream
