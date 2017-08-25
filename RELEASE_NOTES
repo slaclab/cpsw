@@ -1,3 +1,10 @@
+	Makefile fixes
+
+	Added more targets to .PHONY:
+	Recurse 'test' into SUBDIRS, POSTBUILD_SUBDIRS
+	Moved 'test' target to rules.mak
+	Let top-level 'makefile' use 'rules.mak' & friends
+
 R3.6.0
     Feature/Fix: PYTHON: instantiate Streams via a context manager;
              i.e., streams can only be used inside a 'with' block!
