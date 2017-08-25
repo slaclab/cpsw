@@ -353,10 +353,6 @@ PHONYTARGETS = all install uninstall build clean test run_tests generate_srcs do
 
 .PHONY: install_local clean_local uninstall_local
 .PHONY: $(PHONYTARGETS)
-.PHONY: $(addprefix multi-,$(PHONYTARGETS))
-.PHONY: $(addprefix multi-subdir-,$(PHONYTARGETS))
-.PHONY: $(addprefix multi-arch-,$(PHONYTARGETS))
-.PHONY: $(addprefix multi-postsubdir-,$(PHONYTARGETS))
  
 ifdef TARCH
 -include deps
