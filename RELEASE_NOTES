@@ -1,5 +1,5 @@
 
-    Feature: derive IStream from IEntry; allows to obtain
+    Feature: derive IStream from IVal_Base; allows to obtain
              basic properties from the stream interface.
 
 R3.5.4	    4-May-2017	   Till Straumann (strauman)
