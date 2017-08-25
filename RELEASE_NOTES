@@ -1,3 +1,14 @@
+R3.6.0
+    Feature/Fix: PYTHON: instantiate Streams via a context manager;
+             i.e., streams can only be used inside a 'with' block!
+             *** NOTE *** this is a python interface change; it is
+             no longer possible to read from a newly created stream
+             (Stream.create() now returns a context manager)!
+             Instead, you must read from the block of a 'with'
+             statement:
+
+                with Stream.create() as s:
+                  s.read( buf )
 
     Feature: derive IStream from IVal_Base; allows to obtain
              basic properties from the stream interface.
