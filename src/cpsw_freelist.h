@@ -30,19 +30,19 @@ using boost::memory_order_relaxed;
 using boost::memory_order_release;
 using boost::memory_order_acquire;
 
-template <typename T> class CFreeList;
+template <typename T, typename B> class CFreeList;
 
 template <typename T> class CFreeListNodeKey {
 private:
 	CFreeListNodeKey() {};
-	friend class CFreeList<T>;
+	template <typename A, typename B> friend class CFreeList;
 };
 
 template <typename C> class CFreeListNode {
 private:
 	weak_ptr<C> self_;
 
-protected:
+public:
 	virtual void setSelf(shared_ptr<C> me)
 	{
 		if ( ! self_.expired() || me.get() != this )
@@ -50,12 +50,12 @@ protected:
 		self_ = me;
 	}
 
-	friend shared_ptr<C> CFreeList<C>::alloc();
-	template <typename ARG> friend shared_ptr<C> CFreeList<C>::alloc(ARG);
+	template <typename BAS> friend shared_ptr<C> CFreeList<C, BAS>::alloc();
+	template <typename ARG, typename BAS> friend shared_ptr<C> CFreeList<C, BAS>::alloc(ARG);
 
 public:
 
-	CFreeListNode( CFreeListNodeKey<C> k )
+	CFreeListNode( const CFreeListNodeKey<C> &k )
 	{
 	}
 
@@ -101,7 +101,7 @@ public:
 };
 
 // NODE must be derived from CFreeListNode !
-template <typename NODE>
+template <typename NODE, typename NODEBASE = NODE>
 class CFreeList : public freelist_stack< NODE, CFreeListNodeAlloc<NODE> >
 {
 private:
@@ -161,7 +161,7 @@ public:
 		return rval;
 	}
 
-	NODE *construct(CFreeListNodeKey<NODE> k)
+	NODE *construct(CFreeListNodeKey<NODEBASE> k)
 	{
 		const bool ThreadSafe = true;
 		const bool Bounded    = false;
@@ -171,7 +171,7 @@ public:
 		return rval;
 	}
 
-	template <typename ARG> NODE *construct(CFreeListNodeKey<NODE> k, ARG arg)
+	template <typename ARG> NODE *construct(CFreeListNodeKey<NODEBASE> k, ARG arg)
 	{
 		const bool ThreadSafe = true;
 		const bool Bounded    = false;
@@ -191,7 +191,7 @@ public:
 
 	shared_ptr<NODE> alloc()
 	{
-		NODE *b = construct( CFreeListNodeKey<NODE>() );
+		NODE *b = construct( CFreeListNodeKey<NODEBASE>() );
 		if ( ! b )
 			throw InternalError("Unable to allocate Buffer");
 		// do not use DTOR with a NULL pointer - it will still
@@ -203,7 +203,7 @@ public:
 
 	template <typename ARG> shared_ptr<NODE> alloc(ARG a)
 	{
-		NODE *b = construct( CFreeListNodeKey<NODE>(), a );
+		NODE *b = construct( CFreeListNodeKey<NODEBASE>(), a );
 		if ( ! b )
 			throw InternalError("Unable to allocate Buffer");
 		// do not use DTOR with a NULL pointer - it will still
