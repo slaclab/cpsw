@@ -243,7 +243,7 @@ Hub      root;
 	strmPath->tail()->dump();
 
 	if ( errs ) {
-		fprintf(stderr,"%d frames missing (got %d)\n", errs, goodf);	
+		fprintf(stderr,"%d frames missing (got %d; allowed err_percent: %d)\n", errs, goodf, err_percent);
 		if ( errs*100 > err_percent * ngood )
 			goto bail;
 	}

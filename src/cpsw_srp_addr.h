@@ -82,11 +82,6 @@ public:
 	}
 };
 
-class CSRPAsyncReadTransaction;
-typedef CSRPAsyncReadTransaction *SRPAsyncReadTransaction;
-
-typedef shared_ptr< CAsyncIOTransactionPool<CSRPAsyncReadTransaction> > SRPAsyncReadXactPool;
-
 class CSRPAddressImpl : public CCommAddressImpl {
 private:
 	INetIODev::ProtocolVersion protoVersion_;
@@ -109,7 +104,6 @@ private:
 	ProtoPort                 asyncIOPort_;
 	AsyncIOTransactionManager asyncXactMgr_;
 	CSRPAsyncHandler          asyncIOHandler_;
-	SRPAsyncReadXactPool      asyncReadXactPool_;
 
 protected:
 	mutable CMtx     mutex_;

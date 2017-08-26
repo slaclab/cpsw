@@ -102,7 +102,6 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort sta
  maxWordsTx_( MAXWORDS ),
  asyncXactMgr_( IAsyncIOTransactionManager::create( usrTimeout_.getUs() ) ),
  asyncIOHandler_( asyncXactMgr_, this ),
- asyncReadXactPool_( SRPAsyncReadXactPool::element_type::create() ),
  mutex_( CMtx::AttrRecursive(), "SRPADDR" )
 {
 ProtoModSRPMux       srpMuxMod( dynamic_pointer_cast<ProtoModSRPMux::element_type>( stack->getProtoMod() ) );
@@ -269,6 +268,9 @@ public:
 
 };
 
+class CSRPAsyncReadTransaction;
+typedef shared_ptr<CSRPAsyncReadTransaction> SRPAsyncReadTransaction;
+
 class CSRPReadTransaction : public CSRPTransaction {
 private:
 	uint8_t        *dst_;
@@ -323,10 +325,9 @@ public:
 	complete(BufChain rchn);
 };
 
-class CSRPAsyncReadTransaction : public CAsyncIOTransaction, public CSRPReadTransaction {
+class CSRPAsyncReadTransaction : public CAsyncIOTransaction, public CSRPReadTransaction{
 public:
 	CSRPAsyncReadTransaction(
-		AsyncIOTransactionPool        pool,
 		const CAsyncIOTransactionKey &key);
 
 	virtual void complete(BufChain bc)
@@ -335,12 +336,18 @@ public:
 		if ( bc )
 			CSRPReadTransaction::complete(bc);
 	}
+
+	virtual AsyncIOTransaction getSelfAsAsyncIOTransaction()
+	{
+		return getSelfAs<AsyncIOTransaction>();
+	}
 };
 
+static CFreeList<CSRPAsyncReadTransaction, CAsyncIOTransaction> srpReadTransactionPool;
+
 CSRPAsyncReadTransaction::CSRPAsyncReadTransaction(
-		AsyncIOTransactionPool        pool,
 		const CAsyncIOTransactionKey &key)
-: CAsyncIOTransaction( pool, key ),
+: CAsyncIOTransaction( key ),
   CSRPReadTransaction( 0, 0, 0, 0 )
 {
 }
@@ -664,7 +671,7 @@ int	     nWords   = getNWords();
 
 uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes, AsyncIO aio) const
 {
-SRPAsyncReadTransaction xact = asyncReadXactPool_->getTransaction();
+SRPAsyncReadTransaction xact = srpReadTransactionPool.alloc();
 
 	xact->reset( this, dst, off, sbytes );
 
@@ -756,6 +763,7 @@ int rval = CAddressImpl::open( node );
 		door_        = getProtoStack()->open();
 		// open a second VC for asynchronous communication
 		asyncIOHandler_.threadStart( asyncIOPort_->open() );
+printf("SRP Open\n");
 	}
 
 	return rval;
@@ -768,6 +776,7 @@ CMtx::lg guard( &doorMtx_ );
 
 int rval = CAddressImpl::close( node );
 	if ( 1 == rval ) {
+printf("SRP Close\n");
 		door_.reset();
 		asyncIOHandler_.threadStop();
 	}

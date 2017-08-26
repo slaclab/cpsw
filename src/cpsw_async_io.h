@@ -5,72 +5,17 @@
 #include <cpsw_buf.h>
 #include <cpsw_mutex.h>
 #include <cpsw_shared_obj.h>
+#include <cpsw_freelist.h>
 
 #include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 #include <boost/make_shared.hpp>
 
 using boost::make_shared;
+using boost::weak_ptr;
 
-class   CAsyncIOTransaction;
-typedef CAsyncIOTransaction *AsyncIOTransaction;
-
-class   IAsyncIOTransactionPool;
-typedef shared_ptr<IAsyncIOTransactionPool> AsyncIOTransactionPool;
-
-class IAsyncIOTransactionPool {
-public:
-	virtual void put(AsyncIOTransaction) = 0;
-
-	virtual ~IAsyncIOTransactionPool() {}
-};
-
-class CAsyncIOTransactionPoolBase : public IAsyncIOTransactionPool {
-private:
-	CMtx               freeListMtx_;
-	AsyncIOTransaction freeList_;
-	
-	CAsyncIOTransactionPoolBase( const CAsyncIOTransactionPoolBase & );
-	CAsyncIOTransactionPoolBase operator=( const CAsyncIOTransactionPoolBase & );
-protected:
-	AsyncIOTransaction get();
-	void               put(AsyncIOTransaction);
-	
-	CAsyncIOTransactionPoolBase();
-	virtual ~CAsyncIOTransactionPoolBase();
-};
-
-class CAsyncIOTransactionKey {
-private:
-	CAsyncIOTransactionKey(){}
-	CAsyncIOTransactionKey(const CAsyncIOTransactionKey &);
-	CAsyncIOTransactionKey operator=(const CAsyncIOTransactionKey &);
-	template<class EL> friend class CAsyncIOTransactionPool;
-	friend class CAsyncIOTransactionManager;
-};
-
-template <typename EL> class CAsyncIOTransactionPool : public CAsyncIOTransactionPoolBase, public CShObj {
-public:
-	CAsyncIOTransactionPool(Key &k)
-	: CShObj(k)
-	{
-	}
-
-	typedef shared_ptr< CAsyncIOTransactionPool<EL> > SP;
-
-	EL *getTransaction()
-	{
-	EL *xact;
-		if ( (xact = static_cast<EL*>( get() )) ) {
-			return xact;
-		}
-		return new EL( getSelfAs< SP >(), CAsyncIOTransactionKey() );
-	}
-
-	static SP create()
-	{
-		return CShObj::create<SP>();
-	}
-};
+class   CAsyncIOTransactionNode;
+typedef shared_ptr<CAsyncIOTransactionNode> AsyncIOTransactionNode;
 
 class IAsyncIOTransactionManager;
 typedef shared_ptr<IAsyncIOTransactionManager> AsyncIOTransactionManager;
@@ -79,7 +24,7 @@ class IAsyncIOTransactionManager {
 public:
 	typedef uint32_t TID;	
 
-	virtual void post(AsyncIOTransaction, TID, AsyncIO callback) = 0;
+	virtual void post(AsyncIOTransactionNode, TID, AsyncIO callback) = 0;
 	virtual int  complete(BufChain, TID)                         = 0;
 
 	virtual ~IAsyncIOTransactionManager() {}
@@ -89,73 +34,64 @@ public:
 
 // A transaction object
 //
-class CAsyncIOTransaction {
+class CAsyncIOTransactionNode {
 private:
-	AsyncIOTransaction              next_, prev_;
+	AsyncIOTransactionNode              next_;
+	weak_ptr<CAsyncIOTransactionNode>   prev_;
+
 	IAsyncIOTransactionManager::TID tid_;
 	CTimeout                        timeout_;
-	AsyncIOTransactionPool          pool_;
 	AsyncIO                         aio_;
 
-	CAsyncIOTransaction(const CAsyncIOTransaction &);
-	CAsyncIOTransaction & operator=(const CAsyncIOTransaction &);
-
-	void addAfter(AsyncIOTransaction node)
-	{
-		next_              = node->next_;
-		node->next_->prev_ = this;
-		node->next_        = this;
-		prev_              = node;
-	}
-
-	void addBefore(AsyncIOTransaction node)
-	{
-		prev_              = node->prev_;
-		node->prev_->next_ = this;
-		node->prev_        = this;
-		next_              = node;
-	}
-
-	bool isLonely() const
-	{
-		return next_ == this;
-	}
-
-
-	void remove ()
-	{
-		next_->prev_ = prev_;
-		prev_->next_ = next_;
-	}
+	CAsyncIOTransactionNode(const CAsyncIOTransactionNode &);
+	CAsyncIOTransactionNode & operator=(const CAsyncIOTransactionNode &);
 
 protected:
-	CAsyncIOTransaction( AsyncIOTransactionPool pool, const CAsyncIOTransactionKey &key )
-	: next_( this ),
-	  prev_( this ),
-	  pool_(pool)
-	{
-	}
 
-	virtual ~CAsyncIOTransaction()
+	void addAfter(AsyncIOTransactionNode node);
+
+	void addBefore(AsyncIOTransactionNode node);
+
+	bool isLonely() const;
+
+	void remove ();
+
+	virtual ~CAsyncIOTransactionNode()
 	{
 	}
 	
 public:
+	CAsyncIOTransactionNode()
+	{
+	}
+
+	virtual AsyncIOTransactionNode getSelfAsAsyncIOTransactionNode() = 0;
 
 	// to be overridden by concrete transaction classes
 	virtual void complete(BufChain) = 0;
 
-	virtual void free()
+	friend class CAsyncIOTransactionManager;
+};
+
+class CAsyncIOTransaction;
+typedef shared_ptr<CAsyncIOTransaction> AsyncIOTransaction;
+
+typedef CFreeListNodeKey<CAsyncIOTransaction> CAsyncIOTransactionKey;
+
+class CAsyncIOTransaction : public CFreeListNode<CAsyncIOTransaction>, public CAsyncIOTransactionNode {
+public:
+	CAsyncIOTransaction( const CAsyncIOTransactionKey &k )
+	: CFreeListNode( k )
 	{
-		if ( aio_ )
-			throw InternalError("Callback never executed");
-		pool_->put( this );
 	}
 
+	virtual AsyncIOTransactionNode getSelfAsAsyncIOTransactionNode()
+	{
+		return getSelfAs<AsyncIOTransaction>();
+	}
+};
 
-
-	friend class CAsyncIOTransactionManager;
-	friend class CAsyncIOTransactionPoolBase;
+template <typename C> class CAsyncIOTransactionPool : public CFreeList<C, CAsyncIOTransaction> {
 };
 
 class CAsyncIOCompletion : public IAsyncIO {

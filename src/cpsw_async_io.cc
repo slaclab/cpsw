@@ -5,30 +5,42 @@
 #include <cpsw_thread.h>
 #include <cpsw_condvar.h>
 #include <cpsw_error.h>
+#include <cpsw_shared_obj.h>
 
 #include <boost/make_shared.hpp>
 
 using boost::make_shared;
 
-class CListHead : public CAsyncIOTransaction {
+class CListAnchor : public CShObj, public CAsyncIOTransactionNode {
+private:
+	CListAnchor( const CListAnchor &);
+	CListAnchor & operator=(const CListAnchor&);
 public:
-	CListHead(const CAsyncIOTransactionKey &k)
-	: CAsyncIOTransaction( AsyncIOTransactionPool(), k )
+	CListAnchor( CShObj::Key k )
+	: CShObj( k )
 	{
 	}
 
-	virtual void free()                { }
-	virtual void complete(BufChain bc) { }
+	virtual AsyncIOTransactionNode getSelfAsAsyncIOTransactionNode()
+	{
+		// AsyncIOTransactionNode does not derive from CShObj, hence we cannot
+		// use CShObj::getSelfAs...
+		throw InternalError("CListAnchor::getSelfAsAsyncIOTransactionNode() should not be called");
+	}
+
+	virtual void complete(BufChain bc)
+	{
+	}
 };
 
 // call 'complete' in an exception-safe way
 class Completer {
 private:
-	AsyncIOTransaction xact_;
+	AsyncIOTransactionNode xact_;
 	Completer(const Completer&);
 	Completer operator=(const Completer&);
 public:
-	Completer(AsyncIOTransaction xact)
+	Completer(AsyncIOTransactionNode xact)
 	: xact_(xact)
 	{
 	}
@@ -38,35 +50,61 @@ public:
 		xact_->complete(bc);
 	}
 
-	~Completer()
-	{
-		xact_->free();
-	}
 };
+
+/* Assume lists always have a head and a tail node and therefore
+ * we never have to check that any of the pointers are NULL.
+ */
+void CAsyncIOTransactionNode::addAfter(AsyncIOTransactionNode node)
+{
+AsyncIOTransactionNode me = getSelfAsAsyncIOTransactionNode();
+	next_              = node->next_;
+	node->next_->prev_ = me;
+	node->next_        = me;
+	prev_              = node;
+}
+
+void CAsyncIOTransactionNode::addBefore(AsyncIOTransactionNode node)
+{
+AsyncIOTransactionNode me       = getSelfAsAsyncIOTransactionNode();
+AsyncIOTransactionNode nodePrev = AsyncIOTransactionNode( node->prev_ );
+	prev_           = nodePrev;
+	nodePrev->next_ = me;
+	node->prev_     = me;
+	next_           = node;
+}
+
+void CAsyncIOTransactionNode::remove ()
+{
+AsyncIOTransactionNode prev = AsyncIOTransactionNode( prev_ );
+	next_->prev_ = prev;
+	prev->next_  = next_;
+}
 
 
 class CAsyncIOTransactionManager : public CRunnable, public IAsyncIOTransactionManager {
 private:
-	CMtx                 pendingMtx_;  // protect pendingList_
-	CListHead            pendingList_; // list head + tail of pending transactions
+	CMtx                     pendingMtx_;  // protect pendingList_
+	AsyncIOTransactionNode   pendingListHead_; // list head + tail of pending transactions
+	AsyncIOTransactionNode   pendingListTail_; // list head + tail of pending transactions
 
-	CCond                havePending_; // condvar to signal that there are new transactions
-	                            // wakes up the timeout thread
+	CCond                    havePending_; // condvar to signal that there are new transactions
+	                                       // wakes up the timeout thread
 
-	CTimeout             timeout_;
+	CTimeout                 timeout_;
 
-	void addHead_unl(AsyncIOTransaction node)
+	void addHead_unl(AsyncIOTransactionNode node)
 	{
-		node->addAfter( &pendingList_ );
+		node->addAfter( pendingListHead_ );
 	}
 
-	void addTail_unl(AsyncIOTransaction node)
+	void addTail_unl(AsyncIOTransactionNode node)
 	{
-		node->addBefore( &pendingList_ );
+		node->addBefore( pendingListTail_ );
 	}
 
 protected:
-	virtual void doComplete(AsyncIOTransaction xact, BufChain bc = BufChain());
+	virtual void doComplete(AsyncIOTransactionNode xact, BufChain bc = BufChain());
 
 public:
 
@@ -75,18 +113,18 @@ public:
 	bool
 	pendingListEmpty()
 	{
-		return pendingList_.isLonely();
+		return pendingListHead_->next_ == pendingListTail_;
 	}
 
 
-	AsyncIOTransaction 
+	AsyncIOTransactionNode 
 	getHead_unl()
 	{
-		return pendingListEmpty() ?  0 : pendingList_.next_;
+		return pendingListEmpty() ?  AsyncIOTransactionNode() : pendingListHead_->next_;
 	}
 
 	virtual void
-	post(AsyncIOTransaction xact, TID tid, AsyncIO callback);
+	post(AsyncIOTransactionNode xact, TID tid, AsyncIO callback);
 
 	virtual int
 	complete(BufChain bc, TID tid);
@@ -100,16 +138,17 @@ public:
 
 CAsyncIOTransactionManager::CAsyncIOTransactionManager(uint64_t timeoutUs)
 : CRunnable("AsyncIOTimeout"),
-  pendingList_( CAsyncIOTransactionKey() ),
+  pendingListHead_( CShObj::create< shared_ptr<CListAnchor> >() ),
+  pendingListTail_( CShObj::create< shared_ptr<CListAnchor> >() ),
   timeout_ (timeoutUs)
 {
-		pendingList_.next_ = &pendingList_;
-		pendingList_.prev_ = &pendingList_;
+		pendingListHead_->next_ = pendingListTail_;
+		pendingListTail_->prev_ = pendingListHead_;
 		threadStart();
 }
 
 void
-CAsyncIOTransactionManager::post(AsyncIOTransaction xact, TID tid, AsyncIO callback)
+CAsyncIOTransactionManager::post(AsyncIOTransactionNode xact, TID tid, AsyncIO callback)
 {
 	xact->tid_        = tid;
 
@@ -133,16 +172,16 @@ CAsyncIOTransactionManager::post(AsyncIOTransaction xact, TID tid, AsyncIO callb
 int
 CAsyncIOTransactionManager::complete(BufChain bc, TID tid)
 {
-	AsyncIOTransaction xact;
+	AsyncIOTransactionNode xact;
 
 	// access of protected 'pendingList'
 	{
 		CMtx::lg guard( &pendingMtx_ );
-		pendingList_.tid_ = tid; // sentinel
-		for ( xact = pendingList_.next_; xact->tid_ != tid; xact = xact->next_ ) {
+		pendingListTail_->tid_ = tid; // sentinel
+		for ( xact = pendingListHead_->next_; xact->tid_ != tid; xact = xact->next_ ) {
 			/* nothing left to do */
 		}
-		if ( xact == &pendingList_ ) {
+		if ( xact == pendingListTail_ ) {
 			/* not found! */
 			return -1;
 		}
@@ -158,7 +197,7 @@ CAsyncIOTransactionManager::complete(BufChain bc, TID tid)
 void *
 CAsyncIOTransactionManager::threadBody()
 {
-	AsyncIOTransaction xact;
+	AsyncIOTransactionNode xact;
 	CTimeout      now;
 	CTimeout      remaining;
 	bool          err = false;
@@ -184,7 +223,7 @@ CAsyncIOTransactionManager::threadBody()
 			} else {
 				/* wait for the next timeout */
 				remaining = xact->timeout_;
-				xact      = 0;
+				xact.reset();
 
 			}
 bail:
@@ -208,7 +247,7 @@ bail:
 }
 
 void
-CAsyncIOTransactionManager::doComplete(AsyncIOTransaction xact, BufChain bc )
+CAsyncIOTransactionManager::doComplete(AsyncIOTransactionNode xact, BufChain bc )
 {
 Completer cmpl( xact );
 AsyncIO   aio;
@@ -229,7 +268,7 @@ AsyncIO   aio;
 
 CAsyncIOTransactionManager::~CAsyncIOTransactionManager()
 {
-AsyncIOTransaction xact;
+AsyncIOTransactionNode xact;
 
 	threadStop();
 
@@ -248,41 +287,6 @@ AsyncIOTransactionManager
 IAsyncIOTransactionManager::create(uint64_t timeoutUs)
 {
 	return make_shared<CAsyncIOTransactionManager>( timeoutUs );
-}
-
-CAsyncIOTransactionPoolBase::CAsyncIOTransactionPoolBase()
-: freeList_(0)
-{
-}
-
-AsyncIOTransaction
-CAsyncIOTransactionPoolBase::get()
-{
-CMtx::lg           guard( &freeListMtx_ );
-AsyncIOTransaction xact;
-	if ( (xact = freeList_) ) {
-		freeList_ = freeList_->next_;
-	}
-	return xact;
-}
-
-void
-CAsyncIOTransactionPoolBase::put(AsyncIOTransaction xact)
-{
-CMtx::lg guard( &freeListMtx_ );
-	xact->next_ = freeList_;
-	freeList_   = xact;
-}
-
-
-CAsyncIOTransactionPoolBase::~CAsyncIOTransactionPoolBase()
-{
-CMtx::lg           guard( &freeListMtx_ );
-AsyncIOTransaction xact;
-	while ( (xact = freeList_) ) {
-		freeList_ = freeList_->next_;
-		delete xact;
-	}
 }
 
 CAsyncIOCompletion::CAsyncIOCompletion(AsyncIO parent)

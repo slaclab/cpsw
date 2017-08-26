@@ -64,6 +64,10 @@ public:
 		return shared_ptr<C>( self_ );
 	}
 
+	template <typename AS> AS getSelfAs()
+	{
+		return static_pointer_cast<typename AS::element_type>( getSelf() );
+	}
 
 	virtual ~CFreeListNode() {}
 };
