@@ -123,6 +123,17 @@ public:
 	static MemDev create(const char *name, uint64_t size, uint8_t *ext_buf = 0);
 };
 
+class INullDev;
+typedef shared_ptr<INullDev> NullDev;
+
+class INullDev : public virtual IDev {
+public:
+	virtual void            addAtAddress(Field child) = 0;
+
+	static NullDev create(const char *name, uint64_t size);
+};
+
+
 class IProtoStackBuilder;
 typedef shared_ptr<IProtoStackBuilder> ProtoStackBuilder;
 

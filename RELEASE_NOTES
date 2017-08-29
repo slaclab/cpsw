@@ -1,3 +1,9 @@
+R3.7.branch
+    New features: a 'NullDev' which is not backed by anything.
+    Useful for testing/debugging because any YAML hierarchy 
+    can be loaded w/o need for hardware (or a lot or memory
+    as with MemDev that covers a large address space).
+
 R3.6.1
 	Makefile fixes
 
