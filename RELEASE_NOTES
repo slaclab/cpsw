@@ -4,6 +4,11 @@ R3.7.branch
     can be loaded w/o need for hardware (or a lot or memory
     as with MemDev that covers a large address space).
 
+    Python: Added YamlFixup so that a fixup (LoadYamlFile etc.)
+    can be written in python. NOTE: this requires yaml-cpp
+    python bindings which must be implemented/obtained elsewhere,
+    i.e., they are NOT part of cpsw.
+
 R3.6.1
 	Makefile fixes
 
