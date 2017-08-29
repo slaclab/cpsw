@@ -932,13 +932,36 @@ public:
 	}
 };
 
+class WrapYamlFixup : public IYamlFixup {
+private:
+PyObject *self_;
+
+public:
+	WrapYamlFixup(PyObject *self)
+	: self_(self)
+	{
+		printf("Creating a FIXUP\n");
+	}
+
+
+	virtual void operator()(YAML::Node &nod)
+	{
+		printf("Calling FIXUP\n");
+		call_method<void>(self_, "fixup", nod);
+	}
+
+	virtual ~WrapYamlFixup()
+	{
+	}
+};
+
 static Path
-wrap_Path_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0)
+wrap_Path_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0, IYamlFixup *fixup = 0)
 {
 // could use IPath::loadYamlStream(const char *,...) but that would make a new string
 // which we want to avoid.
 std::istringstream sstrm( yaml );
-	return IPath::loadYamlStream( sstrm, root_name, yaml_dir_name );
+	return IPath::loadYamlStream( sstrm, root_name, yaml_dir_name, fixup );
 }
 
 static boost::python::tuple
@@ -979,16 +1002,15 @@ wrap_setRssiDebugLevel(int l)
 // Complaints about mismatching python and c++ arg types (when using defaults)
 BOOST_PYTHON_FUNCTION_OVERLOADS( IPath_loadYamlFile_ol,
                                  IPath::loadYamlFile,
-                                 1, 3 )
+                                 1, 4 )
+
+BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadYamlStream_ol,
+                                 wrap_Path_loadYamlStream,
+                                 1, 4 )
 
 BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadConfigFromYamlFile_ol,
                                  wrap_Path_loadConfigFromYamlFile,
                                  2, 3 )
-
-
-BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadYamlStream_ol,
-                                 wrap_Path_loadYamlStream,
-                                 1, 3 )
 
 BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadConfigFromYamlString_ol,
                                  wrap_Path_loadConfigFromYamlString,
@@ -1385,7 +1407,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.staticmethod("create")
 		.def("loadYamlFile",   &IPath::loadYamlFile,
 			IPath_loadYamlFile_ol(
-			args("yamlFileName", "rootName", "yamlIncDirName"),
+			args("yamlFileName", "rootName", "yamlIncDirName", "YamlFixup"),
 			"\n"
 			"Load a hierarchy definition in YAML format from a file.\n"
 			"\n"
@@ -1403,7 +1425,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.staticmethod("loadYamlFile")
 		.def("loadYaml",       wrap_Path_loadYamlStream,
 			wrap_Path_loadYamlStream_ol(
-			args("yamlString", "rootName", "yamlIncDirName"),
+			args("yamlString", "rootName", "yamlIncDirName", "YamlFixup"),
 			"\n"
 			"Load a hierarchy definition in YAML format from a string.\n"
 			"\n"
@@ -1452,6 +1474,22 @@ BOOST_PYTHON_MODULE(pycpsw)
 		"if recursion was skipped due to 'visitPre()' returning 'False'\n"
 		"\n"
 		"   void visitPost(Path path)\n"
+		"\n"
+	);
+
+	class_<IYamlFixup, WrapYamlFixup, boost::noncopyable, boost::shared_ptr<WrapYamlFixup> >
+	WrapYamlFixupClazz(
+		"YamlFixup",
+		"\n"
+		"The user must implement an implementation for this\n"
+		"interface which performs any desired fixup on the YAML\n"
+		"root node which is passed to the 'fixup' method\n"
+		"\n"
+		"NOTE: you need python bindings for the yaml-cpp library\n"
+		"      in order to use this. Such bindings are NOT part\n"
+		"      of CPSW!\n"
+        "\n"
+		"      void fixup(YAML::Node &)\n"
 		"\n"
 	);
 
