@@ -7,7 +7,7 @@ include $(CPSW_DIR)/defs.mak
 SUBDIRS+= src
 TGTS+=env
 
-#GENERATED_SRCS=env-cpsw.sh
+GENERATED_SRCS=env.slac.sh
 
 include $(CPSW_DIR)/rules.mak
 
@@ -24,15 +24,13 @@ env-cpsw.sh:
 	echo 'export PATH=$(abspath $(INSTALL_BIN))$(addprefix :,$(PYBINPATH))$${PATH:+:$${PATH}}' >> $@
 
 clean_local:
-	$(RM) env-cpsw.sh env.slac.sh
+	$(RM) env-cpsw.sh
 
 install_local: env-cpsw.sh
 	$(INSTALL) $^ $(INSTALL_DIR)/$(TARCH)/bin/
 
 uninstall_local:
 	$(RM) $(INSTALL_DIR)/$(TARCH)/bin/env-cpsw.sh
-
-multi-build: env.slac.sh
 
 env.slac.sh: env.slac.sh.in
 	$(RM) $@
