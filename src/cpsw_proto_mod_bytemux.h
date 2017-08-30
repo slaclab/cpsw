@@ -13,10 +13,11 @@
 #include <cpsw_buf.h>
 #include <cpsw_proto_mod.h>
 #include <cpsw_thread.h>
+#include <cpsw_yaml.h>
 
 // Protocol demultiplexer with a max. of 256 'virtual-channels'
 
-template <typename PORT> class CProtoModByteMux : public CShObj, public CProtoModImpl, CRunnable {
+template <typename PORT> class CProtoModByteMux : public CShObj, public CProtoModImpl, public CRunnable {
 
 public:
 	const static int DEST_MIN = 0;   // the code relies on 'dest' occupying 1 byte
@@ -55,9 +56,9 @@ protected:
 	}
 
 public:
-	CProtoModByteMux(Key &k, const char *name)
+	CProtoModByteMux(Key &k, const char *name, int threadPriority)
 	: CShObj(k),
-	  CRunnable(name),
+	  CRunnable(name, threadPriority),
 	  nPorts_(0)
 	{
 	}
@@ -73,6 +74,7 @@ public:
 	{
 		fprintf(f,"%s:\n", getName());
 		fprintf(f,"  # virtual channels in use: %u\n", getNumPortsUsed());
+		fprintf(f,"  Thread Priority          : %d\n", getPrio());
 	}
 
 	// derived class usually implements a 'newPort' method
@@ -140,15 +142,19 @@ public:
 	}
 };
 
+template <typename MOD>
 class CByteMuxPort : public CShObj, public CPortImpl {
+protected:
+	typedef shared_ptr<MOD>             OwnerType;
 private:
-	int                                dest_;
+
+	int                                 dest_;
 	// we use strong pointers in the upstream direction
 	// and the 'owner' represents this.
 	// Thus the 'downstream' vector in the protocol
 	// module must host weak pointers
-	ProtoMod                           owner_;
-	weak_ptr< ProtoMod::element_type > downstream_;
+	OwnerType                           owner_;
+	weak_ptr< ProtoMod::element_type >  downstream_;
 
 protected:
 	CByteMuxPort(const CByteMuxPort &orig, Key k)
@@ -163,7 +169,7 @@ protected:
 	}
 
 public:
-	CByteMuxPort(Key &k, ProtoMod owner, int dest, unsigned queueDepth)
+	CByteMuxPort(Key &k, OwnerType owner, int dest, unsigned queueDepth)
 	: CShObj(k),
 	  CPortImpl(queueDepth),
 	  dest_(dest),
@@ -200,6 +206,14 @@ public:
 			rval = owner->getUpstreamDoor();
 		return rval;
 	}
+
+	virtual void dumpYaml(YAML::Node &node) const
+	{
+	int prio = owner_->getPrio();
+		if ( prio != IProtoStackBuilder::DFLT_THREAD_PRIORITY )
+			writeNode(node, YAML_KEY_threadPriority, prio);
+	}
+
 
 };
 

@@ -70,7 +70,12 @@ bool rval;
 void
 CProtoModRssi::dumpYaml(YAML::Node &node) const
 {
-	writeNode(node, YAML_KEY_RSSI, YAML::Node( YAML::NodeType::Null ) );
+int prio = getPrio();
+YAML::Node parms(YAML::NodeType::Null);
+	if ( prio != IProtoStackBuilder::DFLT_THREAD_PRIORITY ) {
+		writeNode(parms, YAML_KEY_threadPriority, prio);
+	}
+	writeNode(node, YAML_KEY_RSSI, parms );
 }
 
 BufChain
@@ -212,7 +217,7 @@ CProtoModRssi::modShutdown()
 }
 
 ProtoModRssi
-CProtoModRssi::create()
+CProtoModRssi::create(int threadPriority)
 {
-	return CShObj::create<ProtoModRssi>();
+	return CShObj::create<ProtoModRssi>( threadPriority );
 }

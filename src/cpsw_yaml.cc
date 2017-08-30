@@ -806,7 +806,7 @@ YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
 	if ( (vers = preprocessor.getSchemaVersionRevision()) >= 0 ) {
 		rootNode[ YAML_KEY_schemaVersionRevision ] = vers;
 	}
-			
+
 
 	return rootNode;
 }
@@ -953,4 +953,42 @@ IPath::loadYamlStream(const char *yaml, const char *root_name, const char *yaml_
 std::string  str( yaml );
 std::stringstream sstrm( str );
 	return loadYamlStream( sstrm, root_name, yaml_dir, fixup );
+}
+
+static YAML::Node findAcrossMerges(YAML::Node &src, std::string *tokens)
+{
+	if ( tokens->empty() )
+		return src;
+
+YAML::Node nn = src[ *tokens ];
+
+	if ( !!nn )
+		nn = findAcrossMerges( nn, tokens + 1 );
+
+	if ( ! nn ) {
+		nn = src["<<"];
+		if ( nn )
+			nn = findAcrossMerges(nn, tokens );
+	}
+	return nn;
+}
+
+YAML::Node
+IYamlFixup::findByName(YAML::Node &src, const char *path, char sep)
+{
+const std::string         text( path );
+std::vector <std::string> tokens;
+std::size_t               st = 0,en;
+
+	while ( (en = text.find(sep, st)) != std::string::npos ) {
+		if ( en != st )
+			tokens.push_back( text.substr(st, en - st) );
+		st = en + 1;
+	}
+	if ( en != st )
+		tokens.push_back( text.substr( st ) );
+
+	tokens.push_back( std::string() );
+
+	return findAcrossMerges( src, & tokens[0] );
 }

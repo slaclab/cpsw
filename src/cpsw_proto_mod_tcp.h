@@ -50,7 +50,7 @@ protected:
 			virtual void* threadBody();
 
 		public:
-			CRxHandlerThread(const char *name, int sd, CProtoModTcp *owner);
+			CRxHandlerThread(const char *name, int threadPriority, int sd, CProtoModTcp *owner);
 			CRxHandlerThread(CRxHandlerThread &orig, int sd, CProtoModTcp *owner);
 
 			virtual uint64_t getNumOctets() { return nOctets_.load( boost::memory_order_relaxed ); }
@@ -67,7 +67,7 @@ private:
 protected:
 	CRxHandlerThread  *rxHandler_;
 
-	void createThread();
+	void createThread(int threadPriority);
 
 	virtual bool doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout);
 
@@ -84,7 +84,7 @@ protected:
 	virtual int iMatch(ProtoPortMatchParams *cmp);
 
 public:
-	CProtoModTcp(Key &k, struct sockaddr_in *dest, unsigned depth);
+	CProtoModTcp(Key &k, struct sockaddr_in *dest, unsigned depth, int threadPriority);
 
 	CProtoModTcp(CProtoModTcp &orig, Key &k);
 

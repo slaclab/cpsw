@@ -55,6 +55,7 @@
 #define YAML_KEY_stripHeader  "stripHeader"
 #define YAML_KEY_TDEST  "TDEST"
 #define YAML_KEY_TDESTMux  "TDESTMux"
+#define YAML_KEY_threadPriority "threadPriority"
 #define YAML_KEY_timeoutUS  "timeoutUS"
 #define YAML_KEY_UDP  "UDP"
 #define YAML_KEY_TCP  "TCP"

@@ -38,20 +38,26 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		TransportProto             Xprt_;
 		unsigned                   XprtPort_;
 		unsigned                   XprtOutQueueDepth_;
+        int                        UdpThreadPriority_;
 		unsigned                   UdpNumRxThreads_;
 		int                        UdpPollSecs_;
+        int                        TcpThreadPriority_;
 		bool                       hasRssi_;
+        int                        RssiThreadPriority_;
 		int                        hasDepack_;
 		unsigned                   DepackOutQueueDepth_;
 		unsigned                   DepackLdFrameWinSize_;
 		unsigned                   DepackLdFragWinSize_;
+		int                        DepackThreadPriority_;
 		int                        hasSRPMux_;
 		unsigned                   SRPMuxVirtualChannel_;
 		unsigned                   SRPMuxOutQueueDepth_;
+		int                        SRPMuxThreadPriority_;
 		bool                       hasTDestMux_;
 		unsigned                   TDestMuxTDEST_;
 		int                        TDestMuxStripHeader_;
 		unsigned                   TDestMuxOutQueueDepth_;
+		int                        TDestMuxThreadPriority_;
 		in_addr_t                  IPAddr_;
 	public:
 		virtual void reset()
@@ -63,20 +69,26 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			Xprt_                   = UDP;
 			XprtPort_               = 8192;
 			XprtOutQueueDepth_      = 0;
+			UdpThreadPriority_      = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			UdpNumRxThreads_        = 0;
 			UdpPollSecs_            = -1;
+			TcpThreadPriority_      = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			hasRssi_                = false;
 			hasDepack_              = -1;
+			RssiThreadPriority_     = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			DepackOutQueueDepth_    = 0;
 			DepackLdFrameWinSize_   = 0;
 			DepackLdFragWinSize_    = 0;
+			DepackThreadPriority_   = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			hasSRPMux_              = -1;
 			SRPMuxOutQueueDepth_    = 0;
 			SRPMuxVirtualChannel_   = 0;
+			SRPMuxThreadPriority_   = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			hasTDestMux_            = false;
 			TDestMuxTDEST_          = 0;
 			TDestMuxStripHeader_    = -1;
 			TDestMuxOutQueueDepth_  = 0;
+			TDestMuxThreadPriority_ = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			IPAddr_                 = INADDR_NONE;
 		}
 
@@ -185,6 +197,26 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			Xprt_ = TCP;
 		}
 
+		virtual void            setTcpThreadPriority(int prio)
+		{
+			TcpThreadPriority_ = prio;
+		}
+
+		virtual int             getTcpThreadPriority()
+		{
+			return TcpThreadPriority_;
+		}
+
+		virtual void            setUdpThreadPriority(int prio)
+		{
+			UdpThreadPriority_ = prio;
+		}
+
+		virtual int             getUdpThreadPriority()
+		{
+			return UdpThreadPriority_;
+		}
+
 
 		virtual unsigned        getUdpPort()
 		{
@@ -260,6 +292,19 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			return hasRssi_ && hasUdp();
 		}
 
+		virtual void            setRssiThreadPriority(int prio)
+		{
+			if ( prio != IProtoStackBuilder::NO_THREAD_PRIORITY ) {
+				useRssi( true );
+			}
+			RssiThreadPriority_ = prio;
+		}
+
+		virtual int             getRssiThreadPriority()
+		{
+			return hasRssi() ? RssiThreadPriority_ : IProtoStackBuilder::NO_THREAD_PRIORITY;
+		}
+
 		virtual void            useDepack(bool v)
 		{
 			if ( ! (hasDepack_ = (v ? 1:0)) ) {
@@ -289,6 +334,17 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			if ( 0 == DepackOutQueueDepth_ )
 				return 50;
 			return DepackOutQueueDepth_;
+		}
+
+		virtual void            setDepackThreadPriority(int prio)
+		{
+			DepackThreadPriority_ = prio;
+			useDepack( true );
+		}
+
+		virtual int             getDepackThreadPriority()
+		{
+			return hasDepack() ? DepackThreadPriority_ : IProtoStackBuilder::NO_THREAD_PRIORITY;
 		}
 
 		virtual void            setDepackLdFrameWinSize(unsigned v)
@@ -359,6 +415,19 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			return SRPMuxOutQueueDepth_;
 		}
 
+		virtual void            setSRPMuxThreadPriority(int prio)
+		{
+			if ( prio != IProtoStackBuilder::NO_THREAD_PRIORITY ) {
+				useSRPMux( true  );
+			}
+			SRPMuxThreadPriority_ = prio;
+		}
+
+		virtual int             getSRPMuxThreadPriority()
+		{
+			return hasSRPMux() ? SRPMuxThreadPriority_ : IProtoStackBuilder::NO_THREAD_PRIORITY;
+		}
+
 
 		virtual void            useTDestMux(bool v)
 		{
@@ -410,6 +479,21 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			return TDestMuxOutQueueDepth_;
 		}
 
+		virtual void            setTDestMuxThreadPriority(int prio)
+		{
+			if ( prio != IProtoStackBuilder::NO_THREAD_PRIORITY ) {
+				useTDestMux( true  );
+			}
+			TDestMuxThreadPriority_ = prio;
+		}
+
+		virtual int             getTDestMuxThreadPriority()
+		{
+			return hasTDestMux() ? TDestMuxThreadPriority_ : IProtoStackBuilder::NO_THREAD_PRIORITY;
+		}
+
+
+
 		virtual ProtoStackBuilder clone()
 		{
 			return make_shared<CProtoStackBuilder>( *this );
@@ -435,7 +519,7 @@ int                        i;
 
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_SRP) );
-		if( nn )
+		if ( !!nn && nn.IsMap() )
 		{
 			// initialize proto_vers to silence rhel compiler warning
 			// about potentially un-initialized 'proto_vers'
@@ -455,17 +539,19 @@ int                        i;
 	}
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_TCP) );
-		if ( nn )
+		if ( !!nn && nn.IsMap() )
 		{
 			if ( readNode(nn, YAML_KEY_port, &u) )
 				bldr->setTcpPort( u );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				bldr->setTcpOutQueueDepth( u );
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
+				bldr->setTcpThreadPriority( i );
 		}
 	}
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_UDP) );
-		if ( nn )
+		if ( !!nn && nn.IsMap() )
 		{
 			if ( readNode(nn, YAML_KEY_port, &u) )
 				bldr->setUdpPort( u );
@@ -478,16 +564,23 @@ int                        i;
 			i = bldr->getUdpPollSecs();
 			if ( readNode(nn, YAML_KEY_pollSecs, &i) )
 				bldr->setUdpPollSecs( i );
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
+				bldr->setUdpThreadPriority( i );
 		}
 	}
 	{
         const YAML::PNode &nn( node.lookup(YAML_KEY_RSSI) );
 
         bldr->useRssi( !!nn );
+
+		if ( !!nn && nn.IsMap() ) {
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
+				bldr->setRssiThreadPriority( i );
+		}
 	}
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_depack) );
-		if (nn )
+		if ( !!nn && nn.IsMap() )
 		{
 			bldr->useDepack( true );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
@@ -496,22 +589,26 @@ int                        i;
 				bldr->setDepackLdFrameWinSize( u );
 			if ( readNode(nn, YAML_KEY_ldFragWinSize, &u) )
 				bldr->setDepackLdFragWinSize( u );
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
+				bldr->setDepackThreadPriority( i );
 		}
 	}
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_SRPMux) );
-		if (nn )
+		if ( !!nn && nn.IsMap() )
 		{
 			bldr->useSRPMux( true );
 			if ( readNode(nn, YAML_KEY_virtualChannel, &u) )
 				bldr->setSRPMuxVirtualChannel( u );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				bldr->setSRPMuxOutQueueDepth( u );
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
+				bldr->setSRPMuxThreadPriority( i );
 		}
 	}
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_TDESTMux) );
-		if (nn )
+		if ( !!nn && nn.IsMap() )
 		{
 			bldr->useTDestMux( true );
 			if ( readNode(nn, YAML_KEY_TDEST, &u) )
@@ -520,6 +617,8 @@ int                        i;
 				bldr->setTDestMuxStripHeader( b );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				bldr->setTDestMuxOutQueueDepth( u );
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
+				bldr->setTDestMuxThreadPriority( i );
 		}
 	}
 
@@ -696,16 +795,26 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 
 		if ( bldr->hasUdp() ) {
 			// Note: transport module MUST have a queue if RSSI is used
-			rval = CShObj::create< ProtoModUdp >( &dst, bldr->getUdpOutQueueDepth(), bldr->getUdpNumRxThreads(), bldr->getUdpPollSecs() );
+			rval = CShObj::create< ProtoModUdp >( &dst,
+			                                       bldr->getUdpOutQueueDepth(),
+			                                       bldr->getUdpThreadPriority(),
+			                                       bldr->getUdpNumRxThreads(),
+			                                       bldr->getUdpPollSecs()
+			);
 		} else {
-			rval = CShObj::create< ProtoModTcp >( &dst, bldr->getTcpOutQueueDepth() );
+			rval = CShObj::create< ProtoModTcp >( &dst,
+			                                       bldr->getTcpOutQueueDepth(),
+			                                       bldr->getTcpThreadPriority()
+			);
 		}
 
 		if ( bldr->hasRssi() ) {
 #ifdef PSBLDR_DEBUG
 	printf("  creating RSSI\n");
 #endif
-			ProtoModRssi rssi = CShObj::create<ProtoModRssi>();
+			ProtoModRssi rssi = CShObj::create<ProtoModRssi>(
+			                                bldr->getRssiThreadPriority()
+			);
 			rval->addAtPort( rssi );
 			rval = rssi;
 		}
@@ -718,7 +827,8 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 			                                bldr->getDepackOutQueueDepth(),
 			                                bldr->getDepackLdFrameWinSize(),
 			                                bldr->getDepackLdFragWinSize(),
-			                                CTimeout() );
+			                                CTimeout(),
+			                                bldr->getDepackThreadPriority());
 			rval->addAtPort( depackMod );
 			rval = depackMod;
 		}
@@ -729,7 +839,7 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 	printf("  creating tdest port\n");
 #endif
 		if ( ! tDestMuxMod ) {
-			tDestMuxMod = CShObj::create< ProtoModTDestMux >();
+			tDestMuxMod = CShObj::create< ProtoModTDestMux >( bldr->getTDestMuxThreadPriority() );
 			rval->addAtPort( tDestMuxMod );
 		}
 		rval = tDestMuxMod->createPort( bldr->getTDestMuxTDEST(), bldr->getTDestMuxStripHeader(), bldr->getTDestMuxOutQueueDepth() );
@@ -740,7 +850,7 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 #ifdef PSBLDR_DEBUG
 			printf("  creating SRP mux module\n");
 #endif
-			srpMuxMod   = CShObj::create< ProtoModSRPMux >( bldr->getSRPVersion() );
+			srpMuxMod   = CShObj::create< ProtoModSRPMux >( bldr->getSRPVersion(), bldr->getSRPMuxThreadPriority() );
 			rval->addAtPort( srpMuxMod );
 		}
 		// reserve enough queue depth - must potentially hold replies to synchronous retries
