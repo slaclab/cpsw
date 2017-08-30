@@ -103,7 +103,8 @@ RUN_OPTS=''
 # Note: += adds a whitespace
 cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(boostinc_DIR))$(addprefix :,$(yaml_cppinc_DIR))
 # colon separated dirlist
-cpswlib_DIRS=$(addsuffix /O.$(TARCH),$(CPSW_DIR))$(addprefix :,$(boostlib_DIR))$(addprefix :,$(yaml_cpplib_DIR))
+cpsw_deplib_DIRS=$(addprefix :,$(boostlib_DIR))$(addprefix :,$(yaml_cpplib_DIR))
+cpswlib_DIRS=$(addsuffix /O.$(TARCH),$(CPSW_DIR))$(cpsw_deplib_DIRS)
 
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
 CPSW_LIBS   = cpsw yaml-cpp pthread rt dl
@@ -124,6 +125,11 @@ SPACE__+=
 ifndef SRCDIR
 SRCDIR=.
 endif
+
+INSTALL_DOC=$(INSTALL_DIR)/$(TARCH)/doc
+INSTALL_INC=$(INSTALL_DIR)/$(TARCH)/include
+INSTALL_LIB=$(INSTALL_DIR)/$(TARCH)/lib
+INSTALL_BIN=$(INSTALL_DIR)/$(TARCH)/bin
 
 # definitions
 include $(CPSW_DIR)/../config.mak
