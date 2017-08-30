@@ -24,7 +24,7 @@ env-cpsw.sh:
 	echo 'export PATH=$(abspath $(INSTALL_BIN))$(addprefix :,$(PYBINPATH))$${PATH:+:$${PATH}}' >> $@
 
 clean_local:
-	$(RM) env-cpsw.sh
+	$(RM) env-cpsw.sh env.slac.sh
 
 install_local: env-cpsw.sh
 	$(INSTALL) $^ $(INSTALL_DIR)/$(TARCH)/bin/
