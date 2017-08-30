@@ -1330,6 +1330,19 @@ BOOST_PYTHON_MODULE(pycpsw)
 		"\n"
 	);
 
+	WrapYamlFixupClazz
+	.def(
+		"findByName", &IYamlFixup::findByName,
+		( arg("node"), arg("path"), arg("sep") = '/' ),
+		"\n"
+		"Lookup a YAML node from 'node' traversing a hierarchy\n"
+		"of YAML::Map's while handling merge keys ('<<').\n"
+		"The path to lookup is a string with path elements\n"
+		"separated by 'sep'\n"
+	)
+	.staticmethod("findByName")
+	;
+
 	// wrap 'IEnum' interface
 	class_<IEnum, boost::noncopyable>
 	Enum_Clazz(
