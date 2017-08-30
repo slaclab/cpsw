@@ -101,15 +101,24 @@ cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 cpsw_ypp_SRCS        += cpsw_ypp.cc cpsw_preproc.cc
 
 # Python wrapper; only built if WITH_PYCPSW is set to YES (can be target specific)
-pycpsw_so_SRCS    = cpsw_python.cc
-pycpsw_so_LIBS    = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
-pycpsw_so_CPPFLAGS= $(addprefix -I,$(pyinc_DIR))
-pycpsw_so_CXXFLAGS= -fno-strict-aliasing
+pycpsw_so_SRCS      = cpsw_python.cc
+pycpsw_so_LIBS      = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
+pycpsw_so_CPPFLAGS  = $(addprefix -I,$(pyinc_DIR))
+pycpsw_so_CXXFLAGS  = -fno-strict-aliasing
 
-PYCPSW_YES        = pycpsw.so
-PYCPSW            = $(PYCPSW_$(WITH_PYCPSW))
+PYCPSW_YES          = pycpsw.so
+PYCPSW              = $(PYCPSW_$(WITH_PYCPSW))
 
-PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW)
+yaml_cpp_so_SRCS    = yaml_cpp_python.cc
+yaml_cpp_so_LIBS    = $(BOOST_PYTHON_LIB) $(filter yaml-cpp%,$(CPSW_LIBS))
+yaml_cpp_so_CPPFLAGS= $(addprefix -I,$(pyinc_DIR))
+yaml_cpp_so_CXXFLAGS= -fno-strict-aliasing
+
+
+PYYAML_YES          = yaml_cpp.so
+PYYAML              = $(PYYAML_$(WITH_PYCPSW))
+
+PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML)
 
 include $(CPSW_DIR)/rules.mak
 
