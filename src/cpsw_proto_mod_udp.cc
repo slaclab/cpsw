@@ -25,8 +25,13 @@
 //#define UDP_DEBUG
 //#define UDP_DEBUG_STRM
 
-CUdpHandlerThread::CUdpHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me_p)
-: CRunnable(name)
+CUdpHandlerThread::CUdpHandlerThread(
+	const char         *name,
+	int                 threadPriority,
+	struct sockaddr_in *dest,
+	struct sockaddr_in *me_p
+)
+: CRunnable(name, threadPriority)
 {
 	sd_.init( dest, me_p, false );
 }
@@ -135,8 +140,14 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 	return NULL;
 }
 
-CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner)
-: CUdpHandlerThread(name, dest, me),
+CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(
+	const char         *name,
+	int                 threadPriority,
+	struct sockaddr_in *dest,
+	struct sockaddr_in *me,
+	CProtoModUdp       *owner
+)
+: CUdpHandlerThread(name, threadPriority, dest, me),
   nOctets_(0),
   nDgrams_(0),
   owner_(owner)
@@ -167,7 +178,7 @@ void * CUdpPeerPollerThread::threadBody()
 }
 
 CUdpPeerPollerThread::CUdpPeerPollerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me, unsigned pollSecs)
-: CUdpHandlerThread(name, dest, me),
+: CUdpHandlerThread(name, IProtoStackBuilder::NORT_THREAD_PRIORITY, dest, me),
   pollSecs_(pollSecs)
 {
 }
@@ -196,7 +207,12 @@ void CProtoModUdp::createThreads(unsigned nRxThreads, int pollSeconds)
 	rxHandlers_.clear();
 
 	for ( i=0; i<nRxThreads; i++ ) {
-		rxHandlers_.push_back( new CUdpRxHandlerThread("UDP RX Handler (UDP protocol module)", &dest_, &me, this ) );
+		rxHandlers_.push_back( new CUdpRxHandlerThread("UDP RX Handler (UDP protocol module)", threadPriority_, &dest_, &me, this ) );
+	}
+
+	// maybe setting the threadPriority failed?
+	if ( nRxThreads ) {
+		threadPriority_ = rxHandlers_[0]->getPrio();
 	}
 }
 
@@ -221,11 +237,19 @@ unsigned i;
 	}
 }
 
-CProtoModUdp::CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, unsigned nRxThreads, int pollSecs)
+CProtoModUdp::CProtoModUdp(
+	Key                &k,
+	struct sockaddr_in *dest,
+	unsigned            depth,
+	int                 threadPriority,
+	unsigned            nRxThreads,
+	int                 pollSecs
+)
 :CProtoMod(k, depth),
  dest_(*dest),
  nTxOctets_(0),
  nTxDgrams_(0),
+ threadPriority_(threadPriority),
  poller_( NULL )
 {
 	tx_.init( dest, 0, true );
@@ -240,6 +264,9 @@ CProtoModUdp::dumpYaml(YAML::Node &node) const
 	writeNode(udpParms, YAML_KEY_outQueueDepth, getQueueDepth()   );
 	writeNode(udpParms, YAML_KEY_numRxThreads,  rxHandlers_.size());
 	writeNode(udpParms, YAML_KEY_pollSecs,      poller_ ? poller_->getPollSecs() : 0);
+	if ( threadPriority_ != IProtoStackBuilder::DFLT_THREAD_PRIORITY ) {
+		writeNode(udpParms, YAML_KEY_threadPriority,  threadPriority_);
+	}
 	writeNode(node, YAML_KEY_UDP, udpParms);
 }
 
@@ -249,6 +276,7 @@ CProtoModUdp::CProtoModUdp(CProtoModUdp &orig, Key &k)
  tx_(orig.tx_),
  nTxOctets_(0),
  nTxDgrams_(0),
+ threadPriority_(orig.threadPriority_),
  poller_(orig.poller_)
 {
 	tx_.init( &dest_, 0, true );
@@ -292,6 +320,7 @@ void CProtoModUdp::dumpInfo(FILE *f)
 	fprintf(f,"CProtoModUdp:\n");
 	fprintf(f,"  Peer port : %15u\n",    getDestPort());
 	fprintf(f,"  RX Threads: %15lu\n",   rxHandlers_.size());
+	fprintf(f,"  ThreadPrio: %15d\n",    threadPriority_);
 	fprintf(f,"  Has Poller:               %c\n", poller_ ? 'Y' : 'N');
 	fprintf(f,"  #TX Octets: %15"PRIu64"\n", getNumTxOctets());
 	fprintf(f,"  #TX DGRAMs: %15"PRIu64"\n", getNumTxDgrams());

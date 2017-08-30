@@ -38,7 +38,7 @@ public:
 		sd_.getMyAddr( addr_p );
 	}
 
-	CUdpHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me_p = NULL);
+	CUdpHandlerThread(const char *name, int threadPriority, struct sockaddr_in *dest, struct sockaddr_in *me_p = NULL);
 	CUdpHandlerThread(CUdpHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me_p);
 
 	virtual ~CUdpHandlerThread() {}
@@ -84,7 +84,7 @@ protected:
 			virtual void* threadBody();
 
 		public:
-			CUdpRxHandlerThread(const char *name, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
+			CUdpRxHandlerThread(const char *name, int threadPriority, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
 			CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
 
 			virtual uint64_t getNumOctets() { return nOctets_.load( boost::memory_order_relaxed ); }
@@ -98,6 +98,7 @@ private:
 	CSockSd            tx_;
 	atomic<uint64_t>   nTxOctets_;
 	atomic<uint64_t>   nTxDgrams_;
+	int                threadPriority_;
 protected:
 	std::vector< CUdpRxHandlerThread * > rxHandlers_;
 	CUdpPeerPollerThread                 *poller_;
@@ -120,7 +121,7 @@ protected:
 
 public:
 	// negative or zero 'pollSecs' avoids creating a poller thread
-	CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, unsigned nRxThreads = 1, int pollSecs = 4);
+	CProtoModUdp(Key &k, struct sockaddr_in *dest, unsigned depth, int threadPriority, unsigned nRxThreads = 1, int pollSecs = 4);
 
 	CProtoModUdp(CProtoModUdp &orig, Key &k);
 

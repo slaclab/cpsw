@@ -89,6 +89,8 @@ CTDestPort::dumpYaml(YAML::Node &node) const
 {
 YAML::Node parms;
 
+	CByteMuxPort::dumpYaml( node );
+
 	writeNode(parms, YAML_KEY_stripHeader  , stripHeader_   );
 	writeNode(parms, YAML_KEY_outQueueDepth, getQueueDepth());
 	writeNode(parms, YAML_KEY_TDEST        , getDest()      );

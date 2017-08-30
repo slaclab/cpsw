@@ -25,24 +25,29 @@ private:
 
 public:
 
-	class AttrRecursive {
-	private:
+	class Attr {
+	protected:
 		pthread_mutexattr_t a_;
-		AttrRecursive(const AttrRecursive&);
-		AttrRecursive operator=(const AttrRecursive&);
+	private:
+		Attr(const Attr&);
+		Attr operator=(const Attr&);
 	public:
-		AttrRecursive()
+		Attr()
 		{
 		int err;
 			if ( (err = pthread_mutexattr_init( &a_ )) ) {
 				throw InternalError("pthread_mutexattr_init failed", err);
 			}
-			if ( (err = pthread_mutexattr_settype( &a_, PTHREAD_MUTEX_RECURSIVE )) ) {
-				throw InternalError("pthread_mutexattr_settype(RECURSIVE) failed", err);
+#if defined _POSIX_THREAD_PRIO_INHERIT
+			if ( (err = pthread_mutexattr_setprotocol( &a_, PTHREAD_PRIO_INHERIT )) ) {
+				throw InternalError("pthread_mutexattr_setprotocol failed", err);
 			}
+#else
+			#warning("_POSIX_THREAD_PRIO_INHERIT undefined on this system -- no mutex priority inheritance available!");
+#endif
 		}
 
-		~AttrRecursive()
+		~Attr()
 		{
 			pthread_mutexattr_destroy( &a_ );
 		}
@@ -51,6 +56,18 @@ public:
 		{
 			return &a_;
 		}
+	};
+
+	class AttrRecursive : public Attr {
+		public:
+		AttrRecursive()
+		{
+		int err;
+			if ( (err = pthread_mutexattr_settype( &a_, PTHREAD_MUTEX_RECURSIVE )) ) {
+				throw InternalError("pthread_mutexattr_settype(RECURSIVE) failed", err);
+			}
+		}
+
 	};
 
 	class MutexBusy {};
@@ -87,7 +104,8 @@ public:
 	: nam_(nam)
 	{
 	int err;
-		if ( (err = pthread_mutex_init( &m_, NULL )) ) {
+	Attr attr;
+		if ( (err = pthread_mutex_init( &m_, attr.getp() )) ) {
 			throw InternalError("Unable to create mutex", err);
 		}
 	}

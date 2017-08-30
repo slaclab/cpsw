@@ -24,9 +24,9 @@ protected:
 	virtual int           iMatch(ProtoPortMatchParams *cmp);
 
 public:
-	CProtoModRssi(Key &k)
+	CProtoModRssi(Key &k, int threadPriority)
 	: CShObj(k),
-	  CRssi(false)
+	  CRssi(false, threadPriority)
 	{
 	}
 
@@ -66,7 +66,7 @@ public:
 
 	virtual void dumpYaml(YAML::Node &) const;
 
-	static ProtoModRssi create();
+	static ProtoModRssi create(int threadPriority);
 };
 
 #endif

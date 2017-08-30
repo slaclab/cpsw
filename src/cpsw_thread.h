@@ -18,6 +18,7 @@ private:
 	pthread_t     tid_;
 	bool          started_;
 	std::string   name_;
+	int           prio_;
 
 	static void*  wrapper(void*);
 
@@ -28,12 +29,29 @@ protected:
 
 	pthread_t     getTid() { return tid_ ; }
 
+	class Attr {
+	private:
+		Attr(const Attr&);
+		Attr & operator=(const Attr &);
+		pthread_attr_t a_;
+	public:
+		Attr();
+		~Attr();
+	
+		pthread_attr_t *getp()
+		{
+			return &a_;
+		}
+	};
 
 
 public:
-	CRunnable(const char *name) : started_(false), name_(name) {}
 
-	CRunnable(const CRunnable &orig) : started_(false), name_(orig.name_) {}
+	static const int DFLT_PRIORITY = 0;
+
+	CRunnable(const char *name, int prio = DFLT_PRIORITY);
+
+	CRunnable(const CRunnable &orig);
 
 	const std::string& getName() { return name_; }
 
@@ -49,6 +67,13 @@ public:
 	// in the context of their caller.
 	virtual bool threadStop(void **joinval_p);
 	virtual bool threadStop() { return threadStop(NULL); }
+
+	// Set pthread priority (<=0: default scheduler, >0 SCHED_FIFO priority)
+	// A warning is printed (and the priority unchanged) if this call
+	// fails due to lack of permission.
+	// RETURNS: new priority (== old priority if there was no permission)
+	virtual int  setPrio(int prio);
+	virtual int  getPrio() const;
 
 	// Destructor of subclass should call stop -- cannot
 	// rely on base class to do so because subclass

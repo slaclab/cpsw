@@ -145,6 +145,11 @@ class IProtoStackBuilder {
 public:
 	typedef enum SRPProtocolVersion { SRP_UDP_NONE = -1, SRP_UDP_V1 = 1, SRP_UDP_V2 = 2, SRP_UDP_V3 = 3 } ProtocolVersion;
 
+
+	const static int DFLT_THREAD_PRIORITY =  0;
+	const static int NORT_THREAD_PRIORITY =  0;
+	const static int   NO_THREAD_PRIORITY = -1; /* no thread in module */
+
 	// Note: most of the parameters configured into a ProtoStackBuilder object are
 	//       only used if the associated protocol module is not already present
 	//       and they are ignored otherwise.
@@ -165,6 +170,8 @@ public:
 	virtual unsigned           getTcpPort()                        = 0;
 	virtual void               setTcpOutQueueDepth(unsigned)       = 0; // default: 10
 	virtual unsigned           getTcpOutQueueDepth()               = 0;
+	virtual void               setTcpThreadPriority(int)           = 0;
+	virtual int                getTcpThreadPriority()              = 0;
 
 	virtual bool               hasUdp()                            = 0; // default: YES
 	virtual void               setUdpPort(unsigned)                = 0; // default: 8192
@@ -175,9 +182,13 @@ public:
 	virtual unsigned           getUdpNumRxThreads()                = 0;
 	virtual void               setUdpPollSecs(int)                 = 0; // default: NO if SRP w/o TDEST or RSSI, 60s if no SRP
 	virtual int                getUdpPollSecs()                    = 0;
+	virtual void               setUdpThreadPriority(int)           = 0;
+	virtual int                getUdpThreadPriority()              = 0;
 
 	virtual void               useRssi(bool)                       = 0; // default: NO
 	virtual bool               hasRssi()                           = 0;
+	virtual void               setRssiThreadPriority(int)          = 0;
+	virtual int                getRssiThreadPriority()             = 0;
 
 	virtual void               useDepack(bool)                     = 0; // default: NO
 	virtual bool               hasDepack()                         = 0;
@@ -187,11 +198,15 @@ public:
 	virtual unsigned           getDepackLdFrameWinSize()           = 0;
 	virtual void               setDepackLdFragWinSize(unsigned)    = 0; // default: 5 if no rssi, 1 if rssi
 	virtual unsigned           getDepackLdFragWinSize()            = 0;
+	virtual void               setDepackThreadPriority(int)        = 0;
+	virtual int                getDepackThreadPriority()           = 0;
 
 	virtual void               useSRPMux(bool)                     = 0; // default: YES if SRP, NO if no SRP
 	virtual bool               hasSRPMux()                         = 0;
 	virtual void               setSRPMuxVirtualChannel(unsigned)   = 0; // default: 0
 	virtual unsigned           getSRPMuxVirtualChannel()           = 0;
+	virtual void               setSRPMuxThreadPriority(int)        = 0;
+	virtual int                getSRPMuxThreadPriority()           = 0;
 
 	virtual void               useTDestMux(bool)                   = 0; // default: NO
 	virtual bool               hasTDestMux()                       = 0;
@@ -201,6 +216,8 @@ public:
 	virtual bool               getTDestMuxStripHeader()            = 0;
 	virtual void               setTDestMuxOutQueueDepth(unsigned)  = 0; // default: 1 if SRP, 50 if no SRP
 	virtual unsigned           getTDestMuxOutQueueDepth()          = 0;
+	virtual void               setTDestMuxThreadPriority(int)      = 0;
+	virtual int                getTDestMuxThreadPriority()         = 0;
 
 	virtual void               setIPAddr(uint32_t)                 = 0;
 	virtual uint32_t           getIPAddr()                         = 0;
