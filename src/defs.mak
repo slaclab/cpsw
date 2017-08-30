@@ -125,13 +125,13 @@ ifndef SRCDIR
 SRCDIR=.
 endif
 
-ifndef UPDIR
-TOPDIR=./
-else
-TOPDIR=$(UPDIR)
-endif
-
 # definitions
 include $(CPSW_DIR)/../config.mak
 -include $(CPSW_DIR)/../config.local.mak
 -include $(SRCDIR)/local.mak
+
+ifndef TOPDIR
+# Heuristics to find a top-level makefile; assume cpsw can be
+# in a sub-directory...
+TOPDIR:=$(shell NP=./; while P=$${NP} && NP=$${NP}../ && [ -e $${NP}makefile ] && grep -q CPSW_DIR $${NP}makefile ; do true; done; echo $${P})
+endif

@@ -96,6 +96,7 @@ endef
 # subdir make
 sub-./%:
 	$(QUIET)$(MAKE) $(QUIET:%=-s) -C  $(TARCH)  UPDIR=../$(UPDIR) \
+         TOPDIR="$(call ADD_updir,$(TOPDIR),../)" \
          CPSW_DIR="$(call ADD_updir,$(CPSW_DIR),../)" \
          INSTALL_DIR="$(call ADD_updir,$(INSTALL_DIR),../)" \
          "multi-$(TARGT)"
@@ -108,6 +109,7 @@ sub-%$(TSEP)clean:
 sub-%:
 	$(QUIET)mkdir -p O.$(TARCH)
 	$(QUIET)$(MAKE) $(QUIET:%=-s) -C  O.$(TARCH) -f ../makefile SRCDIR=.. UPDIR=../$(UPDIR) \
+         TOPDIR="$(call ADD_updir,$(TOPDIR),../)" \
          CPSW_DIR="$(call ADD_updir,$(CPSW_DIR),../)" \
          INCLUDE_DIRS="$(call ADD_updir,$(INCLUDE_DIRS),../)" \
          INSTALL_DIR="$(call ADD_updir,$(INSTALL_DIR),../)" \
