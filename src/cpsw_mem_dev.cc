@@ -78,6 +78,11 @@ printf("off %lu, dbytes %lu, size %lu\n", args->off_, args->nbytes_, owner->getS
 #endif
 		throw ConfigurationError("MemAddress: read out of range");
 	}
+	if ( ! args->dst_  ) {
+		// 'peeking' read, i.e., the user wants to see if data are ready;
+		// at least 1 byte they can
+		return 1;
+	}
 	memcpy(args->dst_, owner->getBufp() + args->off_, toget);
 #ifdef MEMDEV_DEBUG
 printf("MemDev read from off %lli to %p:", args->off_, args->dst_);
