@@ -513,7 +513,7 @@ bool enumScalar = false;
 	}
 }
 
-static int64_t wrap_Stream_read(Stream val, object &o, int64_t timeoutUs)
+static int64_t wrap_Stream_read(Stream val, object &o, int64_t timeoutUs, uint64_t offset)
 {
 PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
 Py_buffer view;
@@ -531,11 +531,11 @@ Py_buffer view;
 
 	{
 	GILUnlocker allowThreadingWhileWaiting;
-		if ( 0 == val->read( NULL, 0, timeout ) )
+		if ( 0 == val->read( NULL, 0, timeout, offset ) )
 			return 0;
 	}
 	// we have already waited
-	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, TIMEOUT_NONE );
+	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, TIMEOUT_NONE, offset );
 }
 
 static int64_t wrap_Stream_write(Stream val, object &o, int64_t timeoutUs)
@@ -1734,7 +1734,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 
 	Stream_Clazz
 		.def("read",         wrap_Stream_read,
-			( arg("self"), arg("bufObject"), arg("timeoutUs") = -1 ),
+			( arg("self"), arg("bufObject"), arg("timeoutUs") = -1, arg("offset") = 0 ),
 			"\n"
 			"Read raw bytes from a streaming interface into a buffer and return the number of bytes read.\n"
 			"\n"
