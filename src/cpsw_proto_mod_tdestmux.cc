@@ -37,7 +37,7 @@ bool CTDestPort::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 		b->setSize( b->getSize() - tsize );
 	}
 
-	return CByteMuxPort::pushDownstream(bc, rel_timeout);
+	return CByteMuxPort<CProtoModTDestMux>::pushDownstream(bc, rel_timeout);
 }
 
 BufChain CTDestPort::processOutput(BufChain bc)
@@ -89,7 +89,7 @@ CTDestPort::dumpYaml(YAML::Node &node) const
 {
 YAML::Node parms;
 
-	CByteMuxPort::dumpYaml( node );
+	CByteMuxPort<CProtoModTDestMux>::dumpYaml( node );
 
 	writeNode(parms, YAML_KEY_stripHeader  , stripHeader_   );
 	writeNode(parms, YAML_KEY_outQueueDepth, getQueueDepth());

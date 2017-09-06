@@ -80,7 +80,7 @@ public:
 class CSRPPort : public CByteMuxPort<CProtoModSRPMux> {
 protected:
 	CSRPPort(const CSRPPort &orig, Key k)
-	: CByteMuxPort(orig, k)
+	: CByteMuxPort<CProtoModSRPMux>(orig, k)
 	{
 	}
 
@@ -90,7 +90,7 @@ protected:
 
 public:
 	CSRPPort(Key &k, ProtoModSRPMux owner, int dest)
-	: CByteMuxPort(k, owner, dest, 1) // queue depth 1 is enough for synchronous operations
+	: CByteMuxPort<CProtoModSRPMux>(k, owner, dest, 1) // queue depth 1 is enough for synchronous operations
 	{
 	}
 

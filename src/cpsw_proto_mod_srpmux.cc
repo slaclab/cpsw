@@ -105,7 +105,7 @@ CSRPPort::dumpYaml(YAML::Node &node) const
 {
 YAML::Node parms;
 
-	CByteMuxPort::dumpYaml( parms );
+	CByteMuxPort<CProtoModSRPMux>::dumpYaml( parms );
 
 	writeNode(parms, YAML_KEY_virtualChannel, getDest());
 
