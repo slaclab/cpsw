@@ -5,6 +5,10 @@ R3.7.branch
     MemDev: FIX - read(NULL) means that the user wants to 
     know if data are available; must return nonzero.
 
+    Added support for thread priorities. All internal threads
+    in the protocol stack can be configured (from YAML) with
+    a priority (see doc/README.yamlDefinition).
+
     New features: a 'NullDev' which is not backed by anything.
     Useful for testing/debugging because any YAML hierarchy 
     can be loaded w/o need for hardware (or a lot or memory
