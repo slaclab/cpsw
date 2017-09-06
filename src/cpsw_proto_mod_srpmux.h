@@ -83,7 +83,7 @@ private:
 
 protected:
 	CSRPPort(const CSRPPort &orig, Key k)
-	: CByteMuxPort(orig, k)
+	: CByteMuxPort<CProtoModSRPMux>(orig, k)
 	{
 	}
 
@@ -93,7 +93,7 @@ protected:
 
 public:
 	CSRPPort(Key &k, ProtoModSRPMux owner, int dest, unsigned queueDepth)
-	: CByteMuxPort(k, owner, dest, queueDepth),
+	: CByteMuxPort<CProtoModSRPMux>(k, owner, dest, queueDepth),
 	  queueDepth_(queueDepth)
 	{
 	}

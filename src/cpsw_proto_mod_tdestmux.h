@@ -62,7 +62,7 @@ private:
 
 protected:
 	CTDestPort(const CTDestPort &orig, Key k)
-	: CByteMuxPort(orig, k)
+	: CByteMuxPort<CProtoModTDestMux>(orig, k)
 	{
 	}
 
@@ -73,7 +73,7 @@ protected:
 
 public:
 	CTDestPort(Key &k, ProtoModTDestMux owner, int dest, bool stripHeader, unsigned qDepth)
-	: CByteMuxPort(k, owner, dest, qDepth),
+	: CByteMuxPort<CProtoModTDestMux>(k, owner, dest, qDepth),
 	  stripHeader_(stripHeader)
 	{
 	}
