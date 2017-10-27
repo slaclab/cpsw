@@ -140,7 +140,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual uint64_t        getSRPTimeoutUS()
 		{
 			if ( 0 == SRPTimeoutUS_ )
-				return hasRssi() ? 500000 : 10000;
+				return hasRssi() ? 500000 : (getTcpPort() > 0 ? 4000000 : 10000);
 			return SRPTimeoutUS_;
 		}
 
@@ -173,6 +173,8 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual bool            hasSRPDynTimeout()
 		{
+			if ( hasRssi() || getTcpPort() > 0 )
+				return false;
 			if ( SRPDynTimeout_ < 0 )
 				return ! hasTDestMux();
 			return SRPDynTimeout_ ? true : false;
