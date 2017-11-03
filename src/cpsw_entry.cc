@@ -329,5 +329,5 @@ CEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &i
 	if ( isInterface<Stream>(interfaceType) ) {
 		return _createAdapter<StreamAdapt>(this, p);
 	}
-	return EntryAdapt();
+	throw InterfaceNotImplementedError("CEntryImpl does not implement requested interface");
 }
