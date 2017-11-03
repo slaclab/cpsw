@@ -59,8 +59,10 @@ public:
 
 	virtual const char *what() const throw()
 	{
-		return name_.c_str();
+		return getInfo().c_str();
 	}
+
+	virtual std::string typeName() const { return std::string("Error"); }
 
 	virtual ~CPSWError() throw()
 	{
@@ -76,6 +78,9 @@ public:
 
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+
+	virtual std::string typeName() const { return std::string("NoError"); }
+
 };
 
 class DuplicateNameError: public CPSWError {
@@ -86,6 +91,8 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+
+	virtual std::string typeName() const { return std::string("DuplicateNameError"); }
 };
 
 class NotDevError: public CPSWError {
@@ -96,6 +103,8 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+
+	virtual std::string typeName() const { return std::string("NotDevError"); }
 };
 
 class NotFoundError: public CPSWError {
@@ -111,6 +120,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("NotFoundError"); }
 };
 
 class InvalidPathError: public CPSWError {
@@ -121,6 +131,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("InvalidPathError"); }
 };
 
 class InvalidIdentError: public CPSWError {
@@ -136,6 +147,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("InvalidIdentError"); }
 };
 
 class InvalidArgError: public CPSWError {
@@ -151,6 +163,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("InvalidArgError"); }
 };
 
 class AddressAlreadyAttachedError: public CPSWError {
@@ -161,6 +174,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("AddressAlreadyAttachedError"); }
 };
 
 class ConfigurationError: public CPSWError {
@@ -176,6 +190,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("ConfigurationError"); }
 };
 
 class ErrnoError: public CPSWError {
@@ -206,6 +221,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("ErrnoError"); }
 };
 
 
@@ -243,6 +259,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("InternalError"); }
 };
 
 class AddrOutOfRangeError: public CPSWError {
@@ -253,6 +270,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("AddrOutOfRangeError"); }
 };
 
 class ConversionError: public CPSWError {
@@ -263,6 +281,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("ConversionError"); }
 };
 
 
@@ -274,6 +293,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("InterfaceNotImplementedError"); }
 };
 
 class IOError: public ErrnoError {
@@ -300,6 +320,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("IOError"); }
 };
 
 class BadStatusError: public CPSWError {
@@ -313,6 +334,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("BadStatusError"); }
 };
 
 class IntrError: public CPSWError {
@@ -323,6 +345,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("IntrError"); }
 };
 
 class StreamDoneError : public CPSWError {
@@ -338,6 +361,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("StreamDoneError"); }
 };
 
 class FailedStreamError : public CPSWError {
@@ -353,6 +377,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("FailedStreamError"); }
 };
 
 class MissingOnceTagError : public CPSWError {
@@ -363,6 +388,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("MissingOnceTagError"); }
 };
 
 class MissingIncludeFileNameError : public CPSWError {
@@ -373,6 +399,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("MissingIncludeFileNameError"); }
 };
 
 class NoYAMLSupportError : public CPSWError {
@@ -383,6 +410,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("NoYAMLSupportError"); }
 };
 
 class MultipleInstantiationError : public CPSWError {
@@ -398,6 +426,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("MultipleInstantiationError"); }
 };
 
 class BadSchemaVersionError : public CPSWError {
@@ -413,6 +442,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("BadSchemaVersionError"); }
 };
 
 class TimeoutError : public CPSWError {
@@ -433,6 +463,7 @@ public:
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }
+	virtual std::string typeName() const { return std::string("TimeoutError"); }
 };
 
 //!!!!!!!!!!!!
