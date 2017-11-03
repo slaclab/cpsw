@@ -45,6 +45,7 @@ public:
 	virtual uint64_t    getSize()        const { return ie_->getSize();          }
 	virtual Hub         isHub()          const { return ie_->isHub();            }
 	virtual Path        getPath()        const { return p_->clone();             }
+	virtual Encoding    getEncoding()    const = 0; // implementation must provide
 	virtual ConstPath   getConstPath()   const { return p_;                      }
 	virtual unsigned    getNelms()             { return p_->getNelms();          }
 	virtual void        dump(FILE *f)    const;

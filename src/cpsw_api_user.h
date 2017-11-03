@@ -463,6 +463,25 @@ public:
 	 */
 	typedef enum Mode { RO = 1, WO = 2, RW = 3 } Mode;
 
+	/*!
+	 * Encodings; custom encodings start at CUSTOM, values less than CUSTOM
+	 * are reserved.
+	 */
+	typedef enum { NONE = 0, ASCII, EBCDIC, UTF_8, UTF_16, UTF_32, ISO_8859_1 = 16,
+	               ISO_8859_2, ISO_8859_3, ISO_8859_4, ISO_8859_5, ISO_8859_6, ISO_8859_7,
+	               ISO_8859_8, ISO_8859_9, ISO_8859_10, ISO_8859_11, ISO_8859_13 = ISO_8859_11 + 2,
+	               ISO_8859_14, ISO_8859_15, ISO_8859_16,
+	               IEEE_754 = 0x0f00,
+	               CUSTOM   = 0x1000 } Encoding;
+
+	/*!
+	 * Retrieve the encoding of this ScalVal (if any); if the ScalVal
+	 * represents a character or character-string then the encoding
+	 * information may be used by the user-application to properly interpret
+	 * the string contents.
+	 */
+	virtual Encoding getEncoding()      const = 0;
+
 	virtual ~IVal_Base() {}
 
 	/*!
@@ -502,25 +521,6 @@ public:
 	 * values.
 	 */
 	virtual Enum     getEnum()          const = 0;
-
-	/*!
-	 * Encodings; custom encodings start at CUSTOM, values less than CUSTOM
-	 * are reserved.
-	 */
-	typedef enum { NONE = 0, ASCII, EBCDIC, UTF_8, UTF_16, UTF_32, ISO_8859_1 = 16,
-	               ISO_8859_2, ISO_8859_3, ISO_8859_4, ISO_8859_5, ISO_8859_6, ISO_8859_7,
-	               ISO_8859_8, ISO_8859_9, ISO_8859_10, ISO_8859_11, ISO_8859_13 = ISO_8859_11 + 2,
-	               ISO_8859_14, ISO_8859_15, ISO_8859_16,
-	               IEEE_754 = 0x0f00,
-	               CUSTOM   = 0x1000 } Encoding;
-
-	/*!
-	 * Retrieve the encoding of this ScalVal (if any); if the ScalVal
-	 * represents a character or character-string then the encoding
-	 * information may be used by the user-application to properly interpret
-	 * the string contents.
-	 */
-	virtual Encoding getEncoding()      const = 0;
 
 	virtual ~IScalVal_Base () {}
 
