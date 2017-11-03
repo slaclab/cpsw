@@ -42,6 +42,12 @@ CStreamAdapt::write(uint8_t *buf, uint64_t size, const CTimeout timeout)
 	return cl->write( &it, &args );
 }
 
+IVal_Base::Encoding
+CStreamAdapt::getEncoding() const
+{
+	return NONE;
+}
+
 Stream IStream::create(Path p)
 {
 	return IEntryAdapt::check_interface<Stream>( p );

@@ -107,6 +107,11 @@ public:
 		{
 		}
 
+		virtual IVal_Base::Encoding getEncoding() const
+		{
+			return IVal_Base::NONE;
+		}
+
 		virtual CCommandImpl *clone(Key &k)
 		{
 			return new CCommandImpl( *this, k );
@@ -127,6 +132,8 @@ private:
 
 public:
 		CCommandAdapt(Key &k, Path p, shared_ptr<const CCommandImpl> ie);
+
+		virtual Encoding getEncoding() const;
 
 		static Command create(Path p);
 

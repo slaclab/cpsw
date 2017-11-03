@@ -1,3 +1,5 @@
+    Moved 'getEncoding()' from IScalVal_Base to IVal_Base.
+
 R3.7.branch
     Python: Stream.read() has an optional 'offset' argument
     (same as underlying IStream::read())

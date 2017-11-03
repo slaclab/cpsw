@@ -262,13 +262,13 @@ public:
 	}
 };
 
-static object wrap_ScalVal_Base_getEncoding(shared_ptr<IScalVal_Base> val)
+static object wrap_Val_Base_getEncoding(shared_ptr<IVal_Base> val)
 {
-	IScalVal_Base::Encoding enc = val->getEncoding();
-	if ( IScalVal_Base::NONE == enc )
+	IVal_Base::Encoding enc = val->getEncoding();
+	if ( IVal_Base::NONE == enc )
 		return object();
 
-	return object( YAML::convert<IScalVal_Base::Encoding>::do_encode( enc ) );
+	return object( YAML::convert<IVal_Base::Encoding>::do_encode( enc ) );
 }
 
 // Read into an object which implements the (new) python buffer interface
@@ -657,6 +657,11 @@ public:
 	virtual unsigned getNelms()
 	{
 		return s()->getNelms();
+	}
+
+	virtual IVal_Base::Encoding getEncoding() const
+	{
+		return s()->getEncoding();
 	}
 
 	// getPath/getConstPath also should work w/o an open stream
@@ -1391,6 +1396,19 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Return a copy of the Path which was used to create this ScalVal."
 		)
+		.def("getEncoding", wrap_Val_Base_getEncoding,
+			( arg("self") ),
+			"\n"
+			"Return a string which describes the encoding if this ScalVal is\n"
+			"itself e.g., a string. Common encodings include 'ASCII', 'UTF_8\n"
+			"Custom encodings are also communicated as 'CUSTOM_<integer>'.\n"
+			"If this Val has no defined encoding then the encoding should be <None>\n"
+			"(i.e., the object None).\n\n"
+			"The encoding may e.g., be used to convert a numerical array into\n"
+			"a string by python (second argument to the str() constructor).\n\n"
+			"The encoding 'IEEE_754' conveys that the ScalVal represents a\n"
+			"floating-point number.\n\n"
+		)
 		.def("__repr__",     wrap_Val_Base_repr,
 			( arg("self") ),
 			"\n"
@@ -1433,19 +1451,6 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"If the ScalVal is read into a wider number than its native bitSize\n"
 			"then automatic sign-extension is performed (for signed ScalVals)."
-		)
-		.def("getEncoding", wrap_ScalVal_Base_getEncoding,
-			( arg("self") ),
-			"\n"
-			"Return a string which describes the encoding if this ScalVal is\n"
-			"itself e.g., a string. Common encodings include 'ASCII', 'UTF_8\n"
-			"Custom encodings are also communicated as 'CUSTOM_<integer>'.\n"
-			"If this ScalVal is not a string then the encoding should be <None>\n"
-			"(i.e., the object None).\n\n"
-			"The encoding may e.g., be used to convert a numerical array into\n"
-			"a string by python (second argument to the str() constructor).\n\n"
-			"The encoding 'IEEE_754' conveys that the ScalVal represents a\n"
-			"floating-point number.\n\n"
 		)
 		.def("getEnum",      &IScalVal_Base::getEnum,
 			( arg("self") ),
