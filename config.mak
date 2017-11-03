@@ -129,4 +129,4 @@ py_DIR_default=/afs/slac/g/lcls/package/python/python2.7.9/$(TARCH)
 pyinc_DIR_default=$(addsuffix /include/python2.7/,$(py_DIR))
 
 # Define an install location
-INSTALL_DIR=../
+INSTALL_DIR=$(TOPDIR)

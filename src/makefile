@@ -27,6 +27,7 @@ cpsw_SRCS+= cpsw_const_sval.cc
 cpsw_SRCS+= cpsw_command.cc
 cpsw_SRCS+= cpsw_mmio_dev.cc
 cpsw_SRCS+= cpsw_mem_dev.cc
+cpsw_SRCS+= cpsw_null_dev.cc
 cpsw_SRCS+= cpsw_netio_dev.cc
 cpsw_SRCS+= cpsw_comm_addr.cc
 cpsw_SRCS+= cpsw_srp_addr.cc
@@ -64,6 +65,7 @@ DEP_HEADERS += cpsw_enum.h
 DEP_HEADERS += cpsw_freelist.h
 DEP_HEADERS += cpsw_hub.h
 DEP_HEADERS += cpsw_mem_dev.h
+DEP_HEADERS += cpsw_null_dev.h
 DEP_HEADERS += cpsw_mmio_dev.h
 DEP_HEADERS += cpsw_netio_dev.h
 DEP_HEADERS += cpsw_srp_addr.h
@@ -99,15 +101,24 @@ cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 cpsw_ypp_SRCS        += cpsw_ypp.cc cpsw_preproc.cc
 
 # Python wrapper; only built if WITH_PYCPSW is set to YES (can be target specific)
-pycpsw_so_SRCS    = cpsw_python.cc
-pycpsw_so_LIBS    = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
-pycpsw_so_CPPFLAGS= $(addprefix -I,$(pyinc_DIR))
-pycpsw_so_CXXFLAGS= -fno-strict-aliasing
+pycpsw_so_SRCS      = cpsw_python.cc
+pycpsw_so_LIBS      = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
+pycpsw_so_CPPFLAGS  = $(addprefix -I,$(pyinc_DIR))
+pycpsw_so_CXXFLAGS  = -fno-strict-aliasing
 
-PYCPSW_YES        = pycpsw.so
-PYCPSW            = $(PYCPSW_$(WITH_PYCPSW))
+PYCPSW_YES          = pycpsw.so
+PYCPSW              = $(PYCPSW_$(WITH_PYCPSW))
 
-PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW)
+yaml_cpp_so_SRCS    = yaml_cpp_python.cc
+yaml_cpp_so_LIBS    = $(BOOST_PYTHON_LIB) $(filter yaml-cpp%,$(CPSW_LIBS))
+yaml_cpp_so_CPPFLAGS= $(addprefix -I,$(pyinc_DIR))
+yaml_cpp_so_CXXFLAGS= -fno-strict-aliasing
+
+
+PYYAML_YES          = yaml_cpp.so
+PYYAML              = $(PYYAML_$(WITH_PYCPSW))
+
+PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML)
 
 include $(CPSW_DIR)/rules.mak
 
@@ -117,5 +128,4 @@ doc/README.yamlDefinition:doc/README.yamlDefinition.in
 %.html: %
 	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@
 
-test: sub-./test@test
-	@true
+

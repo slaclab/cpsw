@@ -14,12 +14,14 @@
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
 #include <boost/python/list.hpp>
+#include <boost/weak_ptr.hpp>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <vector>
 
 using namespace boost::python;
+using boost::weak_ptr;
 
 namespace cpsw_python {
 
@@ -511,7 +513,7 @@ bool enumScalar = false;
 	}
 }
 
-static int64_t wrap_Stream_read(Stream val, object &o, int64_t timeoutUs)
+static int64_t wrap_Stream_read(Stream val, object &o, int64_t timeoutUs, uint64_t offset)
 {
 PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
 Py_buffer view;
@@ -529,11 +531,11 @@ Py_buffer view;
 
 	{
 	GILUnlocker allowThreadingWhileWaiting;
-		if ( 0 == val->read( NULL, 0, timeout ) )
+		if ( 0 == val->read( NULL, 0, timeout, offset ) )
 			return 0;
 	}
 	// we have already waited
-	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, TIMEOUT_NONE );
+	return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, TIMEOUT_NONE, offset );
 }
 
 static int64_t wrap_Stream_write(Stream val, object &o, int64_t timeoutUs)
@@ -557,6 +559,137 @@ Py_buffer view;
 	// GILUnlocker allowThreadingWhileWaiting;
 	return val->write( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 	}
+}
+
+// CPSW Streams are (implicitly) opened/closed during construction/destruction.
+// Because python does not make any guarantees when destruction actually happens
+// there could be a problem: as long a a stream is open, CPSW delivers data to it
+// and possibly blocks if the data are never read.
+// If multiple streams or other protocols share a common channel (e.g., RSSI) then
+// stalling a stream might stall all other protocols, too.
+// Therefore it is imperative that a Stream is destroyed in a controlled fashion.
+// In python this is only possible via a context manager.
+// Hence we introduce a StreamMgr wrapper class (which, alas, must delegate all
+// member access via some trampoline code :-()
+// The underlying interface is created/destroyed from __enter__ and __exit,
+// respectively.
+
+class CStreamMgr;
+
+typedef shared_ptr<CStreamMgr> StreamMgr;
+
+class CStreamMgr : public virtual IStream, boost::noncopyable {
+private:
+	Path                 p_;
+	Stream               theStream_;
+	weak_ptr<CStreamMgr> self_;
+
+	CStreamMgr(Path p)
+	: p_( p->clone() )
+	{
+	}
+
+	Stream s() const
+	{
+		if ( theStream_ )
+			return theStream_;
+		throw FailedStreamError("Stream can only be used from the block of a 'with' statement!");
+	}
+
+public:
+
+	StreamMgr
+	__enter__()
+	{
+		theStream_ = IStream::create( p_ );
+		return StreamMgr( self_ );
+	}
+
+	bool
+	__exit__(
+		boost::python::object &exc_type,
+		boost::python::object &exc_value,
+		boost::python::object &traceback)
+	{
+		theStream_.reset(); // closes the stream
+		return false; // re-raise exception
+	}
+
+	// now there follows a lot of ugly boiler-plate code :-(
+
+	// IEntry
+	virtual const char *getName()        const
+	{
+		return s()->getName();
+	}
+
+	virtual uint64_t    getSize()        const
+	{
+		return s()->getSize();
+	}
+
+	virtual const char *getDescription() const
+	{
+		return s()->getDescription();
+	}
+
+	virtual double      getPollSecs()    const
+	{
+		return s()->getPollSecs();
+	}
+
+	virtual Hub         isHub()          const
+	{
+		return s()->isHub();
+	}
+
+	virtual void         dump(FILE *f)   const
+	{
+		return s()->dump( f );
+	}
+
+	virtual       void      dump()       const
+	{
+		return s()->dump();
+	}
+
+	// IVal_Base
+	virtual unsigned getNelms()
+	{
+		return s()->getNelms();
+	}
+
+	// getPath/getConstPath also should work w/o an open stream
+	virtual Path     getPath()          const
+	{
+		return theStream_ ? theStream_->getPath() : p_->clone();
+	}
+
+	virtual ConstPath getConstPath()    const
+	{
+		return theStream_ ? theStream_->getConstPath() : p_;
+	}
+
+	// IStream
+	virtual int64_t read(uint8_t *buf, uint64_t size,  const CTimeout timeoutUs, uint64_t off)
+	{
+		return s()->read( buf, size, timeoutUs, off );
+	}
+
+	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeoutUs)
+	{
+		return s()->write( buf, size, timeoutUs );
+	}
+
+	static StreamMgr create(Path path);
+};
+
+StreamMgr
+CStreamMgr::create(Path path)
+{
+StreamMgr theMgr  = StreamMgr( new CStreamMgr( path ) );
+	theMgr->self_ = theMgr;
+	return theMgr;
 }
 
 static boost::python::object wrap_DoubleVal_RO_getVal(DoubleVal_RO val, int from, int to)
@@ -638,13 +771,36 @@ public:
 	}
 };
 
+class WrapYamlFixup : public IYamlFixup {
+private:
+PyObject *self_;
+
+public:
+	WrapYamlFixup(PyObject *self)
+	: self_(self)
+	{
+		printf("Creating a FIXUP\n");
+	}
+
+
+	virtual void operator()(YAML::Node &nod)
+	{
+		printf("Calling FIXUP\n");
+		call_method<void>(self_, "fixup", nod);
+	}
+
+	virtual ~WrapYamlFixup()
+	{
+	}
+};
+
 static Path
-wrap_Path_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0)
+wrap_Path_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0, IYamlFixup *fixup = 0)
 {
 // could use IPath::loadYamlStream(const char *,...) but that would make a new string
 // which we want to avoid.
 std::istringstream sstrm( yaml );
-	return IPath::loadYamlStream( sstrm, root_name, yaml_dir_name );
+	return IPath::loadYamlStream( sstrm, root_name, yaml_dir_name, fixup );
 }
 
 static boost::python::tuple
@@ -685,16 +841,15 @@ wrap_setRssiDebugLevel(int l)
 // Complaints about mismatching python and c++ arg types (when using defaults)
 BOOST_PYTHON_FUNCTION_OVERLOADS( IPath_loadYamlFile_ol,
                                  IPath::loadYamlFile,
-                                 1, 3 )
+                                 1, 4 )
+
+BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadYamlStream_ol,
+                                 wrap_Path_loadYamlStream,
+                                 1, 4 )
 
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS( IPath_loadConfigFromYamlFile_ol,
                                  loadConfigFromYamlFile,
                                  1, 2 )
-
-
-BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadYamlStream_ol,
-                                 wrap_Path_loadYamlStream,
-                                 1, 3 )
 
 BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadConfigFromYamlString_ol,
                                  wrap_Path_loadConfigFromYamlString,
@@ -724,6 +879,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 	register_ptr_to_python<DoubleVal                      >();
 	register_ptr_to_python<Command                        >();
 	register_ptr_to_python<Stream                         >();
+	register_ptr_to_python<StreamMgr                      >();
 
 	register_ptr_to_python< shared_ptr<std::string const> >();
 
@@ -1088,7 +1244,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.staticmethod("create")
 		.def("loadYamlFile",   &IPath::loadYamlFile,
 			IPath_loadYamlFile_ol(
-			args("yamlFileName", "rootName", "yamlIncDirName"),
+			args("yamlFileName", "rootName", "yamlIncDirName", "YamlFixup"),
 			"\n"
 			"Load a hierarchy definition in YAML format from a file.\n"
 			"\n"
@@ -1106,7 +1262,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.staticmethod("loadYamlFile")
 		.def("loadYaml",       wrap_Path_loadYamlStream,
 			wrap_Path_loadYamlStream_ol(
-			args("yamlString", "rootName", "yamlIncDirName"),
+			args("yamlString", "rootName", "yamlIncDirName", "YamlFixup"),
 			"\n"
 			"Load a hierarchy definition in YAML format from a string.\n"
 			"\n"
@@ -1157,6 +1313,35 @@ BOOST_PYTHON_MODULE(pycpsw)
 		"   void visitPost(Path path)\n"
 		"\n"
 	);
+
+	class_<IYamlFixup, WrapYamlFixup, boost::noncopyable, boost::shared_ptr<WrapYamlFixup> >
+	WrapYamlFixupClazz(
+		"YamlFixup",
+		"\n"
+		"The user must implement an implementation for this\n"
+		"interface which performs any desired fixup on the YAML\n"
+		"root node which is passed to the 'fixup' method\n"
+		"\n"
+		"NOTE: you need python bindings for the yaml-cpp library\n"
+		"      in order to use this. Such bindings are NOT part\n"
+		"      of CPSW!\n"
+        "\n"
+		"      void fixup(YAML::Node &)\n"
+		"\n"
+	);
+
+	WrapYamlFixupClazz
+	.def(
+		"findByName", &IYamlFixup::findByName,
+		( arg("node"), arg("path"), arg("sep") = '/' ),
+		"\n"
+		"Lookup a YAML node from 'node' traversing a hierarchy\n"
+		"of YAML::Map's while handling merge keys ('<<').\n"
+		"The path to lookup is a string with path elements\n"
+		"separated by 'sep'\n"
+	)
+	.staticmethod("findByName")
+	;
 
 	// wrap 'IEnum' interface
 	class_<IEnum, boost::noncopyable>
@@ -1534,17 +1719,22 @@ BOOST_PYTHON_MODULE(pycpsw)
 
 
 	// wrap 'IStream' interface
-	class_<IStream, boost::noncopyable>
+	class_<IStream, bases<IVal_Base>, boost::noncopyable>
 	Stream_Clazz(
 		"Stream",
 		"\n"
-		"Interface for endpoints with support streaming of raw data.",
+		"Interface for endpoints with support streaming of raw data.\n"
+		"NOTE: A stream must be explicitly managed (i.e., destroyed/closed\n"
+		"      when nobody reads from it in order to avoid RSSI stalls).\n"
+        "      In python you must use a StreamMgr as a context manager\n"
+		"      and use the stream within a 'with' statement."
+		,
 		no_init
 	);
 
 	Stream_Clazz
 		.def("read",         wrap_Stream_read,
-			( arg("self"), arg("bufObject"), arg("timeoutUs") = -1 ),
+			( arg("self"), arg("bufObject"), arg("timeoutUs") = -1, arg("offset") = 0 ),
 			"\n"
 			"Read raw bytes from a streaming interface into a buffer and return the number of bytes read.\n"
 			"\n"
@@ -1567,13 +1757,43 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"in micro-seconds may be specified. A negative timeout blocks\n"
 			"indefinitely."
 		)
-		.def("create",       &IStream::create,
+		.def("create",    &CStreamMgr::create,
 			( arg("path") ),
 			"\n"
-			"Instantiate a 'Stream' interface at the endpoint identified by 'path'\n"
+			"Instantiate a ***'StreamMgr'*** context manager. Note that the Stream itself\n"
+			"is created/deleted by the manager's __enter__/__exit__."
 			"\n"
+		)
+		.staticmethod("create")
+	;
+
+	class_<CStreamMgr, bases<IStream>, boost::noncopyable>
+	StreamMgr_Clazz(
+		"StreamMgr",
+		"\n"
+		"Context Manager for CPSW Stream",
+		no_init
+	);
+
+	StreamMgr_Clazz
+		.def("__enter__", &CStreamMgr::__enter__,
+			( arg("self") ),
+            "\n"
+            "Entering the context instantiates the actual Stream; it may now be used.\n"
 			"NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does\n"
 			"      not support this interface."
+		)
+		.def("__exit__",  &CStreamMgr::__exit__,
+			( arg("self"), arg("exc_type"), arg("exc_value"), arg("traceback") ),
+			"\n"
+			"Leave the context and destroy the Stream associated with the context."
+		)
+		.def("create",    &CStreamMgr::create,
+			( arg("path") ),
+			"\n"
+			"Instantiate a 'StreamMgr' context manager. Note that the Stream itself\n"
+			"is created/deleted by the manager's __enter__/__exit__."
+			"\n"
 		)
 		.staticmethod("create")
 	;

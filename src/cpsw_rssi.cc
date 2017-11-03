@@ -34,8 +34,8 @@ fprintf(stderr,"%s: upstream port queue created\n", "");
 #endif
 }
 	
-CRssi::CRssi(bool isServer)
-: CRunnable("RSSI Thread"),
+CRssi::CRssi(bool isServer, int threadPrio)
+: CRunnable("RSSI Thread", threadPrio),
   IRexTimer( &timers_ ),
   IAckTimer( &timers_ ),
   INulTimer( &timers_ ),

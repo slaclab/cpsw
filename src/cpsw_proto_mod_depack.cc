@@ -158,9 +158,9 @@ unsigned idx = oldestFrag_ & (fragWin_.size() - 1);
 }
 
 
-CProtoModDepack::CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, CTimeout timeout)
+CProtoModDepack::CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, CTimeout timeout, int threadPrio)
 	: CProtoMod(k, oqueueDepth),
-	  CRunnable("'Depacketizer' protocol module"),
+	  CRunnable("'Depacketizer' protocol module", threadPrio),
 	  badHeaderDrops_(0),
 	  oldFrameDrops_(0),
 	  newFrameDrops_(0),
@@ -205,9 +205,14 @@ void
 CProtoModDepack::dumpYaml(YAML::Node &node) const
 {
 YAML::Node parms;
+int prio = getPrio();
+
 	writeNode(parms, YAML_KEY_outQueueDepth , getQueueDepth()    );
 	writeNode(parms, YAML_KEY_ldFrameWinSize, ld( frameWinSize_ ));
 	writeNode(parms, YAML_KEY_ldFragWinSize , ld( fragWinSize_ ) );
+	if ( prio != IProtoStackBuilder::DFLT_THREAD_PRIORITY ) {
+		writeNode(parms, YAML_KEY_threadPriority, prio);
+	}
 	writeNode(node, YAML_KEY_depack, parms);
 }
 

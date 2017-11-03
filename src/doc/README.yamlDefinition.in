@@ -842,10 +842,28 @@ deliberately to use maps so that merge keys work across all levels).
             # Default: -1
           YAML_KEY_pollSecs:       <int>
 
+            # Priority of the UDP RX threads. A number
+            # bigger than zero must be a valid pthread
+            # priority and tries to engage a real-time
+            # scheduler. If this fails, CPSW falls back
+            # to the default scheduler.
+            #
+            # Default: 0
+          YAML_KEY_threadPriority: <int>
+
             # The presence of this key indicates
             # that RSSI shall be used. Its absence
             # that no RSSI is to be configured.
         YAML_KEY_RSSI:
+
+            # Priority of the RSSI thread. A number
+            # bigger than zero must be a valid pthread
+            # priority and tries to engage a real-time
+            # scheduler. If this fails, CPSW falls back
+            # to the default scheduler.
+            #
+            # Default: 0
+          YAML_KEY_threadPriority: <int>
 
             # The presence of this key indicates
             # that 'depack' shall be used. Its absence
@@ -869,6 +887,15 @@ deliberately to use maps so that merge keys work across all levels).
 
             # For expert use only
           YAML_KEY_ldFragWinSize:  <int>
+
+            # Priority of the depacketizer thread. A number
+            # bigger than zero must be a valid pthread
+            # priority and tries to engage a real-time
+            # scheduler. If this fails, CPSW falls back
+            # to the default scheduler.
+            #
+            # Default: 0
+          YAML_KEY_threadPriority: <int>
 
             # The TDEST (De)Muxer is enabled
             # by the presence of this key.
@@ -894,6 +921,15 @@ deliberately to use maps so that merge keys work across all levels).
             # application requires more buffering
             # capacity inside CPSW.
           YAML_KEY_outQueueDepth:  <int>
+
+            # Priority of the demultiplexer thread. A number
+            # bigger than zero must be a valid pthread
+            # priority and tries to engage a real-time
+            # scheduler. If this fails, CPSW falls back
+            # to the default scheduler.
+            #
+            # Default: 0
+          YAML_KEY_threadPriority: <int>
 
             # The presence of the SRP module is defined
             # by the value of YAML_KEY_protocolVersion.
@@ -939,6 +975,15 @@ deliberately to use maps so that merge keys work across all levels).
             # Default: 0
           YAML_KEY_virtualChannel: <int>
 
+            # Priority of the demultiplexer thread. A number
+            # bigger than zero must be a valid pthread
+            # priority and tries to engage a real-time
+            # scheduler. If this fails, CPSW falls back
+            # to the default scheduler.
+            #
+            # Default: 0
+          YAML_KEY_threadPriority: <int>
+
 ##### 2.8.1.1 TCP Module
 A TCP protocol module is also available. It is intended to 
 substitute UDP and RSSI. This module is useful when contacting
@@ -959,6 +1004,15 @@ The TCP module supports the following YAML properties:
             # Depth of the queue up to the next module
             # zero (default) picks a suitable value.
           YAML_KEY_outQueueDepth:  <int>
+
+            # Priority of the TCP RX thread. A number
+            # bigger than zero must be a valid pthread
+            # priority and tries to engage a real-time
+            # scheduler. If this fails, CPSW falls back
+            # to the default scheduler.
+            #
+            # Default: 0
+          YAML_KEY_threadPriority: <int>
 
 
 #### 2.8.2 Protocol Multiplexing

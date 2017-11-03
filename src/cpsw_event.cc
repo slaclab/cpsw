@@ -159,7 +159,7 @@ public:
 	virtual Binding *getEvent(bool wait, const CTimeout *abs_timeout)
 	{
 	int         st;
-	Binding  *rval;
+	Binding  *rval = 0;
 
 	CMtx::lg guard( &mutx_ );
 

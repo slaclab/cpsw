@@ -33,8 +33,8 @@ protected:
 
 public:
 
-	CProtoModSRPMux(Key &k, INetIODev::ProtocolVersion protoVersion)
-	: CProtoModByteMux<SRPPort>(k, "SRP VC Demux"),
+	CProtoModSRPMux(Key &k, INetIODev::ProtocolVersion protoVersion, int threadPriority)
+	: CProtoModByteMux<SRPPort>(k, "SRP VC Demux", threadPriority),
 	  protoVersion_(protoVersion)
 	{
 	}
@@ -77,10 +77,10 @@ public:
 
 };
 
-class CSRPPort : public CByteMuxPort {
+class CSRPPort : public CByteMuxPort<CProtoModSRPMux> {
 protected:
 	CSRPPort(const CSRPPort &orig, Key k)
-	: CByteMuxPort(orig, k)
+	: CByteMuxPort<CProtoModSRPMux>(orig, k)
 	{
 	}
 
@@ -90,7 +90,7 @@ protected:
 
 public:
 	CSRPPort(Key &k, ProtoModSRPMux owner, int dest)
-	: CByteMuxPort(k, owner, dest, 1) // queue depth 1 is enough for synchronous operations
+	: CByteMuxPort<CProtoModSRPMux>(k, owner, dest, 1) // queue depth 1 is enough for synchronous operations
 	{
 	}
 

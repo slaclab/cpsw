@@ -25,8 +25,15 @@ all: multi-build
 install: multi-build multi-do_install
 	@true
 
-# run tests (on host only)
-multi-test: sub-$(HARCH)$(TSEP)run_tests
+test: $(addsuffix @test,$(addprefix sub-./,$(POSTBUILD_SUBDIRS) $(SUBDIRS)))
+	@true
+
+# run tests
+#  - recurse into subdirs to run tests
+#  - run in current dir on host only
+multi-test: $(addsuffix @test,$(addprefix sub-./,$(POSTBUILD_SUBDIRS) $(SUBDIRS))) sub-$(HARCH)$(TSEP)run_tests
+	echo "MULTI_TEST: $^"
+	echo "MULTI_TEST: SUBDIRS: $(SUBDIRS)"
 	@true
 
 multi-clean: clean
@@ -89,6 +96,7 @@ endef
 # subdir make
 sub-./%:
 	$(QUIET)$(MAKE) $(QUIET:%=-s) -C  $(TARCH)  UPDIR=../$(UPDIR) \
+         TOPDIR="$(call ADD_updir,$(TOPDIR),../)" \
          CPSW_DIR="$(call ADD_updir,$(CPSW_DIR),../)" \
          INSTALL_DIR="$(call ADD_updir,$(INSTALL_DIR),../)" \
          "multi-$(TARGT)"
@@ -101,6 +109,7 @@ sub-%$(TSEP)clean:
 sub-%:
 	$(QUIET)mkdir -p O.$(TARCH)
 	$(QUIET)$(MAKE) $(QUIET:%=-s) -C  O.$(TARCH) -f ../makefile SRCDIR=.. UPDIR=../$(UPDIR) \
+         TOPDIR="$(call ADD_updir,$(TOPDIR),../)" \
          CPSW_DIR="$(call ADD_updir,$(CPSW_DIR),../)" \
          INCLUDE_DIRS="$(call ADD_updir,$(INCLUDE_DIRS),../)" \
          INSTALL_DIR="$(call ADD_updir,$(INSTALL_DIR),../)" \
@@ -239,11 +248,11 @@ $(BINTGTS): LIBARGS += $(foreach lib,$(LIBS),$(addprefix -L,$($(call nam2varnam,
 # don't apply ADD_updir to cpswlib_DIRS because CPSW_DIR already was 'upped'.
 # This means that e.g. yaml_cpplib_DIR must be absolute or relative to CPSW_DIR
 $(BINTGTS): LIBARGS += $(addprefix -L,$(subst :, ,$(cpswlib_DIRS)))
-$(BINTGTS): LIBARGS += $(addprefix -L,$(INSTALL_DIR:%=%/lib/$(TARCH)))
+$(BINTGTS): LIBARGS += $(addprefix -L,$(INSTALL_LIB))
 $(BINTGTS): LIBARGS += $(foreach lib,$(LIBS:%=-l%),$(lib:%.a=-Wl,-Bstatic % -Wl,-Bdynamic))
 
 $(BINTGTS): $(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
-	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS) $(addprefix -Wl$(COMMA__)-rpath$(COMMA__),$(abspath $(INSTALL_DIR:%=%$(TARCH)/lib)))
+	$(CXX) -o $@ $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBARGS) $(addprefix -Wl$(COMMA__)-rpath$(COMMA__),$(abspath $(INSTALL_LIB)))
 
 build: $(TGTS)
 
@@ -294,32 +303,32 @@ generate_srcs: $(GENERATED_SRCS)
 do_install: install_local
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		if [ -n "$(DOCS)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/$(TARCH)/doc ;\
-			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(DOCS)) $(INSTALL_DIR)/$(TARCH)/doc ;\
+			mkdir -p $(INSTALL_DOC) ;\
+			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(DOCS)) $(INSTALL_DOC) ;\
 		fi ;\
 		if [ -n "$(HEADERS)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/$(TARCH)/include ;\
-			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(HEADERS)) $(INSTALL_DIR)/$(TARCH)/include ;\
+			mkdir -p $(INSTALL_INC) ;\
+			$(INSTALL) $(addprefix $(SRCDIR:%=%/),$(HEADERS)) $(INSTALL_INC) ;\
 		fi ;\
 		if [ -n "$(STATIC_LIBRARIES)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/$(TARCH)/lib ;\
+			mkdir -p $(INSTALL_LIB) ;\
 			echo "Installing Libraries $(STATIC_LIBRARIES:%=lib%.a)" ; \
-			$(INSTALL) $(foreach lib,$(STATIC_LIBRARIES),$(lib:%=lib%.a)) $(INSTALL_DIR)/$(TARCH)/lib ;\
+			$(INSTALL) $(foreach lib,$(STATIC_LIBRARIES),$(lib:%=lib%.a)) $(INSTALL_LIB) ;\
 		fi ;\
 		if [ -n "$(SHARED_LIBRARIES)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/$(TARCH)/lib ;\
+			mkdir -p $(INSTALL_LIB) ;\
 			echo "Installing Libraries $(SHARED_LIBRARIES:%=lib%.so)" ; \
-			$(INSTALL) $(foreach lib,$(SHARED_LIBRARIES),$(lib:%=lib%.so)) $(INSTALL_DIR)/$(TARCH)/lib ;\
+			$(INSTALL) $(foreach lib,$(SHARED_LIBRARIES),$(lib:%=lib%.so)) $(INSTALL_LIB) ;\
 		fi ;\
 		if [ -n "$(PROGRAMS)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/$(TARCH)/bin ;\
+			mkdir -p $(INSTALL_BIN) ;\
 			echo "Installing Programs $(PROGRAMS)" ; \
-			$(INSTALL) $(PROGRAMS) $(INSTALL_DIR)/$(TARCH)/bin ;\
+			$(INSTALL) $(PROGRAMS) $(INSTALL_BIN) ;\
 		fi ;\
 		if [ -n "$(SHARED_OBJS)" ] ; then \
-			mkdir -p $(INSTALL_DIR)/$(TARCH)/lib ;\
+			mkdir -p $(INSTALL_LIB) ;\
 			echo "Installing Shared Objects $(SHARED_OBJS)" ; \
-			$(INSTALL) $(SHARED_OBJS) $(INSTALL_DIR)/$(TARCH)/lib ;\
+			$(INSTALL) $(SHARED_OBJS) $(INSTALL_LIB) ;\
 		fi \
 	fi
 
@@ -342,12 +351,18 @@ git_version_string.h: FORCE
 
 FORCE:
 
+PHONYTARGETS = all install uninstall build clean test run_tests generate_srcs do_install 
+
 .PHONY: install_local clean_local uninstall_local
-
-
+.PHONY: $(PHONYTARGETS)
+ 
 ifdef TARCH
 -include deps
 endif
+
+LDLIBPATH=LD_LIBRARY_PATH="$(subst $(SPACE__),:,$(patsubst ../%,%,$(subst :, ,$(cpswlib_DIRS))))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}"
+
+LDINSTPATH=LD_LIBRARY_PATH="$(subst $(SPACE__),:,$(patsubst ../%,%,$(subst :, ,$(addsuffix :,$(cpsw_deplib_DIRS))$(abspath $(INSTALL_LIB)))))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}"
 
 # invoke with :  eval `make libpath`
 ifndef TARCH
@@ -355,5 +370,5 @@ libpath:QUIET=@
 libpath:sub-$(HARCH)$(TSEP)libpath
 else
 libpath:
-	@echo export LD_LIBRARY_PATH="$(subst $(SPACE__),:,$(patsubst ../%,%,$(subst :, ,$(cpswlib_DIRS))))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}"
+	@echo export $(LDLIBPATH)
 endif

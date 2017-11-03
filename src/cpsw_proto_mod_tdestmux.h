@@ -31,8 +31,8 @@ protected:
 
 public:
 
-	CProtoModTDestMux(Key &k)
-	: CProtoModByteMux<TDestPort>(k, "TDEST VC Demux")
+	CProtoModTDestMux(Key &k, int threadPriority)
+	: CProtoModByteMux<TDestPort>(k, "TDEST VC Demux", threadPriority)
 	{
 	}
 
@@ -56,13 +56,13 @@ public:
 	virtual ~CProtoModTDestMux() {}
 };
 
-class CTDestPort : public CByteMuxPort {
+class CTDestPort : public CByteMuxPort<CProtoModTDestMux> {
 private:
 	bool stripHeader_;
 
 protected:
 	CTDestPort(const CTDestPort &orig, Key k)
-	: CByteMuxPort(orig, k)
+	: CByteMuxPort<CProtoModTDestMux>(orig, k)
 	{
 	}
 
@@ -73,7 +73,7 @@ protected:
 
 public:
 	CTDestPort(Key &k, ProtoModTDestMux owner, int dest, bool stripHeader, unsigned qDepth)
-	: CByteMuxPort(k, owner, dest, qDepth),
+	: CByteMuxPort<CProtoModTDestMux>(k, owner, dest, qDepth),
 	  stripHeader_(stripHeader)
 	{
 	}

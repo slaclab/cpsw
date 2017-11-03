@@ -157,8 +157,8 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 	return NULL;
 }
 
-CProtoModTcp::CRxHandlerThread::CRxHandlerThread(const char *name, int sd, CProtoModTcp *owner)
-: CRunnable(name),
+CProtoModTcp::CRxHandlerThread::CRxHandlerThread(const char *name, int threadPriority, int sd, CProtoModTcp *owner)
+: CRunnable(name, threadPriority),
   sd_(sd),
   nOctets_(0),
   nDgrams_(0),
@@ -175,7 +175,7 @@ CProtoModTcp::CRxHandlerThread::CRxHandlerThread(CRxHandlerThread &orig, int sd,
 {
 }
 
-void CProtoModTcp::createThread()
+void CProtoModTcp::createThread(int threadPriority)
 {
 	// might be called by the copy constructor
 	if ( rxHandler_ ) {
@@ -183,7 +183,7 @@ void CProtoModTcp::createThread()
 		rxHandler_ = NULL;
 	}
 
-	rxHandler_ = new CRxHandlerThread("TCP RX Handler (TCP protocol module)", sd_.getSd(), this );
+	rxHandler_ = new CRxHandlerThread("TCP RX Handler (TCP protocol module)", threadPriority, sd_.getSd(), this );
 }
 
 void CProtoModTcp::modStartup()
@@ -198,7 +198,7 @@ void CProtoModTcp::modShutdown()
 		rxHandler_->threadStop();
 }
 
-CProtoModTcp::CProtoModTcp(Key &k, struct sockaddr_in *dest, unsigned depth)
+CProtoModTcp::CProtoModTcp(Key &k, struct sockaddr_in *dest, unsigned depth, int threadPriority)
 :CProtoMod(k, depth),
  dest_(*dest),
  sd_(SOCK_STREAM),
@@ -207,15 +207,19 @@ CProtoModTcp::CProtoModTcp(Key &k, struct sockaddr_in *dest, unsigned depth)
  rxHandler_(NULL)
 {
 	sd_.init( &dest_, 0, false );
-	createThread();
+	createThread( threadPriority );
 }
 
 void
 CProtoModTcp::dumpYaml(YAML::Node &node) const
 {
+int prio = rxHandler_->getPrio();
 	YAML::Node tcpParms;
 	writeNode(tcpParms, YAML_KEY_port,          getDestPort()     );
 	writeNode(tcpParms, YAML_KEY_outQueueDepth, getQueueDepth()   );
+	if ( prio != IProtoStackBuilder::DFLT_THREAD_PRIORITY ) {
+		writeNode(tcpParms, YAML_KEY_threadPriority, prio);
+	}
 	writeNode(node, YAML_KEY_TCP, tcpParms);
 }
 
@@ -227,7 +231,7 @@ CProtoModTcp::CProtoModTcp(CProtoModTcp &orig, Key &k)
  nTxDgrams_(0)
 {
 	sd_.init( &dest_, 0, false );
-	createThread();
+	createThread( orig.rxHandler_->getPrio() );
 }
 
 uint64_t CProtoModTcp::getNumRxOctets()
@@ -253,6 +257,7 @@ void CProtoModTcp::dumpInfo(FILE *f)
 
 	fprintf(f,"CProtoModTcp:\n");
 	fprintf(f,"  Peer port : %15u\n",    getDestPort());
+	fprintf(f,"  ThreadPrio: %15d\n",    rxHandler_->getPrio());
 	fprintf(f,"  #TX Octets: %15"PRIu64"\n", getNumTxOctets());
 	fprintf(f,"  #TX DGRAMs: %15"PRIu64"\n", getNumTxDgrams());
 	fprintf(f,"  #RX Octets: %15"PRIu64"\n", getNumRxOctets());

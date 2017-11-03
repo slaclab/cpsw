@@ -298,7 +298,7 @@ protected:
 	CProtoModDepack( CProtoModDepack &orig, Key &k );
 
 public:
-	CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, CTimeout timeout);
+	CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, CTimeout timeout, int threadPrio);
 
 	virtual ~CProtoModDepack();
 

@@ -187,7 +187,14 @@ public:
  */
 class IYamlFixup {
 public:
-	virtual void operator()(YAML::Node &)            = 0;
+	// Find a YAML node in a hierarchy of YAML::Map's
+	// while traversing merge keys.
+	// The path from the src to the destination node is
+	// given as a string separated with the separation character.
+	// E.g., find( rootNode, "children/mmio/at/UDP/port" )
+	static  YAML::Node findByName(YAML::Node &src, const char *path, char sep = '/');
+
+	virtual void operator()(YAML::Node &)                = 0;
 
 	virtual ~IYamlFixup() {}
 };
@@ -719,7 +726,7 @@ class CTimeout;
 /*!
  * Interface for endpoints with support streaming of raw data.",
  */
-class IStream {
+class IStream : public virtual IVal_Base {
 public:
 	/*!
 	 * Read raw bytes from a streaming interface into a buffer and return the number of bytes read.

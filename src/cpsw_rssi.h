@@ -160,7 +160,7 @@ private:
 
 public:
 
-	CRssi(bool isServer);
+	CRssi(bool isServer, int threadPrio = DFLT_PRIORITY);
 
 	virtual ~CRssi();
 
