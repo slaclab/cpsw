@@ -137,7 +137,7 @@ CConstIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path path, const std::t
 	} else if ( isInterface<DoubleVal_RO>(interfaceType) ) {
 		return _createAdapter<ConstDblEntryAdapt>(this, path);
 	}
-	return EntryAdapt();
+	throw InterfaceNotImplementedError("CConstIntEntryImpl does not implement requested interface");
 }
 
 CConstIntEntryAdapt::CConstIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
