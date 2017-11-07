@@ -2,6 +2,7 @@
 #define CPSW_SEM_H
 
 #include <semaphore.h>
+#include <errno.h>
 #include <cpsw_error.h>
 
 class CSem {
