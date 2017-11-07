@@ -14,6 +14,7 @@
 #include <cpsw_proto_mod.h>
 #include <cpsw_thread.h>
 #include <cpsw_sock.h>
+#include <cpsw_mutex.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -64,6 +65,8 @@ private:
 	CSockSd            sd_;
 	atomic<uint64_t>   nTxOctets_;
 	atomic<uint64_t>   nTxDgrams_;
+	CMtx               txMtx_;
+
 protected:
 	CRxHandlerThread  *rxHandler_;
 

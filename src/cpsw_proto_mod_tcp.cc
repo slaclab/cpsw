@@ -301,7 +301,12 @@ unsigned       nios;
 		iov[nios].iov_len  = b->getSize();
 	}
 
+	{
+	CMtx::lg GUARD( &txMtx_ );
+
 	xfer( "writev()", ::writev, sd_.getSd(), iov, nios, len );
+
+	}
 
 #ifdef TCP_DEBUG
 	printf("TCP doPush -- wrote %ld\n", bc->getSize());
