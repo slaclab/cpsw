@@ -543,31 +543,35 @@ int                        i;
 		const YAML::PNode &nn( node.lookup(YAML_KEY_TCP) );
 		if ( !!nn && nn.IsMap() )
 		{
-			if ( readNode(nn, YAML_KEY_port, &u) )
-				bldr->setTcpPort( u );
-			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
-				bldr->setTcpOutQueueDepth( u );
-			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
-				bldr->setTcpThreadPriority( i );
+			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
+				if ( readNode(nn, YAML_KEY_port, &u) )
+					bldr->setTcpPort( u );
+				if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
+					bldr->setTcpOutQueueDepth( u );
+				if ( readNode(nn, YAML_KEY_threadPriority, &i) )
+					bldr->setTcpThreadPriority( i );
+			}
 		}
 	}
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_UDP) );
 		if ( !!nn && nn.IsMap() )
 		{
-			if ( readNode(nn, YAML_KEY_port, &u) )
-				bldr->setUdpPort( u );
-			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
-				bldr->setUdpOutQueueDepth( u );
-			if ( readNode(nn, YAML_KEY_numRxThreads, &u) )
-				bldr->setUdpNumRxThreads( u );
-			// initialize i to silence rhel compiler warning
-			// about potentially un-initialized 'i'
-			i = bldr->getUdpPollSecs();
-			if ( readNode(nn, YAML_KEY_pollSecs, &i) )
-				bldr->setUdpPollSecs( i );
-			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
-				bldr->setUdpThreadPriority( i );
+			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
+				if ( readNode(nn, YAML_KEY_port, &u) )
+					bldr->setUdpPort( u );
+				if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
+					bldr->setUdpOutQueueDepth( u );
+				if ( readNode(nn, YAML_KEY_numRxThreads, &u) )
+					bldr->setUdpNumRxThreads( u );
+				// initialize i to silence rhel compiler warning
+				// about potentially un-initialized 'i'
+				i = bldr->getUdpPollSecs();
+				if ( readNode(nn, YAML_KEY_pollSecs, &i) )
+					bldr->setUdpPollSecs( i );
+				if ( readNode(nn, YAML_KEY_threadPriority, &i) )
+					bldr->setUdpThreadPriority( i );
+			}
 		}
 	}
 	{
@@ -578,6 +582,8 @@ int                        i;
 		if ( !!nn && nn.IsMap() ) {
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 				bldr->setRssiThreadPriority( i );
+			if ( readNode(nn, YAML_KEY_instantiate, &b) )
+				bldr->useRssi( b );
 		}
 	}
 	{
@@ -593,6 +599,8 @@ int                        i;
 				bldr->setDepackLdFragWinSize( u );
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 				bldr->setDepackThreadPriority( i );
+			if ( readNode(nn, YAML_KEY_instantiate, &b) )
+				bldr->useDepack( b );
 		}
 	}
 	{
@@ -606,6 +614,8 @@ int                        i;
 				bldr->setSRPMuxOutQueueDepth( u );
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 				bldr->setSRPMuxThreadPriority( i );
+			if ( readNode(nn, YAML_KEY_instantiate, &b) )
+				bldr->useSRPMux( b );
 		}
 	}
 	{
@@ -621,6 +631,8 @@ int                        i;
 				bldr->setTDestMuxOutQueueDepth( u );
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 				bldr->setTDestMuxThreadPriority( i );
+			if ( readNode(nn, YAML_KEY_instantiate, &b) )
+				bldr->useTDestMux( b );
 		}
 	}
 
