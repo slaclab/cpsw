@@ -81,7 +81,7 @@ typedef CFreeListNodeKey<CAsyncIOTransaction> CAsyncIOTransactionKey;
 class CAsyncIOTransaction : public CFreeListNode<CAsyncIOTransaction>, public CAsyncIOTransactionNode {
 public:
 	CAsyncIOTransaction( const CAsyncIOTransactionKey &k )
-	: CFreeListNode( k )
+	: CFreeListNode<CAsyncIOTransaction>( k )
 	{
 	}
 
