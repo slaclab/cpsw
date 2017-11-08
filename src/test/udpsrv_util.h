@@ -43,6 +43,7 @@ public:
 	virtual BufChain tryPop()                              = 0;
 
 	virtual IEventSource *getReadEventSource()             = 0;
+	virtual IEventSource *getWriteEventSource()            = 0;
 
 	virtual ProtoPort     getUpstreamPort()                = 0;
 
@@ -73,11 +74,13 @@ public:
 
 	virtual unsigned getUdpPort()                          = 0;
 
+	virtual bool     isFull()                              = 0;
+
 	virtual void connect(const char *ina, unsigned port)   = 0;
 
 	virtual ~IUdpPort() {}
 
-	static UdpPort create(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler);
+	static UdpPort create(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, unsigned depth = 4);
 };
 
 class ITcpPort;
@@ -93,9 +96,12 @@ public:
 
 	virtual unsigned getTcpPort()                 = 0;
 
+	/* in client mode only */
+	virtual void connect(const char *ina, unsigned port) = 0;
+
 	virtual ~ITcpPort() {}
 
-	static TcpPort create(const char *ina, unsigned port);
+	static TcpPort create(const char *ina, unsigned port, unsigned depth = 4, bool isServer = true);
 };
 
 

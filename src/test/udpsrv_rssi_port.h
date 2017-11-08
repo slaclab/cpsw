@@ -103,6 +103,11 @@ public:
 		return outQ_->getReadEventSource();
 	}
 
+	virtual IEventSource *getWriteEventSource()
+	{
+		return outQ_->getWriteEventSource();
+	}
+
 	static RssiPort create(bool isServer)
 	{
 	CRssiPort *p = new CRssiPort(isServer);

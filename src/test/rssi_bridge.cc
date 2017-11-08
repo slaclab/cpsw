@@ -17,17 +17,62 @@ using boost::make_shared;
 
 #define RSSI_BR_DEBUG
 
+class CThrottler;
+typedef shared_ptr<CThrottler> Throttler;
+
+class CThrottler {
+private:
+	UdpPort         udpPrt_;
+	CMtx            mtx_;
+	pthread_cond_t  cond_;
+
+public:
+	CThrottler(UdpPort udpPrt)
+	: udpPrt_(udpPrt)
+	{
+	int err;
+		if ( (err = pthread_cond_init( &cond_, NULL )) ) {
+			throw InternalError("Initializing condvar failed", err);
+		}
+	}
+
+	void unthrottle()
+	{
+	int err;
+		if ( (err = pthread_cond_signal( &cond_ )) ) {
+			throw InternalError("Signalling condvar failed", err);
+		}
+	}
+
+	void throttle()
+	{
+		if ( udpPrt_->isFull() ) {
+			CMtx::lg GUARD( &mtx_ );
+			do {
+				pthread_cond_wait( &cond_, mtx_.getp() );
+			} while ( udpPrt_->isFull() );
+		}
+	}
+
+	~CThrottler()
+	{
+		pthread_cond_destroy( &cond_ );
+	}
+};
+
 class CMover : public CRunnable {
 private:
 	ProtoPort to_, from_;
 	int       dbg_;
+	Throttler throttler_;
+	int       throttle_;
 
 	CMover(const CMover&);
 	CMover &operator=(const CMover&);
 protected:
 	virtual void *threadBody();
 public:
-	CMover(const char *name, ProtoPort to, ProtoPort from, int debug);
+	CMover(const char *name, ProtoPort to, ProtoPort from, int debug, Throttler throttler, int throttle);
 
 	virtual ~CMover();
 };
@@ -46,7 +91,6 @@ public:
 	typedef enum { NONE = 0, RSSI=1, DEBUG=2 } Flags;
 
 	Bridge(const char *peerIp, unsigned short peerPort, unsigned short myPort, Flags flags);
-
 
 	bool useRssi()
 	{
@@ -69,9 +113,15 @@ CMover::threadBody()
 	while ( 1 ) {
 		BufChain bc = from_->pop( NULL );
 		if ( bc ) {
+			if ( throttle_ > 0 ) {
+				throttler_->throttle();
+			} else if ( throttle_ < 0 ) {
+				sleep(1);
+				throttler_->unthrottle();
+			}
 #ifdef RSSI_BR_DEBUG
 			if ( dbg_ ) {
-				printf("%s: got %ld bytes\n", getName().c_str(), bc->getSize());
+				printf("%s: got %ld bytes\n", getName().c_str(), (long)bc->getSize());
 			}
 			bool st =
 #endif
@@ -86,11 +136,13 @@ CMover::threadBody()
 	return NULL;
 }
 
-CMover::CMover(const char *name, ProtoPort to, ProtoPort from, int debug)
-: CRunnable( name ),
-  to_( to ),
-  from_( from ),
-  dbg_( debug )
+CMover::CMover(const char *name, ProtoPort to, ProtoPort from, int debug, Throttler throttler, int throttle)
+: CRunnable ( name         ),
+  to_       ( to           ),
+  from_     ( from         ),
+  dbg_      ( debug        ),
+  throttler_( throttler    ),
+  throttle_ ( throttle     )
 {
 }
 
@@ -102,14 +154,16 @@ CMover::~CMover()
 Bridge::Bridge(const char *peerIp, unsigned short peerPort, unsigned short myPort, Flags flags)
 : flags_(flags)
 {
-UdpPort   udpPrt  = IUdpPort::create( NULL, 0, 0, 0 );
+UdpPort   udpPrt  = IUdpPort::create( NULL, 0, 0, 0, useRssi() ? 10 : 100  );
 TcpPort   tcpPrt  = ITcpPort::create( NULL, myPort );
+Throttler thrtlr;
 
 		if ( useRssi() ) {
 			udpTop_ = CRssiPort::create( false );
 			udpTop_->attach( udpPrt );
 		} else {
-			udpTop_ = udpPrt;
+			udpTop_    = udpPrt;
+			thrtlr     = make_shared<CThrottler>( udpPrt );
 		}
 
 		tcpTop_ = tcpPrt;
@@ -123,10 +177,10 @@ TcpPort   tcpPrt  = ITcpPort::create( NULL, myPort );
 
 		try {
 
-			udpToTcp_ = make_shared<CMover>( "UDP->TCP", tcpTop_, udpTop_, debug() );
+			udpToTcp_ = make_shared<CMover>( "UDP->TCP", tcpTop_, udpTop_, debug(), thrtlr, thrtlr ? -1 : 0 );
 			udpToTcp_->threadStart();
 
-			tcpToUdp_ = make_shared<CMover>( "TCP->UDP", udpTop_, tcpTop_, debug() );
+			tcpToUdp_ = make_shared<CMover>( "TCP->UDP", udpTop_, tcpTop_, debug(), thrtlr, thrtlr ?  1 : 0 );
 			tcpToUdp_->threadStart();
 
 		} catch (...) {
@@ -213,7 +267,7 @@ std::vector< PP > ports;
 						return rval;
 					}
 				}
-				ports.push_back( PP( peer, me ) );	
+				ports.push_back( PP( peer, me ) );
 				break;
 
 			case 'd':

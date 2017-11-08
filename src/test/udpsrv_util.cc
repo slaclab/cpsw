@@ -49,16 +49,20 @@ typedef shared_ptr<IBufSync> BufSync;
 
 class IEventBufSync : public IBufSync {
 public:
-	virtual IEventSource *getEventSource() = 0;
+	virtual IEventSource *getEventSource()   = 0;
+	virtual void addHandler(IEventHandler *) = 0;
+	virtual void delHandler(IEventHandler *) = 0;
 	virtual ~IEventBufSync() {}
 };
 
 class CEventBufSync : public IIntEventSource, public IEventBufSync, public IEventHandler {
 private:
-	unsigned    depth_;
-	int         water_;
-	atomic<int> slots_;
-	EventSet    evSet_;
+	unsigned                    depth_;
+	int                         water_;
+	atomic<int>                 slots_;
+	EventSet                    evSet_;
+	std::vector<IEventHandler*> handlers_;
+	CMtx                        hmtx_;
 protected:
 	CEventBufSync(unsigned depth, unsigned water)
 	: depth_(depth),
@@ -75,10 +79,19 @@ public:
 
 	virtual IEventSource *getEventSource() { return this; }
 
-	virtual void handle(IIntEventSource *s) {}
+	virtual void handle(IIntEventSource *s)
+	{
+	CMtx::lg GUARD( &hmtx_ );
+	std::vector<IEventHandler*>::iterator itb, ite;
+		ite = handlers_.end();
+		for ( itb = handlers_.begin(); itb != ite; ++itb ) {
+			IEventHandler *h = *itb;
+				h->handle( s );
+		}
+	}
 
 	virtual unsigned getMaxSlots()   { return depth_;        }
-	// this might temporarily yield too small a value (if 
+	// this might temporarily yield too small a value (if
 	// called while other threads are in getSlot().
 	virtual unsigned getAvailSlots()
 	{
@@ -120,6 +133,25 @@ public:
 		return ts;
 	}
 
+	virtual void addHandler(IEventHandler *h)
+	{
+	CMtx::lg GUARD( &hmtx_ );
+		handlers_.push_back( h );
+	}
+
+	virtual void delHandler(IEventHandler *h)
+	{
+	CMtx::lg GUARD( &hmtx_ );
+	std::vector<IEventHandler*>::iterator itb, ite;
+	retry:
+		ite = handlers_.end();
+		for ( itb = handlers_.begin(); itb != ite; ++itb ) {
+			if ( *itb == h ) {
+				handlers_.erase( itb );
+				goto retry;
+			}
+		}
+	}
 
 	static EventBufSync create(unsigned depth=0, unsigned water = 0);
 };
@@ -169,7 +201,7 @@ private:
 			} else {
 				rval = new (malloc(sizeof(CBuf))) CBuf();
 				totl_++;
-				
+
 			}
 			return rval;
 		}
@@ -342,7 +374,7 @@ private:
 	unsigned depth_;
 	unsigned wwater_;
 	unsigned rp_, wp_;
-	EventBufSync  rdSync_, wrSync_; 
+	EventBufSync  rdSync_, wrSync_;
 	bool     isOpen_;
 	vector<BufChain> q_;
 
@@ -381,7 +413,7 @@ protected:
 	virtual BufChain pop(bool wait, const CTimeout *abs_timeout)
 	{
 	BufChain rval;
-	
+
 		if ( rdSync_->getSlot(wait, abs_timeout) ) {
 			{
 			CMtx::lg guard( &mtx_ );
@@ -393,7 +425,7 @@ protected:
 		}
 if ( wait && (!abs_timeout || abs_timeout->isIndefinite()) && !rval )
 	throw InternalError("???");
-			
+
 		return rval;
 	}
 
@@ -462,7 +494,7 @@ public:
 
 		for ( i = 0; i<depth_; i++ )
 			wrSync_->putSlot();
-		
+
 	}
 
 	virtual ~CQueue()
@@ -494,7 +526,7 @@ CQueue *p = new CQueue(depth, wwater);
 	return BufQueue(p);
 }
 
-	
+
 BufQueue IBufQueue::create(unsigned depth)
 {
 	return CQueue::create(depth, 0);
@@ -564,6 +596,11 @@ public:
 		return q_->getReadEventSource();
 	}
 
+	virtual IEventSource *getWriteEventSource()
+	{
+		return q_->getWriteEventSource();
+	}
+
 	virtual BufChain pop(const CTimeout *to)
 	{
 		return q_->pop(to);
@@ -582,12 +619,6 @@ public:
 	{
 	}
 
-	virtual void handle(IIntEventSource *event_source)
-	{
-	// dont' have to do anything
-	}
-
-
 	virtual void attach(ProtoPort upstream)                         = 0;
 	virtual bool push(BufChain, const CTimeout *)                   = 0;
 	virtual bool tryPush(BufChain)                                  = 0;
@@ -597,7 +628,7 @@ public:
 class CPortA : public CPort {
 public:
 	CPortA(unsigned depth)
-	: CPort(depth)	
+	: CPort(depth)
 	{
 	}
 
@@ -611,7 +642,7 @@ public:
 class CPortB : public CPort {
 public:
 	CPortB(unsigned depth)
-	: CPort(depth)	
+	: CPort(depth)
 	{
 	}
 
@@ -690,7 +721,7 @@ bool CLoopbackPorts::pushB(BufChain b, bool wait, const CTimeout *to)
 BufChain CLoopbackPorts::dup(BufChain bc)
 {
 BufChain    rval = IBufChain::create();
-Buf         rb   = rval->createAtHead( bc->getSize() );       
+Buf         rb   = rval->createAtHead( bc->getSize() );
 Buf         b    = bc->getHead();
 uint8_t *old_pld = b->getPayload();
 unsigned     off;
@@ -757,6 +788,7 @@ public:
 	virtual unsigned isConnected()                    { return 1;                                }
 
 	virtual IEventSource *getReadEventSource()        { return NULL;                             }
+	virtual IEventSource *getWriteEventSource()       { return NULL;                             }
 
 	virtual void *threadBody()
 	{
@@ -806,25 +838,42 @@ CSink *s = new CSink(name, sleep_us);
 class SD {
 private:
 	int sd_;
+	SD(const SD &sd);
+	SD &operator=(const SD &in);
+	int type_;
+
 public:
-	SD(int type = SOCK_DGRAM)
+	void reset()
 	{
-		if ( (sd_ = socket(AF_INET, type, 0)) < 0 )
+		if ( sd_ >= 0 ) {
+			::close(sd_);
+		}
+		if ( (sd_ = socket(AF_INET, type_, 0)) < 0 )
 			throw InternalError("Unable to create socket", errno);
 		int yes = 1;
 		if ( setsockopt(sd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) )
 			throw InternalError("unable to set SO_REUSEADDR", errno);
-		if ( SOCK_STREAM == type ) {
+		yes = 1;
+		if ( SOCK_STREAM == type_ ) {
 			if ( setsockopt(sd_, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) )
 				throw InternalError("unable to set TCP_NODELAY", errno);
 		}
+	}
+
+	SD(int type = SOCK_DGRAM)
+	: sd_  ( -1   ),
+	  type_( type )
+	{
+		reset();
 	}
 
 	int get() { return sd_; }
 
 	~SD()
 	{
-		close(sd_);
+		if ( sd_ >= 0 ) {
+			close(sd_);
+		}
 	}
 };
 
@@ -840,9 +889,9 @@ private:
 	vector<BufChain>   scrmbl_;
 
 public:
-	CUdpPort(const char *ina, unsigned port, unsigned simLoss, unsigned ldScrmbl)
+	CUdpPort(const char *ina, unsigned port, unsigned simLoss, unsigned ldScrmbl, unsigned depth)
 	: CRunnable("UDP RX"),
-	  outQ_( IBufQueue::create(4) ),
+	  outQ_( IBufQueue::create( depth ) ),
 	  rands_(1),
 	  sim_loss_(simLoss),
 	  ldScrmbl_(ldScrmbl),
@@ -858,8 +907,10 @@ public:
 		peer_.sin_addr.s_addr = INADDR_NONE;
 		peer_.sin_port        = htons(0);
 
-		if ( ::bind(sd_.get(), (struct sockaddr*) &sin, sizeof(sin)) < 0 ) 
+		if ( ::bind(sd_.get(), (struct sockaddr*) &sin, sizeof(sin)) < 0 ) {
+			fprintf(stderr,"UDP Unable to bind: %s\n", strerror(errno));
 			throw InternalError("Unable to bind",errno);
+		}
 	}
 
 	virtual void connect(const char *ina, unsigned port)
@@ -895,6 +946,16 @@ public:
 		return outQ_->getReadEventSource();
 	}
 
+	virtual IEventSource *getWriteEventSource()
+	{
+		return outQ_->getWriteEventSource();
+	}
+
+	virtual bool isFull()
+	{
+		return outQ_->isFull();
+	}
+
 	virtual void attach(ProtoPort upstream)
 	{
 		throw InternalError("This must be a 'top' port");
@@ -907,7 +968,7 @@ public:
 	int idx;
 	int rnd;
 
-		if ( to ) 
+		if ( to )
 			throw InternalError("Not implemented");
 
 		if ( 0 == ntohs(peer_.sin_port) )
@@ -969,7 +1030,7 @@ public:
 
 			b->setSize( got );
 
-			outQ_->tryPush( bc );
+			outQ_->push( bc, 0 );
 		}
 
 		return NULL;
@@ -998,25 +1059,39 @@ private:
 	struct sockaddr_in peer_;
 	BufQueue           outQ_;
 	BufQueue           inpQ_;
+	bool               srv_;
+	std::string        ina_;
+	unsigned           port_;
 
-public:
-	CTcpPort(const char *ina, unsigned port)
-	: CRunnable("TCP RX"),
-	  sd_( SOCK_STREAM ),
-      conn_( -1 ),
-	  outQ_( IBufQueue::create(4) )
+protected:
+
+	virtual void bind()
 	{
 	struct sockaddr_in sin;
 
 		sin.sin_family      = AF_INET;
-		sin.sin_addr.s_addr = ina ? inet_addr(ina) : INADDR_ANY;
-		sin.sin_port        = htons( (short)port );
+		sin.sin_addr.s_addr = ina_.size() ? inet_addr(ina_.c_str()) : INADDR_ANY;
+		sin.sin_port        = htons( (short)port_ );
 
-		if ( bind(sd_.get(), (struct sockaddr*) &sin, sizeof(sin)) < 0 ) 
+		if ( ::bind(sd_.get(), (struct sockaddr*) &sin, sizeof(sin)) < 0 )
 			throw InternalError("Unable to bind", errno);
+	}
 
-		if ( listen(sd_.get(), 1) )
-			throw InternalError("Unable to listen", errno);
+public:
+	CTcpPort(const char *ina, unsigned port, unsigned depth, bool isServer = true)
+	: CRunnable("TCP RX"),
+	  sd_  ( SOCK_STREAM                ),
+      conn_( -1                         ),
+	  outQ_( IBufQueue::create( depth ) ),
+	  srv_ ( isServer                   ),
+	  ina_ ( ina ? ina : ""             ),
+	  port_( port                       )
+	{
+		if ( srv_ ) {
+			bind();
+			if ( listen(sd_.get(), 1) )
+				throw InternalError("Unable to listen", errno);
+		}
 	}
 
 	virtual ProtoPort getUpstreamPort()
@@ -1034,6 +1109,39 @@ public:
 		return conn_ >= 0;
 	}
 
+	virtual void reconnect()
+	{
+	socklen_t sl;
+
+		if ( srv_ ) {
+			if ( isConnected() )
+				close( conn_ );
+			sl    = sizeof(peer_);
+			conn_ = accept(sd_.get(), (struct sockaddr*)&peer_, &sl);
+			if ( conn_ < 0 ) {
+				throw InternalError("TCP: Unable to accept", errno);
+			}
+		} else {
+			sd_.reset();
+			bind();
+			if ( ::connect(sd_.get(), (struct sockaddr*)&peer_, sizeof(peer_)) ) {
+				fprintf(stderr,"Connect failed: %s\n", strerror(errno));
+				throw InternalError("TCP: Unable to connect", errno);
+			}
+			conn_ = sd_.get(); //::dup( sd_.get() );
+		}
+	}
+
+	virtual void connect(const char *ina, unsigned port)
+	{
+		if ( srv_ )
+			throw InvalidArgError("TCP connect cannot be used in server mode\n");
+		peer_.sin_family      = AF_INET;
+		peer_.sin_addr.s_addr = inet_addr( ina );
+		peer_.sin_port        = htons( (unsigned short) port );
+		reconnect();
+	}
+
 	virtual BufChain tryPop()
 	{
 		return outQ_->tryPop();
@@ -1042,6 +1150,11 @@ public:
 	virtual IEventSource *getReadEventSource()
 	{
 		return outQ_->getReadEventSource();
+	}
+
+	virtual IEventSource *getWriteEventSource()
+	{
+		return outQ_->getWriteEventSource();
 	}
 
 	virtual void attach(ProtoPort upstream)
@@ -1054,7 +1167,7 @@ public:
 	int put;
 	int flgs = wait ? 0 : MSG_DONTWAIT;
 
-		if ( to ) 
+		if ( to )
 			throw InternalError("Not implemented");
 
 		if ( conn_ < 0 )
@@ -1106,9 +1219,9 @@ public:
 	virtual void *threadBody()
 	{
 	int       got;
-	socklen_t sl;
 
-		while ( ( (sl = sizeof(peer_)), (conn_ = accept(sd_.get(), (struct sockaddr*)&peer_, &sl)) ) >= 0 ) {
+		while ( 1 ) {
+			reconnect();
 			while ( conn_ >= 0 ) {
 
 				BufChain bc = IBufChain::create();
@@ -1124,7 +1237,7 @@ public:
 				while ( s > 0 ) {
 					got = ::read(conn_, p, s);
 					if ( got <= 0 ) {
-						fprintf(stderr,"TCP: unable to read length; resetting connection\n");
+						fprintf(stderr,"TCP: unable to read length (%d); resetting connection (%d)\n", conn_, errno);
 						goto reconn;
 					}
 					p += got;
@@ -1137,7 +1250,7 @@ public:
 
 				while ( len > 0 ) {
 					if ( (got = ::recv(conn_, p, len, 0)) <= 0 ) {
-						fprintf(stderr,"TCP: unable to read data; resetting connection\n");
+						fprintf(stderr,"TCP: unable to read data; resetting connection (%d)\n", errno);
 						goto reconn;
 					}
 					len -= got;
@@ -1177,14 +1290,14 @@ reconn:;
 };
 
 
-UdpPort IUdpPort::create(const char *ina, unsigned port, unsigned simLoss, unsigned ldScrmbl)
+UdpPort IUdpPort::create(const char *ina, unsigned port, unsigned simLoss, unsigned ldScrmbl, unsigned depth)
 {
-CUdpPort *p = new CUdpPort(ina, port, simLoss, ldScrmbl);
-	return UdpPort(p);
+UdpPort p = make_shared<CUdpPort>(ina, port, simLoss, ldScrmbl, depth);
+	return p;
 }
 
-TcpPort ITcpPort::create(const char *ina, unsigned port)
+TcpPort ITcpPort::create(const char *ina, unsigned port, unsigned depth, bool isServer)
 {
-CTcpPort *p = new CTcpPort(ina, port);
-	return TcpPort(p);
+TcpPort p = make_shared<CTcpPort>(ina, port, depth, isServer);
+	return p;
 }
