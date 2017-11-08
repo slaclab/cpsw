@@ -221,7 +221,7 @@ public:
 	void
 	reset(const CSRPAddressImpl *srpAddr);
 
-	virtual uint32_t getTid() const 
+	virtual uint32_t getTid() const
 	{
 		return tid_;
 	}
@@ -680,7 +680,7 @@ SRPAsyncReadTransaction xact = srpReadTransactionPool.alloc();
 
 	// If we are open then the async door must also be open
 	xact->post( asyncIOHandler_.getDoor() );
-	
+
 	return 0;
 }
 
@@ -727,7 +727,6 @@ struct timespec retry_then;
 			}
 
 			tidBits = extractTid( rchn );
-
 
 		} while ( ! tidMatch( tidBits , xact.getTid() ) );
 
@@ -782,7 +781,7 @@ printf("SRP Close\n");
 	}
 	return rval;
 }
-	
+
 uint64_t CSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 uint64_t rval            = 0;
@@ -804,22 +803,23 @@ unsigned nWords;
 		throw InternalError("Asynchronous SRP reads covering multiple blocks not supported");
 	}
 
-	CMtx::lg GUARD( &mutex_ );
+	if ( ! args->aio_ ) {
+		CMtx::lg GUARD( &mutex_ );
 
-	while ( nWords > maxWordsRx_ ) {
-		int nbytes = maxWordsRx_*4 - headbytes;
-		rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);	
-		nWords -= maxWordsRx_;
-		sbytes -= nbytes;	
-		dst    += nbytes;
-		off    += nbytes;
-		headbytes = 0;
-	}
+		while ( nWords > maxWordsRx_ ) {
+			int nbytes = maxWordsRx_*4 - headbytes;
+			rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);
+			nWords -= maxWordsRx_;
+			sbytes -= nbytes;
+			dst    += nbytes;
+			off    += nbytes;
+			headbytes = 0;
+		}
 
-	if ( args->aio_ ) {
-		rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes, args->aio_);
-	} else {
 		rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes);
+
+	} else {
+		rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes, args->aio_);
 	}
 
 	nReads_++;
@@ -1138,9 +1138,9 @@ unsigned nWords;
 
 	while ( nWords > maxWordsTx_ ) {
 		int nbytes = maxWordsTx_*4 - headbytes;
-		rval += writeBlk_unlocked(node, args->cacheable_, src, off, nbytes, msk1, 0);	
+		rval += writeBlk_unlocked(node, args->cacheable_, src, off, nbytes, msk1, 0);
 		nWords -= maxWordsTx_;
-		dbytes -= nbytes;	
+		dbytes -= nbytes;
 		src    += nbytes;
 		off    += nbytes;
 		headbytes = 0;
@@ -1234,7 +1234,7 @@ CTimeout diff(*now);
 int64_t  diffus;
 
 	diff -= CTimeout( *then );
-	
+
 	if ( maxRndTrip_ < diff )
 		maxRndTrip_ = diff;
 
