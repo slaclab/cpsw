@@ -116,7 +116,6 @@ CMover::threadBody()
 			if ( throttle_ > 0 ) {
 				throttler_->throttle();
 			} else if ( throttle_ < 0 ) {
-				sleep(1);
 				throttler_->unthrottle();
 			}
 #ifdef RSSI_BR_DEBUG
