@@ -853,11 +853,13 @@ public:
 		int yes = 1;
 		if ( setsockopt(sd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) )
 			throw InternalError("unable to set SO_REUSEADDR", errno);
+#ifdef USE_TCP_NODELAY
 		yes = 1;
 		if ( SOCK_STREAM == type_ ) {
 			if ( setsockopt(sd_, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) )
 				throw InternalError("unable to set TCP_NODELAY", errno);
 		}
+#endif
 	}
 
 	SD(int type = SOCK_DGRAM)

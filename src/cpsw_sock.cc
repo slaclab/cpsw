@@ -86,12 +86,14 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 		throw IOError("setsockopt(SO_REUSEADDR) ", errno);
 	}
 
+#ifdef USE_TCP_NODELAY
 	optval = 1;
 	if ( SOCK_STREAM == type_ ) {
 		if ( ::setsockopt( sd_,  IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval) ) ) {
 			throw IOError("setsockopt(TCP_NODELAY) ", errno);
 		}
 	}
+#endif
 
 	if ( ::bind( sd_, (struct sockaddr*)&me_, sizeof(me_)) ) {
 		throw IOError("bind failed ", errno);
