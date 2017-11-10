@@ -1,3 +1,4 @@
+    Bugfix: proto_stack_builder::useDepack() should not set other params
 
     Feature: derive IStream from IEntry; allows to obtain
              basic properties from the stream interface.
