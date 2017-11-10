@@ -1,6 +1,13 @@
+R3.7.branch
+
+    Feature: added 'emitNode' to yaml_cpp wrapper. Convert
+    node hierarchy to string (which can be written to a file).
+
+    Bugfix: proto_stack_builder::useDepack() should not set
+    other params
+
     Moved 'getEncoding()' from IScalVal_Base to IVal_Base.
 
-R3.7.branch
     Python: Stream.read() has an optional 'offset' argument
     (same as underlying IStream::read())
 
@@ -15,6 +22,9 @@ R3.7.branch
     Useful for testing/debugging because any YAML hierarchy 
     can be loaded w/o need for hardware (or a lot or memory
     as with MemDev that covers a large address space).
+
+    Python: a minimal wrapper for yaml-cpp was added; enough
+    to support basic fixups.
 
     Python: Added YamlFixup so that a fixup (LoadYamlFile etc.)
     can be written in python. NOTE: this requires yaml-cpp
