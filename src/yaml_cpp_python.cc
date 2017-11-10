@@ -52,7 +52,6 @@ static Node getitemNode(Node &self, const Node &key)
 }
 
 
-
 static bool removeNode(Node &self, const Node &key)
 {
 	return self.remove(key);
@@ -87,6 +86,16 @@ static const std::string asStr(const Node &self)
 static bool boolNode(Node &self)
 {
 	return !! self;
+}
+
+
+static std::string emitNode(const YAML::Node &n)
+{
+YAML::Emitter e;
+
+	e << n;
+
+	return std::string( e.c_str() );
 }
 
 BOOST_PYTHON_MODULE(yaml_cpp)
@@ -136,4 +145,6 @@ BOOST_PYTHON_MODULE(yaml_cpp)
 	.value("Map",       YAML::NodeType::Map)
 	.value("Sequence",  YAML::NodeType::Sequence)
 	;
+
+	def("emitNode", emitNode);
 }
