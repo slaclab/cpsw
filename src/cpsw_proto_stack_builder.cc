@@ -309,11 +309,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual void            useDepack(bool v)
 		{
-			if ( ! (hasDepack_ = (v ? 1:0)) ) {
-				setDepackOutQueueDepth( 0 );
-				setDepackLdFrameWinSize( 0 );
-				setDepackLdFragWinSize( 0 );
-			}
+			hasDepack_ = !! v;
 		}
 
 		virtual bool            hasDepack()
