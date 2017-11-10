@@ -84,25 +84,27 @@ CSRPAsyncHandler::threadBody()
 
 
 CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort stack)
-:CCommAddressImpl(key, stack),
- protoVersion_(bldr->getSRPVersion()),
- usrTimeout_(bldr->getSRPTimeoutUS()),
- dynTimeout_(usrTimeout_),
- useDynTimeout_(bldr->hasSRPDynTimeout()),
- retryCnt_(bldr->getSRPRetryCount() & 0xffff), // undocumented hack to test byte-resolution access
- nRetries_(0),
- nWrites_(0),
- nReads_(0),
- vc_(bldr->getSRPMuxVirtualChannel()),
- needsSwap_   ( (protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ? LE : BE) == hostByteOrder() ),
- needsPldSwap_(  protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ),
- tid_(0),
- byteResolution_( bldr->getSRPVersion() >= IProtoStackBuilder::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
- maxWordsRx_( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 || !hasDepack( stack) ? MAXWORDS : (1<<28) ),
- maxWordsTx_( MAXWORDS ),
- asyncXactMgr_( IAsyncIOTransactionManager::create( usrTimeout_.getUs() ) ),
- asyncIOHandler_( asyncXactMgr_, this ),
- mutex_( CMtx::AttrRecursive(), "SRPADDR" )
+: CCommAddressImpl( key, stack                                                                     ),
+  protoVersion_   ( bldr->getSRPVersion()                                                          ),
+  usrTimeout_     ( bldr->getSRPTimeoutUS()                                                        ),
+  dynTimeout_     ( usrTimeout_                                                                    ),
+  useDynTimeout_  ( bldr->hasSRPDynTimeout()                                                       ),
+  retryCnt_       ( bldr->getSRPRetryCount() & 0xffff /* undocumented hack to test byte-resolution access */ ),
+  nRetries_       ( 0                                                                              ),
+  nWrites_        ( 0                                                                              ),
+  nReads_         ( 0                                                                              ),
+  vc_             ( bldr->getSRPMuxVirtualChannel()                                                ),
+  needsSwap_      ( (protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ? LE : BE) == hostByteOrder() ),
+  needsPldSwap_   (  protoVersion_ == IProtoStackBuilder::SRP_UDP_V1                               ),
+  tid_            ( 0                                                                              ),
+  byteResolution_ (    bldr->getSRPVersion() >= IProtoStackBuilder::SRP_UDP_V3
+                    && bldr->getSRPRetryCount() > 65535                                            ),
+  maxWordsRx_     (    protoVersion_ < IProtoStackBuilder::SRP_UDP_V3
+                    || !hasDepack( stack) ? MAXWORDS : (1<<28)                                     ),
+  maxWordsTx_     ( MAXWORDS                                                                       ),
+  asyncXactMgr_   ( IAsyncIOTransactionManager::create( usrTimeout_.getUs() )                      ),
+  asyncIOHandler_ ( asyncXactMgr_, this                                                            ),
+  mutex_          ( CMtx::AttrRecursive(), "SRPADDR"                                               )
 {
 ProtoModSRPMux       srpMuxMod( dynamic_pointer_cast<ProtoModSRPMux::element_type>( stack->getProtoMod() ) );
 int                  nbits;
