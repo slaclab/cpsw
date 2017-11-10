@@ -194,7 +194,7 @@ public:
 	// E.g., find( rootNode, "children/mmio/at/UDP/port" )
 	static  YAML::Node findByName(YAML::Node &src, const char *path, char sep = '/');
 
-	virtual void operator()(YAML::Node &)                = 0;
+	virtual void operator()(YAML::Node &root, YAML::Node &top) = 0;
 
 	virtual ~IYamlFixup() {}
 };

@@ -1,3 +1,10 @@
+    Changed IYamlFixup; the callback now gets two nodes
+    passed in. The root node of the CPSW hierarchy and
+    the top node (which might be outside of the root)
+
+    Also: the python method name was changed from 'fixup'
+    to '__call__' (to match c== operator()).
+
 R3.7.branch
 
     Feature: added 'emitNode' to yaml_cpp wrapper. Convert

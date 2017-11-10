@@ -927,7 +927,7 @@ IPath::loadYamlFile(const char *file_name, const char *root_name, const char *ya
 
 	if ( fixup ) {
 		YAML::Node root( root_name ? top[root_name] : top );
-		(*fixup)( root );
+		(*fixup)( root, top );
 	}
 
 	Hub rootHub( CYamlFieldFactoryBase::dispatchMakeField( top, root_name ) );
@@ -940,7 +940,7 @@ IPath::loadYamlStream(std::istream &in, const char *root_name, const char *yaml_
 	YAML::Node top( CYamlFieldFactoryBase::loadPreprocessedYaml( in, yaml_dir ) );
 	if ( fixup ) {
 		YAML::Node root( root_name ? top[root_name] : top );
-		(*fixup)( root );
+		(*fixup)( root, top );
 	}
 
 	Hub rootHub( CYamlFieldFactoryBase::dispatchMakeField( top, root_name ) );

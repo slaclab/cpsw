@@ -940,27 +940,26 @@ public:
 	}
 };
 
-class WrapYamlFixup : public IYamlFixup {
+class WrapYamlFixup : public IYamlFixup, wrapper<IYamlFixup> {
 private:
 PyObject *self_;
 
 public:
+
 	WrapYamlFixup(PyObject *self)
 	: self_(self)
 	{
-		printf("Creating a FIXUP\n");
 	}
 
-
-	virtual void operator()(YAML::Node &nod)
+	virtual void operator()(YAML::Node &root, YAML::Node &top)
 	{
-		printf("Calling FIXUP\n");
-		call_method<void>(self_, "fixup", nod);
+		call_method<void>(self_, "__call__", root, top);
 	}
 
 	virtual ~WrapYamlFixup()
 	{
 	}
+
 };
 
 static Path
@@ -1497,11 +1496,13 @@ BOOST_PYTHON_MODULE(pycpsw)
 		"      in order to use this. Such bindings are NOT part\n"
 		"      of CPSW!\n"
         "\n"
-		"      void fixup(YAML::Node &)\n"
+		"      void operator()(YAML::Node &root, YAML::Node &top)\n"
 		"\n"
+		"      In python you must implement __call__(self, root, top)\n"
 	);
 
 	WrapYamlFixupClazz
+	.def("__call__", pure_virtual( &IYamlFixup::operator() ))
 	.def(
 		"findByName", &IYamlFixup::findByName,
 		( arg("node"), arg("path"), arg("sep") = '/' ),
