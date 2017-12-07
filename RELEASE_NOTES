@@ -1,5 +1,11 @@
 R3.7.branch
 
+    Bugfix: (jira ESLCOMMON-178) when loading an IntField config from
+            YAML and the IntField has an enum menu then providing numerical
+            values in the config file didn't work.
+
+    Bugfix: proto_stack_builder::useDepack() should not set other params
+
     Feature: added 'emitNode' to yaml_cpp wrapper. Convert
     node hierarchy to string (which can be written to a file).
 
