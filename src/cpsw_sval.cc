@@ -1473,7 +1473,16 @@ unsigned nelms, i;
 			d   = n.as<double>();
 		} else if ( enum_ ) {
 			const std::string &nam = n.as<std::string>();
-			u = enum_->map( nam.c_str() ).second;
+			try {
+				u = enum_->map( nam.c_str() ).second;
+			} catch (ConversionError &e) {
+				// try to fall-back on numerical
+				try {
+					u = n.as<uint64_t>();
+				} catch (YAML::TypedBadConversion<unsigned long>) {
+					throw e; // throw original error
+				}
+			}
 		} else {
 			u = n.as<uint64_t>();
 		}
@@ -1494,7 +1503,16 @@ unsigned nelms, i;
 		} else if ( enum_ ) {
 			for ( i=0; i<nelms; i++ ) {
 				const std::string &nam = n[i].as<std::string>();
-				valBuf[i].u = enum_->map( nam.c_str() ).second;
+				try {
+					valBuf[i].u = enum_->map( nam.c_str() ).second;
+				} catch (ConversionError &e) {
+					// try to fall-back on numerical
+					try {
+						valBuf[i].u = n[i].as<uint64_t>();
+					} catch (YAML::TypedBadConversion<unsigned long>) {
+						throw e; // throw original error
+					}
+				}
 			}
 		} else {
 			for ( i=0; i<nelms; i++ ) {
