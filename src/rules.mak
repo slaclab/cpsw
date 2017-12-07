@@ -267,7 +267,7 @@ endef
 $(addsuffix _run,$(FILTERED_TBINS)):%_run: %
 	@for opt in $(RUN_OPTS) ; do \
 	    echo "Running ./$< $${opt}"; \
-        if ( LD_LIBRARY_PATH="$(call make_ldlib_path,$($^_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) ./$< $${opt} ) ; then \
+        if ( LD_LIBRARY_PATH="$(call make_ldlib_path,$($^_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) eval ./$< $${opt} ) ; then \
 			echo "TEST ./$< $${opt} PASSED" ; \
 		else \
 			echo "TEST ./$< $${opt} FAILED" ; \

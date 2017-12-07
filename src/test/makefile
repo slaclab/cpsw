@@ -172,7 +172,7 @@ cpsw_stream_tst_run:    RUN_OPTS='-e 22 -y cpsw_stream_tst_1.yaml' '-s8203 -R -y
 
 cpsw_path_tst_run:      RUN_OPTS='' '-Y'
 
-cpsw_enum_tst_run:      RUN_OPTS='-y cpsw_enum_tst.yaml' '-Y cpsw_enum_tst.yaml'
+cpsw_enum_tst_run:      RUN_OPTS='-y cpsw_enum_tst.yaml' '-Y cpsw_enum_tst.yaml' '-Y cpsw_enum_tst.yaml -q -C ""  >./cpsw_enum_tst_cfg.yaml' '-L ./cpsw_enum_tst_cfg.yaml'
 
 cpsw_command_tst_run:   RUN_OPTS='-y cpsw_command_tst.yaml' '-Y cpsw_command_tst.yaml'
 

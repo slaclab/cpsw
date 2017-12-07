@@ -29,6 +29,13 @@ public:
 
 #define SZ 128
 
+static const char *menu_config =
+"- mmio:\n"
+"    - menu: !<value> 2\n"
+"    - bool: !<value> False\n"
+"    - menu: !<value> oranges\n"
+;
+
 int
 main(int argc, char **argv)
 {
@@ -37,13 +44,18 @@ const char *use_yaml = 0;
 const char *dmp_yaml = 0;
 const char *dmp_conf = 0;
 const char * ld_conf = 0;
+int            quiet = 0;
 
-	while ( (opt = getopt(argc, argv, "y:Y:C:L:")) > 0 ) {
+std::string       menu_config_str( menu_config );
+std::stringstream menu_config_strm( menu_config_str );
+
+	while ( (opt = getopt(argc, argv, "y:Y:C:L:q")) > 0 ) {
 		switch (opt) {
 			case 'Y': use_yaml = optarg; break;
 			case 'y': dmp_yaml = optarg; break;
 			case 'C': dmp_conf = optarg; break;
 			case 'L':  ld_conf = optarg; break;
+            case 'q':    quiet = 1     ; break;
 		}
 	}
 try {
@@ -155,18 +167,19 @@ try {
 		throw TestFailed("Unexpected number of enum entries");
 	}
 
+    // try loading a config 
+    {
+	YAML::Node n = YAML::Load( menu_config_strm );
+        IPath::create( root )->loadConfigFromYaml( n );
+    }
+
 	if ( dmp_yaml ) {
 		IYamlSupport::dumpYamlFile( root, dmp_yaml, "root" );
 	}
 
-	if ( ld_conf ) {
-		YAML::Node n( YAML::LoadFile( ld_conf ) );
-		IPath::create( root )->loadConfigFromYaml( n );
-	}
-
 	if ( dmp_conf ) {
 		YAML::Node n;
-		if ( 0 != strlen( dmp_conf ) ) {
+		if ( 0 != strlen( dmp_conf ) && strcmp( dmp_conf, "-" ) ) {
 			n = YAML::LoadFile( dmp_conf );
 		}
 		IPath::create( root )->dumpConfigToYaml( n );
@@ -176,9 +189,14 @@ try {
 		
 	}
 
+	if ( ld_conf ) {
+		YAML::Node n( YAML::LoadFile( ld_conf ) );
+		IPath::create( root )->loadConfigFromYaml( n );
+	}
+
 }
 
-	if ( CpswObjCounter::report() ) {
+	if ( ! quiet && CpswObjCounter::report() ) {
 		throw TestFailed("Unexpected object count (LEAK)\n");
 	}
 
