@@ -44,6 +44,7 @@ protected:
 		}
 	};
 
+	class         SigMask;
 
 public:
 

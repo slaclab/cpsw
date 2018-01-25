@@ -1,3 +1,4 @@
+    Feature: block all signals in newly created threads.
 
 R3.7.branch
 
