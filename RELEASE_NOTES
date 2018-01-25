@@ -1,8 +1,9 @@
+    Feature: block all signals in newly created threads.
+
     Bugfix: (jira ESLCOMMON-178) when loading an IntField config from
             YAML and the IntField has an enum menu then providing numerical
             values in the config file didn't work.
 
-    Bugfix: proto_stack_builder::useDepack() should not set other params
 
     Changed IYamlFixup; the callback now gets two nodes
     passed in. The root node of the CPSW hierarchy and

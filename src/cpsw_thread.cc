@@ -13,6 +13,7 @@
 #include <errno.h>
 
 #include <stdio.h>
+#include <signal.h>
 
 using std::string;
 
@@ -46,6 +47,17 @@ int err;
 	}
 }
 
+// RAII for modifying and restoring signal mask
+class CRunnable::SigMask {
+private:
+	sigset_t orig_;
+	SigMask(const SigMask &);
+	SigMask &operator=(const SigMask &);
+public:
+	SigMask();
+	~SigMask();
+};
+
 void * CRunnable::wrapper(void *arg)
 {
 CRunnable *me = static_cast<CRunnable*>(arg);
@@ -66,8 +78,10 @@ fprintf(stderr,"Starting up '%s'\n", me->getName().c_str());
 void CRunnable::threadStart()
 {
 int err;
-	while ( ! started_ ) {
-		Attr attr;
+int attempts;
+	for ( attempts = 2; attempts > 0 && ! started_; attempts-- ) {
+		Attr    attr;
+		SigMask blockAllSignals; // start new thread with all signals blocked
 
 #if defined _POSIX_THREAD_PRIORITY_SCHEDULING
 		int                pol   = prio_ > 0 ? SCHED_FIFO : SCHED_OTHER;
@@ -181,4 +195,22 @@ int                pol;
 CRunnable::~CRunnable()
 {
 	threadStop();
+}
+
+CRunnable::SigMask::SigMask()
+{
+int err;
+sigset_t all;
+	sigfillset( &all );
+	if ( (err = pthread_sigmask( SIG_SETMASK, &all, &orig_ )) ) {
+		throw InternalError("pthread_sigmask (block all)", err);
+	}
+}
+
+CRunnable::SigMask::~SigMask()
+{
+int err;
+	if ( (err = pthread_sigmask( SIG_SETMASK, &orig_, NULL )) ) {
+		throw InternalError("pthread_sigmask (restore)", err);
+	}
 }
