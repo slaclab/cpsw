@@ -1,3 +1,4 @@
+    Feature: block all signals in newly created threads.
 
     Bugfix: (jira ESLCOMMON-178) when loading an IntField config from
             YAML and the IntField has an enum menu then providing numerical

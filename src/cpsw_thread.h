@@ -28,6 +28,7 @@ protected:
 
 	pthread_t     getTid() { return tid_ ; }
 
+	class         SigMask;
 
 
 public:

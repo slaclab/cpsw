@@ -11,8 +11,20 @@
 #include <cpsw_error.h>
 
 #include <stdio.h>
+#include <signal.h>
 
 using std::string;
+
+// RAII for modifying and restoring signal mask
+class CRunnable::SigMask {
+private:
+	sigset_t orig_;
+	SigMask(const SigMask &);
+	SigMask &operator=(const SigMask &);
+public:
+	SigMask();
+	~SigMask();
+};
 
 void * CRunnable::wrapper(void *arg)
 {
@@ -34,6 +46,7 @@ void CRunnable::threadStart()
 {
 int err;
 	if ( ! started_ ) {
+		SigMask blockAllSignals; // start new thread with all signals blocked
 		if ( (err = pthread_create( &tid_, NULL, wrapper, this )) ) {
 			throw InternalError("ERROR -- pthread_create", err);
 		}
@@ -76,4 +89,22 @@ bool CRunnable::threadStop(void **r_p)
 CRunnable::~CRunnable()
 {
 	threadStop();
+}
+
+CRunnable::SigMask::SigMask()
+{
+int err;
+sigset_t all;
+	sigfillset( &all );
+	if ( (err = pthread_sigmask( SIG_SETMASK, &all, &orig_ )) ) {
+		throw InternalError("pthread_sigmask (block all)", err);
+	}
+}
+
+CRunnable::SigMask::~SigMask()
+{
+int err;
+	if ( (err = pthread_sigmask( SIG_SETMASK, &orig_, NULL )) ) {
+		throw InternalError("pthread_sigmask (restore)", err);
+	}
 }
