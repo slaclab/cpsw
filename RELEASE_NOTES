@@ -1,3 +1,8 @@
+	Pycpsw: release GIL while blocking to read/write a stream.
+            (hopefull it is OK and python doesn't alter the
+            buffer state; the code we're executing with the GIL
+            unlocked is strictly non-python, of course)
+
     Feature: block all signals in newly created threads.
 
 R3.7.branch
