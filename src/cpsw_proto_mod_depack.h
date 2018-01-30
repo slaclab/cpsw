@@ -286,7 +286,7 @@ protected:
 
 	virtual bool releaseOldestFrame(bool onlyComplete);
 
-	virtual BufChain processOutput(BufChain bc);
+	virtual BufChain processOutput(BufChain *bc);
 
 	virtual void startTimeout(CFrame *frame);
 

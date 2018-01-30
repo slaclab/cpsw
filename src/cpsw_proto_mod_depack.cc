@@ -526,7 +526,7 @@ bool CProtoModDepack::releaseOldestFrame(bool onlyComplete)
 	return true;
 }
 
-BufChain CProtoModDepack::processOutput(BufChain bc)
+BufChain CProtoModDepack::processOutput(BufChain *bc)
 {
 #define SAFETY 16 // in case there are other protocols
 
@@ -534,7 +534,7 @@ Buf    b;
 
 	// Insert new frame and frag numbers into the header supplied by upper layer
 
-	b = bc->getHead();
+	b = (*bc)->getHead();
 
 CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 
@@ -544,15 +544,19 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 
 	hdr.insert( b->getPayload(), hdr.getSize() );
 
-	b = bc->getTail();
+	b = (*bc)->getTail();
 
 	hdr.setTailEOF( b->getPayload() + b->getSize() - hdr.getTailSize(), true );
 
 	// ugly hack - limit to ethernet RSSI payload
-	if ( bc->getSize() > RSSI_PAYLOAD - SAFETY )
+	if ( (*bc)->getSize() > RSSI_PAYLOAD - SAFETY )
 		throw InvalidArgError("Outgoing data cannot be fragmented");
 
-	return bc;
+	BufChain res;
+
+	res.swap( *bc );
+
+	return res;
 }
 
 void CProtoModDepack::releaseFrames(bool onlyComplete)

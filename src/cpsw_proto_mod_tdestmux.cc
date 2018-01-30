@@ -40,9 +40,10 @@ bool CTDestPort::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 	return CByteMuxPort<CProtoModTDestMux>::pushDownstream(bc, rel_timeout);
 }
 
-BufChain CTDestPort::processOutput(BufChain bc)
+BufChain CTDestPort::processOutput(BufChain *bcp)
 {
-Buf    b = bc->getHead();
+BufChain bc = *bcp;
+Buf       b = bc->getHead();
 size_t new_sz;
 
 	if ( stripHeader_ ) {
@@ -69,6 +70,8 @@ size_t new_sz;
 	} else {
 		CAxisFrameHeader::insertTDest( b->getPayload(), b->getSize(), getDest() );
 	}
+
+	(*bcp).reset();
 
 	return bc;
 }

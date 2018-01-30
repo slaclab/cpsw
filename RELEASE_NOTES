@@ -1,3 +1,7 @@
+    Protocol Stack: changed semantics of 'processOutput/processInput'.
+            these can now 'edit' buffer chains in a more flexible
+            manner.
+
 	Pycpsw: release GIL while blocking to read/write a stream.
             (hopefull it is OK and python doesn't alter the
             buffer state; the code we're executing with the GIL

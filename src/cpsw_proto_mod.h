@@ -295,12 +295,19 @@ protected:
 		throw InternalError("clone not implemented");
 	}
 
-	virtual BufChain processOutput(BufChain bc)
+	// return processed (possibly parts of) 'bc'.
+	// The successfully processed parts must be removed
+	// from 'bc'; i.e., output is processed until
+	// bc->getSize() is 0
+	virtual BufChain processOutput(BufChain *bc)
 	{
 		throw InternalError("processOutput() not implemented!\n");
 	}
 
-	virtual BufChain processInput(BufChain bc)
+	// Assemble (possibly multiple parts) of a buffer chain.
+	// The caller provides new 'bc_parts' until 'processInput'
+	// returns false
+	virtual bool processInput(BufChain &bc, BufChain bc_part)
 	{
 		throw InternalError("processInput() not implemented!\n");
 	}
