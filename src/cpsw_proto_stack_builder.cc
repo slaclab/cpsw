@@ -866,7 +866,7 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 		// reserve enough queue depth - must potentially hold replies to synchronous retries
 		// until the synchronous reader comes along for the next time!
 		unsigned retryCount = bldr->getSRPRetryCount() & 0xffff; // undocumented hack to test byte-resolution access
-		rval = srpMuxMod->createPort( bldr->getSRPMuxVirtualChannel(), 2 * retryCount );
+		rval = srpMuxMod->createPort( bldr->getSRPMuxVirtualChannel(), 2 * (retryCount + 1) );
 #ifdef PSBLDR_DEBUG
 	printf("  creating SRP mux port\n");
 #endif
