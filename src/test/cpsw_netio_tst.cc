@@ -119,20 +119,22 @@ unsigned vc          = 0;
 int      useRssi     = 0;
 int      tDest       = -1;
 unsigned byteResHack =  0;
+int      retryCount  =  4;
 const char *use_yaml =  0;
 const char *dmp_yaml =  0;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:bY:y:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:bY:y:R:")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
-			case 'a': ip_addr     = optarg;   break;
-			case 'V': i_p         = &vers;    break;
-			case 'p': i_p         = &port;    break;
-			case 'r': useRssi     = 1;        break;
-			case 't': i_p         = &tDest;   break;
-			case 'b': byteResHack = 0x10000;  break;
-			case 'Y': use_yaml    = optarg;   break;
-			case 'y': dmp_yaml    = optarg;   break;
+			case 'a': ip_addr     = optarg;      break;
+			case 'V': i_p         = &vers;       break;
+			case 'p': i_p         = &port;       break;
+			case 'r': useRssi     = 1;           break;
+			case 't': i_p         = &tDest;      break;
+			case 'b': byteResHack = 0x10000;     break;
+			case 'Y': use_yaml    = optarg;      break;
+			case 'y': dmp_yaml    = optarg;      break;
+			case 'R': i_p         = &retryCount; break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				throw TestFailed();
@@ -142,6 +144,13 @@ const char *dmp_yaml =  0;
 			throw TestFailed();
 		}
 	}
+
+	if ( retryCount < 0 ) {
+		fprintf(stderr,"Negative retry count not supported\n");
+		throw TestFailed();
+	}
+
+	retryCount |= byteResHack; // enable byte-resolution access
 
 	if ( vers != 1 && vers != 2 && vers != 3 ) {
 		fprintf(stderr,"Invalid protocol version '%i' -- must be 1..3\n", vers);
@@ -181,7 +190,7 @@ const char *dmp_yaml =  0;
 		pbldr->setSRPVersion              (             protoVers );
 		pbldr->setUdpPort                 (                  port );
 		pbldr->setSRPTimeoutUS            (               1000000 );
-		pbldr->setSRPRetryCount           (       byteResHack | 4 ); // enable byte-resolution access
+		pbldr->setSRPRetryCount           (            retryCount );
 		pbldr->setSRPMuxVirtualChannel    (                    vc );
 		pbldr->useRssi                    (               useRssi );
 		if ( tDest >= 0 ) {
