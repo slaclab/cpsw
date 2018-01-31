@@ -195,9 +195,9 @@ public:
 		return x;
 	}
 
-	size_t       getSize()     { return V0_HEADER_SIZE; }
+	static size_t getSize()     { return V0_HEADER_SIZE; }
 
-	size_t       getTailSize() { return V0_TAIL_SIZE;   }
+	static size_t getTailSize() { return V0_TAIL_SIZE;   }
 
 	static bool getTailEOF(uint8_t *tailbuf)           { return (*tailbuf) & (1<<FRAG_LAST_BIT);    }
 	static void setTailEOF(uint8_t *tailbuf, bool eof) { if ( eof ) (*tailbuf) |= (1<<FRAG_LAST_BIT); else (*tailbuf) &= ~(1<<FRAG_LAST_BIT); }
@@ -262,6 +262,10 @@ private:
 	unsigned timedOutFrames_;
 	unsigned pastLastDrops_;
 
+	unsigned cachedMTU_;
+
+	static const unsigned SAFE_MTU = 1024; // assume this just always fits
+
 	CTimeout timeout_;
 
 	CAxisFrameHeader::CAxisFrameNoAllocator frameIdGen_;
@@ -286,9 +290,13 @@ protected:
 
 	virtual bool releaseOldestFrame(bool onlyComplete);
 
+	virtual bool fitsInMTU(unsigned sizeBytes);
+
 	virtual BufChain processOutput(BufChain *bc);
 
 	virtual void startTimeout(CFrame *frame);
+
+	virtual void appendTailByte(BufChain, bool);
 
 	virtual unsigned toFrameIdx(unsigned frameNo) { return frameNo & ( frameWinSize_ - 1 ); }
 	virtual unsigned toFragIdx(unsigned fragNo)   { return fragNo  & ( fragWinSize_  - 1 ); }
@@ -304,9 +312,15 @@ public:
 
 	virtual void dumpInfo(FILE *f);
 
+	virtual unsigned getMTU();
+
 	virtual CProtoModDepack * clone(Key &k) { return new CProtoModDepack( *this, k ); }
 
 	virtual const char *getName() const { return "AXIS Depack"; }
+
+	// Successfully pushed buffers are unlinked from the chain
+	virtual bool push(BufChain , const CTimeout *, bool abs_timeout);
+	virtual bool tryPush(BufChain);
 
 	virtual void dumpYaml(YAML::Node &node) const;
 };

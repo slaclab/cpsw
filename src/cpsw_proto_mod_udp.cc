@@ -401,3 +401,8 @@ int CProtoModUdp::iMatch(ProtoPortMatchParams *cmp)
 	}
 	return 0;
 }
+
+unsigned CProtoModUdp::getMTU()
+{
+	return 65536;
+}

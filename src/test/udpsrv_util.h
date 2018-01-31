@@ -30,6 +30,8 @@
 
 #include <stdio.h>
 
+#define MAXBUFSZ 65536
+
 
 using boost::shared_ptr;
 using boost::atomic;

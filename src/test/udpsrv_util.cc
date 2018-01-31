@@ -128,7 +128,7 @@ public:
 
 class CBuf : public IBuf, public IBufChain {
 private:
-	uint8_t  dat_[1500];
+	uint8_t  dat_[MAXBUFSZ];
 	unsigned off_;
 	unsigned len_;
 	unsigned siz_;
@@ -285,7 +285,7 @@ public:
 		return size;
 	}
 
-	virtual void insert(void *src, uint64_t off, uint64_t size)
+	virtual void insert(void *src, uint64_t off, uint64_t size, size_t capa)
 	{
 		if ( off_ + off + size > getCapacity() )
 			throw BadSize();
@@ -964,8 +964,13 @@ public:
 
 			socklen_t sz = sizeof(peer_);
 
-			if ( (got = ::recvfrom(sd_.get(), b->getPayload(), b->getAvail(), 0, (struct sockaddr*)&peer_, &sz)) < 0 )
+			if ( (got = ::recvfrom(sd_.get(), b->getPayload(), b->getAvail(), MSG_TRUNC, (struct sockaddr*)&peer_, &sz)) < 0 ) {
 				throw InternalError("recvfrom failed", errno);
+			}
+
+			if ( got > (int)b->getAvail() ) {
+				throw InternalError("recvfrom message truncated");
+			}
 
 			b->setSize( got );
 

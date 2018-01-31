@@ -97,6 +97,10 @@ public:
 	virtual bool push(BufChain , const CTimeout *, bool abs_timeout) = 0;
 	virtual bool tryPush(BufChain)                           = 0;
 
+	// obtain mas. fragment size that fits (without 'this'
+	// protocol's header)
+	virtual unsigned getMTU()                                = 0;
+
 	// To 'close' a 'Door' interface (and continue using
 	// the 'Port' base interface) hold on to the return
 	// value and reset the 'Door' pointer:

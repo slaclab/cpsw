@@ -31,6 +31,8 @@
 #define CMD_IS_WR(x) (((x)&0xc0000000) == 0x40000000)
 #define CMD_ADDR(x)  ( (x)<<2 )
 
+#define MAXBUFSZ 65536
+
 /* Must be longer than the client's poll interval (default 60 ATM) */
 #define STREAM_POLL_SECS 80
 
@@ -214,20 +216,40 @@ static int handleSRP(int vers, unsigned opts, uint32_t *rbuf, unsigned rbufsz, i
 void *poller(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
-uint8_t       buf[1500];
-int           got;
+uint8_t       buf_[MAXBUFSZ];
+uint8_t      *buf, *nbuf; 
+int           got, gottot = 0, ngottot;
 int           lfram = -1;
+int           lfrag = -1;
 struct timespec to;
 
+uint8_t       htemp[8];
+
+	nbuf    = buf_;
+	ngottot = 0; 
 
 	while ( 1 ) {
+
+		buf     = nbuf;
+		gottot  = ngottot;
+        nbuf    = buf_;
+		ngottot = 0;
 
 		do {
 			clock_gettime( CLOCK_REALTIME, &to );
 
 			to.tv_sec  += STREAM_POLL_SECS;
 
-			got = ioPrtRecv( sa->port, buf, sizeof(buf), &to);
+			unsigned avail = sizeof(buf_) - (buf-buf_);
+
+			if ( avail == 0 ) {
+				fprintf(stderr,"Poller: RX buffer overflow\n");
+				buf    = nbuf    = buf_;
+				gottot = ngottot = 0;
+				avail  = sizeof(buf_);
+			}
+
+			got = ioPrtRecv( sa->port, buf, avail, &to);
 
 			if ( got < 0 )
 				sa->polled_stream_up = 0;
@@ -256,7 +278,7 @@ struct timespec to;
 
 #ifdef DEBUG
 			if ( debug ) {
-				printf("Got stream message:\n");
+				printf("Got stream message (sz %d):\n", got);
 				printf("   Version %d -- Frame #%d, frag #%d, tdest 0x%02x, tid 0x%02x, tusr1 0x%02x\n",
 						vers,
 						fram,
@@ -267,22 +289,48 @@ struct timespec to;
 			}
 #endif
 
-			if ( vers != 0 || frag != 0 || ( tdest != 0 && (0 == sa->srp_vers || sa->srp_tdest != tdest ) ) || tid != 0 || tusr1 != (frag == 0 ? (1<<1) : 0) ) {
+			if ( vers != 0 || ( tdest != 0 && (0 == sa->srp_vers || sa->srp_tdest != tdest ) ) || tid != 0 || tusr1 != (frag == 0 ? (1<<1) : 0) ) {
 				fprintf(stderr,"UDPSRV: Invalid stream header received\n");
 				sa->jam = 100;
 				continue;
 			}
 
-			// assume 1st frame of a new instance of the test program always starts at 0
-			if ( fram > 0 ) {
-				if ( lfram + 1 != fram ) {
-					fprintf(stderr,"UDPSRV: Non-consecutive stream header received\n");
+			if ( frag == 0 ) {
+				// assume 1st frame of a new instance of the test program always starts at 0
+				if ( fram > 0 ) {
+					if ( lfram + 1 != fram ) {
+						fprintf(stderr,"UDPSRV: Non-consecutive stream header received\n");
+						sa->jam = 100;
+						lfram = fram;
+						continue;
+					}
+				}
+			} else {
+				if ( lfram != fram ) {
+					fprintf(stderr,"UDPSRV: Non-consecutive fragments of different frames received\n");
 					sa->jam = 100;
-					lfram = fram;
+					lfram   = fram;
 					continue;
 				}
+				if ( lfrag + 1 != frag ) {
+					fprintf(stderr,"UDPSRV: Non-consecutive stream header fragments received\n");
+					sa->jam = 100;
+					lfram   = fram;
+					lfrag   = frag;
+					continue;
+				}
+				printf("restoring htmp from %p\n", buf);
+				memcpy( buf, htemp, 8 );
 			}
 			lfram = fram;
+			lfrag = frag;
+
+			if ( tail == 0x00 ) {
+				memcpy(htemp, buf + got -9, 8);	
+				nbuf    = buf    + got - 9;
+				ngottot = gottot + got - 9;
+				continue;
+			}
 
 			if ( tail != 0x80 ) {
 				fprintf(stderr,"UDPSRV: Invalid stream tailbyte received\n");
@@ -290,16 +338,19 @@ struct timespec to;
 				continue;
 			}
 
+			buf    = nbuf = buf_;
+			gottot = gottot + got - 1;
+
 			if ( sa->srp_vers && sa->srp_tdest == tdest ) {
-				if ( got < 9 + 12 ) {
+				if ( gottot < 9 + 12 ) {
 					fprintf(stderr,"UDPSRV: SRP request too small\n");
 				} else {
 					int put;
 
 					if ( sa->rssi || sa->tcp ) {
-					 	put = ioQueSend( sa->srpQ, buf, got - 1, NULL );
+					 	put = ioQueSend( sa->srpQ, buf, gottot , NULL );
 					} else {
-					 	put = ioQueTrySend( sa->srpQ, buf, got - 1 );
+					 	put = ioQueTrySend( sa->srpQ, buf, gottot  );
 					}
 
 					if ( put < 0 )
@@ -318,8 +369,8 @@ struct timespec to;
 				 * If this is not the case then we let the test program know by corrupting
 				 * the stream data we send back on purpose.
 				 */
-				if ( crc32_le_t4(-1, buf + 8, got - 9) ^ -1 ^ CRC32_LE_POSTINVERT_GOOD ) {
-					fprintf(stderr,"Received message (size %d) with bad CRC\n", got);
+				if ( crc32_le_t4(-1, buf + 8, gottot - 9) ^ -1 ^ CRC32_LE_POSTINVERT_GOOD ) {
+					fprintf(stderr,"Received message (size %d) with bad CRC\n", gottot);
 					sa->jam = 100;
 	printf("JAM\n");
 				}
@@ -492,6 +543,12 @@ int      ooff     =  2;
 int      szoff    =  2;
 int      st       =  0;
 uint32_t status   =  0;
+
+#ifdef DEBUG
+	if ( debug ) {
+		printf("handleSRP:  - got %d octets\n", got);
+	}
+#endif
 
 	if ( v3 ) {
 
@@ -674,7 +731,7 @@ static void* srpHandler(void *arg)
 SrpArgs  *srp_arg = (SrpArgs*)arg;
 uintptr_t rval = 1;
 int      got, put;
-uint32_t rbuf[300];
+uint32_t rbuf[16384];
 IoPrt   port     = srp_arg->port;
 int      bsize;
 
