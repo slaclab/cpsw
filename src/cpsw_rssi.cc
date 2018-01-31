@@ -164,6 +164,7 @@ void CRssi::close()
 void CRssi::sendBuf(BufChain bc, bool retrans)
 {
 	if ( bc->getSize() > peerSgsMX_ ) {
+		fprintf(stderr, "buffer size %ld; peer size %d\n",(long)bc->getSize(), peerSgsMX_);
 		throw InternalError("RSSI segment size too large for peer");
 	}
 

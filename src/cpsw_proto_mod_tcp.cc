@@ -329,3 +329,9 @@ int CProtoModTcp::iMatch(ProtoPortMatchParams *cmp)
 	}
 	return 0;
 }
+
+unsigned CProtoModTcp::getMTU()
+{
+	// arbitrary
+	return 65536;
+}

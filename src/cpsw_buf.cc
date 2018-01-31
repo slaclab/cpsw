@@ -80,7 +80,7 @@ public:
 	virtual void     addAtTail(Buf b);
 
 	virtual uint64_t extract(void *buf, uint64_t off, uint64_t size);
-	virtual void     insert(void *buf, uint64_t off, uint64_t size);
+	virtual void     insert(void *buf, uint64_t off, uint64_t size, size_t capa);
 
 	// when a shared pointer to a chain expires then the
 	// entire chain is automatically released - even without
@@ -533,7 +533,7 @@ Buf      b;
 	return rval;
 }
 
-void CBufChainImpl::insert(void *buf, uint64_t off, uint64_t size)
+void CBufChainImpl::insert(void *buf, uint64_t off, uint64_t size, size_t capa)
 {
 uint64_t delta;
 uint8_t *src  = static_cast<uint8_t*>(buf);
@@ -563,8 +563,10 @@ Buf      b, nxtb;
 	// add dummy buffers
 	while ( off > 0 ) {
 		// off > 0 implies !b (and !nextb)
-		b = createAtTail( off, true );
+		b = createAtTail( off < capa ? off : capa, true );
 		delta = b->getAvail();
+		if ( capa < delta )
+			delta = capa;
 		if ( off < delta )
 			delta = off;
 		b->setSize(delta);
@@ -579,14 +581,26 @@ Buf      b, nxtb;
 	// buffer that needs to be truncated
 
 	while ( size > 0 ) {
+		uint64_t room;
 
 		if ( ! b ) {
-			b = createAtTail( size, true );
+			b    = createAtTail( size < capa ? size : capa, true );
+			room = capa;
+		} else {
+			if ( capa > b->getSize() ) {
+				room = capa - b->getSize();
+			} else {
+				room = 0;
+			}
 		}
 
 		// there might be a on old buffer to overwrite...
+		delta = b->getAvail();
+		if ( delta > room ) {
+			delta = room;
+		}
 
-		if ( (delta = b->getAvail()) > 0 ) {
+		if ( delta > 0 ) {
 
 			if ( delta > size )
 				delta = size;

@@ -101,9 +101,12 @@ private:
 	bool                      byteResolution_;
 	unsigned                  maxWordsRx_;
 	unsigned                  maxWordsTx_;
+	unsigned                  mtu_;
 	ProtoPort                 asyncIOPort_;
 	AsyncIOTransactionManager asyncXactMgr_;
 	CSRPAsyncHandler          asyncIOHandler_;
+
+	BufChain         assembleXBuf(struct srp_iovec *iov, unsigned iovlen, int iov_pld, int toput) const;
 
 protected:
 	mutable CMtx     mutex_;
@@ -130,6 +133,8 @@ public:
 	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
 
 	virtual void dump(FILE *f) const;
+
+	virtual void startProtoStack();
 
 	// ANY subclass must implement clone(AKey) !
 	virtual CSRPAddressImpl *clone(AKey k) { return new CSRPAddressImpl( *this, k ); }

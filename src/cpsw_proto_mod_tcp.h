@@ -108,6 +108,8 @@ public:
 		return new CProtoModTcp( *this, k );
 	}
 
+	virtual unsigned getMTU();
+
 	virtual uint64_t getNumTxOctets() { return nTxOctets_.load( boost::memory_order_relaxed ); }
 	virtual uint64_t getNumTxDgrams() { return nTxDgrams_.load( boost::memory_order_relaxed ); }
 	virtual uint64_t getNumRxOctets();

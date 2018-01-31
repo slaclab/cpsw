@@ -99,9 +99,9 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort sta
   tid_            ( 0                                                                              ),
   byteResolution_ (    bldr->getSRPVersion() >= IProtoStackBuilder::SRP_UDP_V3
                     && bldr->getSRPRetryCount() > 65535                                            ),
-  maxWordsRx_     (    protoVersion_ < IProtoStackBuilder::SRP_UDP_V3
-                    || !hasDepack( stack) ? MAXWORDS : (1<<28)                                     ),
-  maxWordsTx_     ( MAXWORDS                                                                       ),
+  maxWordsRx_     ( 0                                                                              ),
+  maxWordsTx_     ( 0                                                                              ),
+  mtu_            ( 0                                                                              ),
   asyncXactMgr_   ( IAsyncIOTransactionManager::create( usrTimeout_.getUs() )                      ),
   asyncIOHandler_ ( asyncXactMgr_, this                                                            ),
   mutex_          ( CMtx::AttrRecursive(), "SRPADDR"                                               )
@@ -126,6 +126,43 @@ int                  nbits;
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
 
 	asyncIOPort_ = srpMuxMod->createPort( vc_ | 0x80, bldr->getSRPMuxOutQueueDepth() );
+}
+
+void
+CSRPAddressImpl::startProtoStack()
+{
+unsigned             maxwords;
+ProtoPort            stack = getProtoStack();
+
+	CCommAddressImpl::startProtoStack();
+
+	mtu_        = stack->open()->getMTU();
+	// there seems to be a bug in either the depacketizer or SRP:
+	// weird things happen if fragment payload is not 8-byte 
+	// aligned
+	mtu_        = (mtu_ / 8) * 8;
+
+	maxwords    = mtu_ / sizeof(uint32_t);
+
+	if ( protoVersion_ >= IProtoStackBuilder::SRP_UDP_V3 ) {
+		maxwords -= 5;
+	} else {
+		maxwords -= 2;
+		if ( protoVersion_ < IProtoStackBuilder::SRP_UDP_V2 ) {
+			maxwords--;
+		}
+	}
+	maxwords--; //tail/status
+
+	maxWordsRx_ = (protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 || !hasDepack( stack )) ? maxwords : (1<<28);
+	maxWordsTx_ = maxWordsRx_;
+	// SRP FW seems to not support more than 1024 words??
+	if ( maxWordsTx_ > 1024 )
+		maxWordsTx_ = 1024;
+
+#ifdef SRPADDR_DEBUG
+	printf("SRP: MTU is %d; maxwords %d, TX: %d, RX: %d\n", mtu_, maxwords, maxWordsRx_, maxWordsTx_);
+#endif
 }
 
 void
@@ -321,7 +358,7 @@ public:
 	}
 
     virtual void
-	post(ProtoDoor);
+	post(ProtoDoor, unsigned);
 
     virtual void
 	complete(BufChain rchn);
@@ -527,11 +564,11 @@ SRPWord status;
 }
 
 void
-CSRPReadTransaction::post(ProtoDoor door)
+CSRPReadTransaction::post(ProtoDoor door, unsigned mtu)
 {
 BufChain xchn = IBufChain::create();
 
-	xchn->insert( xbuf_, 0, sizeof(xbuf_[0])*xbufWords_ );
+	xchn->insert( xbuf_, 0, sizeof(xbuf_[0])*xbufWords_, mtu );
 
 	door->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 }
@@ -681,7 +718,7 @@ SRPAsyncReadTransaction xact = srpReadTransactionPool.alloc();
 	asyncXactMgr_->post( xact, xact->getTid(), aio );
 
 	// If we are open then the async door must also be open
-	xact->post( asyncIOHandler_.getDoor() );
+	xact->post( asyncIOHandler_.getDoor(), mtu_ );
 
 	return 0;
 }
@@ -707,7 +744,7 @@ struct timespec retry_then;
 		uint32_t tidBits;
 		BufChain rchn;
 
-		xact.post( door_ );
+		xact.post( door_, mtu_ );
 
 		struct timespec then, now;
 		if ( clock_gettime(CLOCK_REALTIME, &then) ) {
@@ -829,7 +866,8 @@ unsigned nWords;
 	return rval;
 }
 
-static BufChain assembleXBuf(IOVec *iov, unsigned iovlen, int iov_pld, int toput)
+BufChain
+CSRPAddressImpl::assembleXBuf(IOVec *iov, unsigned iovlen, int iov_pld, int toput) const
 {
 BufChain xchn   = IBufChain::create();
 
@@ -837,7 +875,7 @@ unsigned bufoff = 0, i;
 int      j;
 
 	for ( i=0; i<iovlen; i++ ) {
-		xchn->insert(iov[i].iov_base, bufoff, iov[i].iov_len);
+		xchn->insert( iov[i].iov_base, bufoff, iov[i].iov_len, mtu_ );
 		bufoff += iov[i].iov_len;
 	}
 
@@ -1138,6 +1176,9 @@ unsigned nWords;
 
 	CMtx::lg GUARD( &mutex_ );
 
+#ifdef SRPADDR_DEBUG
+	fprintf(stderr, "SRP writeBlk maxWordsTx_ %d\n", maxWordsTx_);
+#endif
 	while ( nWords > maxWordsTx_ ) {
 		int nbytes = maxWordsTx_*4 - headbytes;
 		rval += writeBlk_unlocked(node, args->cacheable_, src, off, nbytes, msk1, 0);

@@ -207,6 +207,11 @@ public:
 		return rval;
 	}
 
+	virtual unsigned getMTU()
+	{
+		return mustGetUpstreamDoor()->getMTU();
+	}
+
 	virtual void dumpYaml(YAML::Node &node) const
 	{
 	int prio = owner_->getPrio();

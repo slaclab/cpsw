@@ -60,6 +60,8 @@ failed:
 	throw TestFailed();
 }
 
+#define DO_V2
+
 int
 main(int argc, char **argv)
 {
@@ -89,6 +91,7 @@ unsigned    nelms   = REG_ARR_SZ / sizeof(TYPE);
 		pbldr->useRssi      (                  true );
 		pbldr->useTDestMux  (                 false );
 
+#ifdef DO_V2
 		root->addAtAddress( mmiov2, pbldr );
 
 		ScalVal arrv2 = IScalVal::create( root->findByName("mmiov2/srvm/data") );
@@ -96,7 +99,9 @@ unsigned    nelms   = REG_ARR_SZ / sizeof(TYPE);
 			fprintf(stderr, "V2 # elements mismatch\n");
 			throw TestFailed();
 		}
+#endif
 
+#ifdef DO_V3
 		pbldr->setSRPVersion( IProtoStackBuilder::SRP_UDP_V3 );
 		pbldr->setSRPTimeoutUS(             1000000 );
 		pbldr->setUdpPort   (                v3port );
@@ -112,9 +117,14 @@ unsigned    nelms   = REG_ARR_SZ / sizeof(TYPE);
 			fprintf(stderr, "V3 # elements mismatch\n");
 			throw TestFailed();
 		}
+#endif
 
+#ifdef DO_V2
 		check(arrv2, 0xdead);
+#endif
+#ifdef DO_V3
 		check(arrv3,      0);
+#endif
 
 		
 	} catch ( CPSWError e ) {

@@ -19,6 +19,13 @@
 
 R3.7.branch
 
+    Feature: Added support for fragmentation (packetizer) of outgoing
+            traffic.
+
+    Protocol Stack: changed semantics of 'processOutput/processInput'.
+            these can now 'edit' buffer chains in a more flexible
+            manner.
+
     Feature: added 'emitNode' to yaml_cpp wrapper. Convert
     node hierarchy to string (which can be written to a file).
 

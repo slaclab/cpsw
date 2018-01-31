@@ -261,7 +261,11 @@ BufChain
 CPortImpl::pop(const CTimeout *timeout, bool abs_timeout)
 {
 	if ( ! outputQueue_ ) {
-		return processInput( mustGetUpstreamDoor()->pop(timeout, abs_timeout) );
+		BufChain bc;
+		while ( processInput( bc, mustGetUpstreamDoor()->pop(timeout, abs_timeout) ) ) {
+				;
+		}
+		return bc;
 	} else {
 		if ( ! timeout || timeout->isIndefinite() )
 			return outputQueue_->pop( 0 );
@@ -325,7 +329,10 @@ BufChain
 CPortImpl::tryPop()
 {
 	if ( ! outputQueue_ ) {
-		return processInput( mustGetUpstreamDoor()->tryPop() );
+		BufChain bc;
+		while ( processInput( bc, mustGetUpstreamDoor()->tryPop() ) )
+				;
+		return bc;
 	} else {
 		return outputQueue_->tryPop();
 	}
@@ -336,7 +343,12 @@ CPortImpl::push(BufChain bc, const CTimeout *timeout, bool abs_timeout)
 {
 	if ( ! isOpen() )
 		return false;
-	return mustGetUpstreamDoor()->push( processOutput( bc ), timeout, abs_timeout );
+	while ( bc && bc->getSize() > 0 ) {
+		if ( ! mustGetUpstreamDoor()->push( processOutput( &bc ), timeout, abs_timeout ) ) {
+			return false;
+		}
+	}
+	return true;
 }
 
 bool
@@ -344,7 +356,12 @@ CPortImpl::tryPush(BufChain bc)
 {
 	if ( ! isOpen() )
 		return true;
-	return mustGetUpstreamDoor()->tryPush( processOutput( bc ) );
+	while ( bc && bc->getSize() > 0 ) {
+		if ( ! mustGetUpstreamDoor()->tryPush( processOutput( &bc ) ) ) {
+			return false;
+		}
+	}
+	return true;
 }
 
 CProtoModImpl::CProtoModImpl(const CProtoModImpl &orig)

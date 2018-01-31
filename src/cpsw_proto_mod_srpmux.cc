@@ -17,9 +17,10 @@
 #define VC_OFF_V2 3 // v2 is little endian
 #define VC_OFF_V1 4 // v1 is big endian
 
-BufChain CSRPPort::processOutput(BufChain bc)
+BufChain CSRPPort::processOutput(BufChain *bcp)
 {
 unsigned off = VC_OFF_V2;
+BufChain bc  = *bcp;
 
 	switch ( getProtoVersion() ) {
 		case IProtoStackBuilder::SRP_UDP_V1: off = VC_OFF_V1; break;
@@ -43,6 +44,8 @@ unsigned off = VC_OFF_V2;
 
 	// insert virtual channel number;
 	*(b->getPayload() + off) = getDest();
+
+	(*bcp).reset();
 	
 	return bc;
 }

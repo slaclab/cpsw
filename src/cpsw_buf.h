@@ -151,7 +151,7 @@ public:
 
 	// insert data into bufchain. New buffers are appended as needed,
 	// existing data are overwritten.
-	virtual void     insert(void *buf, uint64_t off, uint64_t size)  = 0;
+	virtual void     insert(void *buf, uint64_t off, uint64_t size, size_t capa = IBuf::CAPA_MAX )  = 0;
 
 	virtual ~IBufChain(){}
 
