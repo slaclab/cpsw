@@ -92,8 +92,13 @@ ProtoPort            stack = getProtoStack();
 	CCommAddressImpl::startProtoStack();
 
 	mtu_        = stack->open()->getMTU();
+	// there seems to be a bug in either the depacketizer or SRP:
+	// weird things happen if fragment payload is not 8-byte 
+	// aligned
+	mtu_        = (mtu_ / 8) * 8;
 
 	maxwords    = mtu_ / sizeof(uint32_t);
+
 	if ( protoVersion_ >= IProtoStackBuilder::SRP_UDP_V3 ) {
 		maxwords -= 5;
 	} else {
