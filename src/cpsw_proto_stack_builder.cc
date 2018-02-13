@@ -266,8 +266,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual bool            hasDepack()
 		{
 			if ( hasDepack_ < 0 ) {
-				return ! hasSRP() || hasTDestMux();
-
+				return hasTDestMux();
 			}
 			return hasDepack_ > 0;
 		}
