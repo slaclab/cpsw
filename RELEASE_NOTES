@@ -1,3 +1,5 @@
+    Bugfix: protocol stack builder always used depacketizer if no SRP
+
     Feature: Added support for fragmentation (packetizer) of outgoing
             traffic.
 
