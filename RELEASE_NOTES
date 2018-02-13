@@ -1,3 +1,5 @@
+    Bugfix: protocol stack builder always used depacketizer if no SRP
+
 	Pycpsw: release GIL while blocking to read/write a stream.
             (hopefull it is OK and python doesn't alter the
             buffer state; the code we're executing with the GIL
