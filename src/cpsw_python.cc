@@ -532,7 +532,7 @@ Py_buffer view;
 	{
 	// hopefully it's OK to release the GIL while operating on the buffer view...
 	GILUnlocker allowThreadingWhileWaiting;
-		return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, TIMEOUT_NONE );
+		return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 	}
 }
 
