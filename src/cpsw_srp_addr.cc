@@ -59,8 +59,9 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort sta
  vc_(bldr->getSRPMuxVirtualChannel()),
  tid_(0),
  byteResolution_( bldr->getSRPVersion() >= IProtoStackBuilder::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
- maxWordsRx_( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 || !hasDepack( stack) ? MAXWORDS : (1<<28) ),
- maxWordsTx_( MAXWORDS ),
+ maxWordsRx_( 0 ),
+ maxWordsTx_( 0 ),
+ mtu_       ( 0 ),
  mutex_( CMtx::AttrRecursive(), "SRPADDR" )
 {
 ProtoModSRPMux       srpMuxMod( dynamic_pointer_cast<ProtoModSRPMux::element_type>( stack->getProtoMod() ) );
@@ -80,6 +81,40 @@ int                  nbits;
 	tidLsb_ = 1 << srpMuxMod->getTidLsb();
 	nbits   = srpMuxMod->getTidNumBits();
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
+}
+
+void
+CSRPAddressImpl::startProtoStack()
+{
+unsigned             maxwords;
+ProtoPort            stack = getProtoStack();
+
+	CCommAddressImpl::startProtoStack();
+
+	mtu_        = stack->open()->getMTU();
+	// there seems to be a bug in either the depacketizer or SRP:
+	// weird things happen if fragment payload is not 8-byte 
+	// aligned
+	mtu_        = (mtu_ / 8) * 8;
+
+	maxwords    = mtu_ / sizeof(uint32_t);
+
+	if ( protoVersion_ >= IProtoStackBuilder::SRP_UDP_V3 ) {
+		maxwords -= 5;
+	} else {
+		maxwords -= 2;
+		if ( protoVersion_ < IProtoStackBuilder::SRP_UDP_V2 ) {
+			maxwords--;
+		}
+	}
+	maxwords--; //tail/status
+
+	maxWordsRx_ = (protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 || !hasDepack( stack )) ? maxwords : (1<<28);
+	maxWordsTx_ = maxWordsRx_;
+
+#ifdef SRPADDR_DEBUG
+	printf("SRP: MTU is %d; maxwords %d, TX: %d, RX: %d\n", mtu_, maxwords, maxWordsRx_, maxWordsTx_);
+#endif
 }
 
 void
@@ -265,7 +300,7 @@ struct timespec retry_then;
 		BufChain xchn = IBufChain::create();
 		BufChain rchn;
 
-		xchn->insert( xbuf, 0, sizeof(xbuf[0])*put );
+		xchn->insert( xbuf, 0, sizeof(xbuf[0])*put, mtu_ );
 
 		struct timespec then, now;
 		if ( clock_gettime(CLOCK_REALTIME, &then) ) {
@@ -435,7 +470,8 @@ unsigned nWords;
 	return rval;
 }
 
-static BufChain assembleXBuf(IOVec *iov, unsigned iovlen, int iov_pld, int toput)
+BufChain
+CSRPAddressImpl::assembleXBuf(IOVec *iov, unsigned iovlen, int iov_pld, int toput) const
 {
 BufChain xchn   = IBufChain::create();
 
@@ -443,7 +479,7 @@ unsigned bufoff = 0, i;
 int      j;
 
 	for ( i=0; i<iovlen; i++ ) {
-		xchn->insert(iov[i].iov_base, bufoff, iov[i].iov_len);
+		xchn->insert( iov[i].iov_base, bufoff, iov[i].iov_len, mtu_ );
 		bufoff += iov[i].iov_len;
 	}
 
@@ -782,6 +818,9 @@ unsigned nWords;
 
 	CMtx::lg GUARD( &mutex_ );
 
+#ifdef SRPADDR_DEBUG
+	fprintf(stderr, "SRP writeBlk maxWordsTx_ %d\n", maxWordsTx_);
+#endif
 	while ( nWords > maxWordsTx_ ) {
 		int nbytes = maxWordsTx_*4 - headbytes;
 		rval += writeBlk_unlocked(node, args->cacheable_, src, off, nbytes, msk1, 0);	

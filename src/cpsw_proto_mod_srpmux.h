@@ -84,7 +84,7 @@ protected:
 	{
 	}
 
-	virtual BufChain processOutput(BufChain bc);
+	virtual BufChain processOutput(BufChain *bc);
 
 	virtual int iMatch(ProtoPortMatchParams *cmp);
 

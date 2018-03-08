@@ -149,6 +149,8 @@ public:
 	virtual void modStartup();
 	virtual void modShutdown();
 
+	virtual unsigned getMTU();
+
 	virtual void dumpYaml(YAML::Node &) const;
 
 	virtual ~CProtoModUdp();

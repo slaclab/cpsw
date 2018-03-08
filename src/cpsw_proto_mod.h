@@ -97,6 +97,10 @@ public:
 	virtual bool push(BufChain , const CTimeout *, bool abs_timeout) = 0;
 	virtual bool tryPush(BufChain)                           = 0;
 
+	// obtain mas. fragment size that fits (without 'this'
+	// protocol's header)
+	virtual unsigned getMTU()                                = 0;
+
 	// To 'close' a 'Door' interface (and continue using
 	// the 'Port' base interface) hold on to the return
 	// value and reset the 'Door' pointer:
@@ -295,12 +299,19 @@ protected:
 		throw InternalError("clone not implemented");
 	}
 
-	virtual BufChain processOutput(BufChain bc)
+	// return processed (possibly parts of) 'bc'.
+	// The successfully processed parts must be removed
+	// from 'bc'; i.e., output is processed until
+	// bc->getSize() is 0
+	virtual BufChain processOutput(BufChain *bc)
 	{
 		throw InternalError("processOutput() not implemented!\n");
 	}
 
-	virtual BufChain processInput(BufChain bc)
+	// Assemble (possibly multiple parts) of a buffer chain.
+	// The caller provides new 'bc_parts' until 'processInput'
+	// returns false
+	virtual bool processInput(BufChain &bc, BufChain bc_part)
 	{
 		throw InternalError("processInput() not implemented!\n");
 	}

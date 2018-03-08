@@ -177,6 +177,7 @@ CProtoModDepack::CProtoModDepack(Key &k, unsigned oqueueDepth, unsigned ldFrameW
 	  emptyDrops_(0),
 	  timedOutFrames_(0),
 	  pastLastDrops_(0),
+	  cachedMTU_(0),
 	  timeout_( timeout ),
 	  frameWinSize_( 1<<ldFrameWinSize ),
 	  fragWinSize_( 1<<ldFragWinSize ),
@@ -258,6 +259,17 @@ CProtoModDepack::CProtoModDepack(CProtoModDepack &orig, Key &k)
 CProtoModDepack::~CProtoModDepack()
 {
 	threadStop();
+}
+
+bool
+CProtoModDepack::fitsInMTU(unsigned sizeBytes)
+{
+	if ( sizeBytes <= SAFE_MTU )
+		return true;
+	if ( cachedMTU_ == 0 ) {
+		cachedMTU_ = mustGetUpstreamDoor()->getMTU();
+	}
+	return sizeBytes <= cachedMTU_;
 }
 
 void * CProtoModDepack::threadBody()
@@ -526,11 +538,36 @@ bool CProtoModDepack::releaseOldestFrame(bool onlyComplete)
 	return true;
 }
 
-BufChain CProtoModDepack::processOutput(BufChain bc)
+void
+CProtoModDepack::appendTailByte(BufChain bc, bool isEof)
+{
+size_t new_sz;
+Buf    b = bc->getTail();
+
+	// append tailbyte
+
+	new_sz = b->getSize() + CAxisFrameHeader::getTailSize();
+	if ( fitsInMTU( new_sz ) ) {
+		b->setSize( new_sz );
+	} else {
+		b = bc->createAtTail( IBuf::CAPA_ETH_HDR );
+		b->setSize( CAxisFrameHeader::getTailSize() );
+	}
+
+	CAxisFrameHeader::iniTail   ( b->getPayload() + b->getSize() - CAxisFrameHeader::getTailSize() );
+	CAxisFrameHeader::setTailEOF( b->getPayload() + b->getSize() - CAxisFrameHeader::getTailSize(), isEof );
+}
+
+BufChain CProtoModDepack::processOutput(BufChain *bcp)
 {
 #define SAFETY 16 // in case there are other protocols
+BufChain bc = *bcp;
+BufChain res;
 
-Buf    b;
+Buf      b;
+FrameID  frameNo;
+FragID   fragNo;
+size_t   sz, bsz;
 
 	// Insert new frame and frag numbers into the header supplied by upper layer
 
@@ -538,21 +575,83 @@ Buf    b;
 
 CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 
-	hdr.setFrameNo( frameIdGen_.newFrameID() );
-	hdr.setFragNo ( 0 );
-	hdr.setSOF(true);
+	fragNo = hdr.getFragNo();
+
+	if ( 0 == fragNo ) {
+		frameNo = frameIdGen_.newFrameID();
+		hdr.setFrameNo( frameNo );
+		hdr.setSOF(true);
+	}
 
 	hdr.insert( b->getPayload(), hdr.getSize() );
 
-	b = bc->getTail();
 
-	hdr.setTailEOF( b->getPayload() + b->getSize() - hdr.getTailSize(), true );
+
+#ifdef DEPACK_DEBUG
+	if ( fragNo >= 0 ) {
+		printf("Depack: fragmented output frame %d, frag %d, initial bc size %ld, len %d\n", hdr.getFrameNo(), fragNo, (long)bc->getSize(), bc->getLen());
+	}
+#endif
 
 	// ugly hack - limit to ethernet RSSI payload
-	if ( bc->getSize() > RSSI_PAYLOAD - SAFETY )
-		throw InvalidArgError("Outgoing data cannot be fragmented");
+	if ( fitsInMTU( bc->getSize() ) ) {
+#ifdef DEPACK_DEBUG
+		if ( fragNo > 0 ) {
+			printf("Depack: fragmented output (tail); frag %d\n", fragNo);
+		}
+#endif
+		appendTailByte( bc, true );
+		res.swap( *bcp );
+	} else {
+		sz  = 0;
+		b   = bc->getHead();
+		bsz = b->getSize();
+		res = IBufChain::create();
+#ifdef DEPACK_DEBUG
+		printf("Depack: next fragment size %ld\n", (long)bsz);
+#endif
+		while ( fitsInMTU( sz + bsz ) ) {
+			b->unlink();
+			res->addAtTail( b );
+			sz += bsz;
+			b   = bc->getHead();
+			bsz = b->getSize();
+#ifdef DEPACK_DEBUG
+		printf("Depack: next fragment size %ld\n", (long)bsz);
+#endif
+		}
 
-	return bc;
+		if ( sz == 0 ) {
+			// We could copy into a new chain of smaller buffers
+			// but we'd rather the caller do that to avoid copying
+			throw InternalError("Depacketizer: Unable to fragment");
+		}
+
+		// make a new header
+		CAxisFrameHeader hdr1( hdr );
+		hdr1.setFragNo( fragNo + 1 );
+		hdr1.setSOF( false );
+
+		if ( ! b->adjPayload( -hdr1.getSize() ) ) {
+#ifdef DEPACK_DEBUG
+			printf("Depack: added new header for next fragment\n");
+#endif
+			b = IBuf::getBuf( IBuf::CAPA_ETH_HDR );
+			bc->addAtHead( b );
+		}
+		hdr1.insert( b->getPayload(), hdr1.getSize() );
+
+		appendTailByte( res, false );
+
+#ifdef DEPACK_DEBUG
+		if ( fragNo > 0 ) {
+			printf("Depack: fragmented output frame %d, frag %d, final bc size %ld, len %d\n", hdr1.getFrameNo(), hdr1.getFragNo(), (long)bc->getSize(), bc->getLen());
+			printf("Depack: fragmented output result size %ld, len %d\n", (long)res->getSize(), res->getLen());
+		}
+#endif
+	}
+
+	return res;
 }
 
 void CProtoModDepack::releaseFrames(bool onlyComplete)
@@ -584,6 +683,49 @@ int CProtoModDepack::iMatch(ProtoPortMatchParams *cmp)
 		return 1;
 	}
 	return 0;
+}
+
+unsigned
+CProtoModDepack::getMTU()
+{
+	return mustGetUpstreamDoor()->getMTU() - CAxisFrameHeader::V0_HEADER_SIZE - CAxisFrameHeader::V0_TAIL_SIZE;
+}
+
+
+bool
+CProtoModDepack::push(BufChain bc, const CTimeout *to, bool abs_timeout)
+{
+bool rval = false;
+	try {
+		rval = CProtoMod::push( bc, to, abs_timeout );
+	} catch (InternalError &e) {
+		// if RSSI complains then try resetting the cache
+		if ( cachedMTU_ == 0 ) {
+			throw;
+		}
+	}
+	if ( ! rval ) {
+		cachedMTU_ = 0;
+	}
+	return rval;
+}
+
+bool
+CProtoModDepack::tryPush(BufChain bc)
+{
+bool rval = false;
+	try {
+		rval = CProtoMod::tryPush( bc );
+	} catch (InternalError &e) {
+		// if RSSI complains then try resetting the cache
+		if ( cachedMTU_ == 0 ) {
+			throw;
+		}
+	}
+	if ( ! rval ) {
+		cachedMTU_ = 0;
+	}
+	return rval;
 }
 
 

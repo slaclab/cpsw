@@ -43,6 +43,8 @@ public:
 	virtual ProtoDoor     getUpstreamDoor();
 	virtual ProtoPort     getSelfAsProtoPort();
 
+	virtual unsigned      getMTU();
+
 	virtual void          modStartup();
 	virtual void          modShutdown();
 

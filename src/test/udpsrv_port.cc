@@ -74,8 +74,11 @@ int xtrct(BufChain bc, void *buf, unsigned size)
 {
 unsigned bufsz = bc->getSize();
 
-	if ( size > bufsz )
+	if ( size > bufsz ) {
 		size = bufsz;
+	} else if ( size < bufsz ) {
+		throw InternalError("xtrct: buffer too small");
+	}
 
 	bc->extract(buf, 0, size);
 

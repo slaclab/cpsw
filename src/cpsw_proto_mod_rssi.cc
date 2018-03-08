@@ -221,3 +221,12 @@ CProtoModRssi::create(int threadPriority)
 {
 	return CShObj::create<ProtoModRssi>( threadPriority );
 }
+
+unsigned
+CProtoModRssi::getMTU()
+{
+unsigned upMTU = getUpstreamDoor()->getMTU();
+unsigned myMTU = peerSgsMX_ - RssiHeader::minHeaderSize();
+
+	return myMTU < upMTU ? myMTU : upMTU;
+}
