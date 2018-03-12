@@ -78,6 +78,9 @@ printf("NullDev read from off %lli to %p:", args->off_, args->dst_);
 for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->dst_[ii]); printf("\n");
 #endif
 
+	if ( args->aio_ )
+		args->aio_->callback( 0 );
+
 	return toget;
 }
 
