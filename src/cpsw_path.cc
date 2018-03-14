@@ -679,6 +679,7 @@ void
 CPathImpl::explore(IPathVisitor *visitor) const
 {
 struct explorer_ctxt ctxt;
+int                  i,f,t;
 	// recurse on a copy of 'this' path
 	ctxt.here    = cloneAsPathImpl();
 	ctxt.visitor = visitor;
@@ -689,7 +690,18 @@ struct explorer_ctxt ctxt;
 		// at the tail of an empty path
 		explore_children_r( originAsDevImpl(), &ctxt );
 	} else {
-		explore_r( &ctxt );
+		if ( tail()->isHub() ) {
+			f = ctxt.here->getTailFrom();
+			t = ctxt.here->getTailTo();
+            Address tla = tailAsPathEntry().c_p_;
+            for ( i = f; i <= t; i++ ) {
+            	ctxt.here->up();
+				ctxt.here->push_back( PathEntry( tla, i, i, ctxt.here->getNelms() ) );
+				explore_r( &ctxt );
+			}
+		} else {
+			explore_r( &ctxt );
+		}
 	}
 }
 
@@ -706,7 +718,7 @@ CPathImpl::explore_children_r(ConstDevImpl d, struct explorer_ctxt *ctxt)
 				unsigned i;
 				for ( i=0; i<(*it).second->getNelms(); i++ ) {
 					// append a child to the 'here' path
-					ctxt->here->push_back( PathEntry( (*it).second, i, i, 1) );
+					ctxt->here->push_back( PathEntry( (*it).second, i, i, ctxt->here->getNelms() ) );
 					// explore
 					explore_r( ctxt );
 					// remove the child from the 'here' path
@@ -714,7 +726,7 @@ CPathImpl::explore_children_r(ConstDevImpl d, struct explorer_ctxt *ctxt)
 				}
 			} else {
 				// for leaf nodes do not descend into each individual array element
-				ctxt->here->push_back( PathEntry( (*it).second, -1, -1, (*it).second->getNelms()) );
+				ctxt->here->push_back( PathEntry( (*it).second, -1, -1, ctxt->here->getNelms()) );
 				explore_r( ctxt );
 				ctxt->here->pop_back();
 			}
