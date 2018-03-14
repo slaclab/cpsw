@@ -12,10 +12,147 @@
 #include <cpsw_obj_cnt.h>
 #include <sstream>
 #include <string>
+#include <vector>
 #include <iostream>
 #include <stdio.h>
 
 #include <cpsw_yaml.h>
+
+struct TestFailed {};
+
+class ExploreVisitor : public IPathVisitor {
+private:
+	typedef std::pair<std::string, unsigned> P;
+	typedef std::vector<P>                   V;
+
+	V           v_;
+	V::iterator it_;
+	V::iterator en_;
+public:
+	ExploreVisitor()
+	{
+	}
+
+	void push_back(const char *s, unsigned n )
+	{
+		v_.push_back( P(s,n) );
+	}
+
+	void test(Path p)
+	{
+		it_ = v_.begin();
+		en_ = v_.end();
+		p->explore( this );
+	}
+
+	bool visitPre(ConstPath p)
+	{
+		if ( it_ == en_ ) {
+			fprintf(stderr,"Expected results exhausted (can't check %s)\n", p->toString().c_str());
+			throw TestFailed();
+		}
+		if ( (*it_).first != p->toString() ) {
+			fprintf(stderr,"Unexpected path during 'explore' -- got %s, expected %s\n", p->toString().c_str(), (*it_).first.c_str());
+			throw TestFailed();
+		}
+		++it_;
+		return true;
+	}
+
+	void visitPost(ConstPath p)
+	{
+	}
+
+	~ExploreVisitor()
+	{
+		if ( it_ != en_ ) {
+			fprintf(stderr,"Not all expected results checked\n");
+			throw TestFailed();
+		}
+	}
+};
+
+static void test_explore_R3_5_3_21_g6dabdad()
+{
+const char *yaml=
+"#schemaversion 3.0.0\n"
+"root:\n"
+"  "YAML_KEY_class": Dev\n"
+"  "YAML_KEY_children":\n"
+"    device:\n"
+"      "YAML_KEY_class": Dev\n"
+"      "YAML_KEY_size": 100\n"
+"      "YAML_KEY_at":\n"
+"        "YAML_KEY_nelms": 4\n"
+"      "YAML_KEY_children":\n"
+"        reg:\n"
+"          "YAML_KEY_class": Field\n"
+"          "YAML_KEY_size": 1\n"
+"          "YAML_KEY_at":\n"
+"            "YAML_KEY_nelms": 16\n";
+
+Hub	root = IPath::loadYamlStream( yaml, "root" )->origin();
+
+Path p;
+
+{
+ExploreVisitor v;
+
+p = root->findByName("device/reg");
+	v.push_back("/device[0-3]/reg[0-15]", 4*16);
+
+	v.test( p );
+}
+{
+ExploreVisitor v;
+p = root->findByName("device[0-3]/reg[0-15]");
+	v.push_back("/device[0-3]/reg[0-15]", 4*16);
+
+	v.test( p );
+}
+{
+ExploreVisitor v;
+p = root->findByName("device[2]/reg[3-4]");
+
+	v.push_back("/device[2]/reg[3-4]", 2);
+
+	v.test( p );
+}
+{
+ExploreVisitor v;
+p = root->findByName("device/reg[0]");
+	v.push_back("/device[0-3]/reg[0]", 4);
+
+	v.test( p );
+}
+
+{
+ExploreVisitor v;
+p = root->findByName("");
+	v.push_back("/device[0]", 16);
+	v.push_back("/device[0]/reg[0-15]", 16);
+	v.push_back("/device[1]", 16);
+	v.push_back("/device[1]/reg[0-15]", 16);
+	v.push_back("/device[2]", 16);
+	v.push_back("/device[2]/reg[0-15]", 16);
+	v.push_back("/device[3]", 16);
+	v.push_back("/device[3]/reg[0-15]", 16);
+
+	v.test( p );
+}
+
+{
+ExploreVisitor v;
+p = root->findByName("device[1-2]");
+	v.push_back("/device[1]",16);
+	v.push_back("/device[1]/reg[0-15]",16);
+	v.push_back("/device[2]",16);
+	v.push_back("/device[2]/reg[0-15]",16);
+
+	v.test( p );
+}
+
+}
 
 static void test_a53564754e5eaa9029ff(bool use_yaml)
 {
@@ -102,8 +239,6 @@ public:
 		indent_--;
 	}
 };
-
-struct TestFailed {};
 
 static void recurse(Hub h, unsigned l)
 {
@@ -375,6 +510,7 @@ Hub     r  = use_yaml ? build_yaml() : build();
 
 	test_a53564754e5eaa9029ff(use_yaml);
 
+	test_explore_R3_5_3_21_g6dabdad();
 
 	printf("leaving\n");
 } catch (CPSWError e ) {
