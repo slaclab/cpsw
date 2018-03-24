@@ -28,9 +28,9 @@ HARCH=rhel6-x86_64
 
 # ARCHES += xxx yyy
 
-ARCHES += buildroot-2016.11.1-x86_64
-
-
+ARCHES += buildroot-2016.11.1-x86_64 buildroot-2016.11.1-i686 buildroot-2016.11.1-zynq
+ 
+ 
 # Next, you need to define prefixes (which may include
 # absolute paths) so that e.g., $(CROSS_xxx)gcc can be
 # used as a C compiler e.g.,
@@ -46,7 +46,8 @@ BR_HARCH=linux-x86_64
 
 # extract version and target
 BR_VERSN=$(word 2,$(subst -, ,$(TARCH)))
-BR_TARCH=$(word 3,$(subst -, ,$(TARCH)))
+# map zynq->arm for buildroot
+BR_TARCH=$(subst zynq,arm,$(word 3,$(subst -, ,$(TARCH))))
 
 # cross compiler path
 BR_CROSS=/afs/slac/package/linuxRT/buildroot-$(BR_VERSN)/host/$(BR_HARCH)/$(BR_TARCH)/usr/bin/$(BR_TARCH)-linux-
