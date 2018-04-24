@@ -77,6 +77,18 @@ CCommandAdapt::CCommandAdapt(Key &k,  Path p, shared_ptr<const CCommandImpl> ie)
 	pContext_ = ie->createContext( p );
 }
 
+Path
+CCommandAdapt::getPath() const
+{
+	return IEntryAdapt::getPath();
+}
+
+ConstPath
+CCommandAdapt::getConstPath() const
+{
+	return IEntryAdapt::getConstPath();
+}
+
 
 void
 CCommandAdapt::execute()

@@ -128,6 +128,9 @@ private:
 public:
 		CCommandAdapt(Key &k, Path p, shared_ptr<const CCommandImpl> ie);
 
+		virtual Path      getPath()      const;
+		virtual ConstPath getConstPath() const;
+
 		static Command create(Path p);
 
 		virtual void execute();
