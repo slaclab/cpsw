@@ -453,7 +453,7 @@ public:
 
 	/*!
 	 * Return a const reference of the Path which was used to
-	 * create this val. This is not a copy (more efficient if
+	 * create this Val. This is not a copy (more efficient if
 	 * you don't intend to modify it).
 	 */
 	virtual ConstPath getConstPath()    const = 0;
@@ -784,9 +784,21 @@ public:
 	virtual void execute() = 0;
 
 	/*!
+	 * Return a copy of the Path which was used to create this Command.
+	 */
+	virtual Path     getPath()          const = 0;
+
+	/*!
+	 * Return a const reference of the Path which was used to
+	 * create this Command. This is not a copy (more efficient if
+	 * you don't intend to modify it).
+	 */
+	virtual ConstPath getConstPath()    const = 0;
+
+	/*!
 	 * Instantiate a 'Command' interface at the endpoint identified by 'path'
 	 */
-	 static Command create(Path p);
+	static Command create(Path p);
 };
 
 

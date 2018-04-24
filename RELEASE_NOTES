@@ -1,8 +1,17 @@
+R3.7.branch
+
+	Feature: added 'getPath()', 'getConstPath()' to ICommand
+
 R3.6.4
+
     Added i686 and zynq (arm) targets
+
 R3.6.3
+
     Removed buildroot-2015 target
-R3.6.2
+
+R3.7.branch
+
     Bugfix: path was clobbered (incorrect NELMS) during 'explore' if tail
             was an array.
 

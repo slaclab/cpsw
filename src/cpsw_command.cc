@@ -83,6 +83,17 @@ CCommandAdapt::getEncoding() const
 	return asCommandImpl()->getEncoding();	
 }
 
+Path
+CCommandAdapt::getPath() const
+{
+	return IEntryAdapt::getPath();
+}
+
+ConstPath
+CCommandAdapt::getConstPath() const
+{
+	return IEntryAdapt::getConstPath();
+}
 
 void
 CCommandAdapt::execute()

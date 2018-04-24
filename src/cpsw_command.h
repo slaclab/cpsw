@@ -133,7 +133,9 @@ private:
 public:
 		CCommandAdapt(Key &k, Path p, shared_ptr<const CCommandImpl> ie);
 
-		virtual Encoding getEncoding() const;
+		virtual Encoding  getEncoding()  const;
+		virtual Path      getPath()      const;
+		virtual ConstPath getConstPath() const;
 
 		static Command create(Path p);
 
