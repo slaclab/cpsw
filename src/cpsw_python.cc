@@ -1999,6 +1999,11 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"Execute the command implemented by the endpoint addressed by the\n"
 			"path which was created when instantiating the Command interface."
 		)
+		.def("getPath",      &ICommand::getPath,
+			( arg("self") ),
+			"\n"
+			"Return a copy of the Path which was used to create this Command."
+		)
 		.def("create",       &ICommand::create,
 			( arg("path") ),
 			"\n"
