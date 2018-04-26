@@ -549,22 +549,12 @@ unsigned frag = 0;
 }
 
 static void
-fragger_rx(struct streamer_args *sa)
+fragger_rx(struct streamer_args *sa, struct timespec *top)
 {
 int      got;
 uint32_t rbuf[1000000];
 
-struct timespec to;
-
-	clock_gettime( CLOCK_REALTIME, &to );
-
-	to.tv_nsec += sa->isRunning ? 10000000 : 100000000;
-	if ( to.tv_nsec >= 1000000000 ) {
-		to.tv_nsec -= 1000000000;
-		to.tv_sec  += 1;
-	}
-
-	while ( (got = ioQueRecv( sa->srpQ, rbuf, sizeof(rbuf), &to )) > 0 ) {
+	while ( (got = ioQueRecv( sa->srpQ, rbuf, sizeof(rbuf), top )) > 0 ) {
 
 		int put;
 		uint32_t *bufp  = bufp  = rbuf + 2; /* HEADSIZE */
@@ -608,7 +598,17 @@ FragBuf  bufmem;
 
 		if ( 0 == frag ) {
 			do {
-				fragger_rx( sa );
+				struct timespec to;
+
+				clock_gettime( CLOCK_REALTIME, &to );
+
+				to.tv_nsec += sa->isRunning ? 10000000 : 100000000;
+				if ( to.tv_nsec >= 1000000000 ) {
+					to.tv_nsec -= 1000000000;
+					to.tv_sec  += 1;
+				}
+
+				fragger_rx( sa, &to );
 			} while ( ! sa->isRunning );
 		}
 
