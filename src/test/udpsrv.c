@@ -54,10 +54,11 @@
 #define VERS       0
 #define VERSBITS   4
 
-#define HEADSIZE 8
-#define TAILSIZE 1
+#define HEADSIZE          8
+#define TAILSPACE         16
 
-#define EOFRAG   0x80
+#define EOFRAG_V1         0x80
+#define EOFRAG_V2         (1<<8)
 
 #define V1PORT_DEF        8191
 #define V2PORT_DEF        8192
@@ -74,6 +75,9 @@
 #define NFRAGS_DEF        NFRAGS
 
 #define TDEST_DEF            0 /* SRP TDEST is TDEST_DEF + 1 */
+#define NUM_TDESTS           2 /* tdest multiplexing by poller */
+#define TDEST_DEF_IDX        0
+#define TDEST_SRP_IDX        1
 
 // byte swap ?
 #define bsl(x) (x)
@@ -81,7 +85,16 @@
 #define BE 1
 #define LE 0
 
-typedef uint8_t Buf[FRAGLEN + HEADSIZE + TAILSIZE];
+#define FRAGBUFSZ (FRAGLEN + HEADSIZE + TAILSPACE)
+
+typedef uint8_t FragBuf[FRAGBUFSZ];
+typedef uint8_t TmpBuf[HEADSIZE + 1200 + TAILSPACE];
+
+typedef struct RxBufRec_ {
+	uint8_t   buf[MAXBUFSZ];
+	uint8_t  *bufp;
+	unsigned  frag;
+} RxBufRec, *RxBuf;
 
 static int debug = 0;
 
@@ -153,6 +166,7 @@ typedef struct streamer_args {
 	pthread_t          poller_tid, fragger_tid;
 	int                haveThreads;
 	volatile uint8_t   isRunning;
+	RxBufRec           rxBuf[NUM_TDESTS];
 } streamer_args;
 
 typedef struct SrpArgs {
@@ -171,10 +185,23 @@ xtractTDESTV1(uint8_t *buf)
 	return buf[5];
 }
 
+static unsigned
+xtractTDESTV2(uint8_t *buf)
+{
+	return buf[2];
+}
+
+
 static void
 insertTDESTV1(uint8_t *buf, unsigned tdest)
 {
 	buf[5] = (uint8_t)tdest;
+}
+
+static void
+insertTDESTV2(uint8_t *buf, unsigned tdest)
+{
+	buf[2] = (uint8_t)tdest;
 }
 
 
@@ -189,9 +216,41 @@ getHdrV1(uint8_t *buf, unsigned *vers, unsigned *fram, unsigned *frag, unsigned 
 	*tusr1 = buf[7];
 }
 
+static void
+getHdrV2(uint8_t *buf, unsigned *vers, unsigned *fram, unsigned *frag, unsigned *tdest, unsigned *tid, unsigned *tusr1)
+{
+	*vers  = buf[0] & 0xf;
+	*fram  = 0;
+	*frag  = ((buf[5]<<8) | buf[4]);
+	*tdest = buf[2];
+	*tid   = buf[3];
+	*tusr1 = buf[1];
+}
+
+
 static uint64_t getTailV1(uint8_t *buf, int sz)
 {
 	return (uint64_t)buf[sz-1];
+}
+
+static uint64_t getTailV2(uint8_t *buf, int sz)
+{
+uint64_t tail = 0;
+int      i;
+	for ( i=sizeof(tail)-1; i>=0; --i ) {
+		tail = (tail<<8) | buf[i];
+	}
+	return tail;
+}
+
+static int getTailLenV1(uint64_t tail)
+{
+	return 1;
+}
+
+static int getTailLenV2(uint64_t tail)
+{
+	return sizeof(tail) + ((tail>>16) & 0xf);
 }
 
 /* returns 1 -> EOF, 0 -> not eof; -1 error */
@@ -200,12 +259,19 @@ static int checkTailV1(uint64_t tail)
 	switch ((uint8_t)tail) {
 		case 0:
 			return 0;
-		case 0x80:
+		case EOFRAG_V1:
 			return 1;
 		default:
 			break;
 	}
 	return -1;
+}
+
+/* returns 1 -> EOF, 0 -> not eof; -1 error */
+static int checkTailV2(uint64_t tail)
+{
+	/* FIXME: check CRC */
+	return !! (tail & EOFRAG_V2);
 }
 
 static uint64_t mkhdrV1(unsigned fram, unsigned frag, unsigned tdest)
@@ -256,7 +322,7 @@ int      i;
 
 static int appendTailV1(uint8_t *tbuf, unsigned len, int eof)
 {
-	tbuf[len] = eof ? EOFRAG : 0;
+	tbuf[len] = eof ? EOFRAG_V1 : 0;
 	return 1;
 }
 
@@ -265,40 +331,26 @@ static int handleSRP(int vers, unsigned opts, uint32_t *rbuf, unsigned rbufsz, i
 void *poller(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
-uint8_t       buf_[MAXBUFSZ];
-uint8_t      *buf, *nbuf; 
-int           got, gottot = 0, ngottot;
+TmpBuf        tmpbuf;
+int           got, gottot = 0;
 int           lfram = -1;
-int           lfrag = -1;
 struct timespec to;
 
-uint8_t       htemp[8];
+RxBuf         rxbuf;
 
-	nbuf    = buf_;
-	ngottot = 0; 
+	for ( got = 0; got < NUM_TDESTS; got++ ) {
+		sa->rxBuf[got].bufp = sa->rxBuf[got].buf;
+		sa->rxBuf[got].frag = 0;
+	}
 
 	while ( 1 ) {
-
-		buf     = nbuf;
-		gottot  = ngottot;
-        nbuf    = buf_;
-		ngottot = 0;
 
 		do {
 			clock_gettime( CLOCK_REALTIME, &to );
 
 			to.tv_sec  += STREAM_POLL_SECS;
 
-			unsigned avail = sizeof(buf_) - (buf-buf_);
-
-			if ( avail == 0 ) {
-				fprintf(stderr,"Poller: RX buffer overflow\n");
-				buf    = nbuf    = buf_;
-				gottot = ngottot = 0;
-				avail  = sizeof(buf_);
-			}
-
-			got = ioPrtRecv( sa->port, buf, avail, &to);
+			got = ioPrtRecv( sa->port, tmpbuf, sizeof(tmpbuf), &to);
 
 			if ( got < 0 )
 				sa->polled_stream_up = 0;
@@ -311,15 +363,17 @@ uint8_t       htemp[8];
 		} else {
 			unsigned vers, fram, frag, tdest, tid, tusr1;
 			uint64_t tail;
+			int      taillen;
 
-			if ( got < 9 ) {
+			if ( got < 9 ) { /* FIXME - limit should be version specific */
 				sa->jam = 100; // frame not even large enough to be valid
 				continue;
 			}
 
-            getHdrV1(buf, &vers, &fram, &frag, &tdest, &tid, &tusr1);
+            getHdrV1(tmpbuf, &vers, &fram, &frag, &tdest, &tid, &tusr1);
 
-			tail  = getTailV1(buf, got);
+			tail    = getTailV1(tmpbuf, got);
+			taillen = getTailLenV1( tail );
 
 #ifdef DEBUG
 			if ( debug ) {
@@ -334,11 +388,25 @@ uint8_t       htemp[8];
 			}
 #endif
 
-			if ( vers != 0 || ( tdest != 0 && (0 == sa->srp_vers || sa->srp_tdest != tdest ) ) || tid != 0 || tusr1 != (frag == 0 ? (1<<1) : 0) ) {
+			got -= taillen;
+
+			if ( vers != 0 || ( tdest != TDEST_DEF && (0 == sa->srp_vers || sa->srp_tdest != tdest ) ) || tid != 0 || tusr1 != (frag == 0 ? (1<<1) : 0) ) {
 				fprintf(stderr,"UDPSRV: Invalid stream header received\n");
 				sa->jam = 100;
 				continue;
 			}
+
+			rxbuf = & sa->rxBuf[(tdest == TDEST_DEF) ? TDEST_DEF_IDX : TDEST_SRP_IDX];
+
+			unsigned avail = sizeof(rxbuf->buf) - (rxbuf->bufp - rxbuf->buf);
+
+			if ( avail < got - HEADSIZE ) {
+				fprintf(stderr,"Poller: RX buffer overflow\n");
+				rxbuf->bufp = rxbuf->buf;
+				continue;
+			}
+
+			memcpy( rxbuf->bufp, tmpbuf + HEADSIZE, got - HEADSIZE );
 
 			if ( frag == 0 ) {
 				// assume 1st frame of a new instance of the test program always starts at 0
@@ -350,6 +418,12 @@ uint8_t       htemp[8];
 						continue;
 					}
 				}
+				if ( rxbuf->bufp != rxbuf->buf ) {
+					fprintf(stderr,"UDPSRV: unexpected rxbuf bufp\n");
+					abort();
+				}
+				rxbuf->frag = 0;
+				rxbuf->bufp = rxbuf->buf;
 			} else {
 				if ( lfram != fram ) {
 					fprintf(stderr,"UDPSRV: Non-consecutive fragments of different frames received\n");
@@ -357,27 +431,25 @@ uint8_t       htemp[8];
 					lfram   = fram;
 					continue;
 				}
-				if ( lfrag + 1 != frag ) {
+				if ( rxbuf->frag + 1 != frag ) {
 					fprintf(stderr,"UDPSRV: Non-consecutive stream header fragments received\n");
-					sa->jam = 100;
-					lfram   = fram;
-					lfrag   = frag;
+					sa->jam     = 100;
+					lfram       = fram;
+					rxbuf->frag = frag;
 					continue;
 				}
-				printf("restoring htmp from %p\n", buf);
-				memcpy( buf, htemp, 8 );
 			}
-			lfram = fram;
-			lfrag = frag;
+			lfram       = fram;
+			rxbuf->frag = frag;
 
 			switch ( checkTailV1(tail) ) {
 				case 0: /* not EOF */
-					memcpy(htemp, buf + got -9, 8);	
-					nbuf    = buf    + got - 9;
-					ngottot = gottot + got - 9;
+					rxbuf->bufp += got - HEADSIZE;
 					continue;
 
 				case 1: /* EOF */
+            		gottot      = (rxbuf->bufp - rxbuf->buf) + got - HEADSIZE;
+					rxbuf->bufp = rxbuf->buf;
 					break;
 
 				default:
@@ -386,19 +458,17 @@ uint8_t       htemp[8];
 					continue;
 			}
 
-			buf    = nbuf = buf_;
-			gottot = gottot + got - 1;
 
 			if ( sa->srp_vers && sa->srp_tdest == tdest ) {
-				if ( gottot < 9 + 12 ) {
+				if ( gottot < HEADSIZE + 12 ) {
 					fprintf(stderr,"UDPSRV: SRP request too small\n");
 				} else {
 					int put;
 
 					if ( sa->rssi || sa->tcp ) {
-					 	put = ioQueSend( sa->srpQ, buf, gottot , NULL );
+					 	put = ioQueSend( sa->srpQ, rxbuf->buf, gottot , NULL );
 					} else {
-					 	put = ioQueTrySend( sa->srpQ, buf, gottot  );
+					 	put = ioQueTrySend( sa->srpQ, rxbuf->buf, gottot  );
 					}
 
 					if ( put < 0 )
@@ -417,16 +487,20 @@ uint8_t       htemp[8];
 				 * If this is not the case then we let the test program know by corrupting
 				 * the stream data we send back on purpose.
 				 */
-				if ( crc32_le_t4(-1, buf + 8, gottot - 9) ^ -1 ^ CRC32_LE_POSTINVERT_GOOD ) {
+				gottot -= 1; /* The stream test program appends a tail byte which is not CRCed;
+				              * however, the 'real' tail byte comes from the depacketizer.
+				              * Drop this extra byte...
+				              */
+				if ( crc32_le_t4(-1, rxbuf->buf, gottot) ^ -1 ^ CRC32_LE_POSTINVERT_GOOD ) {
 					fprintf(stderr,"Received message (size %d) with bad CRC\n", gottot);
 					sa->jam = 100;
 	printf("JAM\n");
 				}
 
-				sa->isRunning = !!(buf[8] & 1);
+				sa->isRunning = !!(rxbuf->buf[0] & 1);
 #ifdef DEBUG
 				if ( debug ) {
-					printf("Stream start/stop msg 0x%02"PRIx8"\n", buf[8]);
+					printf("Stream start/stop msg 0x%02"PRIx8"\n", rxbuf->buf[0]);
 				}
 #endif
 			}
@@ -436,6 +510,95 @@ uint8_t       htemp[8];
 	return 0;
 }
 
+/* ASSUME: there is 8-bytes available ahead of bufp AND enough space for the tail */
+static void send_fragmented(IoPrt port, uint8_t *bufp, unsigned bufsz, int put, unsigned tdest, unsigned fram)
+{
+unsigned frag = 0;
+
+	while ( put > 0 ) {
+		unsigned chunk = (1024 - HEADSIZE - 12) & ~(7); /* must be dword-aligned */
+		uint8_t  save[16];
+		int      nsav;
+		uint8_t *tailp;
+		uint8_t *hp   = bufp - HEADSIZE;
+        int      taillen;
+
+		if ( put < chunk )
+			chunk = put;
+
+		put   -= chunk;
+		tailp  = bufp + chunk;
+
+		/* save */
+		if ( bufsz - (tailp - bufp) < sizeof(save) ) {
+			fprintf(stderr, "ERROR -- Not enough buffer space; would clobber beyond tail\n");
+			exit(1);
+		}
+		memcpy(save, tailp, sizeof(save));
+
+		insert_headerV1( hp, fram, frag, tdest);
+		taillen = appendTailV1(bufp, chunk, put > 0 ? 0 : 1);
+		if ( ioPrtSend( port, hp, chunk + HEADSIZE + taillen ) < 0 )
+			fprintf(stderr,"fragmenter: write error (sending SRP or STREAM reply)\n");
+#ifdef DEBUG
+		else if ( debug > 2 )
+			printf("Sent to port %d\n", ioPrtIsConn( port ));
+#endif
+		/* restore */
+		memcpy(tailp, save, sizeof(save));
+		bufp  += chunk;
+		bufsz -= chunk;
+		frag++;
+	}
+}
+
+static void
+fragger_rx(struct streamer_args *sa)
+{
+int      got;
+uint32_t rbuf[1000000];
+
+struct timespec to;
+
+	clock_gettime( CLOCK_REALTIME, &to );
+
+	to.tv_nsec += sa->isRunning ? 10000000 : 100000000;
+	if ( to.tv_nsec >= 1000000000 ) {
+		to.tv_nsec -= 1000000000;
+		to.tv_sec  += 1;
+	}
+
+	while ( (got = ioQueRecv( sa->srpQ, rbuf, sizeof(rbuf), &to )) > 0 ) {
+
+		int put;
+		uint32_t *bufp  = bufp  = rbuf + 2; /* HEADSIZE */
+		unsigned  bufsz = sizeof(rbuf) - HEADSIZE;
+		int       taillen;
+
+#ifdef DEBUG
+		if ( debug > 2 )
+			printf("Got %d SRP octets\n", got);
+#endif
+
+		unsigned tdest = xtractTDESTV1((uint8_t*)rbuf);
+
+		taillen = getTailLenV1( getTailV1( (uint8_t*)rbuf, got ) );
+
+		got -= taillen;
+
+		if ( tdest == sa->srp_tdest ) {
+			if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, bufsz - 1, got - HEADSIZE)) <= 0 ) {
+				fprintf(stderr,"handleSRP ERROR (from fragger)\n");
+			}
+		} else {
+			put = got;
+		}
+
+		send_fragmented( sa->port, (uint8_t*)bufp, sizeof(rbuf) - HEADSIZE, put, tdest, sa->fram );
+		sa->fram++;
+	}
+}
+
 void *fragger(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
@@ -443,85 +606,14 @@ unsigned frag = 0;
 int      i,j;
 uint32_t crc  = -1;
 int      end_of_frame;
-Buf      bufmem;
+FragBuf  bufmem;
 
 	while (1) {
 
 		if ( 0 == frag ) {
-
 			do {
-				int      got;
-				uint32_t rbuf[1000000];
-
-				struct timespec to;
-
-				clock_gettime( CLOCK_REALTIME, &to );
-
-				to.tv_nsec += sa->isRunning ? 10000000 : 100000000;
-				if ( to.tv_nsec >= 1000000000 ) {
-					to.tv_nsec -= 1000000000;
-					to.tv_sec  += 1;
-				}
-
-				while ( (got = ioQueRecv( sa->srpQ, rbuf, sizeof(rbuf), &to )) > 0 ) {
-
-					int put;
-					uint32_t *bufp  = bufp  = rbuf + 2;
-					unsigned  bufsz = sizeof(rbuf) - 2*sizeof(rbuf[0]);
-
-#ifdef DEBUG
-					if ( debug > 2 )
-						printf("Got %d SRP octets\n", got);
-#endif
-
-					unsigned tdest = xtractTDESTV1((uint8_t*)rbuf);
-
-					if ( tdest == sa->srp_tdest ) {
-						if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, bufsz - 1, got - 2*sizeof(rbuf[0]))) <= 0 ) {
-							fprintf(stderr,"handleSRP ERROR (from fragger)\n");
-						}
-					} else {
-						put = got;
-					}
-
-					unsigned frag = 0;
-
-					while ( put > 0 ) {
-						unsigned chunk = (1024 - HEADSIZE - 12) & ~(7); /* must be dword-aligned */
-						uint8_t  save[16];
-						int      nsav;
-						int      taillen;
-						uint8_t *tailp;
-						uint8_t *hp   = ((uint8_t*)bufp) - HEADSIZE;
-						if ( put < chunk )
-							chunk = put;
-						put   -= chunk;
-						tailp = ((uint8_t*)bufp)+chunk;
-
-						/* save */
-						nsav  = sizeof(rbuf)  - (tailp - (uint8_t*)rbuf);
-						if ( nsav > sizeof(save) )
-							nsav = sizeof(save);
-						memcpy(save, tailp, nsav);
-
-						insert_headerV1( hp, sa->fram, frag, tdest);
-						taillen = appendTailV1((uint8_t*)bufp, chunk, put > 0 ? 0 : 1);
-						if ( ioPrtSend( sa->port, hp, chunk + HEADSIZE + taillen ) < 0 )
-							fprintf(stderr,"fragmenter: write error (sending SRP or STREAM reply)\n");
-#ifdef DEBUG
-						else if ( debug > 2 )
-							printf("Sent to port %d\n", ioPrtIsConn( sa->port ));
-#endif
-						/* restore */
-						memcpy(tailp, save, nsav);
-						bufp  += chunk>>2;
-						bufsz -= chunk;
-						frag++;
-					}
-					sa->fram++;
-				}
+				fragger_rx( sa );
 			} while ( ! sa->isRunning );
-
 		}
 
 		i  = 0;
@@ -800,7 +892,7 @@ int      bsize;
 			perror("read");
 			goto bail;
 		}
-		
+
 		bsize = handleSRP(srp_arg->vers, srp_arg->opts, rbuf, sizeof(rbuf), got);
 
 		if ( bsize < 0 )
