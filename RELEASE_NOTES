@@ -1,3 +1,9 @@
+    Fix:    test driver for streams over unreliable transport should use
+            some margin of acceptable errors. This was set to 22% (builder
+            API) but when the same test was run with a YAML hierarchy the
+            corresponding option was not set to relax the acceptable error
+            margin. (merged from R3.5.branch.)
+
 R3.6.4
     Added i686 and zynq (arm) targets
 R3.6.3
