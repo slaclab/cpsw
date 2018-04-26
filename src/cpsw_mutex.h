@@ -194,7 +194,7 @@ public:
 	{
 		return *getMtx();
 	}
-	
+
 	// Nobody must hold the mutex when it is being destroyed!
 	~CMtxLazy()
 	{

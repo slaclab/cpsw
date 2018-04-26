@@ -174,7 +174,7 @@ cpsw_sval_tst_run:      RUN_OPTS='-y cpsw_sval_tst.yaml' '-Y cpsw_sval_tst.yaml'
 
 # error percentage should be >  value used for udpsrv (-L) times number
 # of fragments (-f)
-cpsw_stream_tst_run:    RUN_OPTS='-e 22 -y cpsw_stream_tst_1.yaml' '-s8203 -R -y cpsw_stream_tst_2.yaml' '-e22 -Y cpsw_stream_tst_1.yaml' '-Y cpsw_stream_tst_2.yaml'
+cpsw_stream_tst_run:    RUN_OPTS='-e 22 -y cpsw_stream_tst_1.yaml' '-s8203 -R -y cpsw_stream_tst_2.yaml' '-e 22 -Y cpsw_stream_tst_1.yaml' '-Y cpsw_stream_tst_2.yaml'
 
 cpsw_path_tst_run:      RUN_OPTS='' '-Y'
 

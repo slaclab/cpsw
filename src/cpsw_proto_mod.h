@@ -75,7 +75,7 @@ public:
  * protocol stacks. It helps finding an existing stack which
  * matches select parameters so that new ports can be created.
  * E.g., someone could be trying to create a new port for
- * a certain UDPPort/TDEST combination. 
+ * a certain UDPPort/TDEST combination.
  * 'findProtoPort()' could be used to locate an existing TDEST
  * multiplexer on the desired UDP port so that a new TDEST
  * port can then be added there.
