@@ -164,7 +164,51 @@ typedef struct SrpArgs {
 	int                haveThread;
 } SrpArgs;
 
-static uint64_t mkhdr(unsigned fram, unsigned frag, unsigned tdest)
+
+static unsigned
+xtractTDESTV1(uint8_t *buf)
+{
+	return buf[5];
+}
+
+static void
+insertTDESTV1(uint8_t *buf, unsigned tdest)
+{
+	buf[5] = (uint8_t)tdest;
+}
+
+
+static void
+getHdrV1(uint8_t *buf, unsigned *vers, unsigned *fram, unsigned *frag, unsigned *tdest, unsigned *tid, unsigned *tusr1)
+{
+	*vers  = buf[0] & 0xf;
+	*fram  = (buf[1]<<4) | (buf[0]>>4);
+	*frag  = (((buf[4]<<8) | buf[3])<<8) | buf[2];
+	*tdest = buf[5];
+	*tid   = buf[6];
+	*tusr1 = buf[7];
+}
+
+static uint64_t getTailV1(uint8_t *buf, int sz)
+{
+	return (uint64_t)buf[sz-1];
+}
+
+/* returns 1 -> EOF, 0 -> not eof; -1 error */
+static int checkTailV1(uint64_t tail)
+{
+	switch ((uint8_t)tail) {
+		case 0:
+			return 0;
+		case 0x80:
+			return 1;
+		default:
+			break;
+	}
+	return -1;
+}
+
+static uint64_t mkhdrV1(unsigned fram, unsigned frag, unsigned tdest)
 {
 uint64_t rval;
 uint8_t  tid   = 0;
@@ -198,11 +242,11 @@ uint8_t  tusr1 = 0;
 	return rval;
 }
 
-static int insert_header(uint8_t *hbuf, unsigned fram, unsigned frag, unsigned tdest)
+static int insert_headerV1(uint8_t *hbuf, unsigned fram, unsigned frag, unsigned tdest)
 {
 uint64_t h;
 int      i;
-	h = mkhdr(fram, frag, tdest);
+	h = mkhdrV1(fram, frag, tdest);
 	for ( i=0; i<HEADSIZE; i++ ) {
 		hbuf[i] = h;
 		h       = h>>8;
@@ -210,9 +254,9 @@ int      i;
 	return i;
 }
 
-static int append_tail(uint8_t *tbuf, int eof)
+static int appendTailV1(uint8_t *tbuf, unsigned len, int eof)
 {
-	*tbuf = eof ? EOFRAG : 0;
+	tbuf[len] = eof ? EOFRAG : 0;
 	return 1;
 }
 
@@ -265,21 +309,17 @@ uint8_t       htemp[8];
 			fprintf(stderr,"Poller: Contacted by %d\n", ioPrtIsConn( sa->port ) );
 			sa->polled_stream_up = 1;
 		} else {
-			unsigned vers, fram, frag, tdest, tid, tusr1, tail;
+			unsigned vers, fram, frag, tdest, tid, tusr1;
+			uint64_t tail;
 
 			if ( got < 9 ) {
 				sa->jam = 100; // frame not even large enough to be valid
 				continue;
 			}
 
-			vers  = buf[0] & 0xf;
-			fram  = (buf[1]<<4) | (buf[0]>>4);
-			frag  = (((buf[4]<<8) | buf[3])<<8) | buf[2];
-			tdest = buf[5];
-			tid   = buf[6];
-			tusr1 = buf[7];
+            getHdrV1(buf, &vers, &fram, &frag, &tdest, &tid, &tusr1);
 
-			tail  = buf[got-1];
+			tail  = getTailV1(buf, got);
 
 #ifdef DEBUG
 			if ( debug ) {
@@ -330,17 +370,20 @@ uint8_t       htemp[8];
 			lfram = fram;
 			lfrag = frag;
 
-			if ( tail == 0x00 ) {
-				memcpy(htemp, buf + got -9, 8);	
-				nbuf    = buf    + got - 9;
-				ngottot = gottot + got - 9;
-				continue;
-			}
+			switch ( checkTailV1(tail) ) {
+				case 0: /* not EOF */
+					memcpy(htemp, buf + got -9, 8);	
+					nbuf    = buf    + got - 9;
+					ngottot = gottot + got - 9;
+					continue;
 
-			if ( tail != 0x80 ) {
-				fprintf(stderr,"UDPSRV: Invalid stream tailbyte received\n");
-				sa->jam = 100;
-				continue;
+				case 1: /* EOF */
+					break;
+
+				default:
+					fprintf(stderr,"UDPSRV: Invalid stream tailbyte received\n");
+					sa->jam = 100;
+					continue;
 			}
 
 			buf    = nbuf = buf_;
@@ -431,7 +474,7 @@ Buf      bufmem;
 						printf("Got %d SRP octets\n", got);
 #endif
 
-					unsigned tdest = ((uint8_t*)rbuf)[5];
+					unsigned tdest = xtractTDESTV1((uint8_t*)rbuf);
 
 					if ( tdest == sa->srp_tdest ) {
 						if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, bufsz - 1, got - 2*sizeof(rbuf[0]))) <= 0 ) {
@@ -444,24 +487,33 @@ Buf      bufmem;
 					unsigned frag = 0;
 
 					while ( put > 0 ) {
-						unsigned chunk = 1024 - 8 - 12; /* must be word-aligned */
-						uint8_t  tail;
+						unsigned chunk = (1024 - HEADSIZE - 12) & ~(7); /* must be dword-aligned */
+						uint8_t  save[16];
+						int      nsav;
+						int      taillen;
 						uint8_t *tailp;
-						uint8_t *hp   = ((uint8_t*)bufp) - 8;
+						uint8_t *hp   = ((uint8_t*)bufp) - HEADSIZE;
 						if ( put < chunk )
 							chunk = put;
 						put   -= chunk;
 						tailp = ((uint8_t*)bufp)+chunk;
-						tail  = *tailp; /* save */
-						insert_header( hp, sa->fram, frag, tdest);
-						append_tail( tailp, put > 0 ? 0 : 1 );
-						if ( ioPrtSend( sa->port, hp, chunk + 9 ) < 0 )
+
+						/* save */
+						nsav  = sizeof(rbuf)  - (tailp - (uint8_t*)rbuf);
+						if ( nsav > sizeof(save) )
+							nsav = sizeof(save);
+						memcpy(save, tailp, nsav);
+
+						insert_headerV1( hp, sa->fram, frag, tdest);
+						taillen = appendTailV1((uint8_t*)bufp, chunk, put > 0 ? 0 : 1);
+						if ( ioPrtSend( sa->port, hp, chunk + HEADSIZE + taillen ) < 0 )
 							fprintf(stderr,"fragmenter: write error (sending SRP or STREAM reply)\n");
 #ifdef DEBUG
 						else if ( debug > 2 )
 							printf("Sent to port %d\n", ioPrtIsConn( sa->port ));
 #endif
-						*tailp = tail;
+						/* restore */
+						memcpy(tailp, save, nsav);
 						bufp  += chunk>>2;
 						bufsz -= chunk;
 						frag++;
@@ -473,7 +525,7 @@ Buf      bufmem;
 		}
 
 		i  = 0;
-		i += insert_header(bufmem, sa->fram, frag, sa->tdest);
+		i += insert_headerV1(bufmem, sa->fram, frag, sa->tdest);
 
 		memset(bufmem + i, (sa->fram << 4) | (frag & 0xf), FRAGLEN);
 
@@ -497,7 +549,7 @@ printf("JAM cleared\n");
 
 		i += FRAGLEN;
 
-		i += append_tail( &bufmem[i], end_of_frame );
+		i += appendTailV1( bufmem, i, end_of_frame );
 
 		if ( ioPrtSend( sa->port, bufmem, i ) < 0 ) {
 			fprintf(stderr, "fragmenter: write error\n");
@@ -846,7 +898,7 @@ int i;
 			exit(1);
 		}
 
-		buf[5] = tdest;
+		insertTDESTV1(buf, tdest);
 
 		if ( strm_args[i].rssi || strm_args[i].tcp ) {
 		 	ioQueSend( strm_args[i].srpQ, buf, size, NULL );
