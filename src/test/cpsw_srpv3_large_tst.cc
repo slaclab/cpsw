@@ -67,8 +67,10 @@ main(int argc, char **argv)
 {
 const char *ip_addr = "127.0.0.1";
 int         v2port  = 8202;
+#ifdef DO_V3
 int         v3port  = 8200;
 int         v3tdst  = 1;
+#endif
 unsigned    nelms   = REG_ARR_SZ / sizeof(TYPE);
 
 
