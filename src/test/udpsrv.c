@@ -165,13 +165,13 @@ typedef struct streamer_args {
 	pthread_t          poller_tid, fragger_tid;
 	int                haveThreads;
 	int                ileave;
-	volatile uint8_t   isRunning;
 	RxBufRec           rxBuf[NUM_RTDESTS];
 	struct {
 		unsigned       frag;
 		unsigned       n_frags;
 		unsigned       tdest;
 		uint32_t       crc;
+	volatile uint8_t   isRunning;
 	}                  txCtx[NUM_TTDESTS];
 } streamer_args;
 
@@ -499,7 +499,10 @@ RxBuf         rxbuf;
 	printf("JAM\n");
 				}
 
-				sa->isRunning = !!(rxbuf->buf[0] & 1);
+				sa->txCtx[0].isRunning = !!(rxbuf->buf[0] & 1);
+				if ( sa->ileave ) {
+					sa->txCtx[1].isRunning = !!(rxbuf->buf[0] & 2);
+				}
 #ifdef DEBUG
 				if ( debug ) {
 					printf("Stream start/stop msg 0x%02"PRIx8"\n", rxbuf->buf[0]);
@@ -616,7 +619,7 @@ int      ctx;
 
 				clock_gettime( CLOCK_REALTIME, &to );
 
-				to.tv_nsec += sa->isRunning ? 10000000 : 100000000;
+				to.tv_nsec += sa->txCtx[ctx].isRunning ? 10000000 : 100000000;
 				if ( to.tv_nsec >= 1000000000 ) {
 					to.tv_nsec -= 1000000000;
 					to.tv_sec  += 1;
@@ -628,7 +631,7 @@ int      ctx;
 					fragger_rx( sa, &to );
 				}
 
-			} while ( ! sa->isRunning );
+			} while ( ! sa->txCtx[ctx].isRunning );
 		}
 
 		i  = 0;
@@ -992,12 +995,15 @@ int i,c;
 				printf("RSSI conn (chnl %d)\n", i);
 			if ( strm_args[i].polled_stream_up )
 				printf("Polled up (chnl %d)\n", i);
-			if ( strm_args[i].isRunning )
-				printf("Test stream is running (chnl %d)\n", i);
+			for ( c=0; c<NUM_TTDESTS; c++ ) {
+				if ( strm_args[i].txCtx[c].isRunning ) {
+					printf("Test stream is running (chnl %d, context %d)\n", i, c);
+				}
+			}
 		}
 #endif
 
-		if ( strm_args[i].isRunning ) {
+		if ( ! strm_args[i].ileave && strm_args[i].txCtx[0].isRunning ) {
 			// if the stream test is running then they look for consecutive
 			// frame numbers - which we don't want to mess up...
 			continue;
@@ -1153,8 +1159,10 @@ int      nprts, nstrms;
 		strm_args[i].srpQ                 = ioQueCreate(10);
 		strm_args[i].txCtx[0].tdest       = tdest;
 		strm_args[i].txCtx[0].n_frags     = n_frags;
+		strm_args[i].txCtx[0].isRunning   = 0;
 		strm_args[i].txCtx[1].tdest       = (tdest + 2) & 0xff;;
 		strm_args[i].txCtx[1].n_frags     = NFRAGS;
+		strm_args[i].txCtx[1].isRunning   = 0;
 		strm_args[i].fram                 = 0;
 		strm_args[i].jam                  = 0;
 		strm_args[i].srp_vers             = strmvars[i].srpvers;
