@@ -75,7 +75,8 @@
 #define NFRAGS_DEF        NFRAGS
 
 #define TDEST_DEF            0 /* SRP TDEST is TDEST_DEF + 1 */
-#define NUM_TDESTS           2 /* tdest multiplexing by poller */
+#define NUM_RTDESTS          2 /* tdest multiplexing by poller  */
+#define NUM_TTDESTS          2 /* tdest multiplexing by fragger */
 #define TDEST_DEF_IDX        0
 #define TDEST_SRP_IDX        1
 
@@ -154,9 +155,7 @@ typedef struct streamer_args {
 	IoPrt             port;
 	IoQue             srpQ;
 	int                polled_stream_up;
-	unsigned           n_frags;
 	unsigned           fram;
-	unsigned           tdest;
     int                rssi;
 	int                tcp;
 	unsigned           jam;
@@ -165,8 +164,14 @@ typedef struct streamer_args {
 	unsigned           srp_tdest;
 	pthread_t          poller_tid, fragger_tid;
 	int                haveThreads;
+	int                ileave;
 	volatile uint8_t   isRunning;
-	RxBufRec           rxBuf[NUM_TDESTS];
+	RxBufRec           rxBuf[NUM_RTDESTS];
+	struct {
+		unsigned       frag;
+		unsigned       n_frags;
+		unsigned       tdest;
+	}                  txCtx[NUM_TTDESTS];
 } streamer_args;
 
 typedef struct SrpArgs {
@@ -338,7 +343,7 @@ struct timespec to;
 
 RxBuf         rxbuf;
 
-	for ( got = 0; got < NUM_TDESTS; got++ ) {
+	for ( got = 0; got < NUM_RTDESTS; got++ ) {
 		sa->rxBuf[got].bufp = sa->rxBuf[got].buf;
 		sa->rxBuf[got].frag = 0;
 	}
@@ -593,6 +598,7 @@ int      i,j;
 uint32_t crc  = -1;
 int      end_of_frame;
 FragBuf  bufmem;
+int      ctx  = 0;
 
 	while (1) {
 
@@ -608,16 +614,21 @@ FragBuf  bufmem;
 					to.tv_sec  += 1;
 				}
 
-				fragger_rx( sa, &to );
+				if ( sa->ileave ) {
+					nanosleep( &to, 0 );
+				} else {
+					fragger_rx( sa, &to );
+				}
+
 			} while ( ! sa->isRunning );
 		}
 
 		i  = 0;
-		i += insert_headerV1(bufmem, sa->fram, frag, sa->tdest);
+		i += insert_headerV1(bufmem, sa->fram, frag, sa->txCtx[ctx].tdest);
 
 		memset(bufmem + i, (sa->fram << 4) | (frag & 0xf), FRAGLEN);
 
-		end_of_frame = (sa->n_frags - 1 == frag);
+		end_of_frame = (sa->txCtx[ctx].n_frags - 1 == frag);
 
 		crc = crc32_le_t4(crc, bufmem + i, end_of_frame ? FRAGLEN - sizeof(crc) : FRAGLEN);
 
@@ -648,7 +659,7 @@ printf("JAM cleared\n");
 			printf("fragger sent %d[%d]!\n", sa->fram, frag);
 #endif
 
-		if ( ++frag >= sa->n_frags ) {
+		if ( ++frag >= sa->txCtx[ctx].n_frags ) {
 			frag = 0;
 			crc  = -1;
 			sa->fram++;
@@ -954,7 +965,7 @@ struct SrpArgs        srpArgs  [sizeof(srpvars)/sizeof(srpvars[0])  ];
 void
 streamSend(uint8_t *buf, int size, uint8_t tdest)
 {
-int i;
+int i,c;
 	for ( i=0; i<sizeof(strm_args)/sizeof(strm_args[0]); i++ ) {
 		if ( ! strm_args[i].port ) {
 			continue;
@@ -981,9 +992,13 @@ int i;
 		if ( tdest == strm_args[i].srp_tdest ) {
 			fprintf(stderr,"ERROR: cannot post to stream on TDEST %d -- already used by SRP\n", tdest);
 			exit(1);
-		} else if ( tdest == strm_args[i].tdest ) {
-			fprintf(stderr,"ERROR: cannot post to stream on TDEST %d -- already used by udpsrv's STREAM\n", tdest);
-			exit(1);
+		}
+
+		for ( c=0; c<NUM_TTDESTS; c++ ) {
+			if ( tdest == strm_args[i].txCtx[c].tdest ) {
+				fprintf(stderr,"ERROR: cannot post to stream on TDEST %d -- already used by udpsrv's STREAM\n", tdest);
+				exit(1);
+			}
 		}
 
 		insertTDESTV1(buf, tdest);
@@ -1113,6 +1128,7 @@ int      nprts, nstrms;
 	}
 
 	for ( i=0; i<nstrms; i++ ) {
+
 		if ( strmvars[i].port <= 0 )
 			continue;
 
@@ -1122,14 +1138,19 @@ int      nprts, nstrms;
 			strm_args[i].port             = udpPrtCreate( ina, strmvars[i].port, sim_loss, scramble, strmvars[i].haveRssi );
 		}
 		strm_args[i].srpQ                 = ioQueCreate(10);
-		strm_args[i].n_frags              = n_frags;
-		strm_args[i].tdest                = tdest;
+		strm_args[i].txCtx[0].tdest       = tdest;
+		strm_args[i].txCtx[0].frag        = 0;
+		strm_args[i].txCtx[0].n_frags     = n_frags;
+		strm_args[i].txCtx[1].tdest       = (tdest + 2) & 0xff;;
+		strm_args[i].txCtx[1].frag        = 0;
+		strm_args[i].txCtx[1].n_frags     = NFRAGS;
 		strm_args[i].fram                 = 0;
 		strm_args[i].jam                  = 0;
 		strm_args[i].srp_vers             = strmvars[i].srpvers;
 		strm_args[i].rssi                 = strmvars[i].haveRssi;
 		strm_args[i].tcp                  = use_tcp;
 		strm_args[i].srp_tdest            = (tdest + 1) & 0xff;
+		strm_args[i].ileave               = 0;
 
 		if ( ! strm_args[i].port )
 			goto bail;
