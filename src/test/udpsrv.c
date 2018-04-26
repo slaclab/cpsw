@@ -634,7 +634,9 @@ int      ctx;
 		i  = 0;
 		i += insert_headerV1(bufmem, sa->fram, frag, sa->txCtx[ctx].tdest);
 
-		memset(bufmem + i, (sa->fram << 4) | (frag & 0xf), FRAGLEN);
+		bufmem[i] = sa->txCtx[ctx].tdest;
+
+		memset(bufmem + i + 1, (sa->fram << 4) | (frag & 0xf), FRAGLEN - 1);
 
 		end_of_frame = (sa->txCtx[ctx].n_frags - 1 == frag);
 
