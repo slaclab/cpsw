@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript">
+  //@C Copyright Notice
+  //@C ================
+  //@C This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
+  //@C file found in the top-level directory of this distribution and at
+  //@C https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+  //@C
+  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
+  //@C distributed except according to the terms contained in the LICENSE.txt file.
+</script>
+<link rel="stylesheet" href="modest.css"></link>
+<style>
+    .markdown-body {
+        box-sizing: border-box;
+        min-width: 200px;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 5px;
+    }
+</style>
+<script type="text/javascript" src="showdown.min.js"></script>
+<script type="text/javascript">
+/*
+   Get the 'showdown' script (markdown -> html converter):
+   https://github.com/showdownjs/showdown/
+   and the 'modest.css' style:
+   https://github.com/markdowncss/modest.git
+
+   Install to CWD
+*/
+function txt2html() {
+	try {
+		var text = document.getElementById("thePlainContent").textContent;
+		var converter = new showdown.Converter();
+		document.getElementById("theHtmlContent").innerHTML = text;
+
+		var	html = converter.makeHtml( text );
+
+		document.getElementById("thePlainContent").style="display:none;" 
+			document.getElementById("theHtmlContent").innerHTML = html;
+	} catch (err) {
+/* For debugging - uncomment
+		alert(err.message);
+ */
+	}
+}
+</script>
+</head>
+<body>
+<article class="markdown-body" id="theHtmlContent"></article>
+<pre id="thePlainContent">
+THECONTENT
+</pre>
+</body>
+<script>txt2html()</script>
+</html>

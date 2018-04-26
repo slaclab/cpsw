@@ -1,0 +1,125 @@
+R3.7.branch
+
+	Feature: added 'getPath()', 'getConstPath()' to ICommand
+
+R3.6.4
+
+    Added i686 and zynq (arm) targets
+
+R3.6.3
+
+    Removed buildroot-2015 target
+
+R3.7.branch
+
+    Bugfix: path was clobbered (incorrect NELMS) during 'explore' if tail
+            was an array.
+
+    Bugfix: protocol stack builder always used depacketizer if no SRP
+
+    Feature: Added support for fragmentation (packetizer) of outgoing
+            traffic.
+
+    Protocol Stack: changed semantics of 'processOutput/processInput'.
+            these can now 'edit' buffer chains in a more flexible
+            manner.
+
+	Pycpsw: release GIL while blocking to read/write a stream.
+            (hopefull it is OK and python doesn't alter the
+            buffer state; the code we're executing with the GIL
+            unlocked is strictly non-python, of course)
+
+    Feature: block all signals in newly created threads.
+
+R3.7.branch
+
+    Bugfix: (jira ESLCOMMON-178) when loading an IntField config from
+            YAML and the IntField has an enum menu then providing numerical
+            values in the config file didn't work.
+
+    Feature: added 'emitNode' to yaml_cpp wrapper. Convert
+    node hierarchy to string (which can be written to a file).
+
+    Bugfix: proto_stack_builder::useDepack() should not set
+    other params
+
+    Moved 'getEncoding()' from IScalVal_Base to IVal_Base.
+
+    Python: Stream.read() has an optional 'offset' argument
+    (same as underlying IStream::read())
+
+    MemDev: FIX - read(NULL) means that the user wants to 
+    know if data are available; must return nonzero.
+
+    Added support for thread priorities. All internal threads
+    in the protocol stack can be configured (from YAML) with
+    a priority (see doc/README.yamlDefinition).
+
+    New features: a 'NullDev' which is not backed by anything.
+    Useful for testing/debugging because any YAML hierarchy 
+    can be loaded w/o need for hardware (or a lot or memory
+    as with MemDev that covers a large address space).
+
+    Python: a minimal wrapper for yaml-cpp was added; enough
+    to support basic fixups.
+
+    Python: Added YamlFixup so that a fixup (LoadYamlFile etc.)
+    can be written in python. NOTE: this requires yaml-cpp
+    python bindings which must be implemented/obtained elsewhere,
+    i.e., they are NOT part of cpsw.
+
+R3.6.1
+	Makefile fixes
+
+	Added more targets to .PHONY:
+	Recurse 'test' into SUBDIRS, POSTBUILD_SUBDIRS
+	Moved 'test' target to rules.mak
+	Let top-level 'makefile' use 'rules.mak' & friends
+
+R3.6.0
+    Feature/Fix: PYTHON: instantiate Streams via a context manager;
+             i.e., streams can only be used inside a 'with' block!
+             *** NOTE *** this is a python interface change; it is
+             no longer possible to read from a newly created stream
+             (Stream.create() now returns a context manager)!
+             Instead, you must read from the block of a 'with'
+             statement:
+
+                with Stream.create() as s:
+                  s.read( buf )
+
+    Feature: derive IStream from IVal_Base; allows to obtain
+             basic properties from the stream interface.
+
+R3.5.4	    4-May-2017	   Till Straumann (strauman)
+    Bugfix: Path->toString() segfault
+    UDP/TCP: ignore empty buffer chains (but don't deref!)
+    Bugfix: when releasing a buffer our allocator never called the destructor
+    Changed exceptions in cpsw_buf.cc from InternalError -> InvalidArgError
+
+R3.5.3      14-Mar-2017    Till Straumann (strauman)
+    Improved error message when reading config fails
+    Use buffers getAvail() instead of getCapacity when reading RSSI header
+    add getAvail to udpsrv_util's buffer implementation
+    Bugfix: udpsrv's TCP handler
+    cpsw_stream_tst should always use a TDEST muxer
+    Bugfix: cannot collapse writes when the caller supplies bitmasks
+    Bugfix: must not use header after buffer ownership is relinquished
+    Bugfix: cpsw_event.cc - shared_pointer released prematurely
+
+R3.5.2      08-Mar-2017    Till Straumann (strauman)
+    TCP must not discard messages but wait for queue to drain
+    Cleanup in config.mak
+    Added ioQueSend() (blocking send with timeout)
+    Use blocking send when a reliable channel is involved (TCP/RSSI)
+
+R3.5.1      5-Mar-2017     H. Slepicka (slepicka)
+    Changes on the package structure
+        Move source code to src folder
+    Changes on products name
+        linux-x86_64 -> rhel6-x86_64
+        linuxRT-xxxx -> buildroot-<version>-xxxx
+    Changes on rules.mak file
+        Add uninstall rule
+        Include .html and other docs at the install rule
+    Add top-level Makefile

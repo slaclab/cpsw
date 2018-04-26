@@ -1,3 +1,8 @@
 O.*
 *.local.mak
 git_version_string.h
+env.slac.sh
+INSTALL.html
+README.configData.html
+README.yamlDefinition
+README.yamlDefinition.html
