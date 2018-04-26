@@ -52,6 +52,7 @@
 #define FRAGBITS  24
 #define FRAMBITS  12
 #define VERS       0
+#define VERS_V2    2
 #define VERSBITS   4
 
 #define HEADSIZE          8
@@ -314,22 +315,63 @@ uint8_t  tusr1 = 0;
 	return rval;
 }
 
-static int insert_headerV1(uint8_t *hbuf, unsigned fram, unsigned frag, unsigned tdest)
+static uint64_t mkhdrV2(unsigned fram, unsigned frag, unsigned tdest)
+{
+uint64_t rval  = 0;
+uint8_t  tid   = 0;
+uint8_t  tusr1 = 0;
+
+	rval |= VERS_V2 << 0;
+	rval |=       1 << 7; /* FULL crc */
+	rval |= tusr1   << 8;
+	rval |= tid     <<24;
+	rval |= ((uint64_t)(frag & 0xffff)) << 32;
+	if ( 0 == frag ) {
+		rval |= (1ULL   << 63); /* SOF */
+	}
+	return rval;
+}
+
+static void insert64(uint8_t *buf, uint64_t v)
+{
+int      i;
+	for ( i=0; i<sizeof(v); i++ ) {
+		buf[i] = v;
+		v      = v>>8;
+	}
+}
+
+static int insert_header(uint8_t *hbuf, unsigned fram, unsigned frag, unsigned tdest, int v2)
 {
 uint64_t h;
-int      i;
-	h = mkhdrV1(fram, frag, tdest);
-	for ( i=0; i<HEADSIZE; i++ ) {
-		hbuf[i] = h;
-		h       = h>>8;
-	}
-	return i;
+	h = v2 ? mkhdrV2(fram, frag, tdest) : mkhdrV1(fram, frag, tdest);
+	insert64(hbuf, h);
+	return HEADSIZE;
 }
 
 static int appendTailV1(uint8_t *tbuf, unsigned len, int eof)
 {
 	tbuf[len] = eof ? EOFRAG_V1 : 0;
 	return 1;
+}
+
+static int appendTailV2(uint8_t *tbuf, unsigned len, int eof, uint32_t crc)
+{
+uint64_t rem = (len == 0) ? 0 : 8;
+uint64_t tail;
+unsigned l = len;
+
+	while ( l & 7 ) {
+		tbuf[l] = 0;
+		l++;
+		rem--;
+	}
+	tail = (1<<8) | (rem <<16);
+	insert64(tbuf + len, tail);
+	l += 8;
+	crc = crc32_le_t4( crc, tbuf + len, (l - len) ); 
+	tail |= ((uint64_t)crc) << 32;
+	insert64(tbuf + len, tail);
 }
 
 static int handleSRP(int vers, unsigned opts, uint32_t *rbuf, unsigned rbufsz, int got);
@@ -516,7 +558,7 @@ RxBuf         rxbuf;
 }
 
 /* ASSUME: there is 8-bytes available ahead of bufp AND enough space for the tail */
-static void send_fragmented(IoPrt port, uint8_t *bufp, unsigned bufsz, int put, unsigned tdest, unsigned fram)
+static void send_fragmented(IoPrt port, uint8_t *bufp, unsigned bufsz, int put, unsigned tdest, unsigned fram, int v2)
 {
 unsigned frag = 0;
 
@@ -540,7 +582,7 @@ unsigned frag = 0;
 		}
 		memcpy(save, tailp, sizeof(save));
 
-		insert_headerV1( hp, fram, frag, tdest);
+		insert_header( hp, fram, frag, tdest, v2 );
 		taillen = appendTailV1(bufp, chunk, put > 0 ? 0 : 1);
 		if ( ioPrtSend( port, hp, chunk + HEADSIZE + taillen ) < 0 )
 			fprintf(stderr,"fragmenter: write error (sending SRP or STREAM reply)\n");
@@ -588,7 +630,7 @@ uint32_t rbuf[1000000];
 			put = got;
 		}
 
-		send_fragmented( sa->port, (uint8_t*)bufp, sizeof(rbuf) - HEADSIZE, put, tdest, sa->fram );
+		send_fragmented( sa->port, (uint8_t*)bufp, sizeof(rbuf) - HEADSIZE, put, tdest, sa->fram, sa->ileave );
 		sa->fram++;
 	}
 }
@@ -635,7 +677,7 @@ int      ctx;
 		}
 
 		i  = 0;
-		i += insert_headerV1(bufmem, sa->fram, frag, sa->txCtx[ctx].tdest);
+		i += insert_header(bufmem, sa->fram, frag, sa->txCtx[ctx].tdest, sa->ileave);
 
 		bufmem[i] = sa->txCtx[ctx].tdest;
 
