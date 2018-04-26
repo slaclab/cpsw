@@ -37,6 +37,8 @@ unsigned         i, endi;
 
 	hdr.insert(buf, sizeof(buf));
 	buf[ (endi = hdr.getSize()) ] = m;
+	for (i = 1; i<100; i++)
+		buf[endi+i] = i;
 	crc = crc32_le_t4( -1, buf+endi, 100 ) ^ -1;
 	endi += 100;
 	for ( i=0; i<sizeof(crc); i++ ) {
@@ -44,8 +46,6 @@ unsigned         i, endi;
 		crc >>= 8;
 	}
 	endi += i;
-	hdr.iniTail( buf + endi );
-	endi += hdr.getTailSize();
 	strm->write( buf, endi );
 }
 

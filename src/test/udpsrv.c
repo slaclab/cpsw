@@ -487,10 +487,6 @@ RxBuf         rxbuf;
 				 * If this is not the case then we let the test program know by corrupting
 				 * the stream data we send back on purpose.
 				 */
-				gottot -= 1; /* The stream test program appends a tail byte which is not CRCed;
-				              * however, the 'real' tail byte comes from the depacketizer.
-				              * Drop this extra byte...
-				              */
 				if ( crc32_le_t4(-1, rxbuf->buf, gottot) ^ -1 ^ CRC32_LE_POSTINVERT_GOOD ) {
 					fprintf(stderr,"Received message (size %d) with bad CRC\n", gottot);
 					sa->jam = 100;
