@@ -171,6 +171,7 @@ typedef struct streamer_args {
 		unsigned       frag;
 		unsigned       n_frags;
 		unsigned       tdest;
+		uint32_t       crc;
 	}                  txCtx[NUM_TTDESTS];
 } streamer_args;
 
@@ -519,7 +520,6 @@ unsigned frag = 0;
 	while ( put > 0 ) {
 		unsigned chunk = (1024 - HEADSIZE - 12) & ~(7); /* must be dword-aligned */
 		uint8_t  save[16];
-		int      nsav;
 		uint8_t *tailp;
 		uint8_t *hp   = bufp - HEADSIZE;
         int      taillen;
@@ -593,14 +593,22 @@ uint32_t rbuf[1000000];
 void *fragger(void *arg)
 {
 struct streamer_args *sa = (struct streamer_args*)arg;
-unsigned frag = 0;
+unsigned frag;
 int      i,j;
-uint32_t crc  = -1;
+uint32_t crc;
 int      end_of_frame;
 FragBuf  bufmem;
-int      ctx  = 0;
+int      ctx;
+
+	ctx = 0;
+
+	sa->txCtx[ctx].frag = 0;
+	sa->txCtx[ctx].crc  = -1;
 
 	while (1) {
+
+		frag = sa->txCtx[ctx].frag;
+		crc  = sa->txCtx[ctx].crc;
 
 		if ( 0 == frag ) {
 			do {
@@ -664,6 +672,9 @@ printf("JAM cleared\n");
 			crc  = -1;
 			sa->fram++;
 		}
+
+		sa->txCtx[ctx].frag = frag;
+		sa->txCtx[ctx].crc  = crc;
 	}
 	fprintf(stderr,"Fragmenter thread failed\n");
 	exit(1);
@@ -1139,10 +1150,8 @@ int      nprts, nstrms;
 		}
 		strm_args[i].srpQ                 = ioQueCreate(10);
 		strm_args[i].txCtx[0].tdest       = tdest;
-		strm_args[i].txCtx[0].frag        = 0;
 		strm_args[i].txCtx[0].n_frags     = n_frags;
 		strm_args[i].txCtx[1].tdest       = (tdest + 2) & 0xff;;
-		strm_args[i].txCtx[1].frag        = 0;
 		strm_args[i].txCtx[1].n_frags     = NFRAGS;
 		strm_args[i].fram                 = 0;
 		strm_args[i].jam                  = 0;
