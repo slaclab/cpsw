@@ -37,7 +37,7 @@ protected:
 	public:
 		Attr();
 		~Attr();
-	
+
 		pthread_attr_t *getp()
 		{
 			return &a_;

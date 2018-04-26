@@ -145,7 +145,7 @@ extern "C" {
 	 */
 	void streamSend(uint8_t *buf, int size, uint8_t tdest);
 
-	
+
 	void range_io_debug(struct udpsrv_range *r, int rd, uint64_t off, uint32_t nbytes);
 
 	int  register_io_range_1(const char *sysfs_name_and_off);
