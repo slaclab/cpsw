@@ -172,6 +172,7 @@ typedef struct streamer_args {
 		unsigned       n_frags;
 		unsigned       tdest;
 		uint32_t       crc;
+		uint32_t       crcProto;
 	volatile uint8_t   isRunning;
 	}                  txCtx[NUM_TTDESTS];
 } streamer_args;
@@ -187,17 +188,13 @@ typedef struct SrpArgs {
 
 
 static unsigned
-xtractTDESTV1(uint8_t *buf)
+xtractTDEST(uint8_t *buf)
 {
-	return buf[5];
+	if ( (buf[0] & 0xf) == VERS_V2 )
+		return buf[2];
+	else
+		return buf[5];
 }
-
-static unsigned
-xtractTDESTV2(uint8_t *buf)
-{
-	return buf[2];
-}
-
 
 static void
 insertTDESTV1(uint8_t *buf, unsigned tdest)
@@ -206,32 +203,23 @@ insertTDESTV1(uint8_t *buf, unsigned tdest)
 }
 
 static void
-insertTDESTV2(uint8_t *buf, unsigned tdest)
-{
-	buf[2] = (uint8_t)tdest;
-}
-
-
-static void
-getHdrV1(uint8_t *buf, unsigned *vers, unsigned *fram, unsigned *frag, unsigned *tdest, unsigned *tid, unsigned *tusr1)
+getHdr(uint8_t *buf, unsigned *vers, unsigned *fram, unsigned *frag, unsigned *tdest, unsigned *tid, unsigned *tusr1)
 {
 	*vers  = buf[0] & 0xf;
-	*fram  = (buf[1]<<4) | (buf[0]>>4);
-	*frag  = (((buf[4]<<8) | buf[3])<<8) | buf[2];
-	*tdest = buf[5];
-	*tid   = buf[6];
-	*tusr1 = buf[7];
-}
-
-static void
-getHdrV2(uint8_t *buf, unsigned *vers, unsigned *fram, unsigned *frag, unsigned *tdest, unsigned *tid, unsigned *tusr1)
-{
-	*vers  = buf[0] & 0xf;
-	*fram  = 0;
-	*frag  = ((buf[5]<<8) | buf[4]);
-	*tdest = buf[2];
-	*tid   = buf[3];
-	*tusr1 = buf[1];
+	if ( *vers == VERS_V2 ) {
+		*fram  = 0;
+		*frag  = ((buf[5]<<8) | buf[4]);
+		*tdest = buf[2];
+		*tid   = buf[3];
+		*tusr1 = buf[1];
+	} else {
+		*vers  = buf[0] & 0xf;
+		*fram  = (buf[1]<<4) | (buf[0]>>4);
+		*frag  = (((buf[4]<<8) | buf[3])<<8) | buf[2];
+		*tdest = buf[5];
+		*tid   = buf[6];
+		*tusr1 = buf[7];
+	}
 }
 
 
@@ -250,14 +238,35 @@ int      i;
 	return tail;
 }
 
-static int getTailLenV1(uint64_t tail)
+static uint64_t getTail(uint8_t *buf, int sz)
 {
-	return 1;
+	switch ( (buf[0] & 0xf) ) {
+		case VERS    : return getTailV1(buf,sz);
+		case VERS_V2 : return getTailV2(buf,sz);
+
+		default:
+			break;
+	}
+	fprintf(stderr,"getTail: unsupported protocol version\n");
+	abort();
 }
 
 static int getTailLenV2(uint64_t tail)
 {
 	return sizeof(tail) + ((tail>>16) & 0xf);
+}
+
+static int getTailLen(uint8_t *buf, int sz)
+{
+	switch ( (buf[0] & 0xf) ) {
+		case VERS    : return 1;
+		case VERS_V2 : return getTailLenV2( getTailV2( buf, sz ) );
+
+		default:
+			break;
+	}
+	fprintf(stderr,"getTailLen: unsupported protocol version\n");
+	abort();
 }
 
 /* returns 1 -> EOF, 0 -> not eof; -1 error */
@@ -279,6 +288,11 @@ static int checkTailV2(uint64_t tail)
 {
 	/* FIXME: check CRC */
 	return !! (tail & EOFRAG_V2);
+}
+
+static int checkTail(uint64_t tail, int v2)
+{
+	return v2 ? checkTailV2( tail ) : checkTailV1( tail );
 }
 
 static uint64_t mkhdrV1(unsigned fram, unsigned frag, unsigned tdest)
@@ -332,6 +346,19 @@ uint8_t  tusr1 = 0;
 	return rval;
 }
 
+static uint64_t mkhdr(unsigned vers, unsigned fram, unsigned frag, unsigned tdest)
+{
+	switch ( vers ) {
+		case VERS    : return mkhdrV1(fram, frag, tdest);
+		case VERS_V2 : return mkhdrV2(fram, frag, tdest);
+
+		default:
+			break;
+	}
+	fprintf(stderr,"mkhdr: unsupported protocol version\n");
+	abort();
+}
+
 static void insert64(uint8_t *buf, uint64_t v)
 {
 int      i;
@@ -341,21 +368,21 @@ int      i;
 	}
 }
 
-static int insert_header(uint8_t *hbuf, unsigned fram, unsigned frag, unsigned tdest, int v2)
+static int insert_header(uint8_t *hbuf, unsigned vers, unsigned fram, unsigned frag, unsigned tdest)
 {
 uint64_t h;
-	h = v2 ? mkhdrV2(fram, frag, tdest) : mkhdrV1(fram, frag, tdest);
+	h = mkhdr(vers, fram, frag, tdest);
 	insert64(hbuf, h);
 	return HEADSIZE;
 }
 
-static int appendTailV1(uint8_t *tbuf, unsigned len, int eof)
+static int appendTailV1(uint8_t *tbuf, unsigned len, int eof, uint32_t *crc)
 {
 	tbuf[len] = eof ? EOFRAG_V1 : 0;
 	return 1;
 }
 
-static int appendTailV2(uint8_t *tbuf, unsigned len, int eof, uint32_t crc)
+static int appendTailV2(uint8_t *tbuf, unsigned len, int eof, uint32_t *crc)
 {
 uint64_t rem = (len == 0) ? 0 : 8;
 uint64_t tail;
@@ -369,9 +396,23 @@ unsigned l = len;
 	tail = (1<<8) | (rem <<16);
 	insert64(tbuf + len, tail);
 	l += 8;
-	crc = crc32_le_t4( crc, tbuf + len, (l - len) ); 
-	tail |= ((uint64_t)crc) << 32;
+	*crc = crc32_le_t4( *crc, tbuf, l );
+	tail |= ((uint64_t)*crc) << 32;
 	insert64(tbuf + len, tail);
+
+	return l - len;
+}
+
+static int appendTail(uint8_t *tbuf, unsigned len, int eof, uint32_t *crc)
+{
+	switch ( tbuf[0] & 0xf ) {
+		case VERS:    return appendTailV1(tbuf, len, eof, crc);
+		case VERS_V2: return appendTailV2(tbuf, len, eof, crc);
+		default:
+			break;
+	}
+	fprintf(stderr,"appendTail: unsupported protocol version\n");
+	abort();
 }
 
 static int handleSRP(int vers, unsigned opts, uint32_t *rbuf, unsigned rbufsz, int got);
@@ -418,10 +459,10 @@ RxBuf         rxbuf;
 				continue;
 			}
 
-            getHdrV1(tmpbuf, &vers, &fram, &frag, &tdest, &tid, &tusr1);
+            getHdr(tmpbuf, &vers, &fram, &frag, &tdest, &tid, &tusr1);
 
-			tail    = getTailV1(tmpbuf, got);
-			taillen = getTailLenV1( tail );
+			tail    = getTail(tmpbuf, got);
+			taillen = getTailLen(tmpbuf, got);
 
 #ifdef DEBUG
 			if ( debug ) {
@@ -438,7 +479,13 @@ RxBuf         rxbuf;
 
 			got -= taillen;
 
-			if ( vers != 0 || ( tdest != TDEST_DEF && (0 == sa->srp_vers || sa->srp_tdest != tdest ) ) || tid != 0 || tusr1 != (frag == 0 ? (1<<1) : 0) ) {
+			if ( (vers != (sa->ileave ? VERS_V2 : VERS)) ) {
+				fprintf(stderr,"UDPSRV: Incompatible depacketizer proto version received\n");
+				sa->jam = 100;
+				continue;
+			}
+
+			if ( ( tdest != TDEST_DEF && (0 == sa->srp_vers || sa->srp_tdest != tdest ) ) || tid != 0 || tusr1 != (frag == 0 ? (1<<1) : 0) ) {
 				fprintf(stderr,"UDPSRV: Invalid stream header received\n");
 				sa->jam = 100;
 				continue;
@@ -490,7 +537,7 @@ RxBuf         rxbuf;
 			lfram       = fram;
 			rxbuf->frag = frag;
 
-			switch ( checkTailV1(tail) ) {
+			switch ( checkTail(tail, sa->ileave) ) {
 				case 0: /* not EOF */
 					rxbuf->bufp += got - HEADSIZE;
 					continue;
@@ -561,6 +608,7 @@ RxBuf         rxbuf;
 static void send_fragmented(IoPrt port, uint8_t *bufp, unsigned bufsz, int put, unsigned tdest, unsigned fram, int v2)
 {
 unsigned frag = 0;
+uint32_t crc  = -1;
 
 	while ( put > 0 ) {
 		unsigned chunk = (1024 - HEADSIZE - 12) & ~(7); /* must be dword-aligned */
@@ -582,8 +630,8 @@ unsigned frag = 0;
 		}
 		memcpy(save, tailp, sizeof(save));
 
-		insert_header( hp, fram, frag, tdest, v2 );
-		taillen = appendTailV1(bufp, chunk, put > 0 ? 0 : 1);
+		insert_header( hp, fram, frag, tdest, v2 ? VERS_V2 : VERS );
+		taillen = appendTail(bufp, chunk, put > 0 ? 0 : 1, &crc);
 		if ( ioPrtSend( port, hp, chunk + HEADSIZE + taillen ) < 0 )
 			fprintf(stderr,"fragmenter: write error (sending SRP or STREAM reply)\n");
 #ifdef DEBUG
@@ -616,9 +664,9 @@ uint32_t rbuf[1000000];
 			printf("Got %d SRP octets\n", got);
 #endif
 
-		unsigned tdest = xtractTDESTV1((uint8_t*)rbuf);
+		unsigned tdest = xtractTDEST((uint8_t*)rbuf);
 
-		taillen = getTailLenV1( getTailV1( (uint8_t*)rbuf, got ) );
+		taillen = getTailLen( (uint8_t*)rbuf, got );
 
 		got -= taillen;
 
@@ -647,8 +695,9 @@ int      ctx;
 
 	ctx = 0;
 
-	sa->txCtx[ctx].frag = 0;
-	sa->txCtx[ctx].crc  = -1;
+	sa->txCtx[ctx].frag     = 0;
+	sa->txCtx[ctx].crc      = -1;
+	sa->txCtx[ctx].crcProto = -1;
 
 	while (1) {
 
@@ -677,7 +726,7 @@ int      ctx;
 		}
 
 		i  = 0;
-		i += insert_header(bufmem, sa->fram, frag, sa->txCtx[ctx].tdest, sa->ileave);
+		i += insert_header(bufmem, sa->fram, frag, sa->txCtx[ctx].tdest, sa->ileave ? VERS_V2 : VERS);
 
 		bufmem[i] = sa->txCtx[ctx].tdest;
 
@@ -703,7 +752,7 @@ printf("JAM cleared\n");
 
 		i += FRAGLEN;
 
-		i += appendTailV1( bufmem, i, end_of_frame );
+		i += appendTail( bufmem, i, end_of_frame, &sa->txCtx[ctx].crcProto );
 
 		if ( ioPrtSend( sa->port, bufmem, i ) < 0 ) {
 			fprintf(stderr, "fragmenter: write error\n");
@@ -717,6 +766,7 @@ printf("JAM cleared\n");
 		if ( ++frag >= sa->txCtx[ctx].n_frags ) {
 			frag = 0;
 			crc  = -1;
+			sa->txCtx[ctx].crcProto = -1;
 			sa->fram++;
 		}
 
@@ -1019,9 +1069,9 @@ struct strmvariant strmvars[] = {
 struct streamer_args  strm_args[sizeof(strmvars)/sizeof(strmvars[0])];
 struct SrpArgs        srpArgs  [sizeof(srpvars)/sizeof(srpvars[0])  ];
 
-/* send a stream message; the buffer must have 8-bytes at the head reserved for the packet header */
+/* send a stream message; the buffer must have 8-bytes at the head reserved for the packet header as well as enough tail space */
 void
-streamSend(uint8_t *buf, int size, uint8_t tdest)
+streamSend(uint8_t *buf, int totsize, int size, uint8_t tdest)
 {
 int i,c;
 	for ( i=0; i<sizeof(strm_args)/sizeof(strm_args[0]); i++ ) {
@@ -1031,6 +1081,7 @@ int i,c;
 		if (  ! ioPrtRssiIsConn( strm_args[i].port ) && ! strm_args[i].polled_stream_up ) {
 			continue;
 		}
+
 #ifdef DEBUG
 		if ( debug > 2 ) {
 			if ( ioPrtRssiIsConn( strm_args[i].port ) )
@@ -1062,13 +1113,18 @@ int i,c;
 			}
 		}
 
-		insertTDESTV1(buf, tdest);
 
-		if ( strm_args[i].rssi || strm_args[i].tcp ) {
-		 	ioQueSend( strm_args[i].srpQ, buf, size, NULL );
+		if ( strm_args[i].ileave ) {
+			send_fragmented(strm_args[i].port, buf, totsize, size, tdest, 0, strm_args[i].ileave);
 		} else {
-		 	if ( ioQueTrySend( strm_args[i].srpQ, buf, size ) < 0 )
-				fprintf(stderr,"INFO: Stream message dropped\n");
+			insertTDESTV1(buf, tdest);
+
+			if ( strm_args[i].rssi || strm_args[i].tcp ) {
+				ioQueSend( strm_args[i].srpQ, buf, size, NULL );
+			} else {
+				if ( ioQueTrySend( strm_args[i].srpQ, buf, size ) < 0 )
+					fprintf(stderr,"INFO: Stream message dropped\n");
+			}
 		}
 	}
 }
