@@ -281,6 +281,8 @@ static CAdcModl *theModlAdcs[]={
 
 static CBSA     theBSA( 1000 );
 
+#define EXTRA (8+32) // simulate extra data sent by FW (11/22/16) + tailroom
+
 void *CBSA::threadBody()
 {
 struct   timespec    dly       = dly_;
@@ -289,7 +291,7 @@ std::vector<uint8_t> streambuf;
 
 unsigned             actOsz, actIsz;
 
-	streambuf.reserve( maxsz + 8 ); // simulate extra data sent by FW (11/22/16)
+	streambuf.reserve( maxsz + EXTRA );
 
 	for ( unsigned i = 0; i<maxsz; ++i )
 		streambuf.push_back( 0 );
@@ -388,7 +390,7 @@ unsigned             actOsz, actIsz;
 				{
 				memset( &streambuf[actOsz + STREAMBUF_HEADROOM], 0x80, 8 );
 				}
-				streamSend( &streambuf[0], actOsz + STREAMBUF_HEADROOM, theModlAdcs[inst]->getTDEST());
+				streamSend( &streambuf[0], maxsz + EXTRA, actOsz + STREAMBUF_HEADROOM, theModlAdcs[inst]->getTDEST());
 			}
 		}
 		/* should mutex here but who cares... */

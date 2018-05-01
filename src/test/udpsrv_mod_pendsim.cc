@@ -323,10 +323,11 @@ int64_t vi = v*4294967296.; // 2^32
 	}
 }
 
+#define MSGSZ  (3*8)
 void *CPendSim::threadBody()
 {
 struct   timespec dly = dly_;
-uint8_t  streambuf[STREAMBUF_HEADROOM+3*8];
+uint8_t  streambuf[STREAMBUF_HEADROOM+MSGSZ+16]; // tail space
 
 	while ( 1 ) {
 		while ( nanosleep( &dly, &dly ) ) {
@@ -349,7 +350,7 @@ uint8_t  streambuf[STREAMBUF_HEADROOM+3*8];
 			//printf("%g - %g\n", state_[0], state_[2]*l_.getVal());
 		}
 
-		streamSend(streambuf, sizeof(streambuf), PENDULUM_SIMULATOR_TDEST);
+		streamSend(streambuf, sizeof(streambuf), STREAMBUF_HEADROOM + MSGSZ, PENDULUM_SIMULATOR_TDEST);
 	}
 
 	return 0;
