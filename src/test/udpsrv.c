@@ -57,29 +57,31 @@
 
 #define HEADSIZE          8
 #define TAILSPACE         16
+#define TAILSIZE_V2       8
 
 #define EOFRAG_V1         0x80
 #define EOFRAG_V2         (1<<8)
 
-#define V1PORT_DEF        8191
-#define V2PORT_DEF        8192
-#define V3PORT_DEF        8190
-#define V3BPORT_DEF       8189
-#define V3RSSIPORT_DEF    8188
-#define V2RSSIPORT_DEF    8202
-#define SPORT_DEF         8193
-#define SRSSIPORT_DEF     8203
-#define SRSSIPORT_V3_DEF  8200
-#define SCRMBL_DEF           1
-#define INA_DEF           "127.0.0.1"
-#define SIMLOSS_DEF          1
-#define NFRAGS_DEF        NFRAGS
+#define V1PORT_DEF         8191
+#define V2PORT_DEF         8192
+#define V3PORT_DEF         8190
+#define V3BPORT_DEF        8189
+#define V3RSSIPORT_DEF     8188
+#define V2RSSIPORT_DEF     8202
+#define SPORT_DEF          8193
+#define SRSSIPORT_DEF      8203
+#define SRSSIPORT_V3_DEF   8200
+#define SRSSIPORT_IL_DEF   8204
+#define SCRMBL_DEF            1
+#define INA_DEF            "127.0.0.1"
+#define SIMLOSS_DEF           1
+#define NFRAGS_DEF       NFRAGS
 
-#define TDEST_DEF            0 /* SRP TDEST is TDEST_DEF + 1 */
-#define NUM_RTDESTS          2 /* tdest multiplexing by poller  */
-#define NUM_TTDESTS          2 /* tdest multiplexing by fragger */
-#define TDEST_DEF_IDX        0
-#define TDEST_SRP_IDX        1
+#define TDEST_DEF             0 /* SRP TDEST is TDEST_DEF + 1 */
+#define NUM_RTDESTS           2 /* tdest multiplexing by poller  */
+#define NUM_TTDESTS           2 /* tdest multiplexing by fragger */
+#define TDEST_DEF_IDX         0
+#define TDEST_SRP_IDX         1
 
 // byte swap ?
 #define bsl(x) (x)
@@ -96,6 +98,7 @@ typedef struct RxBufRec_ {
 	uint8_t   buf[MAXBUFSZ];
 	uint8_t  *bufp;
 	unsigned  frag;
+    uint32_t  crc;
 } RxBufRec, *RxBuf;
 
 static int debug = 0;
@@ -151,6 +154,7 @@ int i;
 }
 
 #define SRP_OPT_BYTERES (1<<0)
+#define STRM_OPT_ILEAVE (1<<0)
 
 typedef struct streamer_args {
 	IoPrt             port;
@@ -232,7 +236,7 @@ static uint64_t getTailV2(uint8_t *buf, int sz)
 {
 uint64_t tail = 0;
 int      i;
-	for ( i=sizeof(tail)-1; i>=0; --i ) {
+	for ( i=sz-1; i>=sz - sizeof(tail); --i ) {
 		tail = (tail<<8) | buf[i];
 	}
 	return tail;
@@ -253,7 +257,7 @@ static uint64_t getTail(uint8_t *buf, int sz)
 
 static int getTailLenV2(uint64_t tail)
 {
-	return sizeof(tail) + ((tail>>16) & 0xf);
+	return sizeof(tail) + 8 - ((tail>>16) & 0xf);
 }
 
 static int getTailLen(uint8_t *buf, int sz)
@@ -270,8 +274,9 @@ static int getTailLen(uint8_t *buf, int sz)
 }
 
 /* returns 1 -> EOF, 0 -> not eof; -1 error */
-static int checkTailV1(uint64_t tail)
+static int checkTailV1(uint64_t tail, uint32_t *crc)
 {
+	*crc = 0;
 	switch ((uint8_t)tail) {
 		case 0:
 			return 0;
@@ -284,15 +289,16 @@ static int checkTailV1(uint64_t tail)
 }
 
 /* returns 1 -> EOF, 0 -> not eof; -1 error */
-static int checkTailV2(uint64_t tail)
+static int checkTailV2(uint64_t tail, uint32_t *crc)
 {
-	/* FIXME: check CRC */
+printf("CHeck tail: %016"PRIx64"\n", tail);
+	*crc = __builtin_bswap32( tail >> 32 );
 	return !! (tail & EOFRAG_V2);
 }
 
-static int checkTail(uint64_t tail, int v2)
+static int checkTail(uint64_t tail, int v2, uint32_t *crc)
 {
-	return v2 ? checkTailV2( tail ) : checkTailV1( tail );
+	return v2 ? checkTailV2( tail, crc ) : checkTailV1( tail, crc );
 }
 
 static uint64_t mkhdrV1(unsigned fram, unsigned frag, unsigned tdest)
@@ -336,7 +342,7 @@ uint8_t  tid   = 0;
 uint8_t  tusr1 = 0;
 
 	rval |= VERS_V2 << 0;
-	rval |=       1 << 7; /* FULL crc */
+	rval |=       2 << 4; /* FULL crc */
 	rval |= tusr1   << 8;
 	rval |= tid     <<24;
 	rval |= ((uint64_t)(frag & 0xffff)) << 32;
@@ -372,6 +378,7 @@ static int insert_header(uint8_t *hbuf, unsigned vers, unsigned fram, unsigned f
 {
 uint64_t h;
 	h = mkhdr(vers, fram, frag, tdest);
+printf("Made header: 0x%"PRIx64"\n", h);
 	insert64(hbuf, h);
 	return HEADSIZE;
 }
@@ -387,17 +394,24 @@ static int appendTailV2(uint8_t *tbuf, unsigned len, int eof, uint32_t *crc)
 uint64_t rem = (len == 0) ? 0 : 8;
 uint64_t tail;
 unsigned l = len;
+uint32_t crc_swapped;
 
 	while ( l & 7 ) {
 		tbuf[l] = 0;
 		l++;
 		rem--;
 	}
-	tail = (1<<8) | (rem <<16);
+	tail = (rem <<16);
+	if ( eof ) {
+		tail |= EOFRAG_V2;
+	}
 	insert64(tbuf + len, tail);
 	l += 8;
-	*crc = crc32_le_t4( *crc, tbuf, l );
-	tail |= ((uint64_t)*crc) << 32;
+	crc_swapped = *crc = crc32_le_t4( *crc, tbuf, len );
+    crc_swapped = ((crc_swapped & 0xff00ff00) >>  8) | ((crc_swapped & 0x00ff00ff) <<  8);
+    crc_swapped = ((crc_swapped & 0xffff0000) >> 16) | ((crc_swapped & 0x0000ffff) << 16);
+
+	tail |= ((uint64_t)crc_swapped) << 32;
 	insert64(tbuf + len, tail);
 
 	return l - len;
@@ -422,8 +436,10 @@ void *poller(void *arg)
 struct streamer_args *sa = (struct streamer_args*)arg;
 TmpBuf        tmpbuf;
 int           got, gottot = 0;
+uint32_t      crc_in;
 int           lfram = -1;
 struct timespec to;
+int           isEof;
 
 RxBuf         rxbuf;
 
@@ -519,6 +535,7 @@ RxBuf         rxbuf;
 				}
 				rxbuf->frag = 0;
 				rxbuf->bufp = rxbuf->buf;
+                rxbuf->crc  = -1;
 			} else {
 				if ( lfram != fram ) {
 					fprintf(stderr,"UDPSRV: Non-consecutive fragments of different frames received\n");
@@ -537,7 +554,26 @@ RxBuf         rxbuf;
 			lfram       = fram;
 			rxbuf->frag = frag;
 
-			switch ( checkTail(tail, sa->ileave) ) {
+			isEof = checkTail(tail, sa->ileave, &crc_in);
+
+			if ( VERS_V2 == vers ) {
+	        	if ( got <  HEADSIZE ) {
+					fprintf(stderr,"UDPSRV: inconsistent frame length\n");
+					exit(1);
+				}
+/* We should compute the crc over whatever they send
+				if ( taillen - 8 > 0 ) {
+					memset(tmpbuf + got, 0, taillen - 8);
+				}
+*/
+				rxbuf->crc  = crc32_le_t4(rxbuf->crc, tmpbuf, got + taillen - 4);
+
+				if ( crc_in != ~rxbuf->crc ) {
+					fprintf(stderr,"UDPSRV: Invalid V2 fragment checksum -- got 0x%08x, exp 0x%08x\n", ~rxbuf->crc, crc_in);
+				}
+			}
+
+			switch ( isEof ) {
 				case 0: /* not EOF */
 					rxbuf->bufp += got - HEADSIZE;
 					continue;
@@ -630,13 +666,20 @@ uint32_t crc  = -1;
 		}
 		memcpy(save, tailp, sizeof(save));
 
-		insert_header( hp, fram, frag, tdest, v2 ? VERS_V2 : VERS );
-		taillen = appendTail(bufp, chunk, put > 0 ? 0 : 1, &crc);
+		insert_header( hp, v2 ? VERS_V2 : VERS, fram, frag, tdest );
+		taillen = appendTail(hp, chunk + HEADSIZE, put > 0 ? 0 : 1, &crc);
 		if ( ioPrtSend( port, hp, chunk + HEADSIZE + taillen ) < 0 )
 			fprintf(stderr,"fragmenter: write error (sending SRP or STREAM reply)\n");
 #ifdef DEBUG
-		else if ( debug > 2 )
+		else if ( debug > 2 ) {
+int i;
 			printf("Sent to port %d\n", ioPrtIsConn( port ));
+			printf("VERS V2 %c, frame %d, frag %d, tdest 0x%02x\n", v2 ? 'y' :'n', fram, frag, tdest);
+            for ( i=0; i<10; i++ ) {
+				printf("0x%02x ", hp[i]);
+			}
+			printf("\n");
+		}
 #endif
 		/* restore */
 		memcpy(tailp, save, sizeof(save));
@@ -659,12 +702,13 @@ uint32_t rbuf[1000000];
 		unsigned  bufsz = sizeof(rbuf) - HEADSIZE;
 		int       taillen;
 
-#ifdef DEBUG
-		if ( debug > 2 )
-			printf("Got %d SRP octets\n", got);
-#endif
-
 		unsigned tdest = xtractTDEST((uint8_t*)rbuf);
+
+#ifdef DEBUG
+		if ( debug > 2 ) {
+			printf("fragger_rx got %d octets; tdest 0x%02x\n", got, tdest);
+		}
+#endif
 
 		taillen = getTailLen( (uint8_t*)rbuf, got );
 
@@ -699,6 +743,8 @@ int      ctx;
 	sa->txCtx[ctx].crc      = -1;
 	sa->txCtx[ctx].crcProto = -1;
 
+    if ( sa->ileave) printf("fragger startup\n");
+
 	while (1) {
 
 		frag = sa->txCtx[ctx].frag;
@@ -717,16 +763,17 @@ int      ctx;
 				}
 
 				if ( sa->ileave ) {
-					nanosleep( &to, 0 );
+					clock_nanosleep( CLOCK_REALTIME, TIMER_ABSTIME, &to, 0 );
 				} else {
 					fragger_rx( sa, &to );
 				}
 
+if ( sa->ileave ) printf("Fragger poll\n");
 			} while ( ! sa->txCtx[ctx].isRunning );
 		}
 
 		i  = 0;
-		i += insert_header(bufmem, sa->fram, frag, sa->txCtx[ctx].tdest, sa->ileave ? VERS_V2 : VERS);
+		i += insert_header(bufmem, sa->ileave ? VERS_V2 : VERS, sa->fram, frag, sa->txCtx[ctx].tdest);
 
 		bufmem[i] = sa->txCtx[ctx].tdest;
 
@@ -754,10 +801,12 @@ printf("JAM cleared\n");
 
 		i += appendTail( bufmem, i, end_of_frame, &sa->txCtx[ctx].crcProto );
 
+if ( sa->ileave ) printf("Fragger ioprtsend\n");
 		if ( ioPrtSend( sa->port, bufmem, i ) < 0 ) {
 			fprintf(stderr, "fragmenter: write error\n");
 			break;
 		}
+if ( sa->ileave ) printf("Fragger ioprtsend don\n");
 #ifdef DEBUG
 		if ( debug )
 			printf("fragger sent %d[%d]!\n", sa->fram, frag);
@@ -1041,7 +1090,7 @@ struct srpvariant {
 };
 
 struct strmvariant {
-	int port, haveRssi, srpvers;
+	int port, haveRssi, srpvers, opts;
 };
 
 #define V1_NORSSI  0
@@ -1061,9 +1110,10 @@ struct srpvariant srpvars[] = {
 #define STRM_NORSSI 0
 #define STRM_RSSI   1
 struct strmvariant strmvars[] = {
-	{ SPORT_DEF,        WITHOUT_RSSI, 0 }, /* run no SRP on scrambled channel */
-	{ SRSSIPORT_DEF,    WITH_RSSI,    2 }, /* SRP will be slow due to scrambled RSSI */
-	{ SRSSIPORT_V3_DEF, WITH_RSSI,    3 }, /* SRP will be slow due to scrambled RSSI */
+	{ SPORT_DEF,        WITHOUT_RSSI, 0,               0 }, /* run no SRP on scrambled channel */
+	{ SRSSIPORT_DEF,    WITH_RSSI,    2,               0 }, /* SRP will be slow due to scrambled RSSI */
+	{ SRSSIPORT_V3_DEF, WITH_RSSI,    3,               0 }, /* SRP will be slow due to scrambled RSSI */
+	{ SRSSIPORT_IL_DEF, WITH_RSSI,    3, STRM_OPT_ILEAVE }, /* SRP will be slow due to scrambled RSSI */
 };
 
 struct streamer_args  strm_args[sizeof(strmvars)/sizeof(strmvars[0])];
@@ -1267,7 +1317,7 @@ int      nprts, nstrms;
 		strm_args[i].rssi                 = strmvars[i].haveRssi;
 		strm_args[i].tcp                  = use_tcp;
 		strm_args[i].srp_tdest            = (tdest + 1) & 0xff;
-		strm_args[i].ileave               = 0;
+		strm_args[i].ileave               = !! (strmvars[i].opts & STRM_OPT_ILEAVE);
 
 		if ( ! strm_args[i].port )
 			goto bail;
