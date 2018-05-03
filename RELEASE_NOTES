@@ -1,3 +1,6 @@
+    Bugfix: RSSI protocol module 'push' with absolute timeout would
+            pop from underlying queue instead of pushing.
+
     Fix:    test driver for streams over unreliable transport should use
             some margin of acceptable errors. This was set to 22% (builder
             API) but when the same test was run with a YAML hierarchy the
