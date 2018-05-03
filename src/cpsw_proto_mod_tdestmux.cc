@@ -8,7 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #include <cpsw_proto_mod_tdestmux.h>
-#include <cpsw_proto_mod_depack.h>
+#include <cpsw_proto_depack.h>
 
 #include <cpsw_yaml.h>
 
