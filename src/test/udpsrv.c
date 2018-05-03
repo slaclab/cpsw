@@ -92,7 +92,7 @@
 #define FRAGBUFSZ (FRAGLEN + HEADSIZE + TAILSPACE)
 
 typedef uint8_t FragBuf[FRAGBUFSZ];
-typedef uint8_t TmpBuf[HEADSIZE + 1200 + TAILSPACE];
+typedef uint8_t TmpBuf[HEADSIZE + 16384 + TAILSPACE];
 
 typedef struct RxBufRec_ {
 	uint8_t   buf[MAXBUFSZ];
@@ -344,6 +344,7 @@ uint8_t  tusr1 = 0;
 	rval |= VERS_V2 << 0;
 	rval |=       2 << 4; /* FULL crc */
 	rval |= tusr1   << 8;
+	rval |= tdest   <<16;
 	rval |= tid     <<24;
 	rval |= ((uint64_t)(frag & 0xffff)) << 32;
 	if ( 0 == frag ) {
@@ -469,6 +470,7 @@ RxBuf         rxbuf;
 			unsigned vers, fram, frag, tdest, tid, tusr1;
 			uint64_t tail;
 			int      taillen;
+			unsigned avail, copied;
 
 			if ( got < 9 ) { /* FIXME - limit should be version specific */
 				sa->jam = 100; // frame not even large enough to be valid
@@ -509,15 +511,21 @@ RxBuf         rxbuf;
 
 			rxbuf = & sa->rxBuf[(tdest == TDEST_DEF) ? TDEST_DEF_IDX : TDEST_SRP_IDX];
 
-			unsigned avail = sizeof(rxbuf->buf) - (rxbuf->bufp - rxbuf->buf);
+			avail = sizeof(rxbuf->buf) - (rxbuf->bufp - rxbuf->buf);
 
-			if ( avail < got - HEADSIZE ) {
+			copied = got;
+			if ( frag != 0 ) {
+				copied -= HEADSIZE;
+			}
+
+			/* last fragment has tail attached */
+			if ( avail < copied + taillen ) {
 				fprintf(stderr,"Poller: RX buffer overflow\n");
 				rxbuf->bufp = rxbuf->buf;
 				continue;
 			}
 
-			memcpy( rxbuf->bufp, tmpbuf + HEADSIZE, got - HEADSIZE );
+			memcpy( rxbuf->bufp, tmpbuf + (0 == frag ? 0 : HEADSIZE), copied );
 
 			if ( frag == 0 ) {
 				// assume 1st frame of a new instance of the test program always starts at 0
@@ -557,10 +565,6 @@ RxBuf         rxbuf;
 			isEof = checkTail(tail, sa->ileave, &crc_in);
 
 			if ( VERS_V2 == vers ) {
-	        	if ( got <  HEADSIZE ) {
-					fprintf(stderr,"UDPSRV: inconsistent frame length\n");
-					exit(1);
-				}
 /* We should compute the crc over whatever they send
 				if ( taillen - 8 > 0 ) {
 					memset(tmpbuf + got, 0, taillen - 8);
@@ -575,11 +579,12 @@ RxBuf         rxbuf;
 
 			switch ( isEof ) {
 				case 0: /* not EOF */
-					rxbuf->bufp += got - HEADSIZE;
+					rxbuf->bufp += copied;
 					continue;
 
 				case 1: /* EOF */
-            		gottot      = (rxbuf->bufp - rxbuf->buf) + got - HEADSIZE;
+					memcpy(rxbuf->bufp + copied, tmpbuf + copied, taillen);
+					gottot      = (rxbuf->bufp - rxbuf->buf) + copied + taillen;
 					rxbuf->bufp = rxbuf->buf;
 					break;
 
@@ -591,7 +596,7 @@ RxBuf         rxbuf;
 
 
 			if ( sa->srp_vers && sa->srp_tdest == tdest ) {
-				if ( gottot < HEADSIZE + 12 ) {
+				if ( gottot < 12 + HEADSIZE ) {
 					fprintf(stderr,"UDPSRV: SRP request too small\n");
 				} else {
 					int put;
@@ -610,6 +615,8 @@ RxBuf         rxbuf;
 #endif
 				}
 			} else {
+				uint8_t *payload = rxbuf->buf + HEADSIZE;
+				int      paysize = gottot - HEADSIZE - taillen;
 
 				/* This is for testing the stream-write feature. We don't actually send anything
 				 * meaningful back.
@@ -618,19 +625,19 @@ RxBuf         rxbuf;
 				 * If this is not the case then we let the test program know by corrupting
 				 * the stream data we send back on purpose.
 				 */
-				if ( crc32_le_t4(-1, rxbuf->buf, gottot) ^ -1 ^ CRC32_LE_POSTINVERT_GOOD ) {
-					fprintf(stderr,"Received message (size %d) with bad CRC\n", gottot);
+				if ( crc32_le_t4(-1, payload, paysize) ^ -1 ^ CRC32_LE_POSTINVERT_GOOD ) {
+					fprintf(stderr,"Received message (size %d; payload %d) with bad CRC\n", gottot, paysize);
 					sa->jam = 100;
 	printf("JAM\n");
 				}
 
-				sa->txCtx[0].isRunning = !!(rxbuf->buf[0] & 1);
+				sa->txCtx[0].isRunning = !!(payload[0] & 1);
 				if ( sa->ileave ) {
-					sa->txCtx[1].isRunning = !!(rxbuf->buf[0] & 2);
+					sa->txCtx[1].isRunning = !!(payload[0] & 2);
 				}
 #ifdef DEBUG
 				if ( debug ) {
-					printf("Stream start/stop msg 0x%02"PRIx8"\n", rxbuf->buf[0]);
+					printf("Stream start/stop msg 0x%02"PRIx8"\n", payload[0]);
 				}
 #endif
 			}
