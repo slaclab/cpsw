@@ -40,7 +40,7 @@ CProtoModRssi::push(BufChain bc, const CTimeout *timeout, bool abs_timeout)
 		return inpQ_->push( bc, timeout );
 	} else {
 		CTimeout abst( inpQ_->getAbsTimeoutPush( timeout ) );
-		return inpQ_->pop( &abst );
+		return inpQ_->push( bc, &abst );
 	}	
 }
 
