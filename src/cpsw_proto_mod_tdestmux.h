@@ -62,7 +62,8 @@ private:
 
 protected:
 	CTDestPort(const CTDestPort &orig, Key k)
-	: CByteMuxPort<CProtoModTDestMux>(orig, k)
+	: CByteMuxPort<CProtoModTDestMux>(orig, k),
+	  stripHeader_( orig.stripHeader_ )
 	{
 	}
 
@@ -82,6 +83,10 @@ public:
 
 	virtual bool pushDownstream(BufChain bc, const CTimeout *rel_timeout);
 
+	virtual CTDestPort *clone(Key k)
+	{
+		return new CTDestPort( *this, k );
+	}
 };
 
 #endif

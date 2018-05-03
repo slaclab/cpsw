@@ -37,6 +37,13 @@ protected:
 	  CRunnable(orig),
 	  nPorts_(orig.nPorts_)
 	{
+	unsigned i;
+		for ( i=0; i < sizeof(downstream_)/sizeof(downstream_[0]); i++ ) {
+			PORT p = PORT( orig.downstream_[i] );
+			if ( p ) {
+				downstream_[i] = addPort( CShObj::clone( p ) );
+			}
+		}
 		throw InternalError("Clone not implemented");
 	}
 
@@ -53,6 +60,11 @@ protected:
 		nPorts_++;
 
 		return port;
+	}
+
+	virtual PORT addPort(PORT port)
+	{
+		return addPort( port->getDest(), port );
 	}
 
 public:
@@ -218,7 +230,6 @@ public:
 		if ( prio != IProtoStackBuilder::DFLT_THREAD_PRIORITY )
 			writeNode(node, YAML_KEY_threadPriority, prio);
 	}
-
 
 };
 
