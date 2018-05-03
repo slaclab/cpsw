@@ -309,7 +309,7 @@ public:
 
 };
 
-class CProtoDepack2 : public CPackHeaderBase<CProtoDepack2> {
+class CDepack2Header : public CPackHeaderBase<CDepack2Header> {
 public:
 	typedef enum { NONE=0, DATA=1, FULL=2 } CrcMode;
 
@@ -336,8 +336,8 @@ public:
 	static const unsigned VERSION             =  VERSION_2;
 	static const unsigned TAIL_SIZE           =  8;
 
-	CProtoDepack2(unsigned frameNo = 0, unsigned fragNo = 0, unsigned tDest = 0)
-	: CPackHeaderBase<CProtoDepack2>(fragNo, tDest),
+	CDepack2Header(unsigned frameNo = 0, unsigned fragNo = 0, unsigned tDest = 0)
+	: CPackHeaderBase<CDepack2Header>(fragNo, tDest),
 	  crcMode_( FULL )
 	{
 	}
@@ -372,10 +372,15 @@ public:
 		crcMode_ = mode;
 	}
 
-	CProtoDepack2(uint8_t *hdrBase, size_t hdrSize)
+	CDepack2Header(uint8_t *hdrBase, size_t hdrSize)
 	{
 		if ( ! parse(hdrBase, hdrSize) )
 			throw InvalidHeaderException();
+	}
+
+	static FragID fragNoInc(FragID fragNo)
+	{
+		return (++fragNo) & ( (1<<FRAG_NO_BIT_SIZE) - 1 );
 	}
 };
 
