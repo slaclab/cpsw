@@ -84,9 +84,16 @@ public:
 
 	virtual void dumpInfo(FILE *f)
 	{
+	unsigned slot;
 		fprintf(f,"%s:\n", getName());
 		fprintf(f,"  # virtual channels in use: %u\n", getNumPortsUsed());
 		fprintf(f,"  Thread Priority          : %d\n", getPrio());
+
+		for ( slot = 0; slot < sizeof(downstream_)/sizeof(downstream_[0]); slot++ ) {
+			PORT p = PORT( downstream_[slot] );
+			if ( p )
+				p->dumpInfo( f );
+		}
 	}
 
 	// derived class usually implements a 'newPort' method
@@ -229,6 +236,16 @@ public:
 	int prio = owner_->getPrio();
 		if ( prio != IProtoStackBuilder::DFLT_THREAD_PRIORITY )
 			writeNode(node, YAML_KEY_threadPriority, prio);
+	}
+
+	OwnerType getOwner()
+	{
+		return owner_;
+	}
+
+	virtual void dumpInfo(FILE *f)
+	{
+		fprintf(f,"  Port@Dest %d (0x%02x):\n", getDest(), getDest());
 	}
 
 };

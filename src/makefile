@@ -48,12 +48,14 @@ cpsw_SRCS+= cpsw_proto_mod_udp.cc
 cpsw_SRCS+= cpsw_proto_mod_tcp.cc
 cpsw_SRCS+= cpsw_proto_mod_srpmux.cc
 cpsw_SRCS+= cpsw_proto_mod_tdestmux.cc
+cpsw_SRCS+= cpsw_proto_mod_tdestmux2.cc
 cpsw_SRCS+= cpsw_proto_mod_rssi.cc
 cpsw_SRCS+= cpsw_proto_stack_builder.cc
 cpsw_SRCS+= cpsw_thread.cc
 cpsw_SRCS+= cpsw_yaml.cc
 cpsw_SRCS+= cpsw_preproc.cc
 cpsw_SRCS+= cpsw_version.cc
+cpsw_SRCS+= cpsw_crc32_le.cc
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h

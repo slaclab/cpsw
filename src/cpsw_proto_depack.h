@@ -74,7 +74,7 @@ public:
 	static const unsigned TUSR1_BIT_SIZE      = T::TUSR1_BIT_SIZE;
 
 	static const unsigned FRAG_FRST_BIT       = T::FRAG_FRST_BIT;
-	static const unsigned FRAG_LAST_BIT       = T::FRAG_LAST_BIT;
+	static const unsigned T_FRAG_LAST_BIT     = T::T_FRAG_LAST_BIT;
 
 	static const unsigned VERSION_0           =  0;
 	static const unsigned VERSION_2           =  2;
@@ -140,6 +140,7 @@ public:
 	ProtoVersion getVersion() { return vers_;    }
 	uint8_t      getTDest()   { return tDest_;   }
 	uint8_t      getTUsr1()   { return tUsr1_;   }
+	uint8_t      getTId()     { return tId_;     }
 	bool         getSOF()     { return !! (tUsr1_ & (1<<FRAG_FRST_BIT)); }
 
 	void         setFragNo(FragID   fragNo)
@@ -158,21 +159,26 @@ public:
 		tUsr1_   = tUsr1;
 	}
 
+	void         setTId(uint8_t   tId)
+	{
+		tId_   = tId;
+	}
+
 	static size_t getSize()     { return HEADER_SIZE; }
 
 	static size_t getTailSize() { return TAIL_SIZE;   }
 
 	static bool getTailEOF(uint8_t *tailbuf)
 	{
-	unsigned idx = FRAG_LAST_BIT/8;
-	uint8_t  msk = ( 1<< (FRAG_LAST_BIT & 7) );
+	unsigned idx = T_FRAG_LAST_BIT/8;
+	uint8_t  msk = ( 1<< (T_FRAG_LAST_BIT & 7) );
 		return tailbuf[idx] & msk;
 	}
 
 	static void setTailEOF(uint8_t *tailbuf, bool eof)
 	{
-	unsigned idx = FRAG_LAST_BIT/8;
-	uint8_t  msk = ( 1<< (FRAG_LAST_BIT & 7) );
+	unsigned idx = T_FRAG_LAST_BIT/8;
+	uint8_t  msk = ( 1<< (T_FRAG_LAST_BIT & 7) );
 		if ( eof ) {
 			tailbuf[idx] |=  msk;
 		} else {
@@ -238,7 +244,7 @@ public:
 	static const unsigned TUSR1_BIT_SIZE      =  8;
 
 	static const unsigned FRAG_FRST_BIT       =  1; // SOF in tUSR1
-	static const unsigned FRAG_LAST_BIT       =  7; // EOF in tail byte
+	static const unsigned T_FRAG_LAST_BIT     =  7; // EOF in tail byte
 
 	static const unsigned VERSION             =  VERSION_0;
 	static const unsigned TAIL_SIZE           =  1;
@@ -328,15 +334,24 @@ public:
 	static const unsigned FRAG_NO_BIT_OFFSET  = 32;
 	static const unsigned FRAG_NO_BIT_SIZE    = 16;
 
+	static const unsigned T_TUSR2_BIT_OFFSET  =  0;
+	static const unsigned T_TUSR2_BIT_SIZE    =  8;
+	static const unsigned T_NLANES_BIT_OFFSET = 16;
+	static const unsigned T_NLANES_BIT_SIZE   =  4;
+	static const unsigned T_CRC_BIT_OFFSET    = 32;
+	static const unsigned T_CRC_BIT_SIZE      = 32;
+
 	static const unsigned FRAG_FRST_BIT       =  1; // SOF in tUSR1
-	static const unsigned FRAG_LAST_BIT       =  8; // EOF in tail byte
+	static const unsigned T_FRAG_LAST_BIT     =  8; // EOF in tail byte
 
 	static const unsigned SOF_BIT_OFFSET      = 63; // SOF in V2 header
 
 	static const unsigned VERSION             =  VERSION_2;
 	static const unsigned TAIL_SIZE           =  8;
 
-	CDepack2Header(unsigned frameNo = 0, unsigned fragNo = 0, unsigned tDest = 0)
+	static const unsigned ALIGNMENT           =  8;
+
+	CDepack2Header(unsigned fragNo = 0, unsigned tDest = 0)
 	: CPackHeaderBase<CDepack2Header>(fragNo, tDest),
 	  crcMode_( FULL )
 	{
@@ -354,6 +369,8 @@ public:
 	void insert(uint8_t *hdrBase, size_t hdrSize)
 	{
 		CPackHeaderBase::insert( hdrBase, hdrSize );
+		// fragNo may roll over (ok for the protocol) but we maintain it as an unsigned
+		// so getFragNo() == 0 only marks the first fragment.
 		if ( 0 == getFragNo() ) {
 			hdrBase[SOF_BIT_OFFSET/8] |= (1<<(SOF_BIT_OFFSET &7));
 		}
@@ -372,16 +389,67 @@ public:
 		crcMode_ = mode;
 	}
 
+	bool
+	isFirst(uint8_t *hdrBase)
+	{
+		return hdrBase[SOF_BIT_OFFSET/8] & (1<<(SOF_BIT_OFFSET & 7));
+	}
+
 	CDepack2Header(uint8_t *hdrBase, size_t hdrSize)
 	{
 		if ( ! parse(hdrBase, hdrSize) )
 			throw InvalidHeaderException();
 	}
 
-	static FragID fragNoInc(FragID fragNo)
+	static unsigned parseTUsr2(uint8_t *tailBase)
 	{
-		return (++fragNo) & ( (1<<FRAG_NO_BIT_SIZE) - 1 );
+		return getNum( tailBase, T_TUSR2_BIT_OFFSET, T_TUSR2_BIT_SIZE );
 	}
+
+	static void insertTUsr2(uint8_t *tailBase, unsigned val)
+	{
+		return setNum( tailBase, T_TUSR2_BIT_OFFSET, T_TUSR2_BIT_SIZE, val );
+	}
+
+
+	static unsigned parseNumLanes(uint8_t *tailBase)
+	{
+	unsigned numLanes = getNum( tailBase, T_NLANES_BIT_OFFSET, T_NLANES_BIT_SIZE );
+		if ( numLanes > ALIGNMENT ) {
+			throw InvalidHeaderException();
+		}
+		return numLanes;
+	}
+
+	static void insertNumLanes(uint8_t *tailBase, unsigned val)
+	{
+		return setNum( tailBase, T_NLANES_BIT_OFFSET, T_NLANES_BIT_SIZE, val );
+	}
+
+
+	static uint32_t parseCrc(uint8_t *tailBase)
+	{
+	uint32_t crc = (uint32_t)getNum( tailBase, T_CRC_BIT_OFFSET, T_CRC_BIT_SIZE );
+		/* CRC is stored as BIG-ENDIAN */
+		return __builtin_bswap32( crc );
+	}
+
+	static void insertCrc(uint8_t *tailBase, uint32_t crc)
+	{
+		/* CRC is stored as BIG-ENDIAN */
+		setNum( tailBase, T_CRC_BIT_OFFSET, T_CRC_BIT_SIZE, __builtin_bswap32( crc ) );
+	}
+
+	static unsigned getTailPadding(unsigned size)
+	{
+		return (ALIGNMENT - size) & (ALIGNMENT - 1);
+	}
+
+	static bool tailIsAligned(uint8_t *tailBase)
+	{
+		return ! ( ((uintptr_t)tailBase) & (ALIGNMENT - 1) );
+	}
+
 };
 
 #endif

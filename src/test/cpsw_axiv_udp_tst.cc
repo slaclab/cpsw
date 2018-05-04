@@ -536,7 +536,7 @@ uint16_t  u16;
 
 		{
 			ProtoStackBuilder bldr = IProtoStackBuilder::create();
-			IProtoStackBuilder::ProtocolVersion protoVers;
+			IProtoStackBuilder::SRPProtoVersion protoVers;
 			switch ( vers ) {
 				default: throw TestFailed();
 				case 1: protoVers = IProtoStackBuilder::SRP_UDP_V1; break;

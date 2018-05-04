@@ -156,6 +156,10 @@ int i;
 #define SRP_OPT_BYTERES (1<<0)
 #define STRM_OPT_ILEAVE (1<<0)
 
+#define HAVE_POLLER     (1<<0)
+#define HAVE_FRAGGER    (1<<1)
+#define HAVE_FRAGGER_RX (1<<2)
+
 typedef struct streamer_args {
 	IoPrt             port;
 	IoQue             srpQ;
@@ -167,7 +171,7 @@ typedef struct streamer_args {
 	int                srp_vers;
 	unsigned           srp_opts;
 	unsigned           srp_tdest;
-	pthread_t          poller_tid, fragger_tid;
+	pthread_t          poller_tid, fragger_tid, fragger_rx_tid;
 	int                haveThreads;
 	int                ileave;
 	RxBufRec           rxBuf[NUM_RTDESTS];
@@ -379,7 +383,7 @@ static int insert_header(uint8_t *hbuf, unsigned vers, unsigned fram, unsigned f
 {
 uint64_t h;
 	h = mkhdr(vers, fram, frag, tdest);
-printf("Made header: 0x%"PRIx64"\n", h);
+//printf("Made header: 0x%"PRIx64"\n", h);
 	insert64(hbuf, h);
 	return HEADSIZE;
 }
@@ -484,7 +488,7 @@ RxBuf         rxbuf;
 
 #ifdef DEBUG
 			if ( debug ) {
-				printf("Got stream message (sz %d):\n", got);
+				printf("Got stream message (sz %d, taillen %d, tail %016"PRIx64"):\n", got, taillen, tail);
 				printf("   Version %d -- Frame #%d, frag #%d, tdest 0x%02x, tid 0x%02x, tusr1 0x%02x\n",
 						vers,
 						fram,
@@ -545,6 +549,7 @@ RxBuf         rxbuf;
 				rxbuf->bufp = rxbuf->buf;
                 rxbuf->crc  = -1;
 			} else {
+
 				if ( lfram != fram ) {
 					fprintf(stderr,"UDPSRV: Non-consecutive fragments of different frames received\n");
 					sa->jam = 100;
@@ -705,14 +710,14 @@ uint32_t rbuf[1000000];
 	while ( (got = ioQueRecv( sa->srpQ, rbuf, sizeof(rbuf), top )) > 0 ) {
 
 		int put;
-		uint32_t *bufp  = bufp  = rbuf + 2; /* HEADSIZE */
+		uint32_t *bufp  = bufp  = rbuf + HEADSIZE/sizeof(*bufp);
 		unsigned  bufsz = sizeof(rbuf) - HEADSIZE;
 		int       taillen;
 
 		unsigned tdest = xtractTDEST((uint8_t*)rbuf);
 
 #ifdef DEBUG
-		if ( debug > 2 ) {
+		if ( debug > 1 ) {
 			printf("fragger_rx got %d octets; tdest 0x%02x\n", got, tdest);
 		}
 #endif
@@ -722,7 +727,7 @@ uint32_t rbuf[1000000];
 		got -= taillen;
 
 		if ( tdest == sa->srp_tdest ) {
-			if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, bufsz - 1, got - HEADSIZE)) <= 0 ) {
+			if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, bufsz - taillen, got - HEADSIZE)) <= 0 ) {
 				fprintf(stderr,"handleSRP ERROR (from fragger)\n");
 			}
 		} else {
@@ -732,6 +737,16 @@ uint32_t rbuf[1000000];
 		send_fragmented( sa->port, (uint8_t*)bufp, sizeof(rbuf) - HEADSIZE, put, tdest, sa->fram, sa->ileave );
 		sa->fram++;
 	}
+}
+
+static void *
+fragger_rx_wrapper(void *arg)
+{
+struct streamer_args *sa = (struct streamer_args*) arg;
+
+	fragger_rx( sa, 0 );
+
+	return 0;
 }
 
 void *fragger(void *arg)
@@ -775,7 +790,6 @@ int      ctx;
 					fragger_rx( sa, &to );
 				}
 
-if ( sa->ileave ) printf("Fragger poll\n");
 			} while ( ! sa->txCtx[ctx].isRunning );
 		}
 
@@ -1325,6 +1339,7 @@ int      nprts, nstrms;
 		strm_args[i].tcp                  = use_tcp;
 		strm_args[i].srp_tdest            = (tdest + 1) & 0xff;
 		strm_args[i].ileave               = !! (strmvars[i].opts & STRM_OPT_ILEAVE);
+		strm_args[i].haveThreads          = 0;
 
 		if ( ! strm_args[i].port )
 			goto bail;
@@ -1332,14 +1347,20 @@ int      nprts, nstrms;
 			perror("pthread_create [poller]");
 			goto bail;
 		}
+		strm_args[i].haveThreads |= HAVE_POLLER;
+		
 		if ( pthread_create( &strm_args[i].fragger_tid, 0, fragger, (void*)&strm_args[i] ) ) {
-			void *res;
 			perror("pthread_create [fragger]");
-			pthread_cancel( strm_args[i].poller_tid );
-			pthread_join( strm_args[i].poller_tid, &res );
 			goto bail;
 		}
-		strm_args[i].haveThreads = 1;
+		strm_args[i].haveThreads |= HAVE_FRAGGER;
+		if ( strm_args[i].ileave ) {
+			if ( pthread_create( &strm_args[i].fragger_rx_tid, 0, fragger_rx_wrapper, (void*)&strm_args[i] ) ) {
+				perror("pthread_create [fragger_rx]");
+				goto bail;
+			}
+			strm_args[i].haveThreads |= HAVE_FRAGGER_RX;
+		}
 	}
 
 	for ( i=0; i<sizeof(srpvars)/sizeof(srpvars[0]); i++ ) {
@@ -1369,12 +1390,19 @@ int      nprts, nstrms;
 bail:
 	for ( i=0; i<sizeof(strmvars)/sizeof(strmvars[0]); i++ ) {
 		void *res;
-		if ( strm_args[i].haveThreads ) {
+		if ( (strm_args[i].haveThreads & HAVE_POLLER) ) {
 			pthread_cancel( strm_args[i].poller_tid );
 			pthread_join( strm_args[i].poller_tid, &res );
 			rval += (uintptr_t)res;
+		}
+		if ( (strm_args[i].haveThreads & HAVE_FRAGGER) ) {
 			pthread_cancel( strm_args[i].fragger_tid );
 			pthread_join( strm_args[i].fragger_tid, &res );
+			rval += (uintptr_t)res;
+		}
+		if ( (strm_args[i].haveThreads & HAVE_FRAGGER_RX) ) {
+			pthread_cancel( strm_args[i].fragger_rx_tid );
+			pthread_join( strm_args[i].fragger_rx_tid, &res );
 			rval += (uintptr_t)res;
 		}
 		if ( strm_args[i].port )

@@ -141,7 +141,7 @@ bail:
 int
 main(int argc, char **argv)
 {
-IProtoStackBuilder::ProtocolVersion vers = IProtoStackBuilder::SRP_UDP_V2;
+IProtoStackBuilder::SRPProtoVersion vers = IProtoStackBuilder::SRP_UDP_V2;
 int port = 0;
 int vc1  = 81;
 int vc2  = 17;

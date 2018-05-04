@@ -576,7 +576,7 @@ struct timespec now;
 int CProtoModDepack::iMatch(ProtoPortMatchParams *cmp)
 {
 	cmp->haveDepack_.handledBy_ = getProtoMod();
-	if ( cmp->haveDepack_.doMatch_ ) {
+	if ( cmp->haveDepack_.doMatch_ && cmp->depackVersion_ == CAxisFrameHeader::VERSION ) {
 		cmp->haveDepack_.matchedBy_ = getSelfAs<ProtoModDepack>();
 		return 1;
 	}

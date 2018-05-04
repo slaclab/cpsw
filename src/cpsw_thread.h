@@ -22,6 +22,8 @@ private:
 
 	static void*  wrapper(void*);
 
+	CRunnable & operator=(const CRunnable &);
+
 protected:
 	// to be implemented by subclasses
 

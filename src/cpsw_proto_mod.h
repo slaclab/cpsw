@@ -180,7 +180,7 @@ public:
 		}
 
 	};
-	MatchParamUnsigned tcpDestPort_, udpDestPort_, srpVersion_, srpVC_, tDest_;
+	MatchParamUnsigned tcpDestPort_, udpDestPort_, srpVersion_, srpVC_, tDest_, depackVersion_;
 	MatchParam         haveRssi_, haveDepack_;
 
 	void reset()
@@ -188,6 +188,7 @@ public:
 		tcpDestPort_.reset();
 		udpDestPort_.reset();
 		srpVersion_.reset();
+		depackVersion_.reset();
 		srpVC_.reset();
 		tDest_.reset();
 		haveRssi_.reset();
@@ -205,6 +206,8 @@ public:
 			rval++;
 		if ( srpVersion_.doMatch_ )
 			rval++;
+		if ( depackVersion_.doMatch_ )
+			rval++;
 		if ( srpVC_.doMatch_ )
 			rval++;
 		if ( haveRssi_.doMatch_ )
@@ -221,6 +224,7 @@ public:
 			+ udpDestPort_.excluded()
 			+ haveDepack_.excluded()
 			+ srpVersion_.excluded()
+			+ depackVersion_.excluded()
 			+ srpVC_.excluded()
 			+ haveRssi_.excluded()
 			+ tDest_.excluded();
