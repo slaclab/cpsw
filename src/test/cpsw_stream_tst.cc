@@ -28,15 +28,28 @@ static void usage(const char *nm)
 
 extern int rssi_debug;
 
-static void sendMsg(Stream strm, uint8_t m)
+template <typename T>
+unsigned getHdrSize(uint8_t *buf, unsigned len)
 {
-CAxisFrameHeader hdr;
+T hdr;
+	hdr.insert(buf, len);
+	return hdr.getSize();
+}
+
+
+static void sendMsg(Stream strm, uint8_t m, int v2)
+{
 uint8_t          buf[1500];
 uint32_t         crc;
 unsigned         i, endi;
 
-	hdr.insert(buf, sizeof(buf));
-	buf[ (endi = hdr.getSize()) ] = m;
+	if ( v2 ) {
+		endi = getHdrSize<CDepack2Header>(buf, sizeof(buf));
+	} else {
+		endi = getHdrSize<CAxisFrameHeader>(buf, sizeof(buf));
+	}
+
+	buf[ endi ] = m;
 	for (i = 1; i<100; i++)
 		buf[endi+i] = i;
 	crc = crc32_le_t4( -1, buf+endi, 100 ) ^ -1;
@@ -61,6 +74,7 @@ int      opt;
 CAxisFrameHeader hdr;
 int      quiet = 1;
 int      fram, lfram;
+int      v2    = 0;
 unsigned errs, goodf;
 unsigned attempts;
 unsigned*i_p;
@@ -156,8 +170,8 @@ Hub      root;
 	goodf    = 0;
 	attempts = 0;
 
-	sendMsg( strm, 1 );
-	sendMsg( strm, 1 );
+	sendMsg( strm, 1, v2 );
+	sendMsg( strm, 1, v2 );
 
 	try {
 
@@ -172,7 +186,7 @@ Hub      root;
 			// once in a while try to write something...
 			// udpsrv will jam the CRC if they receive
 			// corrupted data;	
-			sendMsg( strm, 1 );
+			sendMsg( strm, 1, v2 );
 		}
 
 		got = strm->read( buf, sizeof(buf), CTimeout(timeoutUs), 0 );
@@ -207,7 +221,7 @@ Hub      root;
 			continue;
 		}
 
-		if ( ! hdr.getTailEOF(buf + got - hdr.getTailSize()) ) {
+		if ( ! hdr.parseTailEOF(buf + got - hdr.getTailSize()) ) {
 			printf("no EOF tag!\n");
 			continue;
 		}
@@ -233,12 +247,12 @@ Hub      root;
 	}
 
 	} catch ( StrmRxFailed ) {
-		sendMsg( strm, 0 );
-		sendMsg( strm, 0 );
+		sendMsg( strm, 0, v2 );
+		sendMsg( strm, 0, v2 );
 		goto bail;
 	}
-	sendMsg( strm, 0 );
-	sendMsg( strm, 0 );
+	sendMsg( strm, 0, v2 );
+	sendMsg( strm, 0, v2 );
 
 	strmPath->tail()->dump();
 
