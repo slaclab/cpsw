@@ -349,7 +349,7 @@ printf("Frag %d of frame # %d\n", hdr.getFragNo(), frame->frameID_);
 
 	Buf bt = bc->getTail();
 
-	if ( hdr.getTailEOF( bt->getPayload() + bt->getSize() - hdr.getTailSize() ) || ( CAxisFrameHeader::FRAG_MAX == hdr.getFragNo() ) ) {
+	if ( hdr.parseTailEOF( bt->getPayload() + bt->getSize() - hdr.getTailSize() ) || ( CAxisFrameHeader::FRAG_MAX == hdr.getFragNo() ) ) {
 		if ( CFrame::NO_FRAG != frame->lastFrag_ ) {
 			duplicateLastSeen_++;
 #ifdef DEPACK_DEBUG
@@ -452,8 +452,8 @@ Buf    b = bc->getTail();
 		b->setSize( CAxisFrameHeader::getTailSize() );
 	}
 
-	CAxisFrameHeader::iniTail   ( b->getPayload() + b->getSize() - CAxisFrameHeader::getTailSize() );
-	CAxisFrameHeader::setTailEOF( b->getPayload() + b->getSize() - CAxisFrameHeader::getTailSize(), isEof );
+	CAxisFrameHeader::iniTail      ( b->getPayload() + b->getSize() - CAxisFrameHeader::getTailSize() );
+	CAxisFrameHeader::insertTailEOF( b->getPayload() + b->getSize() - CAxisFrameHeader::getTailSize(), isEof );
 }
 
 BufChain CProtoModDepack::processOutput(BufChain *bcp)

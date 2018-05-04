@@ -73,10 +73,10 @@ class IAddress : public IChild {
 	public:
 		class AKey {
 			private:
-				WDevImpl owner_;
-				AKey(DevImpl owner):owner_(owner) {}
+				WDevImpl ownero_;
+				AKey(DevImpl owner):ownero_(owner) {}
 			public:
-				const DevImpl get() const { return DevImpl(owner_); }
+				const DevImpl get() const { return ownero_.lock(); }
 
 				template <typename T> T getAs() const
 				{

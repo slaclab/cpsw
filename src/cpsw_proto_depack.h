@@ -14,6 +14,7 @@
 
 #include <boost/atomic.hpp>
 #include <pthread.h>
+#include <stdio.h>
 
 using boost::atomic;
 using boost::memory_order_relaxed;
@@ -32,6 +33,9 @@ class CPackHeaderUtil {
 protected:
 	static void     setNum(uint8_t *p, unsigned bit_offset, unsigned bit_size, uint64_t val);
 	static uint64_t getNum(uint8_t *p, unsigned bit_offset, unsigned bit_size);
+
+public:
+	class InvalidHeaderException {};
 };
 
 template <typename T>
@@ -94,8 +98,6 @@ public:
 	}
 
 //	bool parse(uint8_t *hdrBase, size_t hdrSize);
-
-	class InvalidHeaderException {};
 
 	static unsigned parseVersion(uint8_t *hdrBase, size_t hdrSize)
 	{
@@ -168,14 +170,14 @@ public:
 
 	static size_t getTailSize() { return TAIL_SIZE;   }
 
-	static bool getTailEOF(uint8_t *tailbuf)
+	static bool parseTailEOF(uint8_t *tailbuf)
 	{
 	unsigned idx = T_FRAG_LAST_BIT/8;
 	uint8_t  msk = ( 1<< (T_FRAG_LAST_BIT & 7) );
 		return tailbuf[idx] & msk;
 	}
 
-	static void setTailEOF(uint8_t *tailbuf, bool eof)
+	static void insertTailEOF(uint8_t *tailbuf, bool eof)
 	{
 	unsigned idx = T_FRAG_LAST_BIT/8;
 	uint8_t  msk = ( 1<< (T_FRAG_LAST_BIT & 7) );
@@ -194,16 +196,22 @@ public:
 	bool
 	parse(uint8_t *hdrBase, size_t hdrSize)
 	{
-		if ( hdrSize  <  (VERSION_BIT_OFFSET + VERSION_BIT_SIZE + 7)/8 )
+		if ( hdrSize  <  (VERSION_BIT_OFFSET + VERSION_BIT_SIZE + 7)/8 ) {
+printf("A %d\n", hdrSize);
 			return false; // cannot even read the version
+		}
 
 		vers_ = getNum( hdrBase, VERSION_BIT_OFFSET, VERSION_BIT_SIZE );
 
-		if ( vers_ != VERSION )
+		if ( vers_ != VERSION ) {
+printf("b %d\n", vers_);
 			return false; // we don't know what size the header would be nor its format
+		}
 
-		if ( hdrSize < getSize() )
+		if ( hdrSize < getSize() ) {
+printf("C %d\n", hdrSize);
 			return false;
+		}
 
 		fragNo_  = getNum( hdrBase, FRAG_NO_BIT_OFFSET,  FRAG_NO_BIT_SIZE  );
 		tDest_   = getNum( hdrBase, TDEST_BIT_OFFSET,    TDEST_BIT_SIZE );
@@ -294,7 +302,7 @@ public:
 		}
 	};
 
-	FrameID        getFrameNo() { return frameNo_; }
+	FrameID      getFrameNo() { return frameNo_; }
 
 	void         setFrameNo(FrameID frameNo)
 	{
@@ -445,9 +453,24 @@ public:
 		return (ALIGNMENT - size) & (ALIGNMENT - 1);
 	}
 
-	static bool tailIsAligned(uint8_t *tailBase)
+	static bool tailIsAligned(unsigned size)
 	{
-		return ! ( ((uintptr_t)tailBase) & (ALIGNMENT - 1) );
+		return ! ( size & (ALIGNMENT - 1) );
+	}
+
+	static unsigned appendTail(uint8_t *bufBase, unsigned size, bool eof, uint8_t tUsr2 = 0)
+	{
+		uint8_t *tailBase = bufBase + size;
+		unsigned pad      = getTailPadding(size);
+		unsigned numLanes = size  > getSize() ? (8 - pad) : 0 /* no payload at all */;
+
+		tailBase         += pad;
+
+		iniTail       (tailBase          );
+		insertNumLanes(tailBase, numLanes);
+		insertTUsr2   (tailBase, tUsr2   );
+		insertTailEOF (tailBase, eof     );
+		return pad + getTailSize();
 	}
 
 };

@@ -69,6 +69,7 @@ private:
 	unsigned           numWork_;
 	unsigned long      goodTxFragCnt_;
 	unsigned long      goodTxFramCnt_;
+	unsigned long      badHeadersCnt_;
 	
 	CTDestMuxer2Thread muxer_;
 
@@ -79,6 +80,7 @@ protected:
 	  numWork_           ( 0                   ),
 	  goodTxFragCnt_     ( 0                   ),
 	  goodTxFramCnt_     ( 0                   ),
+	  badHeadersCnt_     ( 0                   ),
 	  muxer_             ( orig.muxer_         )
 	{
 	}
@@ -108,6 +110,7 @@ public:
 	  inputDataAvailable_( IEventSet::create()  ),
 	  goodTxFragCnt_     ( 0                    ),
 	  goodTxFramCnt_     ( 0                    ),
+	  badHeadersCnt_     ( 0                    ),
 	  muxer_             ( this, threadPriority )
 	{
 	}

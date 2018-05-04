@@ -39,7 +39,7 @@ protected:
 	{
 	unsigned i;
 		for ( i=0; i < sizeof(downstream_)/sizeof(downstream_[0]); i++ ) {
-			PORT p = PORT( orig.downstream_[i] );
+			PORT p = orig.downstream_[i].lock();
 			if ( p ) {
 				downstream_[i] = addPort( CShObj::clone( p ) );
 			}
@@ -88,9 +88,8 @@ public:
 		fprintf(f,"%s:\n", getName());
 		fprintf(f,"  # virtual channels in use: %u\n", getNumPortsUsed());
 		fprintf(f,"  Thread Priority          : %d\n", getPrio());
-
 		for ( slot = 0; slot < sizeof(downstream_)/sizeof(downstream_[0]); slot++ ) {
-			PORT p = PORT( downstream_[slot] );
+			PORT p = downstream_[slot].lock();
 			if ( p )
 				p->dumpInfo( f );
 		}
@@ -115,10 +114,12 @@ public:
 		if ( (dest = extractDest( bc )) < DEST_MIN )
 			return false;
 
-		if ( downstream_[dest].expired() )
+		PORT prt = downstream_[dest].lock();
+
+		if ( ! prt )
 			return false; // nothing attached to this port; drop
 
-		return PORT( downstream_[dest] )->pushDownstream(bc, rel_timeout);
+		return prt->pushDownstream(bc, rel_timeout);
 	}
 
 	virtual void * threadBody()

@@ -17,13 +17,13 @@
 
 #define NGOOD 200
 
-//#define DEBUG
+#undef  DEBUG
 
 class TestFailed {};
 
 static void usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-h] [-s <port>] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent] [-n n_frames] [-R] [-y dump-yaml] [-Y load-yaml]\n", nm);
+	fprintf(stderr,"Usage: %s [-h] [-s <port>] [-q <input_queue_depth>] [-Q <output queue depth>] [-L <log2(frameWinSize)>] [-l <fragWinSize>] [-T <timeout_us>] [-e err_percent] [-n n_frames] [-R] [-y dump-yaml] [-Y load-yaml] [-2]\n", nm);
 }
 
 extern int rssi_debug;
@@ -33,7 +33,48 @@ unsigned getHdrSize(uint8_t *buf, unsigned len)
 {
 T hdr;
 	hdr.insert(buf, len);
+printf("INserted 0x%02x\n", buf[0]);
 	return hdr.getSize();
+}
+
+template <typename T>
+unsigned
+getFrameNo(T &hdr, uint8_t *buf)
+{
+	return hdr.getFrameNo();
+}
+
+template <>
+unsigned
+getFrameNo<CDepack2Header>(CDepack2Header &hdr, uint8_t *buf)
+{
+uint32_t v = 0;
+int      i;
+	/* transmitted as part of the payload by udpsrv */
+	for ( i = sizeof(v) - 1; i>=0; --i ) {
+		v = (v<<8) | buf[ hdr.getSize() + 1 + i ];
+	}
+	return v;
+}
+
+template <typename T>
+int parseHdr(uint8_t *buf, unsigned len, int *fram,  unsigned *hsiz, unsigned *tsiz)
+{
+T   hdr;
+	if ( ! hdr.parse(buf, len) ) {
+		printf("bad header!\n");
+		return -1;
+	}
+
+	if ( ! hdr.parseTailEOF(buf + len - hdr.getTailSize()) ) {
+		printf("no EOF tag!\n");
+		return -1;
+	}
+		
+	*fram = getFrameNo(hdr, buf);
+	*hsiz = hdr.getSize();
+	*tsiz = hdr.getTailSize();
+	return 0;
 }
 
 
@@ -59,6 +100,12 @@ unsigned         i, endi;
 		crc >>= 8;
 	}
 	endi += i;
+	if ( v2 ) {
+		/* must provide the tail */
+		endi += CDepack2Header::appendTail(buf, endi, true);
+		crc   = crc32_le_t4( -1,  buf, endi - sizeof(crc) );
+		CDepack2Header::insertCrc( buf + endi - CDepack2Header::getTailSize(), ~crc );
+	}
 	strm->write( buf, endi );
 }
 
@@ -71,10 +118,10 @@ uint8_t  buf[100000];
 int64_t  got;
 unsigned i;
 int      opt;
-CAxisFrameHeader hdr;
 int      quiet = 1;
 int      fram, lfram;
 int      v2    = 0;
+unsigned hsiz, tsiz;
 unsigned errs, goodf;
 unsigned attempts;
 unsigned*i_p;
@@ -85,6 +132,7 @@ unsigned tDest       = 0;
 unsigned sport       = 8193;
 const char *dmp_yaml = 0;
 const char *use_yaml = 0;
+Path     strmPath;
 
 	unsigned iQDepth = 40;
 	unsigned oQDepth =  5;
@@ -95,7 +143,7 @@ const char *use_yaml = 0;
 
 	rssi_debug=0;
 
-	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:Rs:t:y:Y:")) > 0 ) {
+	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:Rs:t:y:Y:2")) > 0 ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'q': i_p = &iQDepth;        break;
@@ -108,8 +156,9 @@ const char *use_yaml = 0;
 			case 'n': i_p = &ngood;          break;
 			case 'R': useRssi = 1;           break;
 			case 't': i_p = &tDest;          break;
-			case 'Y': use_yaml    = optarg;   break;
-			case 'y': dmp_yaml    = optarg;   break;
+			case 'Y': use_yaml    = optarg;  break;
+			case 'y': dmp_yaml    = optarg;  break;
+			case '2': v2 = 1;                break;
 			default:
 			case 'h': usage(argv[0]); return 1;
 		}
@@ -135,7 +184,7 @@ const char *use_yaml = 0;
 	}
 
 try {
-Hub      root;
+	Hub      root;
 
 	if ( use_yaml ) {
 		root = IPath::loadYamlFile( use_yaml, "root" )->origin();
@@ -147,10 +196,18 @@ Hub      root;
 
 	ProtoStackBuilder bldr( IProtoStackBuilder::create() );
 
+	if ( v2 ) {
+		sport   = 8204;
+		useRssi = 1;
+	}
+
 		bldr->setSRPVersion          ( IProtoStackBuilder::SRP_UDP_NONE );
 		bldr->setUdpPort             (                            sport );
 		bldr->setUdpOutQueueDepth    (                          iQDepth );
 		bldr->setUdpNumRxThreads     (                      nUdpThreads );
+	if (v2 ) {
+		bldr->setDepackVersion       ( IProtoStackBuilder::DEPACKETIZER_V2 );
+	}
 		bldr->setDepackOutQueueDepth (                          oQDepth );
 		bldr->setDepackLdFrameWinSize(                   ldFrameWinSize );
 		bldr->setDepackLdFragWinSize (                    ldFragWinSize );
@@ -161,7 +218,7 @@ Hub      root;
 		netio->addAtAddress( data, bldr );
 	}
 
-	Path   strmPath = root->findByName("data");
+	strmPath    = root->findByName("data");
 
 	Stream strm = IStream::create( strmPath );
 
@@ -204,29 +261,27 @@ Hub      root;
 			printf("FRM/FRG 0x%"PRIx8"\n", buf[k]);
 #endif
 
+		if ( v2 ) {
+			if ( parseHdr<CDepack2Header>(buf, got, &fram, &hsiz, &tsiz) )
+				continue;
+		} else {
+			if ( parseHdr<CAxisFrameHeader>(buf, got, &fram, &hsiz, &tsiz) )
+				continue;
+		}
+
 		// udpsrv computes CRC over payload only (excluding stream header + tail byte)
-		if ( CRC32_LE_POSTINVERT_GOOD ^ -1 ^ crc32_le_t4(-1, buf + 8, got - 9) ) {
+		if ( CRC32_LE_POSTINVERT_GOOD ^ -1 ^ crc32_le_t4(-1, buf + hsiz, got - (hsiz + tsiz)) ) {
 			fprintf(stderr,"Read -- frame with bad CRC (jammed write message?)\n");
 			throw StrmRxFailed();
 		}
 
 		// udpsrv computes CRC over payload only (excluding stream header + tail byte)
-		if ( CRC32_LE_POSTINVERT_GOOD ^ -1 ^ crc32_le_t4(-1, buf + 8, got - 9) ) {
+		if ( CRC32_LE_POSTINVERT_GOOD ^ -1 ^ crc32_le_t4(-1, buf + hsiz, got - (hsiz + tsiz)) ) {
 			fprintf(stderr,"Read -- frame with bad CRC (jammed write message?)\n");
 			throw StrmRxFailed();
 		}
 
-		if ( ! hdr.parse(buf, sizeof(buf)) ) {
-			printf("bad header!\n");
-			continue;
-		}
 
-		if ( ! hdr.parseTailEOF(buf + got - hdr.getTailSize()) ) {
-			printf("no EOF tag!\n");
-			continue;
-		}
-		
-		fram = hdr.getFrameNo();
 #ifdef DEBUG
 		printf("Frame # %4i\n", fram);
 #endif
@@ -235,10 +290,9 @@ Hub      root;
 			errs++;
 		}
 
-
 		if ( ! quiet ) {
-			for ( i=0; i<got - hdr.getSize() - hdr.getTailSize(); i++ ) {
-				printf("0x%02x ", buf[hdr.getSize() + i]);
+			for ( i=0; i<got - hsiz - tsiz; i++ ) {
+				printf("0x%02x ", buf[hsiz + i]);
 			}
 			printf("\n");
 		}
@@ -267,6 +321,8 @@ Hub      root;
 	}
 
 
+	strmPath.reset();
+
 } catch ( CPSWError e ) {
 	fprintf(stderr,"CPSW Error: %s\n", e.getInfo().c_str());
 	throw;
@@ -285,6 +341,8 @@ Hub      root;
 	
 	return 0;
 bail:
+	if ( strmPath )
+		strmPath->tail()->dump();
 	fprintf(stderr,"TEST FAILED\n");
 	fprintf(stderr,"Note: due to statistical nature *very rare* test failures may happen\n");
 	return 1;

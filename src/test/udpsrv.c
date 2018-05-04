@@ -295,7 +295,6 @@ static int checkTailV1(uint64_t tail, uint32_t *crc)
 /* returns 1 -> EOF, 0 -> not eof; -1 error */
 static int checkTailV2(uint64_t tail, uint32_t *crc)
 {
-printf("CHeck tail: %016"PRIx64"\n", tail);
 	*crc = __builtin_bswap32( tail >> 32 );
 	return !! (tail & EOFRAG_V2);
 }
@@ -410,14 +409,15 @@ uint32_t crc_swapped;
 	if ( eof ) {
 		tail |= EOFRAG_V2;
 	}
-	insert64(tbuf + len, tail);
-	l += 8;
-	crc_swapped = *crc = crc32_le_t4( *crc, tbuf, len );
+	insert64(tbuf + l, tail);
+	crc_swapped = *crc = crc32_le_t4( *crc, tbuf, l + 4 );
     crc_swapped = ((crc_swapped & 0xff00ff00) >>  8) | ((crc_swapped & 0x00ff00ff) <<  8);
     crc_swapped = ((crc_swapped & 0xffff0000) >> 16) | ((crc_swapped & 0x0000ffff) << 16);
 
 	tail |= ((uint64_t)crc_swapped) << 32;
-	insert64(tbuf + len, tail);
+	insert64(tbuf + l, tail);
+
+	l+=8;
 
 	return l - len;
 }
@@ -799,6 +799,14 @@ int      ctx;
 		bufmem[i] = sa->txCtx[ctx].tdest;
 
 		memset(bufmem + i + 1, (sa->fram << 4) | (frag & 0xf), FRAGLEN - 1);
+		{
+		int k;
+		uint32_t v = sa->fram;
+			for ( k=0; k<sizeof(uint32_t); k++ ) {
+				bufmem[ i + 1 + k ] = (uint8_t)v;
+				v = v>>8;
+			}
+		}
 
 		end_of_frame = (sa->txCtx[ctx].n_frags - 1 == frag);
 
@@ -822,12 +830,10 @@ printf("JAM cleared\n");
 
 		i += appendTail( bufmem, i, end_of_frame, &sa->txCtx[ctx].crcProto );
 
-if ( sa->ileave ) printf("Fragger ioprtsend\n");
 		if ( ioPrtSend( sa->port, bufmem, i ) < 0 ) {
 			fprintf(stderr, "fragmenter: write error\n");
 			break;
 		}
-if ( sa->ileave ) printf("Fragger ioprtsend don\n");
 #ifdef DEBUG
 		if ( debug )
 			printf("fragger sent %d[%d]!\n", sa->fram, frag);

@@ -81,12 +81,20 @@ unsigned tUsr2;
 	if ( ! w.stripHeader_  &&  w.fragNo_ == 0 ) {
 		// let them override just TUSR1 and TID
 		try {
+{int i;
+for ( i=0; i<10; i++ ) {
+	printf("%02x ", b->getPayload()[i]);
+}
+printf("\n");
+}
 			CDepack2Header theirs( b->getPayload(), b->getSize() );
 			hdr.setTUsr1( theirs.getTUsr1() );
 			hdr.setTId  ( theirs.getTId()   );
-		} catch (...) {
+		} catch ( CDepack2Header::InvalidHeaderException ) {
 			// dump this chain
 			w.bc_.reset();
+			badHeadersCnt_++;
+			// programming error so we throw
 			throw;
 		}
 	} else {
@@ -101,8 +109,9 @@ unsigned tUsr2;
 
 	// make the tail
 	if ( ! w.stripHeader_ && eof ) {
+		// user-provided tail; extract numLanes and tUsr2
 		tailp    = b->getPayload() + b->getSize() - CDepack2Header::getTailSize();
-		if ( ! CDepack2Header::tailIsAligned( tailp ) ) {
+		if ( ! CDepack2Header::tailIsAligned( b->getSize() ) ) {
 			// dump
 			w.bc_.reset();
 			throw CDepack2Header::InvalidHeaderException();
@@ -118,6 +127,12 @@ unsigned tUsr2;
 #endif
 		b->setSize( newSz );
 		numLanes = CDepack2Header::ALIGNMENT - algn;
+
+		if ( newSz <= CDepack2Header::getSize() + CDepack2Header::getTailSize() ) {
+			// no payload at all!
+			numLanes = 0;
+		}
+
 		tUsr2    = 0;
 		tailp    = b->getPayload() + newSz - CDepack2Header::getTailSize();
 	}
@@ -125,7 +140,7 @@ unsigned tUsr2;
 	CDepack2Header::iniTail       ( tailp           );
 	CDepack2Header::insertNumLanes( tailp, numLanes );
 	CDepack2Header::insertTUsr2   ( tailp, tUsr2    );
-	CDepack2Header::setTailEOF    ( tailp, eof      );
+	CDepack2Header::insertTailEOF ( tailp, eof      );
 
 	CCpswCrc32LE   crc32;
 
@@ -155,7 +170,7 @@ unsigned tUsr2;
 		w.crc_ = 0;
 	}
 
-	CDepack2Header::insertCrc     ( tailp, ~w.crc_  );
+	CDepack2Header::insertCrc( tailp, ~w.crc_  );
 
 	// indefinitely wait (reliability)
 	if ( getUpstreamDoor()->push( bc, 0, true ) ) {
@@ -182,12 +197,12 @@ unsigned noWorkCount = 0;
 		if ( noWorkCount == numWork_ ) {
 			/* found no work; wait for something */
 #ifdef TDESTMUX2_DEBUG
-			printf("CTDestPort2:: going to sleep\n");
+			printf("TDestMux2:: going to sleep\n");
 #endif
 			while ( ! inputDataAvailable_->processEvent( true, NULL ) )
 				/* wait */;
 #ifdef TDESTMUX2_DEBUG
-			printf("CTDestPort2:: woke up\n");
+			printf("TDestMux2:: woke up\n");
 #endif
 			noWorkCount = 0;
 		}
@@ -199,7 +214,7 @@ unsigned noWorkCount = 0;
 			sendFrag( current );
 			noWorkCount = 0;
 #ifdef TDESTMUX2_DEBUG
-		printf("CTDestPort2::work done in slot %d\n", current);
+		printf("TDestMux2::work done in slot %d\n", current);
 #endif
 		} else {
 			TDestPort2 p = findPort( work_[current].tdest_ );
@@ -207,13 +222,13 @@ unsigned noWorkCount = 0;
 			if ( p && (bc = p->tryPopInputQueue()) ) {
 				work_[current].reset( bc );
 #ifdef TDESTMUX2_DEBUG
-				printf("CTDestPort2::new work done in slot %d\n", current);
+				printf("TDestMux2::new work done in slot %d\n", current);
 #endif
 				sendFrag( current );
 				noWorkCount = 0;
 			} else {
 #ifdef TDESTMUX2_DEBUG
-				printf("CTDestPort2::no work for slot %d\n", current);
+				printf("TDestMux2::no work for slot %d\n", current);
 #endif
 				noWorkCount++;
 			}
@@ -235,7 +250,7 @@ bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 
 		{
 		uint8_t  *pld = b->getPayload();
-		uint8_t  *tail;
+		uint8_t  *tailp;
 
 			CDepack2Header hdr( pld, b->getSize() );
 
@@ -247,7 +262,7 @@ bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 				throw CDepack2Header::InvalidHeaderException();
 			}
 
-			tail = pld + b->getSize() - hdr.getTailSize();
+			tailp = pld + b->getSize() - hdr.getTailSize();
 
 			if ( (sof = hdr.isFirst( pld )) ) {
 				// just take over the chain
@@ -255,17 +270,31 @@ bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 				fragNo_         = 0;
 			} else {
 				if ( ! assembleBuffer_ || ( (++fragNo_ & ((1<<CDepack2Header::FRAG_NO_BIT_SIZE) - 1)) != hdr.getFragNo() ) ) {
+if ( ! assembleBuffer_ )
+	printf("No assemble Buffer\n");
+else
+	printf("exp fragNo %d, got %d\n", fragNo_, hdr.getFragNo());
 					nonSeqFragCnt_++;
 					assembleBuffer_.reset();
 					return true;
 				}
 				b->unlink(); // from old chain	
 				assembleBuffer_->addAtTail( b );
-				goodRxFragCnt_++;
 			}
 
-			eof      = CDepack2Header::getTailEOF   ( tail );
-			numLanes = CDepack2Header::parseNumLanes( tail );
+#ifdef TDESTMUX2_DEBUG
+			printf("CTDestPort2::pushDownstream; XXXX\n");
+{
+int i;
+	printf("TAIL: 0x");
+	for ( i=7; i>=0; i--)
+		printf("%02x", tailp[i]);
+	printf("\n");
+}
+#endif
+
+			eof      = CDepack2Header::parseTailEOF ( tailp );
+			numLanes = CDepack2Header::parseNumLanes( tailp );
 		}
 
 		// trim header
@@ -279,13 +308,20 @@ bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 			b->setSize( b->getSize() - 2*CDepack2Header::getTailSize() + numLanes );
 		}
 
+		goodRxFragCnt_++;
+
 		// IGNORE CRC
 
 		if ( eof ) {
 			goodRxFramCnt_++;
 			bc = assembleBuffer_;
 			assembleBuffer_.reset();
-			return CByteMuxPort<CProtoModTDestMux2>::pushDownstream(bc, rel_timeout);
+{
+printf("PRE-pushDownstream()\n");
+bool xx = CByteMuxPort<CProtoModTDestMux2>::pushDownstream(bc, rel_timeout);
+printf("POS-pushDownstream()\n");
+	return xx;
+}
 		}
 
 	} catch (CDepack2Header::InvalidHeaderException) {
