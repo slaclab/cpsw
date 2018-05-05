@@ -959,6 +959,8 @@ public:
 	{
 	int got;
 
+		printf("UDP thread %llx on port %d\n", (unsigned long long)pthread_self(), getUdpPort());
+
 		while ( 1 ) {
 
 			BufChain bc = IBufChain::create();
@@ -1114,6 +1116,8 @@ public:
 	{
 	int       got;
 	socklen_t sl;
+
+		printf("TCP thread %llx on port %d\n", (unsigned long long)pthread_self(), getTcpPort());
 
 		while ( ( (sl = sizeof(peer_)), (conn_ = accept(sd_.get(), (struct sockaddr*)&peer_, &sl)) ) >= 0 ) {
 			while ( conn_ >= 0 ) {
