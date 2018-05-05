@@ -1,3 +1,6 @@
+    Bugfix: (in udpsrv, i.e., test code): incorrect use of lock guard
+            lead to no mutex protection (in simulator only)!
+
     Bugfix: RSSI protocol module 'push' with absolute timeout would
             pop from underlying queue instead of pushing.
 
