@@ -17,6 +17,7 @@ DEP_HEADERS += udpsrv_port.h
 DEP_HEADERS += udpsrv_rssi_port.h
 DEP_HEADERS += udpsrv_stream_state_monitor.h
 DEP_HEADERS += udpsrv_util.h
+DEP_HEADERS += udpsrv_cutil.h
 
 tstaux_SRCS+= crc32-le-tbl-4.c
 

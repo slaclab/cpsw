@@ -81,6 +81,7 @@ DEP_HEADERS += cpsw_proto_mod.h
 DEP_HEADERS += cpsw_proto_mod_bytemux.h
 DEP_HEADERS += cpsw_proto_mod_srpmux.h
 DEP_HEADERS += cpsw_proto_mod_tdestmux.h
+DEP_HEADERS += cpsw_proto_mod_tdestmux2.h
 DEP_HEADERS += cpsw_proto_mod_udp.h
 DEP_HEADERS += cpsw_proto_mod_tcp.h
 DEP_HEADERS += cpsw_rssi_proto.h

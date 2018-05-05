@@ -18,7 +18,7 @@
 
 #define NGOOD 200
 
-#define DEBUG
+#undef  DEBUG
 
 class TestFailed {};
 
