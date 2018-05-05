@@ -14,7 +14,6 @@
 
 #include <boost/atomic.hpp>
 #include <pthread.h>
-#include <stdio.h>
 
 using boost::atomic;
 using boost::memory_order_relaxed;
@@ -197,19 +196,16 @@ public:
 	parse(uint8_t *hdrBase, size_t hdrSize)
 	{
 		if ( hdrSize  <  (VERSION_BIT_OFFSET + VERSION_BIT_SIZE + 7)/8 ) {
-printf("A %d\n", hdrSize);
 			return false; // cannot even read the version
 		}
 
 		vers_ = getNum( hdrBase, VERSION_BIT_OFFSET, VERSION_BIT_SIZE );
 
 		if ( vers_ != VERSION ) {
-printf("b %d\n", vers_);
 			return false; // we don't know what size the header would be nor its format
 		}
 
 		if ( hdrSize < getSize() ) {
-printf("C %d\n", hdrSize);
 			return false;
 		}
 

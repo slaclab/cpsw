@@ -8,6 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #include <udpsrv_util.h>
+#include <udpsrv_cutil.h>
 #include <cpsw_thread.h>
 
 #include <boost/make_shared.hpp>
@@ -505,7 +506,9 @@ BufQueue IBufQueue::create(unsigned depth)
 bool CEventBufSync::getSlot(bool wait, const CTimeout *abs_timeout)
 {
 	do {
-		if ( 0 != slots_.fetch_sub(1, memory_order_acquire) ) {
+		// in theory, more than one thread could try this here,
+		// so slots_ could temporarily be < 0
+		if ( 0 < slots_.fetch_sub(1, memory_order_acquire) ) {
 			return true;
 		}
 
@@ -1198,4 +1201,12 @@ TcpPort ITcpPort::create(const char *ina, unsigned port)
 {
 CTcpPort *p = new CTcpPort(ina, port);
 	return TcpPort(p);
+}
+
+extern "C"
+unsigned udpsrvAllocFrameNo()
+{
+static atomic<unsigned> xx_(0);
+
+	return xx_.fetch_add(1);
 }

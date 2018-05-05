@@ -13,7 +13,7 @@
 #include <cpsw_yaml.h>
 #include <cpsw_crc32_le.h>
 
-#define TDESTMUX2_DEBUG
+#undef  TDESTMUX2_DEBUG
 
 int CProtoModTDestMux2::extractDest(BufChain bc)
 {
@@ -81,12 +81,6 @@ unsigned tUsr2;
 	if ( ! w.stripHeader_  &&  w.fragNo_ == 0 ) {
 		// let them override just TUSR1 and TID
 		try {
-{int i;
-for ( i=0; i<10; i++ ) {
-	printf("%02x ", b->getPayload()[i]);
-}
-printf("\n");
-}
 			CDepack2Header theirs( b->getPayload(), b->getSize() );
 			hdr.setTUsr1( theirs.getTUsr1() );
 			hdr.setTId  ( theirs.getTId()   );
@@ -270,10 +264,6 @@ bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 				fragNo_         = 0;
 			} else {
 				if ( ! assembleBuffer_ || ( (++fragNo_ & ((1<<CDepack2Header::FRAG_NO_BIT_SIZE) - 1)) != hdr.getFragNo() ) ) {
-if ( ! assembleBuffer_ )
-	printf("No assemble Buffer\n");
-else
-	printf("exp fragNo %d, got %d\n", fragNo_, hdr.getFragNo());
 					nonSeqFragCnt_++;
 					assembleBuffer_.reset();
 					return true;
@@ -283,7 +273,6 @@ else
 			}
 
 #ifdef TDESTMUX2_DEBUG
-			printf("CTDestPort2::pushDownstream; XXXX\n");
 {
 int i;
 	printf("TAIL: 0x");
@@ -316,12 +305,7 @@ int i;
 			goodRxFramCnt_++;
 			bc = assembleBuffer_;
 			assembleBuffer_.reset();
-{
-printf("PRE-pushDownstream()\n");
-bool xx = CByteMuxPort<CProtoModTDestMux2>::pushDownstream(bc, rel_timeout);
-printf("POS-pushDownstream()\n");
-	return xx;
-}
+			return CByteMuxPort<CProtoModTDestMux2>::pushDownstream(bc, rel_timeout);
 		}
 
 	} catch (CDepack2Header::InvalidHeaderException) {
@@ -368,7 +352,9 @@ CTDestPort2::dumpYaml(YAML::Node &node) const
 	}
 	{
 	YAML::Node parms;
-	unsigned   vers = CDepack2Header::VERSION;
+
+	IProtoStackBuilder::DepackProtoVersion vers = IProtoStackBuilder::DEPACKETIZER_V2;
+
 		writeNode(parms, YAML_KEY_protocolVersion, vers );
 
 		writeNode(node, YAML_KEY_depack, parms);

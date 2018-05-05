@@ -42,6 +42,7 @@
 
 #include <udpsrv_regdefs.h>
 #include <udpsrv_port.h>
+#include <udpsrv_cutil.h>
 
 #define NFRAGS  20
 #define FRAGLEN 8
@@ -77,11 +78,15 @@
 #define SIMLOSS_DEF           1
 #define NFRAGS_DEF       NFRAGS
 
-#define TDEST_DEF             0 /* SRP TDEST is TDEST_DEF + 1 */
-#define NUM_RTDESTS           2 /* tdest multiplexing by poller  */
-#define NUM_TTDESTS           2 /* tdest multiplexing by fragger */
+#define TDEST_DEF             0 /* SRP TDEST is TDEST_DEF + 1         */
+#define TDEST_DIFF_V2         2 /* second TDEST for V2 stream testing */
+#define NUM_RTDESTS           2 /* tdest multiplexing by poller       */
+#define NUM_TTDESTS           2 /* tdest multiplexing by fragger      */
 #define TDEST_DEF_IDX         0
 #define TDEST_SRP_IDX         1
+
+#define STRT(chnl) (0x01<<(chnl))
+#define STOP(chnl) (0x10<<(chnl))
 
 // byte swap ?
 #define bsl(x) (x)
@@ -164,7 +169,6 @@ typedef struct streamer_args {
 	IoPrt             port;
 	IoQue             srpQ;
 	int                polled_stream_up;
-	unsigned           fram;
     int                rssi;
 	int                tcp;
 	unsigned           jam;
@@ -175,13 +179,14 @@ typedef struct streamer_args {
 	int                haveThreads;
 	int                ileave;
 	RxBufRec           rxBuf[NUM_RTDESTS];
+	volatile uint8_t   isRunning; // bitmask
 	struct {
 		unsigned       frag;
+		unsigned       fram;
 		unsigned       n_frags;
 		unsigned       tdest;
 		uint32_t       crc;
 		uint32_t       crcProto;
-	volatile uint8_t   isRunning;
 	}                  txCtx[NUM_TTDESTS];
 } streamer_args;
 
@@ -507,7 +512,13 @@ RxBuf         rxbuf;
 				continue;
 			}
 
-			if ( ( tdest != TDEST_DEF && (0 == sa->srp_vers || sa->srp_tdest != tdest ) ) || tid != 0 || tusr1 != (frag == 0 ? (1<<1) : 0) ) {
+			if (   (    tdest != TDEST_DEF
+                     && ( !sa->ileave || tdest != TDEST_DEF + TDEST_DIFF_V2 )
+			         && (0 == sa->srp_vers || sa->srp_tdest != tdest )
+			       )
+			    || tid != 0
+			    || tusr1 != (frag == 0 ? (1<<1) : 0)
+			   ) {
 				fprintf(stderr,"UDPSRV: Invalid stream header received\n");
 				sa->jam = 100;
 				continue;
@@ -636,9 +647,19 @@ RxBuf         rxbuf;
 	printf("JAM\n");
 				}
 
-				sa->txCtx[0].isRunning = !!(payload[0] & 1);
-				if ( sa->ileave ) {
-					sa->txCtx[1].isRunning = !!(payload[0] & 2);
+				{
+				int i;
+					for ( i=0; i<NUM_TTDESTS; i++ ) {
+						if ( STRT(i) & payload[0] ) {
+							sa->isRunning |=  STRT(i);
+						}
+						if ( STOP(i) & payload[0] ) {
+							sa->isRunning &= ~STRT(i);
+						}
+					}
+				}
+				if ( ! sa->ileave ) {
+					sa->isRunning &= STRT(0);
 				}
 #ifdef DEBUG
 				if ( debug ) {
@@ -706,6 +727,7 @@ fragger_rx(struct streamer_args *sa, struct timespec *top)
 {
 int      got;
 uint32_t rbuf[1000000];
+unsigned fram;
 
 	while ( (got = ioQueRecv( sa->srpQ, rbuf, sizeof(rbuf), top )) > 0 ) {
 
@@ -734,8 +756,8 @@ uint32_t rbuf[1000000];
 			put = got;
 		}
 
-		send_fragmented( sa->port, (uint8_t*)bufp, sizeof(rbuf) - HEADSIZE, put, tdest, sa->fram, sa->ileave );
-		sa->fram++;
+		fram = udpsrvAllocFrameNo();
+		send_fragmented( sa->port, (uint8_t*)bufp, sizeof(rbuf) - HEADSIZE, put, tdest, fram, sa->ileave );
 	}
 }
 
@@ -757,18 +779,33 @@ int      i,j;
 uint32_t crc;
 int      end_of_frame;
 FragBuf  bufmem;
-int      ctx;
+uint8_t  ctx;
+uint32_t dice = -1;
+unsigned fram;
+
+	/* test expects consecutive frames for V0; do not allocate a frame
+	 * number for higher streams unless V2
+	 */
+	for ( ctx = 0; ctx < (sa->ileave ? NUM_TTDESTS : 1); ctx++ ) {
+		sa->txCtx[ctx].fram     = udpsrvAllocFrameNo();
+		sa->txCtx[ctx].frag     = 0;
+		sa->txCtx[ctx].crc      = -1;
+		sa->txCtx[ctx].crcProto = -1;
+	}
+
+    if ( sa->ileave ) printf("fragger startup\n");
 
 	ctx = 0;
 
-	sa->txCtx[ctx].frag     = 0;
-	sa->txCtx[ctx].crc      = -1;
-	sa->txCtx[ctx].crcProto = -1;
-
-    if ( sa->ileave) printf("fragger startup\n");
-
 	while (1) {
 
+		if ( sa->ileave ) {
+			// scramble it up
+			dice = crc32_le_t4( dice, &ctx, 1 );
+			ctx  = dice % NUM_TTDESTS;
+		}
+
+		fram = sa->txCtx[ctx].fram;
 		frag = sa->txCtx[ctx].frag;
 		crc  = sa->txCtx[ctx].crc;
 
@@ -778,7 +815,7 @@ int      ctx;
 
 				clock_gettime( CLOCK_REALTIME, &to );
 
-				to.tv_nsec += sa->txCtx[ctx].isRunning ? 10000000 : 100000000;
+				to.tv_nsec += sa->isRunning ? 10000000 : 100000000;
 				if ( to.tv_nsec >= 1000000000 ) {
 					to.tv_nsec -= 1000000000;
 					to.tv_sec  += 1;
@@ -790,18 +827,18 @@ int      ctx;
 					fragger_rx( sa, &to );
 				}
 
-			} while ( ! sa->txCtx[ctx].isRunning );
+			} while ( ! sa->isRunning );
 		}
 
 		i  = 0;
-		i += insert_header(bufmem, sa->ileave ? VERS_V2 : VERS, sa->fram, frag, sa->txCtx[ctx].tdest);
+		i += insert_header(bufmem, sa->ileave ? VERS_V2 : VERS, fram, frag, sa->txCtx[ctx].tdest);
 
 		bufmem[i] = sa->txCtx[ctx].tdest;
 
-		memset(bufmem + i + 1, (sa->fram << 4) | (frag & 0xf), FRAGLEN - 1);
+		memset(bufmem + i + 1, (fram << 4) | (frag & 0xf), FRAGLEN - 1);
 		{
 		int k;
-		uint32_t v = sa->fram;
+		uint32_t v = fram;
 			for ( k=0; k<sizeof(uint32_t); k++ ) {
 				bufmem[ i + 1 + k ] = (uint8_t)v;
 				v = v>>8;
@@ -836,14 +873,14 @@ printf("JAM cleared\n");
 		}
 #ifdef DEBUG
 		if ( debug )
-			printf("fragger sent %d[%d]!\n", sa->fram, frag);
+			printf("fragger sent %d[%d] @ TDEST 0x%02x!\n", fram, frag, sa->txCtx[ctx].tdest);
 #endif
 
 		if ( ++frag >= sa->txCtx[ctx].n_frags ) {
 			frag = 0;
 			crc  = -1;
 			sa->txCtx[ctx].crcProto = -1;
-			sa->fram++;
+			sa->txCtx[ctx].fram     = udpsrvAllocFrameNo();
 		}
 
 		sa->txCtx[ctx].frag = frag;
@@ -1166,14 +1203,14 @@ int i,c;
 			if ( strm_args[i].polled_stream_up )
 				printf("Polled up (chnl %d)\n", i);
 			for ( c=0; c<NUM_TTDESTS; c++ ) {
-				if ( strm_args[i].txCtx[c].isRunning ) {
+				if ( (strm_args[i].isRunning & (1<<c)) ) {
 					printf("Test stream is running (chnl %d, context %d)\n", i, c);
 				}
 			}
 		}
 #endif
 
-		if ( ! strm_args[i].ileave && strm_args[i].txCtx[0].isRunning ) {
+		if ( ! strm_args[i].ileave && strm_args[i].isRunning ) {
 			// if the stream test is running then they look for consecutive
 			// frame numbers - which we don't want to mess up...
 			continue;
@@ -1331,14 +1368,12 @@ int      nprts, nstrms;
 		} else {
 			strm_args[i].port             = udpPrtCreate( ina, strmvars[i].port, sim_loss, scramble, strmvars[i].haveRssi );
 		}
+		strm_args[i].isRunning            = 0;
 		strm_args[i].srpQ                 = ioQueCreate(10);
 		strm_args[i].txCtx[0].tdest       = tdest;
 		strm_args[i].txCtx[0].n_frags     = n_frags;
-		strm_args[i].txCtx[0].isRunning   = 0;
-		strm_args[i].txCtx[1].tdest       = (tdest + 2) & 0xff;;
+		strm_args[i].txCtx[1].tdest       = (tdest + TDEST_DIFF_V2) & 0xff;;
 		strm_args[i].txCtx[1].n_frags     = NFRAGS;
-		strm_args[i].txCtx[1].isRunning   = 0;
-		strm_args[i].fram                 = 0;
 		strm_args[i].jam                  = 0;
 		strm_args[i].srp_vers             = strmvars[i].srpvers;
 		strm_args[i].rssi                 = strmvars[i].haveRssi;
