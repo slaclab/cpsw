@@ -59,6 +59,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		unsigned                   TDestMuxTDEST_;
 		int                        TDestMuxStripHeader_;
 		unsigned                   TDestMuxOutQueueDepth_;
+		unsigned                   TDestMuxInpQueueDepth_;
 		int                        TDestMuxThreadPriority_;
 		in_addr_t                  IPAddr_;
 	public:
@@ -90,6 +91,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			TDestMuxTDEST_          = 0;
 			TDestMuxStripHeader_    = -1;
 			TDestMuxOutQueueDepth_  = 0;
+			TDestMuxInpQueueDepth_  = 0;
 			TDestMuxThreadPriority_ = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			IPAddr_                 = INADDR_NONE;
 		}
@@ -468,10 +470,26 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual unsigned        getTDestMuxOutQueueDepth()
 		{
+			// output queue important with async SRP
 			if ( 0 == TDestMuxOutQueueDepth_ )
-				return hasSRP() ? 1 : 50;
+				return hasSRP() ? 20 : 50;
 			return TDestMuxOutQueueDepth_;
 		}
+
+		virtual void            setTDestMuxInpQueueDepth(unsigned v)
+		{
+			TDestMuxInpQueueDepth_ = v;			
+			useTDestMux( true );
+		}
+
+		virtual unsigned        getTDestMuxInpQueueDepth()
+		{
+			// input queue important with async SRP
+			if ( 0 == TDestMuxInpQueueDepth_ )
+				return hasSRP() ? 20 : 50;
+			return TDestMuxInpQueueDepth_;
+		}
+
 
 		virtual void            setTDestMuxThreadPriority(int prio)
 		{
@@ -622,6 +640,8 @@ int                        i;
 				bldr->setTDestMuxStripHeader( b );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				bldr->setTDestMuxOutQueueDepth( u );
+			if ( readNode(nn, YAML_KEY_inpQueueDepth, &u) )
+				bldr->setTDestMuxInpQueueDepth( u );
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 				bldr->setTDestMuxThreadPriority( i );
 			if ( readNode(nn, YAML_KEY_instantiate, &b) )
@@ -871,10 +891,18 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 			}
 		}
 		if ( v2 ) {
-#warning FIXME
-			rval = v2->createPort( bldr->getTDestMuxTDEST(), bldr->getTDestMuxStripHeader(), bldr->getTDestMuxOutQueueDepth(), 10 );
+			rval = v2->createPort(
+			                       bldr->getTDestMuxTDEST(),
+			                       bldr->getTDestMuxStripHeader(),
+			                       bldr->getTDestMuxOutQueueDepth(),
+			                       bldr->getTDestMuxInpQueueDepth()
+			                     );
 		} else {
-			rval = v0->createPort( bldr->getTDestMuxTDEST(), bldr->getTDestMuxStripHeader(), bldr->getTDestMuxOutQueueDepth() );
+			rval = v0->createPort(
+			                       bldr->getTDestMuxTDEST(),
+			                       bldr->getTDestMuxStripHeader(),
+			                       bldr->getTDestMuxOutQueueDepth()
+			                     );
 		}
 	}
 

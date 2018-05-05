@@ -169,7 +169,7 @@ public:
 	virtual bool               hasTcp()                            = 0; // default: NO
     virtual void               setTcpPort(unsigned)                = 0; // default: 8192
 	virtual unsigned           getTcpPort()                        = 0;
-	virtual void               setTcpOutQueueDepth(unsigned)       = 0; // default: 10
+	virtual void               setTcpOutQueueDepth(unsigned)       = 0; // default: 50 (20 with SRP)
 	virtual unsigned           getTcpOutQueueDepth()               = 0;
 	virtual void               setTcpThreadPriority(int)           = 0;
 	virtual int                getTcpThreadPriority()              = 0;
@@ -217,8 +217,10 @@ public:
 	virtual unsigned           getTDestMuxTDEST()                  = 0;
 	virtual void               setTDestMuxStripHeader(bool)        = 0; // default: YES if SRP, NO if no SRP
 	virtual bool               getTDestMuxStripHeader()            = 0;
-	virtual void               setTDestMuxOutQueueDepth(unsigned)  = 0; // default: 1 if SRP, 50 if no SRP
+	virtual void               setTDestMuxOutQueueDepth(unsigned)  = 0; // default: 20 if SRP, 50 if no SRP
 	virtual unsigned           getTDestMuxOutQueueDepth()          = 0;
+	virtual void               setTDestMuxInpQueueDepth(unsigned)  = 0; // default: 20 if SRP, 50 if no SRP; only applicable for TDestMux2
+	virtual unsigned           getTDestMuxInpQueueDepth()          = 0;
 	virtual void               setTDestMuxThreadPriority(int)      = 0;
 	virtual int                getTDestMuxThreadPriority()         = 0;
 

@@ -344,9 +344,10 @@ CTDestPort2::dumpYaml(YAML::Node &node) const
 
 	{
 	YAML::Node parms;
-		writeNode(parms, YAML_KEY_stripHeader  , stripHeader_   );
-		writeNode(parms, YAML_KEY_outQueueDepth, getQueueDepth());
-		writeNode(parms, YAML_KEY_TDEST        , getDest()      );
+		writeNode(parms, YAML_KEY_stripHeader  , stripHeader_      );
+		writeNode(parms, YAML_KEY_outQueueDepth, getQueueDepth()   );
+		writeNode(parms, YAML_KEY_inpQueueDepth, getInpQueueDepth());
+		writeNode(parms, YAML_KEY_TDEST        , getDest()         );
 
 		writeNode(node, YAML_KEY_TDESTMux, parms);
 	}

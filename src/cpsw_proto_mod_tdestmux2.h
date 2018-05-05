@@ -145,6 +145,7 @@ public:
 class CTDestPort2 : public CByteMuxPort<CProtoModTDestMux2> {
 private:
 	bool          stripHeader_;
+	unsigned      inpQueueDepth_;
     BufQueue      inputQueue_;    // from downstream module
 	unsigned      slot_;
 
@@ -172,6 +173,7 @@ public:
 	CTDestPort2(Key &k, ProtoModTDestMux2 owner, int dest, bool stripHeader, unsigned oQDepth, unsigned iQDepth)
 	: CByteMuxPort<CProtoModTDestMux2>(k, owner, dest, oQDepth),
 	  stripHeader_  ( stripHeader                  ),
+	  inpQueueDepth_( iQDepth                      ),
 	  inputQueue_   ( IBufQueue::create( iQDepth ) ),
 	  slot_         ( -1                           ),
 	  badHeadersCnt_( 0                            ),
@@ -185,6 +187,12 @@ public:
 	getStripHeader()
 	{
 		return stripHeader_;
+	}
+
+	virtual unsigned
+	getInpQueueDepth() const
+	{
+		return inpQueueDepth_;
 	}
 
 	virtual bool push(BufChain bc, const CTimeout *timeout, bool abs_timeout);
