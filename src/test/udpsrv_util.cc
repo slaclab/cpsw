@@ -28,6 +28,7 @@ using std::vector;
 using boost::atomic;
 using boost::weak_ptr;
 using boost::make_shared;
+using boost::memory_order_acq_rel;
 using boost::memory_order_acquire;
 using boost::memory_order_release;
 using boost::static_pointer_cast;
@@ -62,6 +63,7 @@ private:
 protected:
 	CEventBufSync(unsigned depth, unsigned water)
 	: depth_(depth),
+	  // since water, depth are unsigned this works for both == 0
 	  water_(water > depth - 1 ? depth - 1 : water),
 	  slots_(depth),
 	  evSet_(IEventSet::create())
@@ -512,7 +514,7 @@ bool CEventBufSync::getSlot(bool wait, const CTimeout *abs_timeout)
 		// if someone posts right here then 'slots' is
 		// -1 and putSlot() may fail to notify...
 
-		if ( water_ == slots_.fetch_add(1, memory_order_release) ) {
+		if ( water_ == slots_.fetch_add(1, memory_order_acq_rel) ) {
 			// if we're going to wait then 'processEvent'
 			// will poll immediately anyways
 			if ( ! wait )
