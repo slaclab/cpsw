@@ -87,7 +87,7 @@ unsigned bufsz = bc->getSize();
 
 int ioPrtRecv(IoPrt p, void *buf, unsigned size, struct timespec *abs_timeout)
 {
-CMtx::lg( &p->mtx_ );
+CMtx::lg guard( &p->mtx_ );
 
 BufChain bc;
 	if ( abs_timeout ) {
@@ -104,7 +104,7 @@ BufChain bc;
 
 int ioPrtIsConn(IoPrt p)
 {
-CMtx::lg( &p->mtx_ );
+CMtx::lg guard( &p->mtx_ );
 	return p->prt_->isConnected();
 }
 
@@ -120,7 +120,7 @@ Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
 
 int ioPrtSend(IoPrt p, void *buf, unsigned size)
 {
-CMtx::lg( &p->mtx_ );
+CMtx::lg guard( &p->mtx_ );
 
 BufChain bc = fill(buf, size);
 
