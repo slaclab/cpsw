@@ -162,7 +162,7 @@ cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_7.yaml'
 
 cpsw_netio_tst_run:     RUN_OPTS=$(cpsw_netio_tst_RUN_OPTS)
 
-cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
+cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191' '-p8202 -r' '-2 -p8204 -r'
 
 cpsw_axiv_udp_tst_run:  RUN_OPTS='-y cpsw_axiv_udp_tst_1.yaml' '-Y cpsw_axiv_udp_tst_1.yaml' '-a192.168.2.10:8193:8194 -R -V3 -D0 -r -d1 -S100 -y cpsw_axiv_udp_tst_2.yaml' '-Y cpsw_axiv_udp_tst_2.yaml -S100'
 

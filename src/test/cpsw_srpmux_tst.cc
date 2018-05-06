@@ -149,25 +149,27 @@ bool have_even = false;
 bool have_odd  = false;
 bool do_even   = true;
 bool do_odd    = true;
-int  ivers = 2;
+int  ivers     = 2;
 int *i_p;
 int  opt;
-int  rval  = 1;
-int  useRssi = 0;
-int  tDest   = -1;
+int  rval      = 1;
+int  useRssi   = 0;
+int  tDest     = -1;
+int  v2        = 0;
 
-	while ( (opt = getopt(argc, argv, "hV:p:r")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "hV:p:r2")) > 0 ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'V': i_p = &ivers; break;
 			case 'p': i_p = &port;  break;
 			case 'r': useRssi = 1;  break;
+			case '2': v2      = 1;  break;
 			case 'h':
 				rval = 0;
 				/* fall thru */
 			default:
 				fprintf(stderr,"Unknown option '-%c'\n", opt);
-				fprintf(stderr,"usage: %s [-V <proto_vers>] [-p <dest_port>] [-r] [-h]\n", argv[0]);
+				fprintf(stderr,"usage: %s [-V <proto_vers>] [-p <dest_port>] [-2] [-r] [-h]\n", argv[0]);
 				return rval;
 		}
 		if ( i_p && 1 != sscanf(optarg,"%i",i_p) ) {
@@ -177,6 +179,7 @@ int  tDest   = -1;
 	}
 
 	switch ( ivers ) {
+		case 3: vers = IProtoStackBuilder::SRP_UDP_V3; break;
 		case 2: vers = IProtoStackBuilder::SRP_UDP_V2; break;
 		case 1: vers = IProtoStackBuilder::SRP_UDP_V1; break;
 		default:
@@ -184,8 +187,24 @@ int  tDest   = -1;
 			return 1;
 	}
 
+	if ( v2 ) {
+		useRssi = 1;
+		vers    = IProtoStackBuilder::SRP_UDP_V3;
+		tDest   = 1;
+	}
+
 	if ( port <= 0 ) {
-		port = IProtoStackBuilder::SRP_UDP_V2 == vers ? 8192 : 8191;
+		switch ( vers ) {
+			case IProtoStackBuilder::SRP_UDP_V2:
+				port = 8192;
+			break;
+			case IProtoStackBuilder::SRP_UDP_V3:
+				port = v2 ? 8204 : ( useRssi ? 8188 : 8190 );
+			break;
+			default:
+				port = 8191;
+			break;
+		}
 	}
 
 	try {
@@ -198,8 +217,12 @@ int  tDest   = -1;
 		bldr->setSRPVersion       (    vers );
 		bldr->setUdpPort          (    port );
 		bldr->useRssi             ( useRssi );
-		if ( tDest >= 0 )
+		if ( tDest >= 0 ) {
 			bldr->setTDestMuxTDEST(   tDest );
+			if ( v2 ) {
+				bldr->setDepackVersion( IProtoStackBuilder::DEPACKETIZER_V2 );
+			}
+		}
 
 		bldr->setSRPMuxVirtualChannel( vc1 );
 
