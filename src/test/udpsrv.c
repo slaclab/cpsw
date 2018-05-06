@@ -253,6 +253,7 @@ int      i;
 
 static uint64_t getTail(uint8_t *buf, int sz)
 {
+int i;
 	switch ( (buf[0] & 0xf) ) {
 		case VERS    : return getTailV1(buf,sz);
 		case VERS_V2 : return getTailV2(buf,sz);
@@ -260,7 +261,10 @@ static uint64_t getTail(uint8_t *buf, int sz)
 		default:
 			break;
 	}
-	fprintf(stderr,"getTail: unsupported protocol version\n");
+	for ( i=0; i<HEADSIZE; i++ ) {
+		printf("0x%02x ", buf[i]);
+	}
+	fprintf(stderr,"\ngetTail: unsupported protocol version\n");
 	abort();
 }
 
