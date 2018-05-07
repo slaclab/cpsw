@@ -261,13 +261,13 @@ public:
 
 	void insert(uint8_t *hdrBase, size_t hdrSize)
 	{
-		CPackHeaderBase::insert( hdrBase, hdrSize );
+		CPackHeaderBase<CAxisFrameHeader>::insert( hdrBase, hdrSize );
 		setNum( hdrBase, FRAME_NO_BIT_OFFSET, FRAME_NO_BIT_SIZE, frameNo_ );
 	}
 
 	bool parse(uint8_t *hdrBase, size_t hdrSize)
 	{
-		if ( ! CPackHeaderBase::parse(hdrBase, hdrSize) )
+		if ( ! CPackHeaderBase<CAxisFrameHeader>::parse(hdrBase, hdrSize) )
 			return false;
 		frameNo_ = getNum( hdrBase, FRAME_NO_BIT_OFFSET, FRAME_NO_BIT_SIZE );
 		return true;
@@ -364,7 +364,7 @@ public:
 	bool
 	parse(uint8_t *hdrBase, size_t hdrSize)
 	{
-		if ( ! CPackHeaderBase::parse(hdrBase, hdrSize) )
+		if ( ! CPackHeaderBase<CDepack2Header>::parse(hdrBase, hdrSize) )
 			return false;
 		crcMode_ = (CrcMode)getNum( hdrBase, CRC_MODE_BIT_OFFSET, CRC_MODE_BIT_SIZE );
 		return true;
@@ -372,7 +372,7 @@ public:
 
 	void insert(uint8_t *hdrBase, size_t hdrSize)
 	{
-		CPackHeaderBase::insert( hdrBase, hdrSize );
+		CPackHeaderBase<CDepack2Header>::insert( hdrBase, hdrSize );
 		// fragNo may roll over (ok for the protocol) but we maintain it as an unsigned
 		// so getFragNo() == 0 only marks the first fragment.
 		if ( 0 == getFragNo() ) {
