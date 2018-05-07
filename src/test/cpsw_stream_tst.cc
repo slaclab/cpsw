@@ -18,8 +18,6 @@
 
 #define NGOOD 200
 
-#undef  DEBUG
-
 class TestFailed {};
 
 static void usage(const char *nm)
@@ -38,6 +36,7 @@ class StrmRxFailed {};
 
 struct StrmCtxt {
 	int       depack2;
+	int       debug;
 	unsigned  ngood;
 	unsigned  timeoutUs;
 	unsigned  err_percent;
@@ -167,18 +166,18 @@ printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<N
 
 		got = strm->read( buf, sizeof(buf), CTimeout(c->timeoutUs), 0 );
 
-#ifdef DEBUG
-		printf("Read %"PRIu64" octets\n", got);
-#endif
+		if ( c->debug > 1 )
+			printf("Read %"PRIu64" octets\n", got);
+
 		if ( 0 == got ) {
 			fprintf(stderr,"Read -- timeout. Is udpsrv running?\n");
 			throw StrmRxFailed();
 		}
 
-#ifdef DEBUG
-		for ( unsigned k = 0; k<8; k++ )
-			printf("FRM/FRG 0x%"PRIx8"\n", buf[k]);
-#endif
+		if ( c->debug > 1 ) {
+			for ( unsigned k = 0; k<8; k++ )
+				printf("FRM/FRG 0x%"PRIx8"\n", buf[k]);
+		}
 
 		if ( c->depack2 ) {
 			if ( parseHdr<CDepack2Header>(buf, got, &fram, &hsiz, &tsiz, &tdest) )
@@ -199,9 +198,9 @@ printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<N
 			throw StrmRxFailed();
 		}
 
-#ifdef DEBUG
-		printf("Frame # %4i @TDEST 0x%02x\n", fram, tdest);
-#endif
+		if ( c->debug ) {
+			printf("Frame # %4i @TDEST 0x%02x\n", fram, tdest);
+		}
 
 		if ( ! c->depack2 && lfram >= 0 && lfram + 1 != fram ) {
 			printf("Missing -- lfram %d, this frame %d\n", lfram, fram);
@@ -262,6 +261,7 @@ unsigned err_percent = 0;
 int      err;
 int      i;
 int      opt;
+int      debug       = 0;
 unsigned*i_p;
 unsigned goodf;
 StrmCtxt ctxt[NUM_STREAMS];
@@ -281,9 +281,10 @@ StrmCtxt ctxt[NUM_STREAMS];
 		ctxt[i].tdest   = -1;
 	}
 
-	while ( (opt=getopt(argc, argv, "d:l:L:hT:e:n:Rs:t:y:Y:2")) > 0 ) {
+	while ( (opt=getopt(argc, argv, "dl:L:hT:e:n:Rs:t:y:Y:2")) > 0 ) {
 		i_p = 0;
 		switch ( opt ) {
+			case 'd': debug++;               break;
 			case 'q': i_p = &iQDepth;        break;
 			case 'Q': i_p = &oQDepth;        break;
 			case 'L': i_p = &ldFrameWinSize; break;
@@ -375,6 +376,7 @@ try {
 
 	for ( i=0; i<NUM_STREAMS; i++ ) {
 		ctxt[i].depack2       = depack2;
+		ctxt[i].debug         = debug;
 		ctxt[i].ngood         = ngood;
 		ctxt[i].timeoutUs     = timeoutUs;
 		ctxt[i].err_percent   = err_percent;
