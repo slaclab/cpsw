@@ -391,8 +391,8 @@ namespace YAML {
 		};
 
 	template<>
-		struct convert<IProtoStackBuilder::ProtocolVersion> {
-			static bool decode(const Node& node, IProtoStackBuilder::ProtocolVersion& rhs) {
+		struct convert<IProtoStackBuilder::SRPProtoVersion> {
+			static bool decode(const Node& node, IProtoStackBuilder::SRPProtoVersion& rhs) {
 				if (!node.IsScalar())
 					return false;
 
@@ -412,7 +412,7 @@ namespace YAML {
 				return true;
 			}
 
-			static Node encode(const IProtoStackBuilder::ProtocolVersion &rhs) {
+			static Node encode(const IProtoStackBuilder::SRPProtoVersion &rhs) {
 				Node node;
 				switch( rhs ) {
 					case IProtoStackBuilder::SRP_UDP_V1: node = "SRP_UDP_V1"; break;
@@ -423,6 +423,34 @@ namespace YAML {
 				return node;
 			}
 
+		};
+
+	template<>
+		struct convert<IProtoStackBuilder::DepackProtoVersion> {
+			static bool decode(const Node& node, IProtoStackBuilder::DepackProtoVersion& rhs) {
+				if (!node.IsScalar())
+					return false;
+
+				std::string str = node.Scalar();
+
+				if ( str.compare( "DEPACKETIZER_V0" ) == 0 )
+					rhs = IProtoStackBuilder::DEPACKETIZER_V0;
+				else if (str.compare( "DEPACKETIZER_V2" ) == 0 )
+					rhs = IProtoStackBuilder::DEPACKETIZER_V2;
+				else
+					return false;
+
+				return true;
+			}
+
+			static Node encode(const IProtoStackBuilder::DepackProtoVersion &rhs) {
+				Node node;
+				switch( rhs ) {
+					case IProtoStackBuilder::DEPACKETIZER_V2: node = "DEPACKETIZER_V2"; break;
+					default: node = "DEPACKETIZER_V0"; break;
+				}
+				return node;
+			}
 		};
 
 }

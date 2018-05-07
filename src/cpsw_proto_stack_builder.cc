@@ -17,6 +17,8 @@
 #include <cpsw_proto_mod_srpmux.h>
 #include <cpsw_proto_mod_rssi.h>
 #include <cpsw_proto_mod_tdestmux.h>
+#include <cpsw_proto_mod_tdestmux2.h>
+#include <cpsw_proto_depack.h>
 
 #include <cpsw_yaml.h>
 
@@ -45,6 +47,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		bool                       hasRssi_;
         int                        RssiThreadPriority_;
 		int                        hasDepack_;
+		DepackProtoVersion         depackProto_;
 		unsigned                   DepackOutQueueDepth_;
 		unsigned                   DepackLdFrameWinSize_;
 		unsigned                   DepackLdFragWinSize_;
@@ -57,6 +60,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		unsigned                   TDestMuxTDEST_;
 		int                        TDestMuxStripHeader_;
 		unsigned                   TDestMuxOutQueueDepth_;
+		unsigned                   TDestMuxInpQueueDepth_;
 		int                        TDestMuxThreadPriority_;
 		in_addr_t                  IPAddr_;
 	public:
@@ -75,6 +79,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			TcpThreadPriority_      = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			hasRssi_                = false;
 			hasDepack_              = -1;
+			depackProto_            = DEPACKETIZER_V0;
 			RssiThreadPriority_     = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			DepackOutQueueDepth_    = 0;
 			DepackLdFrameWinSize_   = 0;
@@ -88,6 +93,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			TDestMuxTDEST_          = 0;
 			TDestMuxStripHeader_    = -1;
 			TDestMuxOutQueueDepth_  = 0;
+			TDestMuxInpQueueDepth_  = 0;
 			TDestMuxThreadPriority_ = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			IPAddr_                 = INADDR_NONE;
 		}
@@ -115,7 +121,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			return SRP_UDP_NONE != protocolVersion_;
 		}
 
-		virtual void            setSRPVersion(ProtocolVersion v)
+		virtual void            setSRPVersion(SRPProtoVersion v)
 		{
 			if ( SRP_UDP_NONE != v && SRP_UDP_V1 != v && SRP_UDP_V2 != v && SRP_UDP_V3 != v ) {
 				throw InvalidArgError("Invalid protocol version");	
@@ -127,7 +133,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			}
 		}
 
-		virtual ProtocolVersion getSRPVersion()
+		virtual SRPProtoVersion getSRPVersion()
 		{
 			return protocolVersion_;
 		}
@@ -176,7 +182,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			if ( hasRssi() || getTcpPort() > 0 )
 				return false;
 			if ( SRPDynTimeout_ < 0 )
-				return ! hasTDestMux();
+				return ! hasTDestMux() && ! hasRssi();
 			return SRPDynTimeout_ ? true : false;
 		}
 
@@ -315,15 +321,25 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual bool            hasDepack()
 		{
 			if ( hasDepack_ < 0 ) {
-				return hasTDestMux();
+				return hasTDestMux() && depackProto_ == DEPACKETIZER_V0;
 			}
-			return hasDepack_ > 0;
+			return hasDepack_ > 0 && depackProto_ == DEPACKETIZER_V0;
 		}
 
 		virtual void            setDepackOutQueueDepth(unsigned v)
 		{
 			DepackOutQueueDepth_ = v;
 			useDepack( true );
+		}
+
+		virtual void            setDepackVersion(DepackProtoVersion vers)
+		{
+			depackProto_ = vers;
+		}
+
+		virtual DepackProtoVersion getDepackVersion()
+		{
+			return depackProto_;
 		}
 
 		virtual unsigned        getDepackOutQueueDepth()
@@ -471,10 +487,26 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual unsigned        getTDestMuxOutQueueDepth()
 		{
+			// output queue important with async SRP
 			if ( 0 == TDestMuxOutQueueDepth_ )
 				return 50;
 			return TDestMuxOutQueueDepth_;
 		}
+
+		virtual void            setTDestMuxInpQueueDepth(unsigned v)
+		{
+			TDestMuxInpQueueDepth_ = v;			
+			useTDestMux( true );
+		}
+
+		virtual unsigned        getTDestMuxInpQueueDepth()
+		{
+			// input queue important with async SRP
+			if ( 0 == TDestMuxInpQueueDepth_ )
+				return 50;
+			return TDestMuxInpQueueDepth_;
+		}
+
 
 		virtual void            setTDestMuxThreadPriority(int prio)
 		{
@@ -511,7 +543,7 @@ ProtoStackBuilder          bldr( IProtoStackBuilder::create() );
 unsigned                   u;
 uint64_t                   u64;
 bool                       b;
-INetIODev::ProtocolVersion proto_vers;
+SRPProtoVersion            proto_vers;
 int                        i;
 
 	{
@@ -585,9 +617,12 @@ int                        i;
 		const YAML::PNode &nn( node.lookup(YAML_KEY_depack) );
 		if ( !!nn && nn.IsMap() )
 		{
+		DepackProtoVersion proto_vers;
 			bldr->useDepack( true );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				bldr->setDepackOutQueueDepth( u );
+			if ( readNode(nn, YAML_KEY_protocolVersion, &proto_vers) )
+				bldr->setDepackVersion( proto_vers );
 			if ( readNode(nn, YAML_KEY_ldFrameWinSize, &u) )
 				bldr->setDepackLdFrameWinSize( u );
 			if ( readNode(nn, YAML_KEY_ldFragWinSize, &u) )
@@ -624,6 +659,8 @@ int                        i;
 				bldr->setTDestMuxStripHeader( b );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				bldr->setTDestMuxOutQueueDepth( u );
+			if ( readNode(nn, YAML_KEY_inpQueueDepth, &u) )
+				bldr->setTDestMuxInpQueueDepth( u );
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 				bldr->setTDestMuxThreadPriority( i );
 			if ( readNode(nn, YAML_KEY_instantiate, &b) )
@@ -669,7 +706,7 @@ ProtoPort CProtoStackBuilder::build( std::vector<ProtoPort> &existingPorts )
 ProtoPort            rval;
 ProtoPort            foundTDestPort;
 ProtoPortMatchParams cmp;
-ProtoModTDestMux     tDestMuxMod;
+ProtoMod             tDestMuxMod;
 ProtoModSRPMux       srpMuxMod;
 ProtoStackBuilder    bldr   = clone();
 bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVersion();
@@ -732,7 +769,8 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 		}
 
 		if ( bldr->hasTDestMux() ) {
-			cmp.tDest_ = bldr->getTDestMuxTDEST();
+			cmp.tDest_         = bldr->getTDestMuxTDEST();
+			cmp.depackVersion_ = bldr->getDepackVersion() == DEPACKETIZER_V2 ? CDepack2Header::VERSION : CAxisFrameHeader::VERSION;
 #ifdef PSBLDR_DEBUG
 	printf("  tdest %d\n", bldr->getTDestMuxTDEST());
 #endif
@@ -782,10 +820,10 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 				if ( ! findProtoPort( &cmp, existingPorts ) ) {
 					throw ConfigurationError("No TDEST Demultiplexer found");
 				}
-				tDestMuxMod  = dynamic_pointer_cast<ProtoModTDestMux::element_type>( cmp.tDest_.handledBy_ );
+				tDestMuxMod  = cmp.tDest_.handledBy_;
 
 				if ( ! tDestMuxMod ) {
-					throw InternalError("No TDEST Demultiplexer - but there should be one");
+					throw InternalError("No TDEST Demultiplexer (base-class pointer) - but there should be one");
 				}
 #ifdef PSBLDR_DEBUG
 	printf("  using (existing) tdest MUX\n");
@@ -847,11 +885,44 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 #ifdef PSBLDR_DEBUG
 	printf("  creating tdest port\n");
 #endif
+		ProtoModTDestMux  v0;
+		ProtoModTDestMux2 v2;
+
 		if ( ! tDestMuxMod ) {
-			tDestMuxMod = CShObj::create< ProtoModTDestMux >( bldr->getTDestMuxThreadPriority() );
-			rval->addAtPort( tDestMuxMod );
+			if ( bldr->getDepackVersion() == DEPACKETIZER_V2 ) {
+				v2 = CShObj::create< ProtoModTDestMux2 >( bldr->getTDestMuxThreadPriority() );
+				rval->addAtPort( v2 );
+			} else {
+				v0 = CShObj::create< ProtoModTDestMux  >( bldr->getTDestMuxThreadPriority() );
+				rval->addAtPort( v0 );
+			}
+		} else {
+			if ( bldr->getDepackVersion() == DEPACKETIZER_V2 ) {
+				v2 = dynamic_pointer_cast<ProtoModTDestMux2::element_type>( tDestMuxMod );
+				if ( ! v2 ) {
+					throw InternalError("No TDEST V2 Demultiplexer - but there should be one");
+				}
+			} else {
+				v0 = dynamic_pointer_cast<ProtoModTDestMux::element_type>( tDestMuxMod );
+				if ( ! v0 ) {
+					throw InternalError("No TDEST V0 Demultiplexer - but there should be one");
+				}
+			}
 		}
-		rval = tDestMuxMod->createPort( bldr->getTDestMuxTDEST(), bldr->getTDestMuxStripHeader(), bldr->getTDestMuxOutQueueDepth() );
+		if ( v2 ) {
+			rval = v2->createPort(
+			                       bldr->getTDestMuxTDEST(),
+			                       bldr->getTDestMuxStripHeader(),
+			                       bldr->getTDestMuxOutQueueDepth(),
+			                       bldr->getTDestMuxInpQueueDepth()
+			                     );
+		} else {
+			rval = v0->createPort(
+			                       bldr->getTDestMuxTDEST(),
+			                       bldr->getTDestMuxStripHeader(),
+			                       bldr->getTDestMuxOutQueueDepth()
+			                     );
+		}
 	}
 
 	if ( bldr->hasSRPMux() ) {

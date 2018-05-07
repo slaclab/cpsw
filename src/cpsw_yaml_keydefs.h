@@ -41,6 +41,7 @@
 #define YAML_KEY_numRxThreads  "numRxThreads"
 #define YAML_KEY_offset  "offset"
 #define YAML_KEY_outQueueDepth  "outQueueDepth"
+#define YAML_KEY_inpQueueDepth  "inpQueueDepth"
 #define YAML_KEY_pollSecs  "pollSecs"
 #define YAML_KEY_port  "port"
 #define YAML_KEY_protocolVersion  "protocolVersion"

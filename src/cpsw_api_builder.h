@@ -143,7 +143,8 @@ typedef shared_ptr<IProtoPort>         ProtoPort;
 
 class IProtoStackBuilder {
 public:
-	typedef enum SRPProtocolVersion { SRP_UDP_NONE = -1, SRP_UDP_V1 = 1, SRP_UDP_V2 = 2, SRP_UDP_V3 = 3 } ProtocolVersion;
+	typedef enum SRPProtoVersion    { SRP_UDP_NONE = -1, SRP_UDP_V1 = 1, SRP_UDP_V2 = 2, SRP_UDP_V3 = 3 } SRPProtoVersion;
+	typedef enum DepackProtoVersion { DEPACKETIZER_V0 =  0, DEPACKETIZER_V2 = 2                         } DepackProtoVersion;
 
 
 	const static int DFLT_THREAD_PRIORITY =  0;
@@ -156,8 +157,8 @@ public:
 	//       E.g., if a UDP port is shared (via TDEST and or SRP VC multiplexers)
 	//       and already present when adding a new TDEST/VC then the UDP parameters
 	//       (queue depth, number of threads) are ignored.
-	virtual void               setSRPVersion(ProtocolVersion)      = 0; // default: SRP_UDP_V2
-	virtual ProtocolVersion    getSRPVersion()                     = 0;
+	virtual void               setSRPVersion(SRPProtoVersion)      = 0; // default: SRP_UDP_V2
+	virtual SRPProtoVersion    getSRPVersion()                     = 0;
 	virtual void               setSRPTimeoutUS(uint64_t)           = 0; // default: 10000 if no rssi, 500000 if rssi
 	virtual uint64_t           getSRPTimeoutUS()                   = 0;
 	virtual void               useSRPDynTimeout(bool)              = 0; // default: YES unless TDEST demuxer in use
@@ -168,7 +169,7 @@ public:
 	virtual bool               hasTcp()                            = 0; // default: NO
     virtual void               setTcpPort(unsigned)                = 0; // default: 8192
 	virtual unsigned           getTcpPort()                        = 0;
-	virtual void               setTcpOutQueueDepth(unsigned)       = 0; // default: 10
+	virtual void               setTcpOutQueueDepth(unsigned)       = 0; // default: 50 (20 with SRP)
 	virtual unsigned           getTcpOutQueueDepth()               = 0;
 	virtual void               setTcpThreadPriority(int)           = 0;
 	virtual int                getTcpThreadPriority()              = 0;
@@ -191,6 +192,8 @@ public:
 	virtual int                getRssiThreadPriority()             = 0;
 
 	virtual void               useDepack(bool)                     = 0; // default: NO
+	virtual void               setDepackVersion(DepackProtoVersion)= 0;
+	virtual DepackProtoVersion getDepackVersion()                  = 0;
 	virtual bool               hasDepack()                         = 0;
 	virtual void               setDepackOutQueueDepth(unsigned)    = 0; // default: 50
 	virtual unsigned           getDepackOutQueueDepth()            = 0;
@@ -218,6 +221,8 @@ public:
 	virtual bool               getTDestMuxStripHeader()            = 0;
 	virtual void               setTDestMuxOutQueueDepth(unsigned)  = 0; // default: 50
 	virtual unsigned           getTDestMuxOutQueueDepth()          = 0;
+	virtual void               setTDestMuxInpQueueDepth(unsigned)  = 0; // default: 50; only applicable for TDestMux2
+	virtual unsigned           getTDestMuxInpQueueDepth()          = 0;
 	virtual void               setTDestMuxThreadPriority(int)      = 0;
 	virtual int                getTDestMuxThreadPriority()         = 0;
 
@@ -241,7 +246,7 @@ typedef shared_ptr<INetIODev> NetIODev;
 class INetIODev : public virtual IDev {
 public:
 	// DEPRECATED
-	typedef IProtoStackBuilder::ProtocolVersion ProtocolVersion;
+	typedef IProtoStackBuilder::SRPProtoVersion ProtocolVersion;
 
 
 	virtual void addAtAddress(Field child, ProtoStackBuilder bldr)        = 0;

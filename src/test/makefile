@@ -17,6 +17,7 @@ DEP_HEADERS += udpsrv_port.h
 DEP_HEADERS += udpsrv_rssi_port.h
 DEP_HEADERS += udpsrv_stream_state_monitor.h
 DEP_HEADERS += udpsrv_util.h
+DEP_HEADERS += udpsrv_cutil.h
 
 tstaux_SRCS+= crc32-le-tbl-4.c
 
@@ -153,6 +154,7 @@ cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_4.yaml -p8203 -r -t1'
 cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_5.yaml -p8190 -V3'
 cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_6.yaml -p8189 -V3 -b'
 cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_7.yaml -p8188 -V3 -r'
+cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_8.yaml -p8204 -V3 -r -2 -t1'
 cpsw_netio_tst_RUN_OPTS+= '-p8188 -V3 -r -R0'
 cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_1.yaml'
 cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_2.yaml'
@@ -161,10 +163,11 @@ cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_4.yaml'
 cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_5.yaml'
 cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_6.yaml'
 cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_7.yaml'
+cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_8.yaml'
 
 cpsw_netio_tst_run:     RUN_OPTS=$(cpsw_netio_tst_RUN_OPTS)
 
-cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191' '-p8202 -r'
+cpsw_srpmux_tst_run:    RUN_OPTS='' '-V1 -p8191' '-p8202 -r' '-2 -p8204 -r'
 
 cpsw_axiv_udp_tst_run:  RUN_OPTS='-y cpsw_axiv_udp_tst_1.yaml' '-Y cpsw_axiv_udp_tst_1.yaml' '-a192.168.2.10:8193:8194 -R -V3 -D0 -r -d1 -S100 -y cpsw_axiv_udp_tst_2.yaml' '-Y cpsw_axiv_udp_tst_2.yaml -S100'
 
@@ -174,9 +177,11 @@ cpsw_sval_tst_run:      RUN_OPTS='-y cpsw_sval_tst.yaml' '-Y cpsw_sval_tst.yaml'
 
 # error percentage should be >  value used for udpsrv (-L) times number
 # of fragments (-f)
-cpsw_stream_tst_run:    RUN_OPTS='-e 22 -y cpsw_stream_tst_1.yaml' '-s8203 -R -y cpsw_stream_tst_2.yaml' '-e 22 -Y cpsw_stream_tst_1.yaml' '-Y cpsw_stream_tst_2.yaml'
+cpsw_stream_tst_run:    RUN_OPTS='-e 22 -y cpsw_stream_tst_1.yaml' '-s8203 -R -y cpsw_stream_tst_2.yaml' '-s8204 -R -2 -y cpsw_stream_tst_3.yaml' '-e 22 -Y cpsw_stream_tst_1.yaml' '-Y cpsw_stream_tst_2.yaml' '-2 -Y cpsw_stream_tst_3.yaml'
 
 cpsw_path_tst_run:      RUN_OPTS='' '-Y'
+
+cpsw_srpv3_large_tst_run: RUN_OPTS='' '-V2' '-2'
 
 cpsw_enum_tst_run:      RUN_OPTS='-y cpsw_enum_tst.yaml' '-Y cpsw_enum_tst.yaml' '-Y cpsw_enum_tst.yaml -q -C ""  >./cpsw_enum_tst_cfg.yaml' '-L ./cpsw_enum_tst_cfg.yaml'
 

@@ -825,7 +825,7 @@ deliberately to use maps so that merge keys work across all levels).
             # Number of RX threads to spawn for handling
             # zero (default) picks a suitable value.
           YAML_KEY_numRxThreads:   <int>
-
+            #
             # Peers which do not implement ARP rely
             # on being contacted at regular intervals
             # so that they can record our UDP/IP/MAC
@@ -875,6 +875,21 @@ deliberately to use maps so that merge keys work across all levels).
             # is enabled.
         YAML_KEY_depack:
 
+            # Packetizer protocol version.
+            # Either DEPACKETIZER_V0 or
+            #        DEPACKETIZER_V2
+            #
+            # Note that  DEPACKETIZER_V2 which
+            # supports TDEST interleaving is actually
+            # implemented by the TDESTMux module, i.e.,
+            # all parameters defined for the depacketizer
+            # (such as threadPriority, queue sizes etc.)
+            # are ignored; the TDESTMux configuration
+            # is used instead!
+            #
+            # Default: DEPACKETIZER_V0
+          YAML_KEY_protocolVersion:<DepackProtoVersion>
+
             # The output queue depth can in special
             # cases be tuned - if this module
             # is at the top of the stack and the
@@ -922,6 +937,17 @@ deliberately to use maps so that merge keys work across all levels).
             # capacity inside CPSW.
           YAML_KEY_outQueueDepth:  <int>
 
+            # The input queue depth can in special
+            # cases be tuned - if this module
+            # is at the top of the stack and the
+            # application requires more buffering
+            # capacity inside CPSW.
+            #
+            # Note: this parameter is only relevant
+            # if the TDESTMux is operating in DEPACKETIZER_V2
+            # mode. It is ignored otherwise.
+          YAML_KEY_inpQueueDepth:  <int>
+
             # Priority of the demultiplexer thread. A number
             # bigger than zero must be a valid pthread
             # priority and tries to engage a real-time
@@ -947,7 +973,7 @@ deliberately to use maps so that merge keys work across all levels).
             #  SRP_UDP_V3     Current version
             # Consult respective confluence documentation for
             # details about SRP versions.
-          YAML_KEY_protocolVersion:<ProtocolVersion>
+          YAML_KEY_protocolVersion:<SRPProtoVersion>
 
             # How long to wait for a SRP transaction to
             # complete (in micro-seconds)

@@ -8,7 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #include <cpsw_proto_mod_tdestmux.h>
-#include <cpsw_proto_mod_depack.h>
+#include <cpsw_proto_depack.h>
 
 #include <cpsw_yaml.h>
 
@@ -67,9 +67,9 @@ int CTDestPort::iMatch(ProtoPortMatchParams *cmp)
 {
 int rval = 0;
 	cmp->tDest_.handledBy_ = getProtoMod();
-	if ( cmp->tDest_ == getDest() ) {
+	if ( cmp->tDest_ == getDest() && cmp->depackVersion_ == CAxisFrameHeader::VERSION ) {
 		cmp->tDest_.matchedBy_ = getSelfAsProtoPort();
-		rval++;
+		rval+=2;
 	}
 	return rval;
 }

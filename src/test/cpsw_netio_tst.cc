@@ -122,8 +122,9 @@ unsigned byteResHack =  0;
 int      retryCount  =  4;
 const char *use_yaml =  0;
 const char *dmp_yaml =  0;
+int      depack2     =  0;
 
-	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:bY:y:R:")) > 0; ) {
+	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:bY:y:R:2")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {
 			case 'a': ip_addr     = optarg;      break;
@@ -135,6 +136,7 @@ const char *dmp_yaml =  0;
 			case 'Y': use_yaml    = optarg;      break;
 			case 'y': dmp_yaml    = optarg;      break;
 			case 'R': i_p         = &retryCount; break;
+			case '2': depack2     = 1;           break;
 			default:
 				fprintf(stderr,"Unknown option '%c'\n", opt);
 				throw TestFailed();
@@ -196,7 +198,10 @@ const char *dmp_yaml =  0;
 		if ( tDest >= 0 ) {
 			pbldr->setTDestMuxTDEST       (                 tDest );
 		}
-
+		if ( depack2 ) {
+			pbldr->useDepack( true );
+			pbldr->setDepackVersion( IProtoStackBuilder::DEPACKETIZER_V2 );
+		}
 
 		netio->addAtAddress( mmio, pbldr );
 

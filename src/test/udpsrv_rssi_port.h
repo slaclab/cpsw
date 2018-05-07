@@ -15,7 +15,6 @@
 #include <udpsrv_stream_state_monitor.h>
 #include <boost/atomic.hpp>
 
-#include <stdio.h>
 class CRssiPort;
 typedef shared_ptr<CRssiPort> RssiPort;
 

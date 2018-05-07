@@ -8,6 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #include <udpsrv_util.h>
+#include <udpsrv_cutil.h>
 #include <cpsw_thread.h>
 
 #include <boost/make_shared.hpp>
@@ -28,6 +29,7 @@ using std::vector;
 using boost::atomic;
 using boost::weak_ptr;
 using boost::make_shared;
+using boost::memory_order_acq_rel;
 using boost::memory_order_acquire;
 using boost::memory_order_release;
 using boost::static_pointer_cast;
@@ -66,6 +68,7 @@ private:
 protected:
 	CEventBufSync(unsigned depth, unsigned water)
 	: depth_(depth),
+	  // since water, depth are unsigned this works for both == 0
 	  water_(water > depth - 1 ? depth - 1 : water),
 	  slots_(depth),
 	  evSet_(IEventSet::create())
@@ -535,7 +538,9 @@ BufQueue IBufQueue::create(unsigned depth)
 bool CEventBufSync::getSlot(bool wait, const CTimeout *abs_timeout)
 {
 	do {
-		if ( 0 != slots_.fetch_sub(1, memory_order_acquire) ) {
+		// in theory, more than one thread could try this here,
+		// so slots_ could temporarily be < 0
+		if ( 0 < slots_.fetch_sub(1, memory_order_acquire) ) {
 			return true;
 		}
 
@@ -544,7 +549,7 @@ bool CEventBufSync::getSlot(bool wait, const CTimeout *abs_timeout)
 		// if someone posts right here then 'slots' is
 		// -1 and putSlot() may fail to notify...
 
-		if ( water_ == slots_.fetch_add(1, memory_order_release) ) {
+		if ( water_ == slots_.fetch_add(1, memory_order_acq_rel) ) {
 			// if we're going to wait then 'processEvent'
 			// will poll immediately anyways
 			if ( ! wait )
@@ -1020,6 +1025,8 @@ public:
 	{
 	int got;
 
+		printf("UDP thread %llx on port %d\n", (unsigned long long)pthread_self(), getUdpPort());
+
 		while ( 1 ) {
 
 			BufChain bc = IBufChain::create();
@@ -1227,8 +1234,12 @@ public:
 	{
 	int       got;
 
+		printf("TCP thread %llx on port %d\n", (unsigned long long)pthread_self(), getTcpPort());
+
 		while ( 1 ) {
+
 			reconnect();
+
 			while ( conn_ >= 0 ) {
 
 				BufChain bc = IBufChain::create();
@@ -1307,4 +1318,31 @@ TcpPort ITcpPort::create(const char *ina, unsigned port, unsigned depth, bool is
 {
 TcpPort p = make_shared<CTcpPort>(ina, port, depth, isServer);
 	return p;
+}
+
+class FrameNoAllocator_ {
+private:
+	atomic<unsigned> no_;
+public:
+	FrameNoAllocator_()
+	: no_(0)
+	{
+	}
+
+	unsigned alloc()
+	{
+		return no_.fetch_add(1);
+	}
+};
+
+extern "C"
+FrameNoAllocator udpsrvCreateFrameNoAllocator()
+{
+	return new FrameNoAllocator();
+}
+
+extern "C"
+unsigned udpsrvAllocFrameNo(FrameNoAllocator a)
+{
+	return ((FrameNoAllocator_*)a)->alloc();
 }

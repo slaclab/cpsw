@@ -37,6 +37,13 @@ protected:
 	  CRunnable(orig),
 	  nPorts_(orig.nPorts_)
 	{
+	unsigned i;
+		for ( i=0; i < sizeof(downstream_)/sizeof(downstream_[0]); i++ ) {
+			PORT p = orig.downstream_[i].lock();
+			if ( p ) {
+				downstream_[i] = addPort( CShObj::clone( p ) );
+			}
+		}
 		throw InternalError("Clone not implemented");
 	}
 
@@ -53,6 +60,11 @@ protected:
 		nPorts_++;
 
 		return port;
+	}
+
+	virtual PORT addPort(PORT port)
+	{
+		return addPort( port->getDest(), port );
 	}
 
 public:
@@ -72,9 +84,15 @@ public:
 
 	virtual void dumpInfo(FILE *f)
 	{
+	unsigned slot;
 		fprintf(f,"%s:\n", getName());
 		fprintf(f,"  # virtual channels in use: %u\n", getNumPortsUsed());
 		fprintf(f,"  Thread Priority          : %d\n", getPrio());
+		for ( slot = 0; slot < sizeof(downstream_)/sizeof(downstream_[0]); slot++ ) {
+			PORT p = downstream_[slot].lock();
+			if ( p )
+				p->dumpInfo( f );
+		}
 	}
 
 	// derived class usually implements a 'newPort' method
@@ -96,10 +114,12 @@ public:
 		if ( (dest = extractDest( bc )) < DEST_MIN )
 			return false;
 
-		if ( downstream_[dest].expired() )
+		PORT prt = downstream_[dest].lock();
+
+		if ( ! prt )
 			return false; // nothing attached to this port; drop
 
-		return PORT( downstream_[dest] )->pushDownstream(bc, rel_timeout);
+		return prt->pushDownstream(bc, rel_timeout);
 	}
 
 	virtual void * threadBody()
@@ -219,6 +239,15 @@ public:
 			writeNode(node, YAML_KEY_threadPriority, prio);
 	}
 
+	OwnerType getOwner()
+	{
+		return owner_;
+	}
+
+	virtual void dumpInfo(FILE *f)
+	{
+		fprintf(f,"  Port@Dest %d (0x%02x):\n", getDest(), getDest());
+	}
 
 };
 

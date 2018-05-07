@@ -21,108 +21,6 @@
 
 #define RSSI_PAYLOAD 1024
 
-static uint64_t getNum(uint8_t *p, unsigned bit_offset, unsigned bit_size)
-{
-int      i;
-unsigned shift = bit_offset % 8;
-unsigned rval;
-
-	if ( bit_size == 0 )
-		return 0;
-
-	p += bit_offset/8;
-
-	// protocol uses little-endian representation
-	rval = 0;
-	for ( i = (shift + bit_size + 7)/8 - 1; i>=0; i-- ) {
-		rval = (rval << 8) + p[i];
-	}
-
-	rval >>= shift;
-
-	rval &= (1<<bit_size)-1;
-
-	return rval;
-}
-
-static void setNum(uint8_t *p, unsigned bit_offset, unsigned bit_size, uint64_t val)
-{
-int      i,l;
-unsigned shift = bit_offset % 8;
-uint8_t  msk1, mskn;
-
-	if ( bit_size == 0 )
-		return;
-
-	p += bit_offset/8;
-
-	// mask of bits to preserve in the first and last word, respectively.
-
-	l = (shift + bit_size + 7)/8;
-
-	// l is > 0
-
-	msk1 = (1 << shift) - 1;
-	mskn = ~ ( (1 << ((shift + bit_size) % 8)) - 1 );
-	if ( mskn == 0xff )
-		mskn = 0x00;
-
-	if ( 1 == l ) {
-		msk1 |= mskn;
-	}
-
-	val <<= shift;
-
-	// protocol uses little-endian representation
-
-	// l cannot be 0 here
-	p[0] = (val & ~msk1) | (p[0] & msk1);
-	val >>= 8;
-
-	for ( i = 1; i < l-1; i++ ) {
-		p[i] = val;
-		val >>= 8;
-	}
-
-	if ( i < l ) {
-		p[i] = (val & ~mskn) | (p[i] & mskn);
-	}
-}
-
-bool CAxisFrameHeader::parse(uint8_t *hdrBase, size_t hdrSize)
-{
-	if ( hdrSize  <  (VERSION_BIT_OFFSET + VERSION_BIT_SIZE + 7)/8 )
-		return false; // cannot even read the version
-
-	vers_ = getNum( hdrBase, VERSION_BIT_OFFSET, VERSION_BIT_SIZE );
-
-	if ( vers_ != VERSION_0 )
-		return false; // we don't know what size the header would be nor its format
-
-	if ( hdrSize < getSize() )
-		return false;
-
-	frameNo_ = getNum( hdrBase, FRAME_NO_BIT_OFFSET, FRAME_NO_BIT_SIZE );
-	fragNo_  = getNum( hdrBase, FRAG_NO_BIT_OFFSET,  FRAG_NO_BIT_SIZE  );
-
-	tDest_   = getNum( hdrBase, TDEST_BIT_OFFSET,    TDEST_BIT_SIZE );
-	tId_     = getNum( hdrBase, TID_BIT_OFFSET,      TID_BIT_SIZE );
-	tUsr1_   = getNum( hdrBase, TUSR1_BIT_OFFSET,    TUSR1_BIT_SIZE );
-
-	return true;
-}
-
-void CAxisFrameHeader::insert(uint8_t *hdrBase, size_t hdrSize)
-{
-	if ( hdrSize < getSize() )
-		throw InvalidArgError("Insufficient space for header");
-	setNum( hdrBase, VERSION_BIT_OFFSET,  VERSION_BIT_SIZE,  vers_    );
-	setNum( hdrBase, FRAME_NO_BIT_OFFSET, FRAME_NO_BIT_SIZE, frameNo_ );
-	setNum( hdrBase, FRAG_NO_BIT_OFFSET,  FRAG_NO_BIT_SIZE,  fragNo_  );
-	setNum( hdrBase, TDEST_BIT_OFFSET,    TDEST_BIT_SIZE,    tDest_   );
-	setNum( hdrBase, TID_BIT_OFFSET,      TID_BIT_SIZE,      tId_     );
-	setNum( hdrBase, TUSR1_BIT_OFFSET,    TUSR1_BIT_SIZE,    tUsr1_   );
-}
 
 void CFrame::release(unsigned *ctr)
 {
@@ -451,7 +349,7 @@ printf("Frag %d of frame # %d\n", hdr.getFragNo(), frame->frameID_);
 
 	Buf bt = bc->getTail();
 
-	if ( hdr.getTailEOF( bt->getPayload() + bt->getSize() - hdr.getTailSize() ) || ( CAxisFrameHeader::FRAG_MAX == hdr.getFragNo() ) ) {
+	if ( hdr.parseTailEOF( bt->getPayload() + bt->getSize() - hdr.getTailSize() ) || ( CAxisFrameHeader::FRAG_MAX == hdr.getFragNo() ) ) {
 		if ( CFrame::NO_FRAG != frame->lastFrag_ ) {
 			duplicateLastSeen_++;
 #ifdef DEPACK_DEBUG
@@ -554,8 +452,8 @@ Buf    b = bc->getTail();
 		b->setSize( CAxisFrameHeader::getTailSize() );
 	}
 
-	CAxisFrameHeader::iniTail   ( b->getPayload() + b->getSize() - CAxisFrameHeader::getTailSize() );
-	CAxisFrameHeader::setTailEOF( b->getPayload() + b->getSize() - CAxisFrameHeader::getTailSize(), isEof );
+	CAxisFrameHeader::iniTail      ( b->getPayload() + b->getSize() - CAxisFrameHeader::getTailSize() );
+	CAxisFrameHeader::insertTailEOF( b->getPayload() + b->getSize() - CAxisFrameHeader::getTailSize(), isEof );
 }
 
 BufChain CProtoModDepack::processOutput(BufChain *bcp)
@@ -678,7 +576,7 @@ struct timespec now;
 int CProtoModDepack::iMatch(ProtoPortMatchParams *cmp)
 {
 	cmp->haveDepack_.handledBy_ = getProtoMod();
-	if ( cmp->haveDepack_.doMatch_ ) {
+	if ( cmp->haveDepack_.doMatch_ && cmp->depackVersion_ == CAxisFrameHeader::VERSION ) {
 		cmp->haveDepack_.matchedBy_ = getSelfAs<ProtoModDepack>();
 		return 1;
 	}
@@ -688,7 +586,7 @@ int CProtoModDepack::iMatch(ProtoPortMatchParams *cmp)
 unsigned
 CProtoModDepack::getMTU()
 {
-	return mustGetUpstreamDoor()->getMTU() - CAxisFrameHeader::V0_HEADER_SIZE - CAxisFrameHeader::V0_TAIL_SIZE;
+	return mustGetUpstreamDoor()->getMTU() - CAxisFrameHeader::HEADER_SIZE - CAxisFrameHeader::TAIL_SIZE;
 }
 
 

@@ -142,9 +142,11 @@ extern "C" {
 #define STREAMBUF_HEADROOM 8
 
 	/* send a stream message; the buffer must have 8-bytes at
-	 * the head reserved for the packet header
+	 * the head reserved for the packet header and extra space
+	 * at the tail. The max. available space is 'maxsize' the
+	 * message size (incl. header) 'size'.
 	 */
-	void streamSend(uint8_t *buf, int size, uint8_t tdest);
+	void streamSend(uint8_t *buf, int maxsize, int size, uint8_t tdest);
 
 
 	void range_io_debug(struct udpsrv_range *r, int rd, uint64_t off, uint32_t nbytes);

@@ -101,6 +101,11 @@ public:
 	virtual void dumpYaml(YAML::Node &) const;
 
 	virtual INetIODev::ProtocolVersion getProtoVersion();
+
+	virtual CSRPPort *clone(Key k)
+	{
+		return new CSRPPort( *this, k );
+	}
 };
 
 #endif
