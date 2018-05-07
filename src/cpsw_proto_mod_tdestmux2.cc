@@ -13,6 +13,15 @@
 #include <cpsw_yaml.h>
 #include <cpsw_crc32_le.h>
 
+// Support for SLAC Depacketizer V2 protocol.
+//
+// https://confluence.slac.stanford.edu/display/ppareg/AxiStreamPackerizer+Protocol+Version+2
+//       
+// NOTE: This module assumes does not support out-of-order arrival of 
+//       fragments (like the V0 depacketizer does). The assumption is
+//       that reliability and in-order delivery are to be provided by
+//       RSSI.
+
 #undef  TDESTMUX2_DEBUG
 
 int CProtoModTDestMux2::extractDest(BufChain bc)
