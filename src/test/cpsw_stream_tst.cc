@@ -204,6 +204,7 @@ printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<N
 #endif
 
 		if ( ! c->depack2 && lfram >= 0 && lfram + 1 != fram ) {
+			printf("Missing -- lfram %d, this frame %d\n", lfram, fram);
 			errs++;
 		}
 
@@ -325,6 +326,9 @@ try {
 
 	if ( use_yaml ) {
 		root = IPath::loadYamlFile( use_yaml, "root" )->origin();
+		/* NOTE -- we cannot know what depacketizer version is being used.
+		 *         the user must help us with the -2 flag...
+		 */
 	} else {
 	NetIODev netio = INetIODev::create("udp", "127.0.0.1");
 	Field    data  = IField::create("data");
