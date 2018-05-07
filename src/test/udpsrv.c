@@ -787,13 +787,9 @@ int      end_of_frame;
 FragBuf  bufmem;
 uint8_t  ctx;
 uint32_t dice = -1;
-unsigned fram;
+unsigned fram = -1;
 
-	/* test expects consecutive frames for V0; do not allocate a frame
-	 * number for higher streams unless V2
-	 */
 	for ( ctx = 0; ctx < (sa->ileave ? NUM_TTDESTS : 1); ctx++ ) {
-		sa->txCtx[ctx].fram     = udpsrvAllocFrameNo( sa->frameNoAllocator );
 		sa->txCtx[ctx].frag     = 0;
 		sa->txCtx[ctx].crc      = -1;
 		sa->txCtx[ctx].crcProto = -1;
@@ -811,7 +807,6 @@ unsigned fram;
 			ctx  = dice % NUM_TTDESTS;
 		}
 
-		fram = sa->txCtx[ctx].fram;
 		frag = sa->txCtx[ctx].frag;
 		crc  = sa->txCtx[ctx].crc;
 
@@ -834,6 +829,13 @@ unsigned fram;
 				}
 
 			} while ( ! sa->isRunning );
+
+			fram = sa->txCtx[ctx].fram     = udpsrvAllocFrameNo( sa->frameNoAllocator );
+		}
+
+		if ( fram == -1 ) {
+			fprintf(stderr,"UPSRV: internal error -- shouldn't get here\n");
+			exit(1);
 		}
 
 		i  = 0;
@@ -886,7 +888,6 @@ printf("JAM cleared\n");
 			frag = 0;
 			crc  = -1;
 			sa->txCtx[ctx].crcProto = -1;
-			sa->txCtx[ctx].fram     = udpsrvAllocFrameNo( sa->frameNoAllocator );
 		}
 
 		sa->txCtx[ctx].frag = frag;
