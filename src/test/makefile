@@ -151,6 +151,7 @@ cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_4.yaml -p8203 -r -t1'
 cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_5.yaml -p8190 -V3'
 cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_6.yaml -p8189 -V3 -b'
 cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_7.yaml -p8188 -V3 -r'
+cpsw_netio_tst_RUN_OPTS+= '-y cpsw_netio_tst_8.yaml -p8204 -V3 -r -2 -t1'
 cpsw_netio_tst_RUN_OPTS+= '-p8188 -V3 -r -R0'
 cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_1.yaml'
 cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_2.yaml'
@@ -159,6 +160,7 @@ cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_4.yaml'
 cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_5.yaml'
 cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_6.yaml'
 cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_7.yaml'
+cpsw_netio_tst_RUN_OPTS+= '-Y cpsw_netio_tst_8.yaml'
 
 cpsw_netio_tst_run:     RUN_OPTS=$(cpsw_netio_tst_RUN_OPTS)
 
