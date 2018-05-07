@@ -18,7 +18,11 @@
 extern "C" {
 #endif
 
-	unsigned udpsrvAllocFrameNo();
+	typedef  void *FrameNoAllocator;
+
+	FrameNoAllocator udpsrvCreateFrameNoAllocator();
+
+	unsigned udpsrvAllocFrameNo(FrameNoAllocator);
 
 #ifdef __cplusplus
 };

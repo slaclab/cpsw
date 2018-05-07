@@ -1203,10 +1203,29 @@ CTcpPort *p = new CTcpPort(ina, port);
 	return TcpPort(p);
 }
 
-extern "C"
-unsigned udpsrvAllocFrameNo()
-{
-static atomic<unsigned> xx_(0);
+class FrameNoAllocator_ {
+private:
+	atomic<unsigned> no_;
+public:
+	FrameNoAllocator_()
+	: no_(0)
+	{
+	}
 
-	return xx_.fetch_add(1);
+	unsigned alloc()
+	{
+		return no_.fetch_add(1);
+	}
+};
+
+extern "C"
+FrameNoAllocator udpsrvCreateFrameNoAllocator()
+{
+	return new FrameNoAllocator();
+}
+
+extern "C"
+unsigned udpsrvAllocFrameNo(FrameNoAllocator a)
+{
+	return ((FrameNoAllocator_*)a)->alloc();
 }

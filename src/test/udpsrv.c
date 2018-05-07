@@ -166,8 +166,9 @@ int i;
 #define HAVE_FRAGGER_RX (1<<2)
 
 typedef struct streamer_args {
-	IoPrt             port;
-	IoQue             srpQ;
+	IoPrt              port;
+	IoQue              srpQ;
+	int                portNumber;
 	int                polled_stream_up;
     int                rssi;
 	int                tcp;
@@ -180,6 +181,7 @@ typedef struct streamer_args {
 	int                ileave;
 	RxBufRec           rxBuf[NUM_RTDESTS];
 	volatile uint8_t   isRunning; // bitmask
+	FrameNoAllocator   frameNoAllocator;
 	struct {
 		unsigned       frag;
 		unsigned       fram;
@@ -744,7 +746,7 @@ unsigned fram;
 
 #ifdef DEBUG
 		if ( debug > 1 ) {
-			printf("fragger_rx got %d octets; tdest 0x%02x\n", got, tdest);
+			printf("fragger_rx got %d octets; tdest 0x%02x, port %d\n", got, tdest, sa->portNumber);
 		}
 #endif
 
@@ -760,7 +762,7 @@ unsigned fram;
 			put = got;
 		}
 
-		fram = udpsrvAllocFrameNo();
+		fram = udpsrvAllocFrameNo( sa->frameNoAllocator );
 		send_fragmented( sa->port, (uint8_t*)bufp, sizeof(rbuf) - HEADSIZE, put, tdest, fram, sa->ileave );
 	}
 }
@@ -791,7 +793,7 @@ unsigned fram;
 	 * number for higher streams unless V2
 	 */
 	for ( ctx = 0; ctx < (sa->ileave ? NUM_TTDESTS : 1); ctx++ ) {
-		sa->txCtx[ctx].fram     = udpsrvAllocFrameNo();
+		sa->txCtx[ctx].fram     = udpsrvAllocFrameNo( sa->frameNoAllocator );
 		sa->txCtx[ctx].frag     = 0;
 		sa->txCtx[ctx].crc      = -1;
 		sa->txCtx[ctx].crcProto = -1;
@@ -884,7 +886,7 @@ printf("JAM cleared\n");
 			frag = 0;
 			crc  = -1;
 			sa->txCtx[ctx].crcProto = -1;
-			sa->txCtx[ctx].fram     = udpsrvAllocFrameNo();
+			sa->txCtx[ctx].fram     = udpsrvAllocFrameNo( sa->frameNoAllocator );
 		}
 
 		sa->txCtx[ctx].frag = frag;
@@ -1372,6 +1374,7 @@ int      nprts, nstrms;
 		} else {
 			strm_args[i].port             = udpPrtCreate( ina, strmvars[i].port, sim_loss, scramble, strmvars[i].haveRssi );
 		}
+		strm_args[i].portNumber           = strmvars[i].port;
 		strm_args[i].isRunning            = 0;
 		strm_args[i].srpQ                 = ioQueCreate(10);
 		strm_args[i].txCtx[0].tdest       = tdest;
@@ -1385,6 +1388,7 @@ int      nprts, nstrms;
 		strm_args[i].srp_tdest            = (tdest + 1) & 0xff;
 		strm_args[i].ileave               = !! (strmvars[i].opts & STRM_OPT_ILEAVE);
 		strm_args[i].haveThreads          = 0;
+		strm_args[i].frameNoAllocator     = udpsrvCreateFrameNoAllocator();
 
 		if ( ! strm_args[i].port )
 			goto bail;
