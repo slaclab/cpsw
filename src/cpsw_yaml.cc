@@ -962,15 +962,20 @@ static YAML::Node findAcrossMerges(YAML::Node &src, std::string *tokens)
 
 YAML::Node nn = src[ *tokens ];
 
-	if ( !!nn )
-		nn = findAcrossMerges( nn, tokens + 1 );
-
-	if ( ! nn ) {
-		nn = src["<<"];
-		if ( nn )
-			nn = findAcrossMerges(nn, tokens );
+	if ( !!nn ) {
+		YAML::Node nnn = findAcrossMerges( nn, tokens + 1 );
+		if ( !! nnn )
+			return nnn;
+		// else (not found) -> continue at current level and look into
+		// merge tag
 	}
-	return nn;
+
+	// not found; look into merge tag
+
+	YAML::Node mrg = src["<<"];
+	if ( mrg )
+		return findAcrossMerges(mrg, tokens );
+	return mrg;
 }
 
 YAML::Node
