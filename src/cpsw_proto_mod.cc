@@ -167,8 +167,10 @@ ProtoDoor rval( ProtoDoor(this, CloseManager()) );
 	while ( spinlock_.exchange( true, boost::memory_order_acquire ) )
 		/* spin */;
 
-	if ( 0 == openCount_.fetch_add( 1, boost::memory_order_acq_rel ) )
+	if ( 0 == openCount_.fetch_add( 1, boost::memory_order_acq_rel ) ) {
 		forcedSelfReference_ = getSelfAsProtoPort();
+		printf("First Open %s\n", forcedSelfReference_->getProtoMod()->getName());
+	}
 
 	spinlock_.store( false, boost::memory_order_release );
 
@@ -196,6 +198,7 @@ ProtoPort holdOnToAReference = impl->forcedSelfReference_;
 	while ( impl->spinlock_.exchange( true, boost::memory_order_acquire ) )
 		/* spin */;
 	if ( 1 == impl->openCount_.fetch_sub( 1, boost::memory_order_acq_rel ) ) {
+		printf("Last Close %s\n", holdOnToAReference->getProtoMod()->getName());
 		impl->forcedSelfReference_.reset();
 	}
 

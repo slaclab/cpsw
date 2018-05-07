@@ -117,7 +117,7 @@ public:
 	}
 
 
-	AsyncIOTransactionNode 
+	AsyncIOTransactionNode
 	getHead_unl()
 	{
 		return pendingListEmpty() ?  AsyncIOTransactionNode() : pendingListHead_->next_;
@@ -256,7 +256,7 @@ AsyncIO   aio;
 
 	try {
 		cmpl( bc );
-		if ( aio ) {	
+		if ( aio ) {
 			TimeoutError err;
 			aio->callback( bc ? 0 : &err );
 		}
@@ -319,11 +319,6 @@ CAsyncIOParallelCompletion::CAsyncIOParallelCompletion(AsyncIO parent, bool reco
 {
 }
 
-	AsyncIO      parent_;
-	bool         recordLastError_;
-	CMtx         mutex_;
-	CPSWErrorHdl error_;
-
 void
 CAsyncIOParallelCompletion::callback(CPSWError *err)
 {
@@ -350,5 +345,3 @@ CAsyncIOParallelCompletion::create(AsyncIO parent, bool recordLastError)
 	// side-effects to consider.
 	return AsyncIOParallelCompletion( new CAsyncIOParallelCompletion( parent, recordLastError ) );
 }
-
-

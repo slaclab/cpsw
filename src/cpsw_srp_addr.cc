@@ -248,7 +248,7 @@ class CSRPTransaction {
 private:
 	uint32_t  tid_;
 	bool      doSwapV1_; // V1 sends payload in network byte order. We want to transform to restore
-	                           // the standard AXI layout which is little-endian
+	                     // the standard AXI layout which is little-endian
 
 	bool      doSwap_;   // header info needs to be swapped to host byte order since we interpret it
 

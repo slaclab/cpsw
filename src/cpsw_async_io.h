@@ -25,7 +25,7 @@ public:
 	typedef uint32_t TID;	
 
 	virtual void post(AsyncIOTransactionNode, TID, AsyncIO callback) = 0;
-	virtual int  complete(BufChain, TID)                         = 0;
+	virtual int  complete(BufChain, TID)                             = 0;
 
 	virtual ~IAsyncIOTransactionManager() {}
 
@@ -39,9 +39,9 @@ private:
 	AsyncIOTransactionNode              next_;
 	weak_ptr<CAsyncIOTransactionNode>   prev_;
 
-	IAsyncIOTransactionManager::TID tid_;
-	CTimeout                        timeout_;
-	AsyncIO                         aio_;
+	IAsyncIOTransactionManager::TID     tid_;
+	CTimeout                            timeout_;
+	AsyncIO                             aio_;
 
 	CAsyncIOTransactionNode(const CAsyncIOTransactionNode &);
 	CAsyncIOTransactionNode & operator=(const CAsyncIOTransactionNode &);
@@ -105,14 +105,14 @@ public:
 	virtual void complete() = 0;
 };
 
-/* A utility class which can be used of the work for the parent request
+/* A utility class which can be used if the work for the parent request
  * is parallelized.
  * In that case, the parent callback should only be executed once
  * all of the sub-work is finished.
  * We accomplish this by submitting a shared pointer to a single
  * CAsyncIOParallelCompletion object to all of the sub-work tasks.
  * And we then execute the parent callback from the CAsyncIOParallelCompletion's
- * destructor, this letting the shared pointer keeping track for us.
+ * destructor, thus letting the shared pointer keeping track for us.
  */
 
 class CAsyncIOParallelCompletion;
