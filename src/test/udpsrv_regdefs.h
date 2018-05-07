@@ -103,7 +103,13 @@ struct udpsrv_range *udpsrv_ranges;
 
 inline int hostIsLE()
 {
-union { uint16_t s; uint8_t c[2]; } u = { .s = 1 };
+union { uint16_t s; uint8_t c[2]; } u = {
+#if __STDC_VERSION__ >= 199901L
+	/* rhel6 is not C99 :-( !  */
+	.s =
+#endif
+	(uint16_t)1
+	};
 	return u.c[0];
 }
 

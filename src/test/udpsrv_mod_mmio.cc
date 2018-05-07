@@ -6,6 +6,8 @@
  //@C
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
+
+#define  __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
