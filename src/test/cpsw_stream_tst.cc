@@ -37,7 +37,7 @@ class StrmRxFailed {};
 #define NUM_STREAMS 2
 
 struct StrmCtxt {
-	int       v2;
+	int       depack2;
 	unsigned  ngood;
 	unsigned  timeoutUs;
 	unsigned  err_percent;
@@ -93,13 +93,13 @@ T   hdr;
 }
 
 
-static void sendMsg(Stream strm, uint8_t m, int v2)
+static void sendMsg(Stream strm, uint8_t m, int depack2)
 {
 uint8_t          buf[1500];
 uint32_t         crc;
 unsigned         i, endi;
 
-	if ( v2 ) {
+	if ( depack2 ) {
 		endi = getHdrSize<CDepack2Header>(buf, sizeof(buf));
 	} else {
 		endi = getHdrSize<CAxisFrameHeader>(buf, sizeof(buf));
@@ -115,7 +115,7 @@ unsigned         i, endi;
 		crc >>= 8;
 	}
 	endi += i;
-	if ( v2 ) {
+	if ( depack2 ) {
 		/* must provide the tail */
 		endi += CDepack2Header::appendTail(buf, endi, true);
 		crc   = crc32_le_t4( -1,  buf, endi - sizeof(crc) );
@@ -146,7 +146,7 @@ try {
 printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<NIL>");
 
 	Stream strm = IStream::create( c->strmPath );
-	sendMsg( strm, STRT(c->chnl) , c->v2 );
+	sendMsg( strm, STRT(c->chnl) , c->depack2 );
 
 	try {
 
@@ -162,7 +162,7 @@ printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<N
 			// once in a while try to write something...
 			// udpsrv will jam the CRC if they receive
 			// corrupted data;	
-			sendMsg( strm, STRT(c->chnl), c->v2 );
+			sendMsg( strm, STRT(c->chnl), c->depack2 );
 		}
 
 		got = strm->read( buf, sizeof(buf), CTimeout(c->timeoutUs), 0 );
@@ -180,7 +180,7 @@ printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<N
 			printf("FRM/FRG 0x%"PRIx8"\n", buf[k]);
 #endif
 
-		if ( c->v2 ) {
+		if ( c->depack2 ) {
 			if ( parseHdr<CDepack2Header>(buf, got, &fram, &hsiz, &tsiz, &tdest) )
 				continue;
 		} else {
@@ -203,7 +203,7 @@ printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<N
 		printf("Frame # %4i @TDEST 0x%02x\n", fram, tdest);
 #endif
 
-		if ( ! c->v2 && lfram >= 0 && lfram + 1 != fram ) {
+		if ( ! c->depack2 && lfram >= 0 && lfram + 1 != fram ) {
 			errs++;
 		}
 
@@ -219,13 +219,13 @@ printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<N
 	}
 
 	} catch ( StrmRxFailed ) {
-		sendMsg( strm, STOP(c->chnl), c->v2 );
-		sendMsg( strm, STOP(c->chnl), c->v2 );
+		sendMsg( strm, STOP(c->chnl), c->depack2 );
+		sendMsg( strm, STOP(c->chnl), c->depack2 );
 		goto bail;
 	}
 
-	sendMsg( strm, STOP(c->chnl), c->v2 );
-	sendMsg( strm, STOP(c->chnl), c->v2 );
+	sendMsg( strm, STOP(c->chnl), c->depack2 );
+	sendMsg( strm, STOP(c->chnl), c->depack2 );
 
 } catch ( CPSWError e ) {
 		fprintf(stderr,"CPSW Error in reader thread (%s): %s\n", c->strmPath->toString().c_str(), e.getInfo().c_str());
@@ -248,7 +248,7 @@ bail:
 int
 main(int argc, char **argv)
 {
-int      v2          = 0;
+int      depack2     = 0;
 unsigned ngood       = NGOOD;
 int      quiet       = 1;
 unsigned nUdpThreads = 4;
@@ -295,7 +295,7 @@ StrmCtxt ctxt[NUM_STREAMS];
 			case 't': i_p = &tDest;          break;
 			case 'Y': use_yaml    = optarg;  break;
 			case 'y': dmp_yaml    = optarg;  break;
-			case '2': v2 = 1;                break;
+			case '2': depack2 = 1;           break;
 			default:
 			case 'h': usage(argv[0]); return 1;
 		}
@@ -334,7 +334,7 @@ try {
 
 	ProtoStackBuilder bldr( IProtoStackBuilder::create() );
 
-	if ( v2 ) {
+	if ( depack2 ) {
 		sport   = 8204;
 		useRssi = 1;
 	}
@@ -343,14 +343,14 @@ try {
 		bldr->setUdpPort             (                            sport );
 		bldr->setUdpOutQueueDepth    (                          iQDepth );
 		bldr->setUdpNumRxThreads     (                      nUdpThreads );
-	if (v2 ) {
+	if ( depack2 ) {
 		bldr->setDepackVersion       ( IProtoStackBuilder::DEPACKETIZER_V2 );
 	}
 		bldr->setDepackOutQueueDepth (                          oQDepth );
 		bldr->setDepackLdFrameWinSize(                   ldFrameWinSize );
 		bldr->setDepackLdFragWinSize (                    ldFragWinSize );
 		bldr->useRssi                (                          useRssi );
-		if ( v2 && tDest > 254 ) {
+		if ( depack2 && tDest > 254 ) {
 			tDest = 0;
 		}
 		ctxt[0].tdest = tDest;
@@ -370,7 +370,7 @@ try {
 
 
 	for ( i=0; i<NUM_STREAMS; i++ ) {
-		ctxt[i].v2            = v2;
+		ctxt[i].depack2       = depack2;
 		ctxt[i].ngood         = ngood;
 		ctxt[i].timeoutUs     = timeoutUs;
 		ctxt[i].err_percent   = err_percent;
@@ -379,7 +379,7 @@ try {
 	ctxt[0].strmPath  = root->findByName("data");
 	ctxt[1].strmPath  = root->findByName("data1");
 
-	for ( i=0; i < (v2 ? NUM_STREAMS : 1); i++ ) {
+	for ( i=0; i < (depack2 ? NUM_STREAMS : 1); i++ ) {
 
 		if ( (err = pthread_create( &ctxt[i].tid, 0, strmRcvr, &ctxt[i] )) ) {
 			fprintf(stderr,"Unable to create thread: %s\n", strerror(err));
@@ -421,7 +421,7 @@ try {
 		goodf += ctxt[i].goodf;
 	}
 
-	printf("TEST PASSED: %d %sframes received\n", goodf, v2 ? "" : "consecutive ");
+	printf("TEST PASSED: %d %sframes received\n", goodf, depack2 ? "" : "consecutive ");
 
 	printf("# bufs allocated: %4d\n", IBuf::numBufsAlloced());
 	printf("# bufs free     : %4d\n", IBuf::numBufsFree());

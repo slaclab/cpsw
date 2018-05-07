@@ -155,7 +155,7 @@ int  opt;
 int  rval      = 1;
 int  useRssi   = 0;
 int  tDest     = -1;
-int  v2        = 0;
+int  depack2   = 0;
 
 	while ( (opt = getopt(argc, argv, "hV:p:r2")) > 0 ) {
 		i_p = 0;
@@ -163,7 +163,7 @@ int  v2        = 0;
 			case 'V': i_p = &ivers; break;
 			case 'p': i_p = &port;  break;
 			case 'r': useRssi = 1;  break;
-			case '2': v2      = 1;  break;
+			case '2': depack2 = 1;  break;
 			case 'h':
 				rval = 0;
 				/* fall thru */
@@ -187,7 +187,7 @@ int  v2        = 0;
 			return 1;
 	}
 
-	if ( v2 ) {
+	if ( depack2 ) {
 		useRssi = 1;
 		vers    = IProtoStackBuilder::SRP_UDP_V3;
 		tDest   = 1;
@@ -199,7 +199,7 @@ int  v2        = 0;
 				port = 8192;
 			break;
 			case IProtoStackBuilder::SRP_UDP_V3:
-				port = v2 ? 8204 : ( useRssi ? 8188 : 8190 );
+				port = depack2 ? 8204 : ( useRssi ? 8188 : 8190 );
 			break;
 			default:
 				port = 8191;
@@ -219,7 +219,7 @@ int  v2        = 0;
 		bldr->useRssi             ( useRssi );
 		if ( tDest >= 0 ) {
 			bldr->setTDestMuxTDEST(   tDest );
-			if ( v2 ) {
+			if ( depack2 ) {
 				bldr->setDepackVersion( IProtoStackBuilder::DEPACKETIZER_V2 );
 			}
 		}
