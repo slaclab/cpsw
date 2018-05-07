@@ -185,7 +185,6 @@ public:
 		return rval;
 	}
 
-
 	void destruct(NODE *o)
 	{
 		const bool ThreadSafe = true;
@@ -205,6 +204,7 @@ public:
 		return rval;
 	}
 
+	// Note: freelist.hpp doesn't support more than 2 arguments
 	template <typename ARG> shared_ptr<NODE> alloc(ARG a)
 	{
 		NODE *b = construct( CFreeListNodeKey<NODEBASE>(), a );
@@ -216,6 +216,7 @@ public:
 		rval->setSelf( rval );
 		return rval;
 	}
+
 };
 
 #endif

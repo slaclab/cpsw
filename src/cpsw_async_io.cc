@@ -313,8 +313,13 @@ CAsyncIOCompletion::callback (CPSWError *upstreamError)
 	}
 }
 
-CAsyncIOParallelCompletion::CAsyncIOParallelCompletion(AsyncIO parent, bool recordLastError)
-: parent_          ( parent          ),
+CAsyncIOParallelCompletion::CAsyncIOParallelCompletion(
+	const CFreeListNodeKey<CAsyncIOParallelCompletion> & key,
+	AsyncIO parent,
+	bool recordLastError
+)
+: CFreeListNode<CAsyncIOParallelCompletion>( key ),
+  parent_          ( parent          ),
   recordLastError_ ( recordLastError )
 {
 }
@@ -338,10 +343,9 @@ CAsyncIOParallelCompletion::~CAsyncIOParallelCompletion()
 }
 
 AsyncIOParallelCompletion
-CAsyncIOParallelCompletion::create(AsyncIO parent, bool recordLastError)
+CAsyncIOParallelCompletion::create(AsyncIO parent)
 {
-	// Cannot use 'make_shared' here since the constructor is private.
-	// However, if the constructor throws then there are no relevant
-	// side-effects to consider.
-	return AsyncIOParallelCompletion( new CAsyncIOParallelCompletion( parent, recordLastError ) );
+static CFreeList<CAsyncIOParallelCompletion> pool;
+
+	return pool.alloc( parent );
 }

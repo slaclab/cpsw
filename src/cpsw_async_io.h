@@ -118,19 +118,23 @@ public:
 class CAsyncIOParallelCompletion;
 typedef shared_ptr<CAsyncIOParallelCompletion> AsyncIOParallelCompletion;
 
-class CAsyncIOParallelCompletion : public IAsyncIO {
+class CAsyncIOParallelCompletion : public IAsyncIO, public CFreeListNode<CAsyncIOParallelCompletion> {
 private:
 	AsyncIO      parent_;
 	bool         recordLastError_;
 	CMtx         mutex_;
 	CPSWErrorHdl error_;
 
-	CAsyncIOParallelCompletion(AsyncIO parent, bool recordLastError);
-
 	CAsyncIOParallelCompletion(const CAsyncIOParallelCompletion &);
 	CAsyncIOParallelCompletion operator=(const CAsyncIOParallelCompletion&);
 
 public:
+	CAsyncIOParallelCompletion(
+		const CFreeListNodeKey<CAsyncIOParallelCompletion> & key,
+		AsyncIO parent,
+		bool recordLastError = false
+	);
+
 	// the callback is executed by all the sub-work tasks and merely
 	// records either the first or the last error encountered.
 	virtual void callback(CPSWError *subWorkError);
@@ -139,7 +143,7 @@ public:
 	// the parent's callback is executed from this destructor.
 	virtual ~CAsyncIOParallelCompletion();
 
-	static AsyncIOParallelCompletion create(AsyncIO parent, bool recordLastError = false);
+	static AsyncIOParallelCompletion create(AsyncIO parent);
 };
 
 #endif
