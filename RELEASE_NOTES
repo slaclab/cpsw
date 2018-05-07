@@ -1,3 +1,5 @@
+    Bugfix: IYamlFixup::findByName() corrupted YAML hierarchy.
+
     Bugfix: (in udpsrv, i.e., test code): incorrect use of lock guard
             lead to no mutex protection (in simulator only)!
 
