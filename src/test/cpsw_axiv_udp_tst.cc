@@ -10,12 +10,14 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_mmio_dev.h>
 #include <boost/atomic.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include <string.h>
 #include <stdio.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <getopt.h>
+#include <iostream>
 
 #include <vector>
 
@@ -65,19 +67,19 @@ AXIVers IAXIVers::create(const char *name)
 {
 AXIVersImpl v = CShObj::create<AXIVersImpl>(name);
 Field f;
-	f = IIntField::create("fpgaVersion", 32, false, 0, IIntField::RO);
+	f = IIntField::create("FpgaVersion", 32, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
-	f = IIntField::create("dnaValue", 64, false, 0, IIntField::RO, 4);
+	f = IIntField::create("DeviceDna", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f , 0x08 );
-	f = IIntField::create("fdSerial", 64, false, 0, IIntField::RO, 4);
+	f = IIntField::create("FdSerial", 64, false, 0, IIntField::RO, 4);
 	v->CMMIODevImpl::addAtAddress( f, 0x10 );
-	f = IIntField::create("counter",  32, false, 0, IIntField::RO);
+	f = IIntField::create("UpTimeCnt",  32, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f, 0x24 );
-	f = IIntField::create("bldStamp",  8, false, 0, IIntField::RO);
+	f = IIntField::create("BuildStamp",  8, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f, 0x800, VLEN  );
-	f = IIntField::create("scratchPad",32,true,  0);
+	f = IIntField::create("ScratchPad",32,true,  0);
 	v->CMMIODevImpl::addAtAddress( f,   4 );
-	f = IIntField::create("bits",22,true, 4);
+	f = IIntField::create("Bits",22,true, 4);
 	v->CMMIODevImpl::addAtAddress( f,   4 );
 	return v;	
 }
@@ -117,27 +119,27 @@ PRBS IPRBS::create(const char *name)
 {
 PRBSImpl v = CShObj::create<PRBSImpl>(name);
 Field f;
-	f = IIntField::create("axiEn",        1, false, 0);
+	f = IIntField::create("AxiEn",        1, false, 0);
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
-	f = IIntField::create("trig",         1, false, 1);
+	f = IIntField::create("TxEn",         1, false, 1);
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
-	f = IIntField::create("busy",         1, false, 2, IIntField::RO);
+	f = IIntField::create("Busy",         1, false, 2, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
-	f = IIntField::create("overflow",     1, false, 3, IIntField::RO);
+	f = IIntField::create("Overflow",     1, false, 3, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
-	f = IIntField::create("oneShot",      1, false, 4);
+	f = IIntField::create("OneShot",      1, false, 4);
 	v->CMMIODevImpl::addAtAddress( f , 0x00 );
-	f = IIntField::create("packetLength",32, false, 0);
+	f = IIntField::create("OacketLength",32, false, 0);
 	v->CMMIODevImpl::addAtAddress( f , 0x04 );
 	f = IIntField::create("tDest",        8, false, 0);
 	v->CMMIODevImpl::addAtAddress( f , 0x08 );
 	f = IIntField::create("tId",          8, false, 0);
 	v->CMMIODevImpl::addAtAddress( f , 0x09 );
-	f = IIntField::create("dataCnt",     32, false, 0, IIntField::RO);
+	f = IIntField::create("DataCount",   32, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f , 0x0c );
-	f = IIntField::create("eventCnt",    32, false, 0, IIntField::RO);
+	f = IIntField::create("EventCount",  32, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f , 0x10 );
-	f = IIntField::create("randomData",  32, false, 0, IIntField::RO);
+	f = IIntField::create("RandomData",  32, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f , 0x14 );
 
 	return v;
@@ -378,6 +380,57 @@ static void usage(const char *nm)
 	fprintf(stderr,"and PRBS_BASE env-vars, respectively\n");
 }
 
+static void dmp(YAML::Node n)
+{
+YAML::Emitter e;
+	e<<n;
+	std::cout << e.c_str() << "\n";
+}
+
+class MyFixup : public IYamlFixup {
+public:
+	virtual void operator()(YAML::Node &root)
+	{
+        YAML::Node axiVersion = IYamlFixup::findByName(root,"children/mmio/children/AxiVersion/children");
+		YAML::Node off        = IYamlFixup::findByName(axiVersion,"ScratchPad/at/offset");
+#if 1
+		if ( !! axiVersion ) {
+			printf("AXI FOunc\n");
+		}
+		if ( !! off ) {
+			dmp(off);			
+			printf("OFF FOunc\n");
+		}
+        YAML::Node bits;
+			bits["class"]    = "IntField";
+			bits["lsBit"]    = "4";
+			bits["sizeBits"] = "22";
+
+		// retrieve offset
+        YAML::Node addr(YAML::NodeType::Map);
+            addr["offset"]    = off.as<std::string>();
+
+            bits["at"]       = addr;
+
+        axiVersion["Bits"]    = bits;
+
+#endif
+
+		if ( 0) {
+		YAML::Emitter e;
+			e << root;
+
+		std::cout << e.c_str() << "\n";
+		}
+		if ( 1) {
+		YAML::Emitter e;
+			e << axiVersion;
+
+		std::cout << e.c_str() << "\n";
+		}
+	}
+};
+
 int
 main(int argc, char **argv)
 {
@@ -495,26 +548,27 @@ const char *dmp_yaml  = 0;
 
 try {
 
-Hub       root;
-uint8_t   str[VLEN];
-int16_t   adcv[ADCL];
-uint64_t  u64;
-uint32_t  u32;
-uint16_t  u16;
+Hub         root;
+std::vector<uint8_t> str;
+int16_t     adcv[ADCL];
+uint64_t    u64;
+uint32_t    u32;
+uint16_t    u16;
+MyFixup     fix;
 
 	if ( use_mem )
 		length = 0;
 
 	if ( use_yaml ) {
-		root = IPath::loadYamlFile( use_yaml, "root" )->origin();
+		root = IPath::loadYamlFile( use_yaml, "root", NULL, &fix )->origin();
 	} else {
 		NetIODev  comm = INetIODev::create("fpga", ip_addr);
 		MMIODev   mmio = IMMIODev::create ("mmio",0x10000000);
-		AXIVers   axiv = IAXIVers::create ("vers");
+		AXIVers   axiv = IAXIVers::create ("AxiVersion");
 		MMIODev   sysm = IMMIODev::create ("sysm",    0x1000, LE);
 		MMIODev   axi4 = IMMIODev::create ("axi4",   0x10000, LE);
 		MemDev    rmem = IMemDev::create  ("rmem",  0x100000);
-		PRBS      prbs = IPRBS::create    ("prbs");
+		PRBS      prbs = IPRBS::create    ("SsiPrbsTx");
 
 		if ( use_mem )
 			root = rmem;
@@ -603,31 +657,31 @@ uint16_t  u16;
 	// can use raw memory for testing instead of UDP
 	Path pre = IPath::create( root );
 
-	ScalVal_RO fpgaVers = IScalVal_RO::create( pre->findByName("mmio/vers/fpgaVersion") );
+	ScalVal_RO fpgaVers = IScalVal_RO::create( pre->findByName("mmio/AxiVersion/FpgaVersion") );
 
-	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/vers/bldStamp") );
-	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/vers/fdSerial") );
-	ScalVal_RO dnaValue = IScalVal_RO::create( pre->findByName("mmio/vers/dnaValue") );
-	ScalVal_RO counter  = IScalVal_RO::create( pre->findByName("mmio/vers/counter" ) );
-	ScalVal  scratchPad = IScalVal::create   ( pre->findByName("mmio/vers/scratchPad") );
-	ScalVal        bits = IScalVal::create   ( pre->findByName("mmio/vers/bits") );
+	ScalVal_RO bldStamp = IScalVal_RO::create( pre->findByName("mmio/AxiVersion/BuildStamp") );
+	ScalVal_RO fdSerial = IScalVal_RO::create( pre->findByName("mmio/AxiVersion/FdSerial") );
+	ScalVal_RO dnaValue = IScalVal_RO::create( pre->findByName("mmio/AxiVersion/DeviceDna") );
+	ScalVal_RO counter  = IScalVal_RO::create( pre->findByName("mmio/AxiVersion/UpTimeCnt" ) );
+	ScalVal  scratchPad = IScalVal::create   ( pre->findByName("mmio/AxiVersion/ScratchPad") );
+	ScalVal        bits = IScalVal::create   ( pre->findByName("mmio/AxiVersion/Bits") );
 
 	vector<ScalVal_RO> vals;
 
-	ScalVal    axiEn        = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/axiEn") ));
-	ScalVal    trig         = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/trig") ));
-	ScalVal_RO busy         = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/busy") ));
-	ScalVal_RO overflow     = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/overflow") ));
-	ScalVal    oneShot      = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/oneShot") ));
-	ScalVal    packetLength = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/packetLength") ));
+	ScalVal    axiEn        = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/SsiPrbsTx/AxiEn") ));
+	ScalVal    trig         = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/SsiPrbsTx/TxEn") ));
+	ScalVal_RO busy         = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/SsiPrbsTx/Busy") ));
+	ScalVal_RO overflow     = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/SsiPrbsTx/Overflow") ));
+	ScalVal    oneShot      = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/SsiPrbsTx/OneShot") ));
+	ScalVal    packetLength = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/SsiPrbsTx/PacketLength") ));
 	if ( tDestSTRM < 0 ) {
 	// tDest from this register is unused if there is a tdest demuxer in FW
-	ScalVal    tDest        = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/tDest") ));
+	ScalVal    tDest        = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/SsiPrbsTx/tDest") ));
 	}
-	ScalVal    tId          = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/prbs/tId") ));
-	ScalVal_RO dataCnt      = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/dataCnt") ));
-	ScalVal_RO eventCnt     = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/eventCnt") ));
-	ScalVal_RO randomData   = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/prbs/randomData") ));
+	ScalVal    tId          = vpb(&vals, IScalVal::create   ( pre->findByName("mmio/SsiPrbsTx/tId") ));
+	ScalVal_RO dataCnt      = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/SsiPrbsTx/DataCount") ));
+	ScalVal_RO eventCnt     = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/SsiPrbsTx/EventCount") ));
+	ScalVal_RO randomData   = vpb(&vals, IScalVal_RO::create( pre->findByName("mmio/SsiPrbsTx/RandomData") ));
 
 
 	ScalVal_RO adcs;
@@ -638,8 +692,10 @@ uint16_t  u16;
 	printf("AxiVersion:\n");
 	fpgaVers->getVal( &u64 );
 	printf("FpgaVersion: %"PRIu64"\n", u64);
-	bldStamp->getVal( str, sizeof(str)/sizeof(str[0]) );
-	printf("Build String:\n%s\n", (char*)str);
+	unsigned nelms = bldStamp->getNelms();
+	str.reserve( nelms );
+	bldStamp->getVal( &str[0], nelms );
+	printf("Build String:\n%s\n", &str[0]);
 
 	fdSerial->getVal( &u64, 1 );
 	printf("Serial #: 0x%"PRIx64"\n", u64);
