@@ -720,7 +720,19 @@ protected:
 		return rval;
 	}
 
-	virtual void complete() = 0;
+	virtual void doComplete() = 0;
+
+	virtual void complete()
+	{
+		// reset the adapter shared pointer before
+		// the user callback is executed by the transaction
+		// manager; helps synchronizing with shutdown since
+		// otherwise the transaction manager may still hold
+		// a shared ref. and if the user thread is scheduled
+		// first then the user doesn't hold the *last* ref.
+		doComplete();
+		adapter_.reset();
+	}
 
 public:
 	virtual ~CGetValContext()
@@ -772,7 +784,7 @@ public:
 		ra->nbytes_    = adapter_->getSize();
 	}
 
-	void complete()
+	void doComplete()
 	{
 	int         lsb          = adapter_->getLsBit();
 	unsigned    sizeBits     = adapter_->getSizeBits();
@@ -941,7 +953,7 @@ public:
 		return buf_;
 	}
 
-	void complete()
+	void doComplete()
 	{
 	Enum     enm = adapter_->getEnum();
 	unsigned i;
@@ -1017,7 +1029,7 @@ public:
 	{
 	}
 
-	void complete()
+	void doComplete()
 	{
 	int i;
 
