@@ -395,7 +395,6 @@ unsigned nWords;
 			int nbytes = maxWordsRx_*4 - headbytes;
 			if ( args->aio_ ) {
 				rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes, args->aio_);
-printf("Broken read\n");
 			} else {
 				rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);
 			}
