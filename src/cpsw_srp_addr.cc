@@ -384,16 +384,21 @@ unsigned nWords;
 	totbytes = headbytes + sbytes;
 	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
-	if ( args->aio_ && ( nWords > maxWordsRx_ ) ) {
-		throw InternalError("Asynchronous SRP reads covering multiple blocks not supported");
+	if ( args->aio_ ) {
+		args->aio_ =  CAsyncIOParallelCompletion::create( args->aio_ );
 	}
 
-	if ( ! args->aio_ ) {
-		CMtx::lg GUARD( &mutex_ );
+	{
+	CMtx::lg GUARD( &mutex_ );
 
 		while ( nWords > maxWordsRx_ ) {
 			int nbytes = maxWordsRx_*4 - headbytes;
-			rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);
+			if ( args->aio_ ) {
+				rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes, args->aio_);
+printf("Broken read\n");
+			} else {
+				rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);
+			}
 			nWords -= maxWordsRx_;
 			sbytes -= nbytes;
 			dst    += nbytes;
@@ -401,10 +406,11 @@ unsigned nWords;
 			headbytes = 0;
 		}
 
-		rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes);
-
-	} else {
-		rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes, args->aio_);
+		if ( args->aio_ ) {
+			rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes, args->aio_);
+		} else {
+			rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes);
+		}
 	}
 
 	nReads_++;
