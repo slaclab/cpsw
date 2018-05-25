@@ -108,6 +108,7 @@ public:
 	CProtoModTDestMux2(Key &k, int threadPriority)
 	: CProtoModByteMux<TDestPort2>(k, "TDEST VC Demux V2", threadPriority),
 	  inputDataAvailable_( IEventSet::create()  ),
+	  numWork_           ( 0                    ),
 	  goodTxFragCnt_     ( 0                    ),
 	  goodTxFramCnt_     ( 0                    ),
 	  badHeadersCnt_     ( 0                    ),

@@ -1,3 +1,5 @@
+    Bugfix: TDESTMux2: missing inintialization of class member causing segfault.
+
     Bugfix: IYamlFixup::findByName() corrupted YAML hierarchy.
 
     Bugfix: (in udpsrv, i.e., test code): incorrect use of lock guard
