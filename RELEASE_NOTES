@@ -2,6 +2,7 @@ asyncSRP
 
     Merge:  depacketizer V2 support (from master)
 
+    Bugfix: TDESTMux2: missing inintialization of class member causing segfault.
 
     Bugfix: IYamlFixup::findByName() corrupted YAML hierarchy.
 
