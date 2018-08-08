@@ -32,8 +32,8 @@ install_local: env-cpsw.sh
 uninstall_local:
 	$(RM) $(INSTALL_DIR)/$(TARCH)/bin/env-cpsw.sh
 
-env.slac.sh: env.slac.sh.in
+env.slac.sh: env.slac.sh.in .FORCE
 	$(RM) $@
-	sed -e 's%TOPDIR/%$(abspath $(INSTALL_DIR))/%' $^ > $@
+	sed -e 's%TOPDIR/%$(abspath $(INSTALL_DIR))/%' $< > $@
 
-.PHONY: env
+.PHONY: env .FORCE
