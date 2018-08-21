@@ -65,7 +65,7 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 	uint32_t         len;
 
 	for ( niovs = 0, cap = 0; niovs<NBUFS_MAX && cap < (ssize_t)IBuf::CAPA_ETH_JUM; niovs++ ) {
-		bufs.push_back( IBuf::getBuf( IBuf::CAPA_ETH_JUM, true ) );
+		bufs.push_back( IBuf::getBuf( IBuf::CAPA_ETH_BIG ) );
 		iov[niovs].iov_base = bufs[niovs]->getPayload();
 		cap += (iov[niovs].iov_len  = bufs[niovs]->getAvail());
 	}
@@ -135,7 +135,7 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 			bufch->addAtTail( bufs[i] );
 
 			// get new buffers
-			bufs[i] = IBuf::getBuf( IBuf::CAPA_ETH_HDR );
+			bufs[i] = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 			iov[i].iov_base = bufs[i]->getPayload();
 			iov[i].iov_len  = bufs[i]->getAvail();
 		}

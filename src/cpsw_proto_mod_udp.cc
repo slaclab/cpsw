@@ -55,7 +55,7 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 	int              niovs;
 
 	for ( niovs = 0, cap = 0; niovs<NBUFS_MAX && cap < (ssize_t)IBuf::CAPA_ETH_JUM; niovs++ ) {
-		bufs.push_back( IBuf::getBuf( IBuf::CAPA_ETH_JUM, true ) );
+		bufs.push_back( IBuf::getBuf( IBuf::CAPA_ETH_BIG ) );
 		iov[niovs].iov_base = bufs[niovs]->getPayload();
 		cap += (iov[niovs].iov_len  = bufs[niovs]->getAvail());
 	}
@@ -102,7 +102,7 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 				bufch->addAtTail( bufs[idx] );
 
 				// get new buffers
-				bufs[idx] = IBuf::getBuf( IBuf::CAPA_ETH_HDR );
+				bufs[idx] = IBuf::getBuf( IBuf::CAPA_ETH_BIG );
 				iov[idx].iov_base = bufs[idx]->getPayload();
 				iov[idx].iov_len  = bufs[idx]->getAvail();
 				idx++;
