@@ -165,7 +165,7 @@ CProtoModDepack::fitsInMTU(unsigned sizeBytes)
 	if ( sizeBytes <= SAFE_MTU )
 		return true;
 	if ( cachedMTU_ == 0 ) {
-		cachedMTU_ = mustGetUpstreamDoor()->getMTU();
+		cachedMTU_ = getMTU();
 	}
 	return sizeBytes <= cachedMTU_;
 }

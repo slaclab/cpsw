@@ -225,8 +225,8 @@ CProtoModRssi::create(int threadPriority)
 unsigned
 CProtoModRssi::getMTU()
 {
-unsigned upMTU = getUpstreamDoor()->getMTU();
-unsigned myMTU = peerSgsMX_ - RssiHeader::minHeaderSize();
+unsigned upMTU = getUpstreamDoor()->getMTU() - RssiHeader::minHeaderSize();
+unsigned myMTU = peerSgsMX_;
 
 	return myMTU < upMTU ? myMTU : upMTU;
 }
