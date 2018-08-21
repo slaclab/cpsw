@@ -692,6 +692,10 @@ ByteOrder        targetEndian = cl->getByteOrder();
 unsigned         ibuf_nchars;
 unsigned         nelmsOnPath  = it.getNelmsLeft();
 
+	if ( NATIVE == targetEndian ) {
+		targetEndian = hostEndian;
+	}
+
 	if ( nelms >= nelmsOnPath ) {
 		nelms = nelmsOnPath;
 	} else {
@@ -881,6 +885,10 @@ ByteOrder        targetEndian = cl->getByteOrder();
 uint8_t          msk1     = 0x00;
 uint8_t          mskn     = 0x00;
 unsigned         nelmsOnPath = it.getNelmsLeft();
+
+	if ( NATIVE == targetEndian ) {
+		targetEndian = hostEndian;
+	}
 
 	if ( nelms >= nelmsOnPath )
 		nelms = nelmsOnPath;

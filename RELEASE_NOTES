@@ -1,3 +1,5 @@
+    Support for native endianness (ScalVal)
+
     Bugfix: TDESTMux2: missing inintialization of class member causing segfault.
 
     Bugfix: IYamlFixup::findByName() corrupted YAML hierarchy.

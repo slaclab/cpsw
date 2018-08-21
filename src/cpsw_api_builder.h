@@ -44,7 +44,7 @@ namespace YAML {
 	class PNode;
 };
 
-typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21 } ByteOrder;
+typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21, NATIVE = 22 } ByteOrder;
 
 ByteOrder hostByteOrder();
 
