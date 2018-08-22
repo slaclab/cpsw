@@ -10,6 +10,12 @@
 
 #include <cpsw_proto_mod.h>
 
+void
+ProtoPortMatchParams::MatchParam::dump()
+{
+	printf("%s -- doMatch %d, exclude %d, matched by %s", getName(), doMatch_, exclude_, matchedBy_ ? matchedBy_->getProtoMod()->getName() : "<NONE>");
+}
+
 IPortImpl::IPortImpl()
 {
 	spinlock_.store ( false, boost::memory_order_release );

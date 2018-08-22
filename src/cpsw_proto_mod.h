@@ -116,15 +116,25 @@ class ProtoPortMatchParams {
 public:
 	class MatchParam {
 	public:
-		ProtoPort matchedBy_;
-		bool      doMatch_;
-		bool      exclude_;
-		ProtoMod  handledBy_;
-		MatchParam(bool doMatch = false)
-		: doMatch_(doMatch),
+		const char * name_;
+		ProtoPort    matchedBy_;
+		bool         doMatch_;
+		bool         exclude_;
+		ProtoMod     handledBy_;
+		MatchParam(const char *name, bool doMatch = false)
+		: name_   (name ),
+		  doMatch_(doMatch),
 		  exclude_(false)
 		{
 		}
+
+        const char *getName()
+		{
+			return name_;
+		}
+
+        void dump();
+
 		void exclude()
 		{
 			doMatch_ = true;
@@ -153,8 +163,8 @@ public:
 		unsigned val_;
 		bool     any_;
 	public:
-		MatchParamUnsigned(unsigned val = (unsigned)-1, bool doMatch = false)
-		: MatchParam( doMatch ? true : val != (unsigned)-1 ),
+		MatchParamUnsigned(const char *name, unsigned val = (unsigned)-1, bool doMatch = false)
+		: MatchParam(name, doMatch ? true : val != (unsigned)-1 ),
 		  val_(val),
 		  any_(false)
 		{
@@ -164,6 +174,15 @@ public:
 		{
 			any_     = true;
 			include();
+		}
+
+        void dump()
+		{
+			MatchParam::dump();
+            if ( any_ )
+              printf(", val: *");
+			else
+			  printf(", val: %d", val_);
 		}
 
 		MatchParamUnsigned & operator=(unsigned val)
@@ -183,6 +202,22 @@ public:
 	MatchParamUnsigned tcpDestPort_, udpDestPort_, srpVersion_, srpVC_, tDest_, depackVersion_;
 	MatchParam         haveRssi_, haveDepack_;
 
+    int verbose_;
+
+	ProtoPortMatchParams(int verbose=0)
+	: tcpDestPort_  ("tcpTestPort"),
+	  udpDestPort_  ("udpTestPort"),
+	  srpVersion_   ("srpVersion" ),
+	  srpVC_        ("srpVC"      ),
+	  tDest_        ("TDEST"      ),
+	  depackVersion_("depackVers" ),
+      haveRssi_     ("haveRSSI"   ),
+      haveDepack_   ("haveDepack" ),
+
+      verbose_      (verbose      )
+	{
+	}
+
 	void reset()
 	{
 		tcpDestPort_.reset();
@@ -193,6 +228,11 @@ public:
 		tDest_.reset();
 		haveRssi_.reset();
 		haveDepack_.reset();
+	}
+
+	int verbose()
+	{
+		return verbose_;
 	}
 
 	int requestedMatches()
@@ -215,6 +255,18 @@ public:
 		if ( tDest_.doMatch_ )
 			rval++;
 		return rval;
+	}
+
+    void dump()
+	{
+		tcpDestPort_.dump();   fputc('\n', stdout);
+		udpDestPort_.dump();   fputc('\n', stdout);
+		srpVersion_.dump();    fputc('\n', stdout);
+		depackVersion_.dump(); fputc('\n', stdout);
+		srpVC_.dump();         fputc('\n', stdout);
+		tDest_.dump();         fputc('\n', stdout);
+		haveRssi_.dump();      fputc('\n', stdout);
+		haveDepack_.dump();    fputc('\n', stdout);
 	}
 
 	int excluded()
