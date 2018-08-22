@@ -43,6 +43,17 @@ CSockSd::CSockSd(CSockSd &orig)
 	}
 }
 
+int
+CSockSd::getMTU()
+{
+int       mtu;
+socklen_t sl = sizeof(mtu);
+	if ( getsockopt( sd_, SOL_IP, IP_MTU, &mtu, &sl ) ) {
+		throw InternalError("getsockopt(IP_MTU) failed", errno);
+	}
+	return mtu;
+}
+
 void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
 {
 	int    optval;
