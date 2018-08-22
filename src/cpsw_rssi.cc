@@ -34,16 +34,17 @@ fprintf(stderr,"%s: upstream port queue created\n", "");
 #endif
 }
 	
-CRssi::CRssi(bool isServer, int threadPrio)
+CRssi::CRssi(bool isServer, int threadPrio, IMTUQuerier *mtuQuerier)
 : CRunnable("RSSI Thread", threadPrio),
   IRexTimer( &timers_ ),
   IAckTimer( &timers_ ),
   INulTimer( &timers_ ),
   isServer_( isServer ),
 
-  name_( isServer ? "S" : "C" ),
-  outQ_    ( IBufQueue::create( OQ_DEPTH ) ),
-  inpQ_    ( IBufQueue::create( IQ_DEPTH ) ),
+  name_      ( isServer ? "S" : "C"          ),
+  mtuQuerier_( mtuQuerier                    ),
+  outQ_      ( IBufQueue::create( OQ_DEPTH ) ),
+  inpQ_      ( IBufQueue::create( IQ_DEPTH ) ),
 
   state_( &stateCLOSED ),
   timerUnits_( UNIT_US ),
@@ -345,6 +346,8 @@ Buf           b     = bc->createAtHead( IBuf::CAPA_ETH_HDR );
 RssiSynHeader synHdr( b->getPayload(), b->getAvail(), false, RssiHeader::SET );
 uint8_t       flags = RssiHeader::FLG_SYN;
 
+int           maxSegSize;
+
 	if ( doAck ) {
 		flags |= RssiHeader::FLG_ACK;
 	}
@@ -359,7 +362,18 @@ uint8_t       flags = RssiHeader::FLG_SYN;
 	synHdr.setXflgs( flags );
 	synHdr.setVersn( RssiSynHeader::RSSI_VERSION_1 );
 	synHdr.setOssMX( MAX_UNACKED_SEGS );
-	synHdr.setSgsMX( MAX_SEGMENT_SIZE );
+
+	if ( mtuQuerier_ ) {
+		maxSegSize  = mtuQuerier_->getRxMTU();
+		maxSegSize -= RssiHeader::getHSize( RssiHeader::getSupportedVersion() );
+		if ( maxSegSize <= 0 ) {
+			maxSegSize = MAX_SEGMENT_SIZE;
+		}
+	} else {
+		maxSegSize = MAX_SEGMENT_SIZE;
+	}
+
+	synHdr.setSgsMX( maxSegSize       );
 	synHdr.setRexTO( RETRANSMIT_TIMEO );
 	synHdr.setCakTO( CUMLTD_ACK_TIMEO );
 	synHdr.setNulTO( NUL_SEGMEN_TIMEO );
