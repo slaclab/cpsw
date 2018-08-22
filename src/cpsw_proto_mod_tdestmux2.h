@@ -70,6 +70,7 @@ private:
 	unsigned long      goodTxFragCnt_;
 	unsigned long      goodTxFramCnt_;
 	unsigned long      badHeadersCnt_;
+	unsigned           myMTUCached_;
 	
 	CTDestMuxer2Thread muxer_;
 
@@ -81,6 +82,7 @@ protected:
 	  goodTxFragCnt_     ( 0                   ),
 	  goodTxFramCnt_     ( 0                   ),
 	  badHeadersCnt_     ( 0                   ),
+	  myMTUCached_       ( 0                   ),
 	  muxer_             ( orig.muxer_         )
 	{
 	}
@@ -134,6 +136,8 @@ public:
 	{
 		return "TDEST Demultiplexer V2";
 	}
+
+	static unsigned getMTU(ProtoDoor);
 
 	virtual void dumpInfo(FILE *f);
 
