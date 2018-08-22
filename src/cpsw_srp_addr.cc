@@ -109,6 +109,8 @@ ProtoPort            stack = getProtoStack();
 	}
 	maxwords--; //tail/status
 
+	mtu_ = maxwords * sizeof(uint32_t);
+
 	maxWordsRx_ = (protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 || !hasDepack( stack )) ? maxwords : (1<<28);
 	maxWordsTx_ = maxWordsRx_;
 
