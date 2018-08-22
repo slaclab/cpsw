@@ -65,7 +65,7 @@ CProtoModTDestMux2::sendFrag(unsigned current)
 {
 Work    &w( work_[current] );
 BufChain bc = w.bc_;
-Buf      b  = bc->getHead();
+Buf      h  = bc->getHead();
 Buf      t;
 bool     eof;
 uint8_t  *tailp;
@@ -73,18 +73,30 @@ unsigned tailSz;
 unsigned algn, newSz;
 unsigned numLanes;
 unsigned tUsr2;
+unsigned added;
 
-	if ( ( eof = ( bc->getLen() == 1 ) ) ) {
-		// last buffer; we can just take over the chain
+	if ( ( eof = ( bc->getSize() <= myMTUCached_ ) ) ) {
+		// fits; we can just take over the chain
 		w.bc_.reset();
 	} else {
 		// unlink and put fragment on a new chain
 		bc = IBufChain::create();
-		b ->unlink();
-		bc->addAtTail( b );
+		added = 0;
+		for ( Buf btmp = h; bc->getSize() + btmp->getSize() <= myMTUCached_; btmp = w.bc_->getHead() ) {
+#ifdef TDESTMUX2_DEBUG
+printf("It %u Chain size %ld, obcs %ld, bufsz %ld\n", added, bc->getSize(), w.bc_->getSize(), btmp->getSize());
+#endif
+			btmp ->unlink();
+			bc->addAtTail( btmp );
+			added++;
+		}
+		if ( 0 == added ) {
+fprintf(stderr,"BC size: %d h size %d, my (payload) MTU %d, my upstream MTU %d\n", bc->getSize(), h->getSize(), getMTU( getUpstreamDoor() ), myMTUCached_);
+			throw InternalError("Unable to fragment individual buffers (bufs > MTU)");
+		}
 	}
 #ifdef TDESTMUX2_DEBUG
-	printf("TDestMux2 sendFrag: %sfragment # %d, size %ld\n", eof ? "last " : "", w.fragNo_, (unsigned long)b->getSize());
+printf("TDestMux2 sendFrag: %sfragment # %d, size %ld\n", eof ? "last " : "", w.fragNo_, (unsigned long)bc->getSize());
 #endif
 
 	CDepack2Header hdr( w.fragNo_, w.tdest_ );
@@ -94,7 +106,7 @@ unsigned tUsr2;
 	if ( ! w.stripHeader_  &&  w.fragNo_ == 1 ) {
 		// let them override just TUSR1 and TID
 		try {
-			CDepack2Header theirs( b->getPayload(), b->getSize() );
+			CDepack2Header theirs( h->getPayload(), h->getSize() );
 			hdr.setTUsr1( theirs.getTUsr1() );
 			hdr.setTId  ( theirs.getTId()   );
 		} catch ( CDepack2Header::InvalidHeaderException ) {
@@ -108,17 +120,18 @@ unsigned tUsr2;
 #ifdef TDESTMUX2_DEBUG
 		printf("TDestMux2 sendFrag: prepending header\n");
 #endif
-		b->adjPayload( - hdr.getSize() );
+		h->adjPayload( - hdr.getSize() );
 	}
 
-	hdr.insert( b->getPayload(), b->getSize() );
+	hdr.insert( h->getPayload(), h->getSize() );
 
+	t = bc->getTail();
 
 	// make the tail
 	if ( ! w.stripHeader_ && eof ) {
 		// user-provided tail; extract numLanes and tUsr2
-		tailp    = b->getPayload() + b->getSize() - CDepack2Header::getTailSize();
-		if ( ! CDepack2Header::tailIsAligned( b->getSize() ) ) {
+		tailp    = t->getPayload() + t->getSize() - CDepack2Header::getTailSize();
+		if ( ! CDepack2Header::tailIsAligned( bc->getSize() ) ) {
 			// dump
 			w.bc_.reset();
 			throw CDepack2Header::InvalidHeaderException();
@@ -126,8 +139,8 @@ unsigned tUsr2;
 		numLanes = CDepack2Header::parseNumLanes( tailp );
 		tUsr2    = CDepack2Header::parseTUsr2( tailp );
 	} else {
-		newSz    = b->getSize();
-		algn     = CDepack2Header::getTailPadding( newSz );
+		newSz    = bc->getSize();
+		algn     = CDepack2Header::getTailPadding( bc->getSize() );
 		tailSz   = algn + CDepack2Header::getTailSize();
 		newSz   += tailSz;
 
@@ -142,9 +155,10 @@ printf("TDestMux2 sendFrag: aligning by %d, newSz %u\n", algn, newSz);
 			numLanes = 0;
 		}
 
-        if ( b->getAvail() >= tailSz ) {
-			b->setSize( newSz );
-			tailp = b->getPayload() + newSz - CDepack2Header::getTailSize();
+        if ( t->getAvail() >= tailSz ) {
+			unsigned tmpSz = t->getSize() + tailSz;
+			t->setSize( tmpSz );
+			tailp = t->getPayload() + tmpSz - CDepack2Header::getTailSize();
 		} else {
 			t     = bc->createAtTail( IBuf::CAPA_ETH_HDR );
 			t->setSize( tailSz );
@@ -166,11 +180,11 @@ printf("TDestMux2 sendFrag: aligning by %d, newSz %u\n", algn, newSz);
 		uint8_t       *crcb;
 		unsigned long  crcl, crcltot;
 
-		crcb    = b->getPayload();
+		crcb    = h->getPayload();
 		// how many bytes need to be CRCed
 		crcltot = bc->getSize();
 		// how many bytes are in the data buffer
-		crcl    = b->getSize();
+		crcl    = h->getSize();
 
 		if ( crcMode == CDepack2Header::DATA ) {
 			// skip header
@@ -186,21 +200,29 @@ printf("TDestMux2 sendFrag: aligning by %d, newSz %u\n", algn, newSz);
 			crcl = crcltot;
 		}
 
-		w.crc_ = crc32( w.crc_, crcb, crcl );
-
-		// if not all data (e.g., the alignment bytes and/or tail word) are in the first
-		// buffer then we need to extend into the tail buffer).
-		if ( crcl < crcltot ) {
-			w.crc_ = crc32( w.crc_, t->getPayload(), crcltot - crcl );
-		}
-
 #ifdef TDESTMUX2_DEBUG
 		printf("TDestMux2 sendFrag: crc over %ld octets\n", crcltot);
 #endif
 
+		w.crc_   = crc32( w.crc_, crcb, crcl );
+		crcltot -= crcl;
+
+		while ( crcltot > 0 ) {
+			h        = h->getNext();
+			crcl     = h->getSize();
+
+			if ( crcl > crcltot ) {
+				crcl = crcltot;
+			}
+			crcb     = h->getPayload();
+			w.crc_   = crc32( w.crc_, crcb, crcl );
+			crcltot -= crcl;
+		}
+
 	} else {
 		w.crc_ = 0;
 	}
+
 
 	CDepack2Header::insertCrc( tailp, ~w.crc_  );
 
