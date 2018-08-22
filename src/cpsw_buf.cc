@@ -156,6 +156,7 @@ public:
 	//virtual ~CBufImpl() { }
 
 	static const size_t HEADROOM = 32; // enough for rssi + packetizer
+	static const size_t TAILROOM = 16; // enough for packetizer
 
 	static BufImpl getBuf(size_t capa, bool clip = false);
 };
@@ -563,8 +564,8 @@ Buf      b, nxtb;
 	// add dummy buffers
 	while ( off > 0 ) {
 		// off > 0 implies !b (and !nextb)
-		b = createAtTail( off < capa ? off : capa, true );
-		delta = b->getAvail();
+		b = createAtTail( capa, true );
+		delta = b->getAvail() - CBufImpl::TAILROOM;
 		if ( capa < delta )
 			delta = capa;
 		if ( off < delta )
@@ -583,35 +584,25 @@ Buf      b, nxtb;
 	while ( size > 0 ) {
 		uint64_t room;
 
-		if ( ! b ) {
-			b    = createAtTail( size < capa ? size : capa, true );
+		if ( !b || (room = b->getAvail()) <= CBufImpl::TAILROOM ) {
+			b    = createAtTail( capa, true );
+		}
+		room = b->getAvail() - CBufImpl::TAILROOM;
+		if ( room > capa ) {
 			room = capa;
-		} else {
-			if ( capa > b->getSize() ) {
-				room = capa - b->getSize();
-			} else {
-				room = 0;
-			}
 		}
 
 		// there might be a on old buffer to overwrite...
-		delta = b->getAvail();
-		if ( delta > room ) {
-			delta = room;
-		}
+		delta = room;
+		if ( delta > size )
+			delta = size;
 
-		if ( delta > 0 ) {
+		memcpy( b->getPayload() + b->getSize(), src, delta );
 
-			if ( delta > size )
-				delta = size;
+		b->setSize( b->getSize() + delta );
 
-			memcpy( b->getPayload() + b->getSize(), src, delta );
-
-			b->setSize( b->getSize() + delta );
-
-			src  += delta;
-			size -= delta;
-		}
+		src  += delta;
+		size -= delta;
 
 		b = nxtb = b->getNext();
 		if ( b )
