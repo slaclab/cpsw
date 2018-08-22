@@ -404,5 +404,18 @@ int CProtoModUdp::iMatch(ProtoPortMatchParams *cmp)
 
 unsigned CProtoModUdp::getMTU()
 {
-	return 65536;
+int rval = tx_.getMTU();
+#ifdef UDP_DEBUG
+	printf("UDP SOCKET MTU: %d\n", rval);
+#endif
+	rval -= 60; /* max. IP header */
+	rval -=  8; /* UDP     header */
+	if ( rval > 65536 ) {
+		rval = 65536;
+	} else if ( 0 >= rval ) {
+		/* ??? unable to determine; use some default */
+		fprintf(stderr,"WARNING: cpsw_proto_mod_udp: unable to determine MTU\n");
+		rval = 1024;
+	}
+	return rval;
 }
