@@ -339,11 +339,27 @@ int mtu = mustGetUpstreamDoor()->getMTU();
 int CTDestPort2::iMatch(ProtoPortMatchParams *cmp)
 {
 int rval = 0;
-	cmp->tDest_.handledBy_ = getProtoMod();
-	if ( cmp->tDest_ == getDest() && cmp->depackVersion_ == CDepack2Header::VERSION ) {
-		cmp->tDest_.matchedBy_ = getSelfAsProtoPort();
-		rval += 2;
+
+	if ( cmp->tDest_.doMatch_ ) {
+		cmp->tDest_.handledBy_  = getProtoMod();
+		if ( cmp->tDest_ == getDest() ) {
+			cmp->tDest_.matchedBy_ = getSelfAsProtoPort();
+			rval++;
+		}
 	}
+	if ( cmp->depackVersion_.doMatch_ ) {
+		cmp->depackVersion_.handledBy_ = getProtoMod();
+		if ( cmp->depackVersion_ == IProtoStackBuilder::DEPACKETIZER_V2 ) {
+			cmp->depackVersion_.matchedBy_ = getSelfAsProtoPort();
+			rval++;
+		}
+	}
+	if ( cmp->haveDepack_.doMatch_ ) {
+		cmp->haveDepack_.handledBy_ = getProtoMod();
+		cmp->haveDepack_.matchedBy_ = getSelfAsProtoPort();
+		rval++;
+	}
+
 	return rval;
 }
 
