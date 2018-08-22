@@ -23,7 +23,7 @@ public:
 			for ( j = 0; j < LDTSZ; j++ ) {
 				crc = (crc >> 1) ^ ( (crc & 1 ) ? CCpswCrc32LE::POLY : 0 );
 			}
-			t[i] = crc;	
+			t[i] = crc;
 		}
 	}
 };
@@ -40,7 +40,7 @@ CCpswCrc32LE::operator()(uint32_t crc, uint8_t *buf, unsigned long l)
 {
 uint8_t idx;
 	while ( l-- ) {
-		idx = ((uint8_t)crc) ^ *buf++;	
+		idx = ((uint8_t)crc) ^ *buf++;
 		crc = ( crc >> 8 ) ^ tbl()[idx];
 	}
 	return crc;

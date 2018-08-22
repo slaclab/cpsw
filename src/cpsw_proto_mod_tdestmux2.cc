@@ -17,10 +17,10 @@
 //
 // https://confluence.slac.stanford.edu/display/ppareg/AxiStreamPackerizer+Protocol+Version+2
 //       
-// NOTE: This module assumes does not support out-of-order arrival of 
-//       fragments (like the V0 depacketizer does). The assumption is
-//       that reliability and in-order delivery are to be provided by
-//       RSSI.
+// NOTE: This module does not support out-of-order arrival of
+//       fragments (like the V0 depacketizer does). The assumption
+//       is that reliability and in-order delivery are to be
+//       provided by RSSI.
 
 #undef  TDESTMUX2_DEBUG
 
@@ -87,7 +87,9 @@ unsigned tUsr2;
 
 	CDepack2Header hdr( w.fragNo_, w.tdest_ );
 
-	if ( ! w.stripHeader_  &&  w.fragNo_ == 0 ) {
+	w.fragNo_++;
+
+	if ( ! w.stripHeader_  &&  w.fragNo_ == 1 ) {
 		// let them override just TUSR1 and TID
 		try {
 			CDepack2Header theirs( b->getPayload(), b->getSize() );
@@ -125,10 +127,10 @@ unsigned tUsr2;
 		newSz    = b->getSize();
 		algn     = CDepack2Header::getTailPadding( newSz );
 		newSz   += algn + CDepack2Header::getTailSize();
-#ifdef TDESTMUX2_DEBUG
-		printf("TDestMux2 sendFrag: aligning by %d\n", algn);
-#endif
 		b->setSize( newSz );
+#ifdef TDESTMUX2_DEBUG
+		printf("TDestMux2 sendFrag: aligning by %d, newSz %u\n", algn, newSz);
+#endif
 		numLanes = CDepack2Header::ALIGNMENT - algn;
 
 		if ( newSz <= CDepack2Header::getSize() + CDepack2Header::getTailSize() ) {
@@ -223,10 +225,10 @@ unsigned noWorkCount = 0;
 			TDestPort2 p = findPort( work_[current].tdest_ );
 			BufChain   bc;
 			if ( p && (bc = p->tryPopInputQueue()) ) {
-				work_[current].reset( bc );
 #ifdef TDESTMUX2_DEBUG
-				printf("TDestMux2::new work done in slot %d\n", current);
+				printf("TDestMux2::new work in slot %d (size %ld)\n", current, bc->getSize());
 #endif
+				work_[current].reset( bc );
 				sendFrag( current );
 				noWorkCount = 0;
 			} else {
@@ -337,11 +339,27 @@ int mtu = mustGetUpstreamDoor()->getMTU();
 int CTDestPort2::iMatch(ProtoPortMatchParams *cmp)
 {
 int rval = 0;
-	cmp->tDest_.handledBy_ = getProtoMod();
-	if ( cmp->tDest_ == getDest() && cmp->depackVersion_ == CDepack2Header::VERSION ) {
-		cmp->tDest_.matchedBy_ = getSelfAsProtoPort();
-		rval += 2;
+
+	if ( cmp->tDest_.doMatch_ ) {
+		cmp->tDest_.handledBy_  = getProtoMod();
+		if ( cmp->tDest_ == getDest() ) {
+			cmp->tDest_.matchedBy_ = getSelfAsProtoPort();
+			rval++;
+		}
 	}
+	if ( cmp->depackVersion_.doMatch_ ) {
+		cmp->depackVersion_.handledBy_ = getProtoMod();
+		if ( cmp->depackVersion_ == IProtoStackBuilder::DEPACKETIZER_V2 ) {
+			cmp->depackVersion_.matchedBy_ = getSelfAsProtoPort();
+			rval++;
+		}
+	}
+	if ( cmp->haveDepack_.doMatch_ ) {
+		cmp->haveDepack_.handledBy_ = getProtoMod();
+		cmp->haveDepack_.matchedBy_ = getSelfAsProtoPort();
+		rval++;
+	}
+
 	return rval;
 }
 

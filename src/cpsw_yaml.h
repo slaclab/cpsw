@@ -226,6 +226,8 @@ namespace YAML {
 					rhs = BE;
 				else if (str.compare( "UNKNOWN" ) == 0 )
 					rhs = UNKNOWN;
+				else if (str.compare( "NATIVE" ) == 0 )
+					rhs = NATIVE;
 				else
 					return false;
 
@@ -238,6 +240,8 @@ namespace YAML {
 					node = "LE";
 				else if ( BE == rhs )
 					node = "BE";
+				else if ( NATIVE == rhs )
+					node = "NATIVE";
 				else
 					node = "UNKNOWN";
 				return node;

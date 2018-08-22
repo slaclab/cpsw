@@ -756,10 +756,11 @@ public:
 	CGetIntValContext(IntEntryAdapt adapter, uint8_t *buf, unsigned nelms, unsigned dbytes, ByteOrder targetEndian, AsyncIO aio = AsyncIO())
 	: CGetValContext( adapter, aio )
 	{
-	unsigned sbytes = adapter->getSize();
+	unsigned  sbytes     = adapter->getSize();
+	ByteOrder hostEndian = hostByteOrder();
 
 		dbytes_       = dbytes;
-		targetEndian_ = targetEndian;
+		targetEndian_ = NATIVE == targetEndian ? hostEndian : targetEndian;
 		nelms_        = nelms;
 		obufp_        = buf;
 
@@ -771,7 +772,7 @@ public:
 
 		if ( dbytes_ > sbytes ) {
 			// obuf and ibuf overlap;
-			if ( BE == hostByteOrder() ) {
+			if ( BE == hostEndian ) {
 				// work top down
 				ibufp_ += (dbytes_-sbytes) * nelms_;
 			}
@@ -1118,6 +1119,10 @@ ByteOrder        hostEndian= hostByteOrder();
 ByteOrder        targetEndian = cl->getByteOrder();
 uint8_t          msk1     = 0x00;
 uint8_t          mskn     = 0x00;
+
+	if ( NATIVE == targetEndian ) {
+		targetEndian = hostEndian;
+	}
 
 	nelms = checkNelms( nelms, &it );
 

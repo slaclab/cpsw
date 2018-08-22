@@ -135,7 +135,7 @@ class CRssi : public CRunnable,
 public:
 	static const uint8_t  LD_MAX_UNACKED_SEGS = 4;
 	static const uint8_t  MAX_UNACKED_SEGS = 1<<LD_MAX_UNACKED_SEGS; // must be power of two
-	static const uint16_t MAX_SEGMENT_SIZE = 1500 - 20 - 8; // - IP - UDP
+	static const uint16_t MAX_SEGMENT_SIZE = 1500 - 20 - 8 - 8; // - IP - UDP - RSSI
 	static const uint16_t RETRANSMIT_TIMEO = 10;            // ms ?
 	static const uint16_t CUMLTD_ACK_TIMEO =  5;            // < rexmit TO
 	static const uint16_t NUL_SEGMEN_TIMEO = 3000;

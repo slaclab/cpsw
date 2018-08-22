@@ -2,6 +2,10 @@ asyncSRP
 
     Merge:  depacketizer V2 support (from master)
 
+    Fixed MTU calculation for RSSI and DEPACK
+
+    Support for native endianness (ScalVal)
+
     Bugfix: TDESTMux2: missing inintialization of class member causing segfault.
 
     Bugfix: IYamlFixup::findByName() corrupted YAML hierarchy.

@@ -27,7 +27,7 @@
 using boost::make_shared;
 using boost::dynamic_pointer_cast;
 
-//#define PSBLDR_DEBUG
+#undef  PSBLDR_DEBUG
 
 class CProtoStackBuilder : public IProtoStackBuilder {
 	public:
@@ -321,9 +321,9 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual bool            hasDepack()
 		{
 			if ( hasDepack_ < 0 ) {
-				return hasTDestMux() && depackProto_ == DEPACKETIZER_V0;
+				return hasTDestMux();
 			}
-			return hasDepack_ > 0 && depackProto_ == DEPACKETIZER_V0;
+			return hasDepack_ > 0;
 		}
 
 		virtual void            setDepackOutQueueDepth(unsigned v)
@@ -691,12 +691,17 @@ ProtoPort CProtoStackBuilder::findProtoPort(ProtoPortMatchParams *cmp, std::vect
 {
 std::vector<ProtoPort>::const_iterator it;
 int                                    requestedMatches = cmp->requestedMatches();
+
 	for ( it = existingPorts.begin(); it != existingPorts.end(); ++it )
 	{
+	int found;
 		// 'match' modifies the parameters (storing results)
 		cmp->reset();
-		if ( requestedMatches == cmp->findMatches( *it ) )
+		if ( requestedMatches == (found = cmp->findMatches( *it )) )
 			return *it;
+#ifdef PSBLDR_DEBUG
+		printf("%s; requested %d, found %d\n", (*it)->getProtoMod()->getName(), requestedMatches, found);
+#endif
 	}
 	return ProtoPort();
 }
@@ -758,6 +763,7 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 		// existing DEPACK configuration must match the requested one
 		if ( bldr->hasDepack() ) {
 			cmp.haveDepack_.include();
+			cmp.depackVersion_ = bldr->getDepackVersion();
 #ifdef PSBLDR_DEBUG
 	printf("  including depack\n");
 #endif
@@ -770,7 +776,7 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 
 		if ( bldr->hasTDestMux() ) {
 			cmp.tDest_         = bldr->getTDestMuxTDEST();
-			cmp.depackVersion_ = bldr->getDepackVersion() == DEPACKETIZER_V2 ? CDepack2Header::VERSION : CAxisFrameHeader::VERSION;
+			cmp.depackVersion_ = bldr->getDepackVersion();
 #ifdef PSBLDR_DEBUG
 	printf("  tdest %d\n", bldr->getTDestMuxTDEST());
 #endif
@@ -818,6 +824,7 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 			if ( bldr->hasTDestMux() ) {
 				cmp.tDest_.wildcard();
 				if ( ! findProtoPort( &cmp, existingPorts ) ) {
+					cmp.dump();
 					throw ConfigurationError("No TDEST Demultiplexer found");
 				}
 				tDestMuxMod  = cmp.tDest_.handledBy_;
@@ -866,7 +873,7 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 			rval = rssi;
 		}
 
-		if ( bldr->hasDepack() ) {
+		if ( bldr->hasDepack() && bldr->getDepackVersion() == DEPACKETIZER_V0 ) {
 #ifdef PSBLDR_DEBUG
 	printf("  creating depack\n");
 #endif

@@ -67,9 +67,9 @@ int CTDestPort::iMatch(ProtoPortMatchParams *cmp)
 {
 int rval = 0;
 	cmp->tDest_.handledBy_ = getProtoMod();
-	if ( cmp->tDest_ == getDest() && cmp->depackVersion_ == CAxisFrameHeader::VERSION ) {
+	if ( cmp->tDest_ == getDest() && cmp->depackVersion_ == IProtoStackBuilder::DEPACKETIZER_V0 ) {
 		cmp->tDest_.matchedBy_ = getSelfAsProtoPort();
-		rval+=2;
+		rval+=1;
 	}
 	return rval;
 }

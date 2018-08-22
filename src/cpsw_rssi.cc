@@ -163,14 +163,14 @@ void CRssi::close()
 
 void CRssi::sendBuf(BufChain bc, bool retrans)
 {
-	if ( bc->getSize() > peerSgsMX_ ) {
-		fprintf(stderr, "buffer size %ld; peer size %d\n",(long)bc->getSize(), peerSgsMX_);
-		throw InternalError("RSSI segment size too large for peer");
-	}
-
 	Buf b = bc->getHead();
 
 	RssiHeader hdr( b->getPayload() );
+
+	if ( bc->getSize() > peerSgsMX_  + hdr.getHSize() ) {
+		fprintf(stderr, "buffer size %ld; peer size %d\n",(long)bc->getSize(), peerSgsMX_);
+		throw InternalError("RSSI segment size too large for peer");
+	}
 
 	if ( outQ_->isFull() ) {
 		hdr.setFlags( hdr.getFlags() | RssiHeader::FLG_BSY );
