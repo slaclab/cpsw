@@ -563,8 +563,7 @@ RxBuf         rxbuf;
 					abort();
 				}
 				rxbuf->frag = 0;
-				rxbuf->bufp = rxbuf->buf;
-                rxbuf->crc  = -1;
+				rxbuf->crc  = -1;
 			} else {
 
 				if ( lfram != fram ) {
@@ -605,7 +604,7 @@ RxBuf         rxbuf;
 					continue;
 
 				case 1: /* EOF */
-					memcpy(rxbuf->bufp + copied, tmpbuf + copied, taillen);
+					memcpy(rxbuf->bufp + copied, tmpbuf + got, taillen);
 					gottot      = (rxbuf->bufp - rxbuf->buf) + copied + taillen;
 					rxbuf->bufp = rxbuf->buf;
 					break;
@@ -623,6 +622,13 @@ RxBuf         rxbuf;
 				} else {
 					int put;
 
+#ifdef DEBUG
+					if ( debug ) {
+					uint64_t tailcp = getTail(rxbuf->buf, gottot);
+						printf("Queueing %d bytes, tail 0x%08"PRIx64"\n", gottot, tailcp);
+					}
+#endif
+
 					if ( sa->rssi || sa->tcp ) {
 					 	put = ioQueSend( sa->srpQ, rxbuf->buf, gottot , NULL );
 					} else {
@@ -632,8 +638,9 @@ RxBuf         rxbuf;
 					if ( put < 0 )
 						fprintf(stderr,"queueing SRP message failed\n");
 #ifdef DEBUG
-					else if ( debug )
+					else if ( debug ) {
 						printf("Queued %d octets to SRP\n", put);
+					}
 #endif
 				}
 			} else {
@@ -744,13 +751,13 @@ unsigned fram;
 
 		unsigned tdest = xtractTDEST((uint8_t*)rbuf);
 
+		taillen = getTailLen( (uint8_t*)rbuf, got );
+
 #ifdef DEBUG
 		if ( debug > 1 ) {
-			printf("fragger_rx got %d octets; tdest 0x%02x, port %d\n", got, tdest, sa->portNumber);
+			printf("fragger_rx got %d, taillen %d, octets; tdest 0x%02x, port %d\n", got, taillen, tdest, sa->portNumber);
 		}
 #endif
-
-		taillen = getTailLen( (uint8_t*)rbuf, got );
 
 		got -= taillen;
 
@@ -1140,7 +1147,7 @@ int      bsize;
 			}
 #ifdef DEBUG
 			if ( debug )
-				printf("put %i\n", put);
+				printf("put %i, bsize %i\n", put, bsize);
 #endif
 		}
 	}
