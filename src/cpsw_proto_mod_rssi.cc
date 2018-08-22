@@ -230,3 +230,9 @@ unsigned myMTU = peerSgsMX_;
 
 	return myMTU < upMTU ? myMTU : upMTU;
 }
+
+int
+CProtoModRssi::getRxMTU()
+{
+	return getUpstreamDoor()->getMTU();
+}
