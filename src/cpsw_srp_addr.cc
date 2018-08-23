@@ -23,13 +23,14 @@ using boost::dynamic_pointer_cast;
 
 typedef uint32_t SRPWord;
 
-//#define SRPADDR_DEBUG
+#define SRPADDR_DEBUG 0
 //#define TIMEOUT_DEBUG
 
-// if RSSI is used then AFAIK the max. segment size
-// (including RSSI header) is 1024 octets.
-// Must subtract RSSI (8), packetizer (9), SRP (V3: 20 + 4)
-#define MAXWORDS (256 - 11 - 4)
+// SRP (V3) does strange things when we use more than 1024
+// words (2018/8); when we use a few more then a bad SRP
+// status reply comes back. If we use a large number then
+// the board stops responding and must be rebooted!
+#define MAXTXWORDS 1024
 
 static bool hasRssi(ProtoPort stack)
 {
@@ -113,6 +114,9 @@ ProtoPort            stack = getProtoStack();
 
 	maxWordsRx_ = (protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 || !hasDepack( stack )) ? maxwords : (1<<28);
 	maxWordsTx_ = maxWordsRx_;
+	if ( maxWordsTx_ > MAXTXWORDS ) {
+		maxWordsTx_ = MAXTXWORDS;
+	}
 
 #ifdef SRPADDR_DEBUG
 	printf("SRP: MTU is %d; maxwords %d, TX: %d, RX: %d\n", mtu_, maxwords, maxWordsRx_, maxWordsTx_);
@@ -342,9 +346,11 @@ struct timespec retry_then;
 				printf("headbyte[%i]: %x\n", i, ((uint8_t*)&bufh[hwrds])[i]);
 			}
 
+#if SRPADDR_DEBUG > 1
 			for ( i=0; (unsigned)i<sbytes; i++ ) {
 				printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
 			}
+#endif
 
 			for ( i=0; i < tailbytes; i++ ) {
 				printf("tailbyte[%i]: %x\n", i, buft[i]);
@@ -821,7 +827,7 @@ unsigned nWords;
 	CMtx::lg GUARD( &mutex_ );
 
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP writeBlk maxWordsTx_ %d\n", maxWordsTx_);
+	fprintf(stderr, "SRP writeBlk nWordsmaxWordsTx_ %d\n", maxWordsTx_);
 #endif
 	while ( nWords > maxWordsTx_ ) {
 		int nbytes = maxWordsTx_*4 - headbytes;
