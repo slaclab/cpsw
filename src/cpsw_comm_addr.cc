@@ -110,7 +110,7 @@ CCommAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 BufChain bch = IBufChain::create();
 uint64_t rval;
 
-	bch->insert( args->src_, args->off_, args->nbytes_ );
+	bch->insert( args->src_, args->off_, args->nbytes_, mtu_ );
 
 	rval = bch->getSize();
 
@@ -136,6 +136,7 @@ void CCommAddressImpl::startProtoStack()
 			mods[i]->modStartup();
 		}
 	}
+	mtu_ = protoStack_->open()->getMTU();
 }
 
 void CCommAddressImpl::shutdownProtoStack()

@@ -19,15 +19,17 @@ protected:
 	ProtoPort      protoStack_;
 	bool           running_;
 	ProtoDoor      door_;
+	unsigned       mtu_;
 
 private:
 	CMtx           doorMtx_;
 
 public:
 	CCommAddressImpl(AKey k, ProtoPort protoStack)
-	: CAddressImpl(k),
-	  protoStack_(protoStack),
-	  running_(false)
+	: CAddressImpl( k          ),
+	  protoStack_ ( protoStack ),
+	  running_    ( false      ),
+	  mtu_        ( 0          )
 	{
 	}
 
