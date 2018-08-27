@@ -808,26 +808,61 @@ unsigned         nelmsOnPath  = it.getNelmsLeft();
 
 unsigned CScalVal_ROAdapt::getVal(CString *strs, unsigned nelms, IndexRange *range)
 {
-TMP_BUF_DECL(uint64_t, buf, nelms);
-unsigned         got,i;
+unsigned         got,i,elsz;
 Enum             enm = getEnum();
 
-	got = getVal(buf.getBufp(), nelms, range);
+	if ( enm ||  (elsz = getSizeBits()) <= sizeof(uint64_t)*8 ) {
+		TMP_BUF_DECL(uint64_t, buf, nelms);
 
-	if ( enm ) {
-		for ( i=0; i < got; i++ ) {
-			IEnum::Item item = enm->map(buf[i]);
-			strs[i] = item.first;
+		got = getVal(buf.getBufp(), nelms, range);
+
+		if ( enm ) {
+			for ( i=0; i < got; i++ ) {
+				IEnum::Item item = enm->map(buf[i]);
+				strs[i] = item.first;
+			}
+		} else {
+			char strbuf[100];
+			const char *fmt = isSigned() ? "%" PRIi64 : "%" PRIu64;
+			strbuf[sizeof(strbuf)-1] = 0;
+			for ( i=0; i < got; i++ ) {
+				snprintf(strbuf, sizeof(strbuf) - 1, fmt, buf[i]);
+				strs[i] = make_shared<string>( strbuf );
+			}
 		}
 	} else {
-		char strbuf[100];
-		const char *fmt = isSigned() ? "%" PRIi64 : "%" PRIu64;
-		strbuf[sizeof(strbuf)-1] = 0;
-		for ( i=0; i < got; i++ ) {
-			snprintf(strbuf, sizeof(strbuf) - 1, fmt, buf[i]);
-			strs[i] = make_shared<string>( strbuf );
+		elsz          = (elsz + 7)/8;
+
+		printf("Big ELSZ; now %d\n", elsz);
+
+		TMP_BUF_DECL(uint8_t, buf, nelms * elsz);
+
+		char     strbuf[10];
+
+        uint8_t *bufp = buf.getBufp();
+
+		got = IIntEntryAdapt::getVal(bufp, nelms, elsz, range);
+
+		for ( i=0; i<got; i++ ) {
+			std::string s("0x");
+			int         j;
+			if ( LE == hostByteOrder() ) {
+				for ( j = elsz - 1; j >= 0; j-- ) {
+					snprintf(strbuf, sizeof(strbuf), "%02x", bufp[j]);
+					s.append( strbuf );
+				}
+			} else {
+				for ( j = 0; j < (int)elsz; j++ ) {
+					snprintf(strbuf, sizeof(strbuf), "%02x", bufp[j]);
+					s.append( strbuf );
+				}
+			}
+			strs[i] = make_shared<string>( s );
+
+			bufp += elsz;
 		}
 	}
+
 	while ( i < nelms )
 		strs[i].reset();
 
