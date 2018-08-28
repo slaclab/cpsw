@@ -839,7 +839,7 @@ Enum             enm = getEnum();
 
         uint8_t *bufp = buf.getBufp();
 
-		got = IIntEntryAdapt::getVal(bufp, nelms, elsz, range);
+		got = getVal(bufp, nelms, elsz, range);
 
 		for ( i=0; i<got; i++ ) {
 			std::string s("0x");
