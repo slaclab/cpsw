@@ -271,6 +271,9 @@ public:
 
 	virtual unsigned getVal(CString  *p, unsigned n, IndexRange *r=0);
 	virtual unsigned getVal(AsyncIO aio, CString  *p, unsigned n, IndexRange *r=0);
+
+protected:
+	using IIntEntryAdapt::getVal;
 };
 
 class CDoubleVal_ROAdapt : public virtual IDoubleVal_RO, public virtual IIntEntryAdapt {

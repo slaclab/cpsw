@@ -1033,7 +1033,7 @@ unsigned           rval;
 
 	uint8_t *tmpBuf = ctxt->getTmpBuf();
 
-	rval = IIntEntryAdapt::getVal( ctxt, tmpBuf, nelms, ctxt->getElsz(), &it );
+	rval = getVal( ctxt, tmpBuf, nelms, ctxt->getElsz(), &it );
 
 	return rval;
 }
@@ -1049,7 +1049,7 @@ unsigned           rval;
 
 	uint8_t *tmpBuf = ctxt.getTmpBuf();
 
-	rval = IIntEntryAdapt::getVal( tmpBuf, nelms, ctxt.getElsz(), &it );
+	rval = getVal( tmpBuf, nelms, ctxt.getElsz(), &it );
 
 	ctxt.callback( 0 );
 
