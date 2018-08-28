@@ -833,8 +833,6 @@ Enum             enm = getEnum();
 	} else {
 		elsz          = (elsz + 7)/8;
 
-		printf("Big ELSZ; now %d\n", elsz);
-
 		TMP_BUF_DECL(uint8_t, buf, nelms * elsz);
 
 		char     strbuf[10];
