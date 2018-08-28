@@ -67,6 +67,17 @@ void CSockSd::reconnect()
 	}
 }
 
+int
+CSockSd::getMTU()
+{
+int       mtu;
+socklen_t sl = sizeof(mtu);
+	if ( getsockopt( sd_, SOL_IP, IP_MTU, &mtu, &sl ) ) {
+		throw InternalError("getsockopt(IP_MTU) failed", errno);
+	}
+	return mtu;
+}
+
 void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
 {
 	int    optval;
@@ -112,7 +123,6 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 	if ( dest_ ) {
 		if ( ::connect( sd_, (struct sockaddr*)dest_, sizeof(*dest_) ) )
 			throw IOError("connect failed ", errno);
-printf("CONNECTED to %s:%d\n", inet_ntoa(dest_->sin_addr), ntohs(dest_->sin_port));
 	}
 
 	isConn_ = true;

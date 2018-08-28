@@ -595,6 +595,8 @@ RxBuf         rxbuf;
 
 				if ( crc_in != ~rxbuf->crc ) {
 					fprintf(stderr,"UDPSRV: Invalid V2 fragment checksum -- got 0x%08x, exp 0x%08x\n", ~rxbuf->crc, crc_in);
+					sa->jam = 100;
+					continue;
 				}
 			}
 

@@ -44,6 +44,8 @@ public:
 	virtual void init(struct sockaddr_in *dst, struct sockaddr_in *me, bool nonBlocking);
 
 	virtual void reconnect();
+
+	virtual int getMTU();
 };
 
 #endif

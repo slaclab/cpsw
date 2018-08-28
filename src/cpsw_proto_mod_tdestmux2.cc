@@ -16,7 +16,7 @@
 // Support for SLAC Depacketizer V2 protocol.
 //
 // https://confluence.slac.stanford.edu/display/ppareg/AxiStreamPackerizer+Protocol+Version+2
-//       
+//
 // NOTE: This module does not support out-of-order arrival of
 //       fragments (like the V0 depacketizer does). The assumption
 //       is that reliability and in-order delivery are to be
@@ -65,24 +65,37 @@ CProtoModTDestMux2::sendFrag(unsigned current)
 {
 Work    &w( work_[current] );
 BufChain bc = w.bc_;
-Buf      b  = bc->getHead();
+Buf      h  = bc->getHead();
+Buf      t;
 bool     eof;
 uint8_t  *tailp;
+unsigned tailSz;
 unsigned algn, newSz;
 unsigned numLanes;
 unsigned tUsr2;
+unsigned added;
 
-	if ( ( eof = ( bc->getLen() == 1 ) ) ) {
-		// last buffer; we can just take over the chain
+	if ( ( eof = ( bc->getSize() <= myMTUCached_ ) ) ) {
+		// fits; we can just take over the chain
 		w.bc_.reset();
 	} else {
 		// unlink and put fragment on a new chain
 		bc = IBufChain::create();
-		b ->unlink();
-		bc->addAtTail( b );
+		added = 0;
+		for ( Buf btmp = h; bc->getSize() + btmp->getSize() <= myMTUCached_; btmp = w.bc_->getHead() ) {
+#ifdef TDESTMUX2_DEBUG
+printf("It %u Chain size %ld, obcs %ld, bufsz %ld\n", added, bc->getSize(), w.bc_->getSize(), btmp->getSize());
+#endif
+			btmp ->unlink();
+			bc->addAtTail( btmp );
+			added++;
+		}
+		if ( 0 == added ) {
+			throw InternalError("Unable to fragment individual buffers (bufs > MTU)");
+		}
 	}
 #ifdef TDESTMUX2_DEBUG
-	printf("TDestMux2 sendFrag: %sfragment # %d, size %ld\n", eof ? "last " : "", w.fragNo_, (unsigned long)b->getSize());
+printf("TDestMux2 sendFrag: %sfragment # %d, size %ld\n", eof ? "last " : "", w.fragNo_, (unsigned long)bc->getSize());
 #endif
 
 	CDepack2Header hdr( w.fragNo_, w.tdest_ );
@@ -92,7 +105,7 @@ unsigned tUsr2;
 	if ( ! w.stripHeader_  &&  w.fragNo_ == 1 ) {
 		// let them override just TUSR1 and TID
 		try {
-			CDepack2Header theirs( b->getPayload(), b->getSize() );
+			CDepack2Header theirs( h->getPayload(), h->getSize() );
 			hdr.setTUsr1( theirs.getTUsr1() );
 			hdr.setTId  ( theirs.getTId()   );
 		} catch ( CDepack2Header::InvalidHeaderException ) {
@@ -106,17 +119,18 @@ unsigned tUsr2;
 #ifdef TDESTMUX2_DEBUG
 		printf("TDestMux2 sendFrag: prepending header\n");
 #endif
-		b->adjPayload( - hdr.getSize() );
+		h->adjPayload( - hdr.getSize() );
 	}
 
-	hdr.insert( b->getPayload(), b->getSize() );
+	hdr.insert( h->getPayload(), h->getSize() );
 
+	t = bc->getTail();
 
 	// make the tail
 	if ( ! w.stripHeader_ && eof ) {
 		// user-provided tail; extract numLanes and tUsr2
-		tailp    = b->getPayload() + b->getSize() - CDepack2Header::getTailSize();
-		if ( ! CDepack2Header::tailIsAligned( b->getSize() ) ) {
+		tailp    = t->getPayload() + t->getSize() - CDepack2Header::getTailSize();
+		if ( ! CDepack2Header::tailIsAligned( bc->getSize() ) ) {
 			// dump
 			w.bc_.reset();
 			throw CDepack2Header::InvalidHeaderException();
@@ -124,13 +138,15 @@ unsigned tUsr2;
 		numLanes = CDepack2Header::parseNumLanes( tailp );
 		tUsr2    = CDepack2Header::parseTUsr2( tailp );
 	} else {
-		newSz    = b->getSize();
-		algn     = CDepack2Header::getTailPadding( newSz );
-		newSz   += algn + CDepack2Header::getTailSize();
-		b->setSize( newSz );
+		newSz    = bc->getSize();
+		algn     = CDepack2Header::getTailPadding( bc->getSize() );
+		tailSz   = algn + CDepack2Header::getTailSize();
+		newSz   += tailSz;
+
 #ifdef TDESTMUX2_DEBUG
-		printf("TDestMux2 sendFrag: aligning by %d, newSz %u\n", algn, newSz);
+printf("TDestMux2 sendFrag: aligning by %d, newSz %u\n", algn, newSz);
 #endif
+
 		numLanes = CDepack2Header::ALIGNMENT - algn;
 
 		if ( newSz <= CDepack2Header::getSize() + CDepack2Header::getTailSize() ) {
@@ -138,8 +154,16 @@ unsigned tUsr2;
 			numLanes = 0;
 		}
 
+        if ( t->getAvail() >= tailSz ) {
+			unsigned tmpSz = t->getSize() + tailSz;
+			t->setSize( tmpSz );
+			tailp = t->getPayload() + tmpSz - CDepack2Header::getTailSize();
+		} else {
+			t     = bc->createAtTail( IBuf::CAPA_ETH_HDR );
+			t->setSize( tailSz );
+			tailp = t->getPayload() + algn;
+		}
 		tUsr2    = 0;
-		tailp    = b->getPayload() + newSz - CDepack2Header::getTailSize();
 	}
 
 	CDepack2Header::iniTail       ( tailp           );
@@ -153,27 +177,51 @@ unsigned tUsr2;
 
 	if ( CDepack2Header::NONE != crcMode ) {
 		uint8_t       *crcb;
-		unsigned long  crcl;
+		unsigned long  crcl, crcltot;
 
-		crcb = b->getPayload();
-		crcl = b->getSize(); 
+		crcb    = h->getPayload();
+		// how many bytes need to be CRCed
+		crcltot = bc->getSize();
+		// how many bytes are in the data buffer
+		crcl    = h->getSize();
 
 		if ( crcMode == CDepack2Header::DATA ) {
-			crcb += hdr.getSize();
-			crcl -= hdr.getSize() + hdr.getTailSize();
+			// skip header
+			crcb    += hdr.getSize();
+            crcl    -= hdr.getSize();
+			crcltot -= hdr.getSize() + hdr.getTailSize();
 		} else {
 			// don't include crc itself -- HACK ; we should handle that in CDepack2Header
-			crcl -= sizeof( w.crc_ );
+			crcltot -= sizeof( w.crc_ );
+		}
+
+		if ( crcl > crcltot ) {
+			crcl = crcltot;
 		}
 
 #ifdef TDESTMUX2_DEBUG
-		printf("TDestMux2 sendFrag: crc over %ld octets\n", crcl);
+		printf("TDestMux2 sendFrag: crc over %ld octets\n", crcltot);
 #endif
 
-		w.crc_ = crc32( w.crc_, crcb, crcl );
+		w.crc_   = crc32( w.crc_, crcb, crcl );
+		crcltot -= crcl;
+
+		while ( crcltot > 0 ) {
+			h        = h->getNext();
+			crcl     = h->getSize();
+
+			if ( crcl > crcltot ) {
+				crcl = crcltot;
+			}
+			crcb     = h->getPayload();
+			w.crc_   = crc32( w.crc_, crcb, crcl );
+			crcltot -= crcl;
+		}
+
 	} else {
 		w.crc_ = 0;
 	}
+
 
 	CDepack2Header::insertCrc( tailp, ~w.crc_  );
 
@@ -197,6 +245,16 @@ unsigned noWorkCount = 0;
 #ifdef TDESTMUX2_DEBUG
 	printf("CTDestPort2::muxer started\n");
 #endif
+
+	{
+	ProtoDoor door = getUpstreamDoor();
+
+	if ( ! door ) {
+		throw InternalError("CProtoModTDestMux2::getMTU() -- module not attached");
+	}
+
+	myMTUCached_ = getMTU( door );
+	}
 
 	while ( 1 ) {
 		if ( noWorkCount == numWork_ ) {
@@ -244,10 +302,6 @@ unsigned noWorkCount = 0;
 bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 {
 	try {
-		if ( 1 < bc->getLen() ) {
-			throw InternalError("TDestPort2 -- reassembling fragments from multiple buffers not supported");
-		}
-
 		Buf b          = bc->getHead();
 
 		unsigned numLanes;
@@ -255,7 +309,6 @@ bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 
 		{
 		uint8_t  *pld = b->getPayload();
-		uint8_t  *tailp;
 
 			CDepack2Header hdr( pld, b->getSize() );
 
@@ -263,13 +316,76 @@ bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 			printf("CTDestPort2::pushDownstream; TDEST: 0x%02x, frag %5d\n", hdr.getTDest(), hdr.getFragNo());
 #endif
 
-			if ( hdr.getSize() + hdr.getTailSize() > b->getSize() ) {
+			if ( hdr.getSize() + hdr.getTailSize() > bc->getSize() ) {
 				throw CDepack2Header::InvalidHeaderException();
 			}
 
-			tailp = pld + b->getSize() - hdr.getTailSize();
+			sof = hdr.isFirst( pld );
 
-			if ( (sof = hdr.isFirst( pld )) ) {
+			{
+				unsigned taillen = hdr.getTailSize();
+				Buf      t       = bc->getTail();
+				Buf      p;
+				unsigned tailsz  = t->getSize();
+				unsigned tailcpy = taillen < tailsz ? taillen : tailsz;
+				unsigned prevcpy = 0;
+				unsigned prevsz;
+
+				uint8_t  tail[taillen];
+
+				memcpy(tail + taillen - tailcpy, t->getPayload() + tailsz - tailcpy, tailcpy);
+
+				if ( (prevcpy =  (taillen - tailcpy)) > 0 ) {
+					p      = t->getPrev();
+					prevsz = p->getSize();
+					if ( prevsz < prevcpy ) {
+						throw CDepack2Header::InvalidHeaderException();
+					}
+					memcpy(tail, t->getPayload() + prevsz - prevcpy, prevcpy);
+				}
+
+
+#ifdef TDESTMUX2_DEBUG
+				{
+					int i;
+					printf("TAIL: 0x");
+					for ( i=7; i>=0; i--)
+						printf("%02x", tail[i]);
+					printf("\n");
+				}
+#endif
+
+				eof      = CDepack2Header::parseTailEOF ( tail );
+				numLanes = CDepack2Header::parseNumLanes( tail );
+
+				// trim header
+				if ( stripHeader_ || !sof ) {
+					// strip header on non-first segment
+					b->adjPayload( CDepack2Header::getSize() );
+				}
+
+				// trim tail
+				if ( stripHeader_ || !eof ) {
+
+					unsigned strip = 2*taillen - numLanes;
+
+					if ( bc->getSize() < strip ) {
+						throw CDepack2Header::InvalidHeaderException();
+					}
+
+					while ( strip > 0 ) {
+						// Note: t->getSize() might have changed by adjPayload (when stripping header)
+						//       if head and tail are in the same buffer!
+						tailsz = t->getSize();
+						unsigned l = strip > tailsz ? tailsz : strip;
+						t->setSize( tailsz - l );
+						strip -= l;
+						t      = t->getPrev();
+					}
+				}
+			}
+
+			if ( sof ) {
 				// just take over the chain
 				assembleBuffer_ = bc;
 				fragNo_         = 0;
@@ -279,33 +395,13 @@ bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 					assembleBuffer_.reset();
 					return true;
 				}
-				b->unlink(); // from old chain	
-				assembleBuffer_->addAtTail( b );
+				while ( b ) {
+					Buf next = b->getNext();
+					b->unlink(); // from old chain
+					assembleBuffer_->addAtTail( b );
+					b = next;
+				}
 			}
-
-#ifdef TDESTMUX2_DEBUG
-{
-int i;
-	printf("TAIL: 0x");
-	for ( i=7; i>=0; i--)
-		printf("%02x", tailp[i]);
-	printf("\n");
-}
-#endif
-
-			eof      = CDepack2Header::parseTailEOF ( tailp );
-			numLanes = CDepack2Header::parseNumLanes( tailp );
-		}
-
-		// trim header
-		if ( stripHeader_ || !sof ) {
-			// strip header on non-first segment
-			b->adjPayload( CDepack2Header::getSize() );
-		}
-
-		// trim tail
-		if ( stripHeader_ || !eof ) {
-			b->setSize( b->getSize() - 2*CDepack2Header::getTailSize() + numLanes );
 		}
 
 		goodRxFragCnt_++;
@@ -325,15 +421,20 @@ int i;
 	return true;
 }
 
-unsigned
-CTDestPort2::getMTU()
+unsigned CProtoModTDestMux2::getMTU(ProtoDoor upstream)
 {
-int mtu = mustGetUpstreamDoor()->getMTU();
+int mtu = upstream->getMTU();
 	// must reserve 1 tail-word for padding
 	mtu -= CDepack2Header::getSize() + 2*CDepack2Header::getTailSize();
 	if ( mtu < 0 )
 		mtu = 0;
 	return (unsigned) mtu;
+}
+
+unsigned
+CTDestPort2::getMTU()
+{
+	return CProtoModTDestMux2::getMTU( mustGetUpstreamDoor() );
 }
 
 int CTDestPort2::iMatch(ProtoPortMatchParams *cmp)

@@ -15,6 +15,8 @@
 #include <stdio.h>
 #include <signal.h>
 
+#undef CPSW_THREAD_DEBUG
+
 using std::string;
 
 CRunnable::CRunnable(const char *name, int prio)
@@ -63,7 +65,10 @@ void * CRunnable::wrapper(void *arg)
 CRunnable *me = static_cast<CRunnable*>(arg);
 void     *rval;
 
+#ifdef CPSW_THREAD_DEBUG
 fprintf(stderr,"Starting up '%s'\n", me->getName().c_str());
+#endif
+
 	try {
 		rval = me->threadBody();
 	} catch ( CPSWError e ) {

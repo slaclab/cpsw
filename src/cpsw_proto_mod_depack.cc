@@ -491,7 +491,6 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 	}
 #endif
 
-	// ugly hack - limit to ethernet RSSI payload
 	if ( fitsInMTU( bc->getSize() ) ) {
 #ifdef DEPACK_DEBUG
 		if ( fragNo > 0 ) {

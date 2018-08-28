@@ -2,6 +2,9 @@ asyncSRP
 
     Merge:  depacketizer V2 support (from master)
 
+    Convert IntFields with bitSize > 64 to be converted to 
+    (hex) strings without truncating them (when read as CString).
+
     Fixed MTU calculation for RSSI and DEPACK
 
     Support for native endianness (ScalVal)

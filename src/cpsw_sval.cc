@@ -936,22 +936,35 @@ ByteOrder          targetEndian = cl->getByteOrder();
 
 class CGetStringValContext : public CGetValContext {
 private:
-	uint64_t      *buf_;
+	uint8_t       *buf_;
 	unsigned       nelms_;
+	unsigned       elsz_;
 	CString       *strs_;
 
 public:
 	CGetStringValContext(IntEntryAdapt handle, CString *strs, unsigned nelms, AsyncIO stack = AsyncIO())
 	: CGetValContext( handle, stack ),
-	  nelms_   ( nelms   ),
-	  strs_    ( strs    )
+	  nelms_   ( nelms                           ),
+	  elsz_    ( sizeof(uint64_t)                ),
+	  strs_    ( strs                            )
 	{
-		buf_ = reinterpret_cast<uint64_t*>( mkbuf( sizeof(*buf_)*nelms_ ) );
+	unsigned sz = sizeof(*buf_) * nelms_;
+	unsigned elsz;
+		if ( ! adapter_->getEnum() && (elsz = (adapter_->getSizeBits() + 7) / 8) > sizeof(uint64_t) ) {
+			elsz_ = elsz;
+		}
+		sz  *= elsz_;
+		buf_ = mkbuf( sz );
 	}
 
-	uint64_t *getTmpBuf()
+	uint8_t *getTmpBuf()
 	{
 		return buf_;
+	}
+
+	unsigned getElsz()
+	{
+		return elsz_;
 	}
 
 	void doComplete()
@@ -959,18 +972,49 @@ public:
 	Enum     enm = adapter_->getEnum();
 	unsigned i;
 
-		if ( enm ) {
-			for ( i=0; i < nelms_; i++ ) {
-				IEnum::Item item = enm->map( buf_[i] );
-				strs_[i] = item.first;
+		if ( enm || elsz_ <= sizeof(uint64_t) ) {
+			if ( enm ) {
+				for ( i=0; i < nelms_; i++ ) {
+					IEnum::Item item = enm->map( reinterpret_cast<uint64_t*>( buf_ )[i] );
+					strs_[i] = item.first;
+				}
+			} else {
+				char strbuf[100];
+				const char *fmt;
+				strbuf[sizeof(strbuf)-1] = 0;
+/*
+				if ( 16 == adapter_->getConfigBase() ) {
+					fmt = "%" PRIx64;
+				} else
+*/
+				{
+					fmt = adapter_->isSigned() ? "%" PRIi64 : "%" PRIu64;
+				}
+				for ( i=0; i < nelms_; i++ ) {
+					::snprintf(strbuf, sizeof(strbuf) - 1, fmt, reinterpret_cast<uint64_t*>( buf_ )[i]);
+					strs_[i] = make_shared<string>( strbuf );
+				}
 			}
 		} else {
-			char strbuf[100];
-			const char *fmt = adapter_->isSigned() ? "%" PRIi64 : "%" PRIu64;
-			strbuf[sizeof(strbuf)-1] = 0;
+			uint8_t *bufp = buf_;
 			for ( i=0; i < nelms_; i++ ) {
-				::snprintf(strbuf, sizeof(strbuf) - 1, fmt, buf_[i]);
-				strs_[i] = make_shared<string>( strbuf );
+				char strbuf[10];
+				std::string s("0x");
+				int         j;
+				if ( LE == hostByteOrder() ) {
+					for ( j = elsz_ - 1; j >= 0; j-- ) {
+						::snprintf(strbuf, sizeof(strbuf), "%02x", bufp[j]);
+						s.append( strbuf );
+					}
+				} else {
+					for ( j = 0; j < (int)elsz_; j++ ) {
+						snprintf(strbuf, sizeof(strbuf), "%02x", bufp[j]);
+						s.append( strbuf );
+					}
+				}
+				strs_[i] = make_shared<string>( s );
+
+				bufp += elsz_;
 			}
 		}
 		while ( i < nelms_ )
@@ -987,9 +1031,9 @@ unsigned           rval;
 
 	shared_ptr<CGetStringValContext> ctxt = make_shared<CGetStringValContext>( getSelfAs<IntEntryAdapt>(), strs, nelms, aio);
 
-	uint64_t *tmpBuf = ctxt->getTmpBuf();
+	uint8_t *tmpBuf = ctxt->getTmpBuf();
 
-	rval = IIntEntryAdapt::getVal<uint64_t>( ctxt, tmpBuf, nelms, &it );
+	rval = IIntEntryAdapt::getVal( ctxt, tmpBuf, nelms, ctxt->getElsz(), &it );
 
 	return rval;
 }
@@ -1003,9 +1047,9 @@ unsigned           rval;
 
 	CGetStringValContext ctxt( getSelfAs<IntEntryAdapt>(), strs, nelms );
 
-	uint64_t *tmpBuf = ctxt.getTmpBuf();
+	uint8_t *tmpBuf = ctxt.getTmpBuf();
 
-	rval = IIntEntryAdapt::getVal<uint64_t>( tmpBuf, nelms, &it );
+	rval = IIntEntryAdapt::getVal( tmpBuf, nelms, ctxt.getElsz(), &it );
 
 	ctxt.callback( 0 );
 

@@ -16,7 +16,7 @@
 class CProtoModRssi;
 typedef shared_ptr<CProtoModRssi> ProtoModRssi;
 
-class CProtoModRssi: public CShObj, public IPortImpl, public IProtoMod, public CRssi {
+class CProtoModRssi: public CShObj, public IPortImpl, public IProtoMod, public CRssi, public IMTUQuerier {
 private:
 	ProtoDoor upstream_;
 
@@ -26,7 +26,7 @@ protected:
 public:
 	CProtoModRssi(Key &k, int threadPriority)
 	: CShObj(k),
-	  CRssi(false, threadPriority)
+	  CRssi(false, threadPriority, this)
 	{
 	}
 
@@ -67,6 +67,8 @@ public:
 	virtual ~CProtoModRssi();
 
 	virtual void dumpYaml(YAML::Node &) const;
+
+	virtual int  getRxMTU();
 
 	static ProtoModRssi create(int threadPriority);
 };

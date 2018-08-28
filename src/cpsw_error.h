@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <exception>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -226,36 +227,42 @@ public:
 
 
 class InternalError: public ErrnoError {
+protected:
+	void fatal()
+	{
+		fprintf(stderr,"%s\n", what());
+		fprintf(stderr,"ABORTING (so that the core-dump gets a stack trace from where this was thrown...)\n");
+	}
 public:
 	InternalError()
 	: ErrnoError("Internal Error")
 	{
-		abort(); // so core-dump gets stack trace from where this was thrown
+		fatal();
 	}
 
 	InternalError(const char*s)
 	: ErrnoError(s)
 	{
-		abort(); // so core-dump gets stack trace from where this was thrown
+		fatal();
 	}
 
 	InternalError(const std::string &s)
 	: ErrnoError(s)
 	{
-		abort(); // so core-dump gets stack trace from where this was thrown
+		fatal();
 	}
 
 	InternalError(const std::string &s, int err)
 	: ErrnoError(s, err)
 	{
-		abort(); // so core-dump gets stack trace from where this was thrown
+		fatal();
 	}
 
 
 	InternalError(const char*s, int err)
 	: ErrnoError(s, err)
 	{
-		abort(); // so core-dump gets stack trace from where this was thrown
+		fatal();
 	}
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return make_shared<CPSWError>(*this); }

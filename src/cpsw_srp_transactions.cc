@@ -24,6 +24,8 @@
 
 #define PROTO_VERS_3     3
 
+//#define SRPADDR_DEBUG 0
+
 static void swp32(SRPWord *buf)
 {
 #ifdef __GNUC__
@@ -281,9 +283,11 @@ int	     nWords   = getNWords();
 		printf("headbyte[%i]: %x\n", i, ((uint8_t*)&rHdrBuf_[hdrWords_])[i]);
 	}
 
+#if SRPADDR_DEBUG > 1
 	for ( i=0; (unsigned)i<sbytes_; i++ ) {
 		printf("chr[%i]: %x %c\n", i, dst_[i], dst_[i]);
 	}
+#endif
 
 	for ( i=0; i < tailBytes_; i++ ) {
 		printf("tailbyte[%i]: %x\n", i, rTailBuf_[i]);

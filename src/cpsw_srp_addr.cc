@@ -22,13 +22,15 @@
 
 using boost::dynamic_pointer_cast;
 
-//#define SRPADDR_DEBUG
+//#define SRPADDR_DEBUG 0
 //#define TIMEOUT_DEBUG
 
-// if RSSI is used then AFAIK the max. segment size
-// (including RSSI header) is 1024 octets.
-// Must subtract RSSI (8), packetizer (9), SRP (V3: 20 + 4)
-#define MAXWORDS (256 - 11 - 4)
+// SRP (V3) does strange things when we use more than 1024
+// words (2018/8); when we use a few more then a bad SRP
+// status reply comes back. If we use a large number then
+// the board stops responding and must be rebooted!
+// UPDATE: writes officially only support 4kB max.
+#define MAXTXWORDS 1024
 
 static bool hasRssi(ProtoPort stack)
 {
@@ -100,7 +102,6 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort sta
                     && bldr->getSRPRetryCount() > 65535                                            ),
   maxWordsRx_     ( 0                                                                              ),
   maxWordsTx_     ( 0                                                                              ),
-  mtu_            ( 0                                                                              ),
   asyncXactMgr_   ( IAsyncIOTransactionManager::create( usrTimeout_.getUs() )                      ),
   asyncIOHandler_ ( asyncXactMgr_, this                                                            ),
   mutex_          ( CMtx::AttrRecursive(), "SRPADDR"                                               )
@@ -135,7 +136,6 @@ ProtoPort            stack = getProtoStack();
 
 	CCommAddressImpl::startProtoStack();
 
-	mtu_        = stack->open()->getMTU();
 	// there seems to be a bug in either the depacketizer or SRP:
 	// weird things happen if fragment payload is not 8-byte 
 	// aligned
@@ -153,11 +153,13 @@ ProtoPort            stack = getProtoStack();
 	}
 	maxwords--; //tail/status
 
+	mtu_ = maxwords * sizeof(uint32_t);
+
 	maxWordsRx_ = (protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 || !hasDepack( stack )) ? maxwords : (1<<28);
 	maxWordsTx_ = maxWordsRx_;
-	// SRP FW seems to not support more than 1024 words??
-	if ( maxWordsTx_ > 1024 )
-		maxWordsTx_ = 1024;
+	if ( maxWordsTx_ > MAXTXWORDS ) {
+		maxWordsTx_ = MAXTXWORDS;
+	}
 
 #ifdef SRPADDR_DEBUG
 	printf("SRP: MTU is %d; maxwords %d, TX: %d, RX: %d\n", mtu_, maxwords, maxWordsRx_, maxWordsTx_);
@@ -232,7 +234,10 @@ struct timespec now;
 
 #define CMD_WRITE 0x40000000
 
-#define CMD_WRITE_V3 0x100
+#define CMD_READ_V3         0x000
+#define CMD_WRITE_V3        0x100
+/* 2018/08: Posted writes don't seem to work well. Result in RSSI re-transmits :-( */
+#define CMD_POSTED_WRITE_V3 0x200
 
 #define PROTO_VERS_3     3
 
@@ -471,10 +476,13 @@ int      nWords;
 uint32_t tid;
 int      iov_pld = -1;
 #ifdef SRPADDR_DEBUG
-struct timespec retry_then;
+struct timespec retry_then = {0}; // initialize to avoid compiler warning
 #endif
 int      expected;
 int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initialized use
+// 201808: posted writes DO work with non-interleaved packetizer but DO NOT work with
+//         interleaved packetizer.
+int      posted   = 0;
 
 	if ( dbytes == 0 )
 		return 0;
@@ -595,7 +603,7 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 		xbuf[put++] = tid;
 		xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
 	} else {
-		xbuf[put++] = CMD_WRITE_V3 | PROTO_VERS_3;
+		xbuf[put++] = (posted ? CMD_POSTED_WRITE_V3 : CMD_WRITE_V3) | PROTO_VERS_3;
 		xbuf[put++] = tid;
 		xbuf[put++] = ( byteResolution_ ? off : (off & ~3ULL) );
 		xbuf[put++] = off >> 32;
@@ -674,6 +682,9 @@ int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initial
 
 		door_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
 
+		if ( posted )
+			return dbytes;
+
 		do {
 			rchn = door_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
@@ -728,7 +739,7 @@ unsigned nWords;
 	CMtx::lg GUARD( &mutex_ );
 
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP writeBlk maxWordsTx_ %d\n", maxWordsTx_);
+	fprintf(stderr, "SRP writeBlk nWordsmaxWordsTx_ %d\n", maxWordsTx_);
 #endif
 	while ( nWords > maxWordsTx_ ) {
 		int nbytes = maxWordsTx_*4 - headbytes;

@@ -118,6 +118,16 @@ protected:
 	virtual bool checkForEvent();
 };
 
+// Obtain the max. segment size to advertise to the peer
+// The return value of 'getRxMTU' is the max. size the
+// system can accept **including** any RSSI headers
+class IMTUQuerier {
+public:
+	virtual int getRxMTU() = 0;
+
+	virtual ~IMTUQuerier() {}
+};
+
 
 class CRssi : public CRunnable,
               public IRxEventHandler,
@@ -147,8 +157,9 @@ public:
 
 private:
 	bool        isServer_;
-	const char *name_;
+	const char  *name_;
 	EventSet    eventSet_;
+	IMTUQuerier *mtuQuerier_;
 
 protected:
 	BufQueue    outQ_;
@@ -160,7 +171,7 @@ private:
 
 public:
 
-	CRssi(bool isServer, int threadPrio = DFLT_PRIORITY);
+	CRssi(bool isServer, int threadPrio = DFLT_PRIORITY, IMTUQuerier *mtuQuerier = 0);
 
 	virtual ~CRssi();
 

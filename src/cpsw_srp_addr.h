@@ -101,7 +101,6 @@ private:
 	bool                      byteResolution_;
 	unsigned                  maxWordsRx_;
 	unsigned                  maxWordsTx_;
-	unsigned                  mtu_;
 	ProtoPort                 asyncIOPort_;
 	AsyncIOTransactionManager asyncXactMgr_;
 	CSRPAsyncHandler          asyncIOHandler_;
