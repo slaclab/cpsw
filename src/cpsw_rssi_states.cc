@@ -391,7 +391,11 @@ if ( rssi_debug > 0 ) {
 
 bool CRssi::CLNT_WAIT_SYN_ACK::handleSYN(CRssi *context, RssiSynHeader &synHdr)
 {
-		printf("%s SYN received, good checksum (state %s)\n", context->getName(), getName());
+#ifdef RSSI_DEBUG
+if ( rssi_debug > 0 ) {
+		fprintf(stderr, "%s SYN received, good checksum (state %s)\n", context->getName(), getName());
+}
+#endif
 
 		extractConnectionParams( context, synHdr );
 

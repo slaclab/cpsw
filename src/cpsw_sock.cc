@@ -94,7 +94,6 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 	if ( dest ) {
 		if ( ::connect( sd_, (struct sockaddr*)dest, sizeof(*dest) ) )
 			throw IOError("connect failed ", errno);
-printf("CONNECTED to %s:%d\n", inet_ntoa(dest->sin_addr), ntohs(dest->sin_port));
 	}
 }
 
