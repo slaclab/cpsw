@@ -10,6 +10,8 @@
 
 #include <cpsw_proto_mod.h>
 
+#undef PROTO_MOD_DEBUG
+
 void
 ProtoPortMatchParams::MatchParam::dump()
 {
@@ -175,7 +177,9 @@ ProtoDoor rval( ProtoDoor(this, CloseManager()) );
 
 	if ( 0 == openCount_.fetch_add( 1, boost::memory_order_acq_rel ) ) {
 		forcedSelfReference_ = getSelfAsProtoPort();
-		printf("First Open %s\n", forcedSelfReference_->getProtoMod()->getName());
+#ifdef PROTO_MOD_DEBUG
+		fprintf(stderr, "First Open %s\n", forcedSelfReference_->getProtoMod()->getName());
+#endif
 	}
 
 	spinlock_.store( false, boost::memory_order_release );
@@ -204,7 +208,9 @@ ProtoPort holdOnToAReference = impl->forcedSelfReference_;
 	while ( impl->spinlock_.exchange( true, boost::memory_order_acquire ) )
 		/* spin */;
 	if ( 1 == impl->openCount_.fetch_sub( 1, boost::memory_order_acq_rel ) ) {
-		printf("Last Close %s\n", holdOnToAReference->getProtoMod()->getName());
+#ifdef PROTO_MOD_DEBUG
+		fprintf(stderr, "Last Close %s\n", holdOnToAReference->getProtoMod()->getName());
+#endif
 		impl->forcedSelfReference_.reset();
 	}
 
