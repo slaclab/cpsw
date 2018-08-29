@@ -2,6 +2,10 @@ asyncSRP
 
     Merge:  depacketizer V2 support (from master)
 
+    Merge:
+    CFreeList now supports allocate_shared() (single allocation
+    from free-list)
+
     Convert IntFields with bitSize > 64 to be converted to 
     (hex) strings without truncating them (when read as CString).
 

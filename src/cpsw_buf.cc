@@ -161,10 +161,10 @@ public:
 	static BufImpl getBuf(size_t capa, bool clip = false);
 };
 
-static CFreeList<CBufImpl> freeListBig  (0, 2048 - sizeof(CBufImpl));
+static CFreeListExtra<CBufImpl, 2048 - sizeof(CBufImpl)> freeListBig;
 
 // free lists ordered in decreasing order of node size
-static CFreeList<CBufImpl> *freeListPool[] = {
+static IFreeListExtra<CBufImpl> *freeListPool[] = {
 	&freeListBig
 };
 
@@ -385,7 +385,7 @@ BufImpl CBufImpl::getBuf(size_t capa, bool clip)
 {
 unsigned maxcap = freeListPool[0]->getExtraSize();
 
-CFreeList<CBufImpl> *flp = &freeListBig;
+IFreeListExtra<CBufImpl> *flp = &freeListBig;
 
 	if ( CAPA_MAX == capa )
 		capa = maxcap;
@@ -398,7 +398,7 @@ CFreeList<CBufImpl> *flp = &freeListBig;
 		}
 	}
 
-	return flp->alloc( flp->getExtraSize() );
+	return flp->get();
 }
 
 Buf IBuf::getBuf(size_t capa, bool clip)
@@ -432,6 +432,7 @@ unsigned rval, i;
 	}
 	return rval;
 }
+
 CBufChainImpl::CBufChainImpl( CFreeListNodeKey<CBufChainImpl> k )
 : CFreeListNode<CBufChainImpl>( k ),
   len_(0),
@@ -582,14 +583,21 @@ Buf      b, nxtb;
 	// buffer that needs to be truncated
 
 	while ( size > 0 ) {
-		uint64_t room;
+		int64_t room;
+		int64_t avail;
 
-		if ( !b || (room = b->getAvail()) <= CBufImpl::TAILROOM ) {
+		if ( !b || (avail = (b->getAvail() - CBufImpl::TAILROOM)) <= 0 || (room = (capa - b->getSize())) <= 0 ) {
+
 			b    = createAtTail( capa, true );
-		}
-		room = b->getAvail() - CBufImpl::TAILROOM;
-		if ( room > capa ) {
-			room = capa;
+
+			room = b->getAvail() - CBufImpl::TAILROOM;
+			if ( room > (ssize_t)capa ) {
+				room = capa;
+			}
+		} else {
+			if ( avail < room ) {
+				room = avail;
+			}
 		}
 
 		// there might be a on old buffer to overwrite...
