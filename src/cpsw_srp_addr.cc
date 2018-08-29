@@ -162,7 +162,7 @@ ProtoPort            stack = getProtoStack();
 	}
 
 #ifdef SRPADDR_DEBUG
-	printf("SRP: MTU is %d; maxwords %d, TX: %d, RX: %d\n", mtu_, maxwords, maxWordsRx_, maxWordsTx_);
+	fprintf(stderr, "SRP: MTU is %d; maxwords %d, TX: %d, RX: %d\n", mtu_, maxwords, maxWordsRx_, maxWordsTx_);
 #endif
 }
 
@@ -226,7 +226,7 @@ struct timespec now;
 	if ( attempt > 0 ) {
 		CTimeout xx(now);
 		xx -= CTimeout(*then);
-		printf("%s -- retry (attempt %d) took %"PRId64"us\n", pre, attempt, xx.getUs());
+		printf(stderr, "%s -- retry (attempt %d) took %"PRId64"us\n", pre, attempt, xx.getUs());
 	}
 	*then = now;
 }
@@ -352,7 +352,9 @@ int rval = CAddressImpl::open( node );
 		door_        = getProtoStack()->open();
 		// open a second VC for asynchronous communication
 		asyncIOHandler_.threadStart( asyncIOPort_->open() );
-printf("SRP Open\n");
+#ifdef SRPADDR_DEBUG
+		fprintf(stderr, "SRP Open\n");
+#endif
 	}
 
 	return rval;
@@ -365,7 +367,9 @@ CMtx::lg guard( &doorMtx_ );
 
 int rval = CAddressImpl::close( node );
 	if ( 1 == rval ) {
-printf("SRP Close\n");
+#ifdef SRPADDR_DEBUG
+		fprintf(stderr, "SRP Close\n");
+#endif
 		door_.reset();
 		asyncIOHandler_.threadStop();
 	}
@@ -817,7 +821,7 @@ void DynTimeout::reset(const CTimeout &iniv)
 	avgRndTrip_ = iniv.getUs() << (AVG_SHFT - MARG_SHFT);
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	printf("dynTimeout reset to %"PRId64"\n", dynTimeout_.getUs());
+	fprintf(stderr, "dynTimeout reset to %"PRId64"\n", dynTimeout_.getUs());
 #endif
 }
 
@@ -829,7 +833,7 @@ void DynTimeout::relax()
 
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	printf("RETRY (timeout %"PRId64")\n", dynTimeout_.getUs());
+	fprintf(stderr, "RETRY (timeout %"PRId64")\n", dynTimeout_.getUs());
 #endif
 }
 
@@ -847,7 +851,7 @@ int64_t  diffus;
 
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	printf("dynTimeout update to %"PRId64" (rnd %"PRId64" -- diff %"PRId64", avg %"PRId64" = 128*%"PRId64")\n",
+	fprintf(stderr, "dynTimeout update to %"PRId64" (rnd %"PRId64" -- diff %"PRId64", avg %"PRId64" = 128*%"PRId64")\n",
 		dynTimeout_.getUs(),
 		diff.getUs(),
 		diffus,
