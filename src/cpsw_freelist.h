@@ -34,12 +34,12 @@ using boost::memory_order_acquire;
 using boost::make_shared;
 using boost::allocate_shared;
 
-template <typename> class IFreeList;
+template <typename> class CFreeList;
 
 template <typename T> class CFreeListNodeKey {
 private:
 	CFreeListNodeKey() {};
-	template <typename> friend class IFreeList;
+	template <typename> friend class CFreeList;
 };
 
 template <typename C> class CFreeListNode {
@@ -54,7 +54,7 @@ protected:
 		self_ = me;
 	}
 
-	template <typename> friend class IFreeList;
+	template <typename> friend class CFreeList;
 
 public:
 
@@ -175,12 +175,6 @@ public:
 	CFreeListRaw()
 	: BASE( ALL( this ) , 0 )
 	{
-		fprintf(stderr, "CFreeListRaw CONS\n");
-	}
-
-	~CFreeListRaw()
-	{
-		fprintf(stderr, "CFreeListRaw DEST\n");
 	}
 
 	virtual void *allocate()
@@ -326,16 +320,28 @@ public:
 };
 
 template <typename NODE>
-class IFreeList {
+class CFreeList {
 private:
 	IFreeListPool *pool_;
 
-	IFreeList(const IFreeList &);
-	IFreeList & operator=(const IFreeList &);
+	CFreeList(const CFreeList &);
+	CFreeList & operator=(const CFreeList &);
+
+	template <typename T, unsigned E> shared_ptr<T>
+	allocshared()
+	{
+		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<T>() );
+	}
+
+	template <typename T, unsigned E> shared_ptr<T>
+	allocsharedextra()
+	{
+		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<T>(), E );
+	}
 
 public:
 
-	IFreeList()
+	CFreeList()
 	: pool_(0)
 	{
 	}
@@ -364,32 +370,27 @@ public:
         return rval;
     }
 
-	virtual unsigned int getExtraSize() = 0;
-
-	virtual shared_ptr<NODE> mk()       = 0;
-
 	shared_ptr<NODE> alloc()
 	{
-		shared_ptr<NODE> rval = mk();
+		shared_ptr<NODE> rval = allocshared<NODE, 0>();
 		if ( ! rval )
 			throw InternalError("Unable to allocate Buffer");
 		rval->setSelf( rval );
 		return rval;
 	}
 
-	template <typename T, unsigned E> shared_ptr<T>
-	allocshared()
+	template <unsigned E>
+	shared_ptr<NODE> allocExtra()
 	{
-		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<T>() );
+		shared_ptr<NODE> rval = allocsharedextra<NODE, E>();
+		if ( ! rval )
+			throw InternalError("Unable to allocate Buffer");
+		rval->setSelf( rval );
+		return rval;
 	}
 
-	template <typename T, unsigned E> shared_ptr<T>
-	allocsharedextra()
-	{
-		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<T>(), E );
-	}
-
-	template <typename ARG> shared_ptr<NODE> alloc(ARG a)
+	template <typename ARG>
+	shared_ptr<NODE> alloc(ARG a)
 	{
 		shared_ptr<NODE> rval = allocate_shared<NODE>( CFreeListNodeAlloc<NODE>( &pool_ ), CFreeListNodeKey<NODE>(), a );
 		if ( ! rval )
@@ -400,36 +401,25 @@ public:
 };
 
 template <typename NODE>
-class CFreeList : public IFreeList<NODE> {
+class IFreeListExtra : public CFreeList<NODE> {
 public:
-
-	virtual unsigned int getExtraSize()
-	{
-		return 0;
-	}
-
-	virtual shared_ptr<NODE> mk()
-	{
-		return IFreeList<NODE>::template allocshared<NODE, 0>();
-	}
-
+	virtual unsigned int     getExtraSize() = 0;
+	virtual shared_ptr<NODE> get()          = 0;
 };
 
 template <typename NODE, unsigned EXTRA = 0>
-class CFreeListExtra : public IFreeList<NODE>
+class CFreeListExtra : public IFreeListExtra<NODE>
 {
 public:
-
 	virtual unsigned int getExtraSize()
 	{
 		return EXTRA;
 	}
 
-	virtual shared_ptr<NODE> mk()
+	virtual shared_ptr<NODE> get()
 	{
-		return IFreeList<NODE>::template allocsharedextra<NODE, EXTRA>();
+		return CFreeList<NODE>::template allocExtra<EXTRA>();
 	}
-
 };
 
 #endif

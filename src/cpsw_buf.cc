@@ -164,7 +164,7 @@ public:
 static CFreeListExtra<CBufImpl, 2048 - sizeof(CBufImpl)> freeListBig;
 
 // free lists ordered in decreasing order of node size
-static IFreeList<CBufImpl> *freeListPool[] = {
+static IFreeListExtra<CBufImpl> *freeListPool[] = {
 	&freeListBig
 };
 
@@ -385,7 +385,7 @@ BufImpl CBufImpl::getBuf(size_t capa, bool clip)
 {
 unsigned maxcap = freeListPool[0]->getExtraSize();
 
-IFreeList<CBufImpl> *flp = &freeListBig;
+IFreeListExtra<CBufImpl> *flp = &freeListBig;
 
 	if ( CAPA_MAX == capa )
 		capa = maxcap;
@@ -398,7 +398,7 @@ IFreeList<CBufImpl> *flp = &freeListBig;
 		}
 	}
 
-	return flp->alloc();
+	return flp->get();
 }
 
 Buf IBuf::getBuf(size_t capa, bool clip)
