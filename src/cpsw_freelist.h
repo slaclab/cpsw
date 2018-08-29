@@ -179,12 +179,6 @@ public:
 	CFreeListRaw()
 	: BASE( ALL( this ) , 0 )
 	{
-		fprintf(stderr, "CFreeListRaw CONS\n");
-	}
-
-	~CFreeListRaw()
-	{
-		fprintf(stderr, "CFreeListRaw DEST\n");
 	}
 
 	virtual void *allocate()
@@ -337,6 +331,18 @@ private:
 	CFreeList(const CFreeList &);
 	CFreeList & operator=(const CFreeList &);
 
+	template <typename T, unsigned E, typename B> shared_ptr<T>
+	allocshared()
+	{
+		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<B>() );
+	}
+
+	template <typename T, unsigned E, typename B> shared_ptr<T>
+	allocsharedextra()
+	{
+		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<B>(), E );
+	}
+
 public:
 
 	CFreeList()
@@ -368,21 +374,7 @@ public:
         return rval;
     }
 
-
-	template <typename T, unsigned E, typename B> shared_ptr<T>
-	allocshared()
-	{
-		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<B>() );
-	}
-
-	template <typename T, unsigned E, typename B> shared_ptr<T>
-	allocsharedextra()
-	{
-		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<B>(), E );
-	}
-
-	shared_ptr<NODE>
-	alloc()
+	shared_ptr<NODE> alloc()
 	{
 		shared_ptr<NODE> rval = allocshared<NODE, 0, NODEBASE>();
 		if ( ! rval )
@@ -391,8 +383,19 @@ public:
 		return rval;
 	}
 
+	template <unsigned E>
+	shared_ptr<NODE> allocExtra()
+	{
+		shared_ptr<NODE> rval = allocsharedextra<NODE, E, NODEBASE>();
+		if ( ! rval )
+			throw InternalError("Unable to allocate Buffer");
+		rval->setSelf( rval );
+		return rval;
+	}
+
 	// Note: freelist.hpp doesn't support more than 2 arguments
-	template <typename ARG> shared_ptr<NODE> alloc(ARG a)
+	template <typename ARG> shared_ptr<NODE>
+	alloc(ARG a)
 	{
 		shared_ptr<NODE> rval = allocate_shared<NODE>( CFreeListNodeAlloc<NODE>( &pool_ ), CFreeListNodeKey<NODEBASE>(), a );
 		if ( ! rval )
@@ -412,7 +415,6 @@ public:
 template <typename NODE, unsigned EXTRA = 0, typename NODEBASE = NODE>
 class CFreeListExtra : public IFreeListExtra<NODE, NODEBASE> {
 public:
-
 	virtual unsigned int getExtraSize()
 	{
 		return EXTRA;
@@ -420,7 +422,7 @@ public:
 
 	virtual shared_ptr<NODE> get()
 	{
-		return CFreeList<NODE, NODEBASE>::template allocsharedextra<NODE, EXTRA, NODEBASE>();
+		return CFreeList<NODE, NODEBASE>::template allocExtra<EXTRA>();
 	}
 };
 
