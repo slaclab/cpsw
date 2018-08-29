@@ -91,6 +91,7 @@ printf("It %u Chain size %ld, obcs %ld, bufsz %ld\n", added, bc->getSize(), w.bc
 			added++;
 		}
 		if ( 0 == added ) {
+			fprintf(stderr,"TDestMux2: bufs %ld, MTU %d\n", h->getSize(), myMTUCached_);
 			throw InternalError("Unable to fragment individual buffers (bufs > MTU)");
 		}
 	}
