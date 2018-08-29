@@ -18,6 +18,8 @@
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
 
+#include <stdint.h>
+
 // Extend boost's lockless free-list to manage objects that are
 // handed out via smart/shared pointers.
 // Also: keep statistics
@@ -29,13 +31,15 @@ using boost::atomic;
 using boost::memory_order_relaxed;
 using boost::memory_order_release;
 using boost::memory_order_acquire;
+using boost::make_shared;
+using boost::allocate_shared;
 
-template <typename T> class CFreeList;
+template <typename> class IFreeList;
 
 template <typename T> class CFreeListNodeKey {
 private:
 	CFreeListNodeKey() {};
-	friend class CFreeList<T>;
+	template <typename> friend class IFreeList;
 };
 
 template <typename C> class CFreeListNode {
@@ -50,8 +54,7 @@ protected:
 		self_ = me;
 	}
 
-	friend shared_ptr<C> CFreeList<C>::alloc();
-	template <typename ARG> friend shared_ptr<C> CFreeList<C>::alloc(ARG);
+	template <typename> friend class IFreeList;
 
 public:
 
@@ -68,75 +71,41 @@ public:
 	virtual ~CFreeListNode() {}
 };
 
-template <typename C> class CFreeListNodeAlloc {
-private:
-	atomic<unsigned int> *nAlloc_p_;
-	atomic<unsigned int> *nFree_p_;
-	unsigned              extra_;
-public:
-	CFreeListNodeAlloc( atomic<unsigned int> *nAlloc_p, atomic<unsigned int> *nFree_p, unsigned extra )
-	:nAlloc_p_(nAlloc_p), nFree_p_(nFree_p), extra_(extra)
-	{
-	}
-
-	C *allocate(size_t n)
-	{
-		nAlloc_p_->fetch_add(n, memory_order_release);
-#ifndef BOOST_LOCKFREE_FREELIST_INIT_RUNS_DTOR
-		nFree_p_->fetch_add(n, memory_order_release);
-#endif
-		return (C*)::malloc( sizeof(C)*n + extra_ );
-	}
-
-	class BadDealloc {};
-
-	void deallocate(C *o, size_t n)
-	{
-		if ( n != 1 ) {
-			throw BadDealloc();
-		}
-		::free( o );
-	}
-
-};
-
-// NODE must be derived from CFreeListNode !
-template <typename NODE>
-class CFreeList : public freelist_stack< NODE, CFreeListNodeAlloc<NODE> >
-{
-private:
+class CFreeListStats {
+protected:
 	atomic<unsigned int> nAlloc_;
 	atomic<unsigned int> nFree_;
-	unsigned             extra_;
 
-protected:
-	class DTOR {
-		private:
-			CFreeList *fl_;
-
-			DTOR(CFreeList *fl)
-			: fl_ (fl)
-			{
-			}
-
-			friend class CFreeList;
-
-		public:
-			void operator()(NODE *o)
-			{
-				fl_->destruct( o );
-			}
-	};
-
+private:
+	CFreeListStats(const CFreeListStats &);
+	CFreeListStats& operator=(const CFreeListStats &);
 
 public:
-	typedef CFreeListNodeAlloc<NODE> ALLOC;
-	typedef freelist_stack< NODE, ALLOC > BASE;
-	CFreeList(int n = 0, unsigned extra = 0)
-	:BASE( ALLOC( (nAlloc_=0, &nAlloc_ ), (nFree_ = 0, &nFree_), extra ) , n),
-	 extra_( extra )
-	{ }
+	CFreeListStats()
+	: nAlloc_(0), nFree_(0)
+	{
+	}
 
+	void addNumAlloced(unsigned n = 1)
+	{
+		nAlloc_.fetch_add(n, memory_order_release);
+	}
+
+	void addNumFree(unsigned n = 1)
+	{
+		nFree_.fetch_add(n, memory_order_release);
+	}
+
+	void subNumAlloced(unsigned n = 1)
+	{
+		nAlloc_.fetch_sub(n, memory_order_release);
+	}
+
+	void subNumFree(unsigned n = 1)
+	{
+		nFree_.fetch_sub(n, memory_order_release);
+	}
+		
 	unsigned int getNumAlloced()
 	{
 		return nAlloc_.load( memory_order_acquire );
@@ -147,71 +116,320 @@ public:
 		return nFree_.load( memory_order_acquire );
 	}
 
-	unsigned getExtraSize()
+};
+
+typedef CFreeListStats *FreeListStats;
+
+// Allocate objects from the heap (when free-list needs to be populated)
+template <typename C> class CFreeListRawNodeAlloc {
+private:
+	FreeListStats stats_;
+public:
+	CFreeListRawNodeAlloc( FreeListStats stats )
+	: stats_ (stats )
 	{
-		return extra_;
 	}
 
-	unsigned int getNumInUse()
+	C *allocate(size_t n)
 	{
-		// can't atomically read both -- since this is a diagnostic
-		// we don't care about marginal race conditions here.
-		unsigned int rval = getNumAlloced();
-		rval -= getNumFree();
-		return rval;
+		if ( n != 1 ) {
+			throw std::bad_alloc();
+		}
+		stats_->addNumAlloced(n);
+#ifndef BOOST_LOCKFREE_FREELIST_INIT_RUNS_DTOR
+		stats_->addNumFree(n);
+#endif
+		return (C*) ::malloc( sizeof(C)*n );
 	}
 
-	NODE *construct(CFreeListNodeKey<NODE> k)
+	void deallocate(C *o, size_t n)
 	{
-		const bool ThreadSafe = true;
-		const bool Bounded    = false;
-		NODE *rval = BASE::template construct<ThreadSafe,Bounded>( k );
+		if ( n != 1 ) {
+			throw std::bad_alloc();
+		}
+		::free( o );
+	}
+
+};
+
+class IFreeListPool : public CFreeListStats {
+public:
+	virtual void *allocate()         = 0;
+	virtual void deallocate(void *)  = 0;
+	virtual unsigned size()          = 0;
+};
+
+typedef IFreeListPool *FreeListPool;
+
+template <std::size_t SZ>
+class CFreeListRaw :
+  public IFreeListPool,
+  public freelist_stack< uint8_t[SZ], CFreeListRawNodeAlloc< uint8_t[SZ] > >
+{
+public:
+	typedef uint8_t                        T[SZ];
+	typedef CFreeListRawNodeAlloc<T>       ALL;
+	typedef freelist_stack<T, ALL>         BASE;
+	typedef shared_ptr< CFreeListRaw<SZ> > SP;
+
+	CFreeListRaw()
+	: BASE( ALL( this ) , 0 )
+	{
+		fprintf(stderr, "CFreeListRaw CONS\n");
+	}
+
+	~CFreeListRaw()
+	{
+		fprintf(stderr, "CFreeListRaw DEST\n");
+	}
+
+	virtual void *allocate()
+	{
+	const bool ThreadSafe = true;
+	const bool Bounded    = false;
+		T *rval = BASE::template allocate<ThreadSafe, Bounded>();
 		if ( rval )
-			nFree_.fetch_sub( 1, memory_order_release );
+			subNumFree();
 		return rval;
 	}
 
-	template <typename ARG> NODE *construct(CFreeListNodeKey<NODE> k, ARG arg)
+	virtual unsigned size()
 	{
-		const bool ThreadSafe = true;
-		const bool Bounded    = false;
-		NODE *rval = BASE::template construct<ThreadSafe,Bounded>( k, arg );
-		if ( rval )
-			nFree_.fetch_sub( 1, memory_order_release );
-		return rval;
+		return SZ;
 	}
 
-
-	void destruct(NODE *o)
+	virtual void deallocate(void *p)
 	{
-		const bool ThreadSafe = true;
-		nFree_.fetch_add( 1, memory_order_release );
-		BASE::template destruct<ThreadSafe>( o );
+	const bool ThreadSafe = true;
+		addNumFree();
+		BASE::template deallocate<ThreadSafe>( static_cast< T* >( p ) );
 	}
+
+	static FreeListPool pool()
+	{
+		// lives forever
+		static FreeListPool thepool = new typename SP::element_type () ; 
+		return thepool;
+	}
+};
+
+// CFreeListNodeAlloc is a c++ allocator which uses a free-list
+// to obtain the memory.
+// Here are some subtleties:
+//
+//  1 We want to use a single allocation for shared_ptr's control block
+//    and the user data it points to. Both should come from the free list.
+//  2 The only way to achieve 1) is by using allocate_shared().
+//  3 Allocate_shared() must be passed a c++ 'allocator'
+//  4 The allocator is 'rebound' to an unknown/opaque type. I.e.,
+//    if we pass  allocate_shared< TYPE > ( Allocator<TYPE>(), args ) then
+//    this does ***not*** result in a call to Allocator<TYPE>::allocate()
+//    but to  Allocator<OPAQUE>::allocate().
+//  5 We want to maintain some statistics for the free-list.
+//  6 because of 4) there is no easy way to get to the 'true' freelist, i.e.,
+//    the one used by Allocator<OPAQUE>::allocate() since there is no way
+//    to find out what 'OPAQUE' actually is (knowing its size could be enough
+//    to locate the associated free-list).
+//  7 The ONLY code that gets to 'see' OPAQUE is actually Allocator<OPAQUE>::allocate().
+//  8 AGAIN: Something like Allocator<TYPE>::getFreeList() would NOT return
+//    the correct free-list but one to allocate objects of TYPE (not OPAQUE)!
+//  9 Since any shared_ptr must have a reference to the correct allocator
+//    (in order to destroy) it should be possible to get a handle to it but
+//    shared_ptr unfortunately does not expose this :-(
+//
+// Thus, we resort to an ugly hack:
+// Our 'Allocator' holds the address of a pointer to the free-list (initialized
+// to NULL, because free-list initially unknown) this address is passed by
+// the copy constructor (which rebinds to a different allocator) and the
+// pointer to the free-list is passed out by the correct
+// Allocator<OPAQUE>::allocate():
+//
+//   FreeList ptr;
+//
+//   template <typename T> class Allocator {
+//   public:
+//      FreeList *pp;
+//      Allocator(FreeList *pp) : pp( pp ) {}
+//      template <typename U> Allocator(const Allocator<U> &o) : pp(o.pp) {}
+//      U *allocate(...)
+//      {
+//        return (*pp = freeList)->allocate(..);
+//      }
+//  }
+//
+// Quite ugly, but the only way I could find to make this work.
+//
+// NOTE: The implementation below is not thread-safe (with regard of the pointer
+// hack in question, that is), and doesn't use shared_ptr for FreeList.
+// This is deemed acceptable because the counters are for diagnostic purposes only.
+//
+// NODE must be derived from CFreeListNode !
+template <typename NODE, unsigned EXTRA = 0>
+class CFreeListNodeAlloc
+{
+private:
+	FreeListPool  *hack_;
+
+	CFreeListNodeAlloc<NODE, EXTRA> &operator=(const CFreeListNodeAlloc<NODE, EXTRA> &);
+
+public:
+
+	template <typename U>
+	struct rebind {
+		typedef CFreeListNodeAlloc<U, EXTRA> other;
+	};
+
+	CFreeListNodeAlloc(FreeListPool *hack)
+	: hack_( hack )
+	{
+	}
+
+	virtual unsigned getExtraSize()
+	{
+		return EXTRA;
+	}
+
+	FreeListPool *getPoolPtr() const
+	{
+		return hack_;
+	}
+
+	template <typename U>
+	CFreeListNodeAlloc( const CFreeListNodeAlloc<U, EXTRA> &orig)
+	: hack_( orig.getPoolPtr() )
+	{
+	}
+
+	// Templates to find the right size list
+
+	virtual NODE *
+	allocate( std::size_t nelms, const void *hint)
+	{
+		if ( nelms != 1 ) {
+			throw std::bad_alloc();
+		}
+		FreeListPool pool = CFreeListRaw<sizeof(NODE) + EXTRA>::pool();
+		*hack_ = pool;
+		return static_cast<NODE*>( pool->allocate() );
+	}
+
+	virtual void
+	deallocate( NODE *p, std::size_t nelms)
+	{
+		if ( nelms != 1 ) {
+			throw std::bad_alloc();
+		}
+		FreeListPool pool = CFreeListRaw<sizeof(NODE) + EXTRA>::pool();
+		pool->deallocate( p );
+	}
+
+};
+
+template <typename NODE>
+class IFreeList {
+private:
+	IFreeListPool *pool_;
+
+	IFreeList(const IFreeList &);
+	IFreeList & operator=(const IFreeList &);
+
+public:
+
+	IFreeList()
+	: pool_(0)
+	{
+	}
+
+	virtual unsigned int getNumAlloced()
+	{
+		return pool_ ? pool_->getNumAlloced() : 0;
+	}
+
+	virtual unsigned int getNumFree()
+	{
+		return pool_ ? pool_->getNumFree() : 0;
+	}
+
+	virtual unsigned int size()
+	{
+		return pool_ ? pool_->size() : 0;
+	}
+
+    virtual unsigned int getNumInUse()
+    {
+        // can't atomically read both -- since this is a diagnostic
+        // we don't care about marginal race conditions here.
+        unsigned int rval = getNumAlloced();
+        rval -= getNumFree();
+        return rval;
+    }
+
+	virtual unsigned int getExtraSize() = 0;
+
+	virtual shared_ptr<NODE> mk()       = 0;
 
 	shared_ptr<NODE> alloc()
 	{
-		NODE *b = construct( CFreeListNodeKey<NODE>() );
-		if ( ! b )
+		shared_ptr<NODE> rval = mk();
+		if ( ! rval )
 			throw InternalError("Unable to allocate Buffer");
-		// do not use DTOR with a NULL pointer - it will still
-		// be used...
-		shared_ptr<NODE> rval = shared_ptr<NODE>( b, DTOR(this) );
 		rval->setSelf( rval );
 		return rval;
+	}
+
+	template <typename T, unsigned E> shared_ptr<T>
+	allocshared()
+	{
+		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<T>() );
+	}
+
+	template <typename T, unsigned E> shared_ptr<T>
+	allocsharedextra()
+	{
+		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<T>(), E );
 	}
 
 	template <typename ARG> shared_ptr<NODE> alloc(ARG a)
 	{
-		NODE *b = construct( CFreeListNodeKey<NODE>(), a );
-		if ( ! b )
+		shared_ptr<NODE> rval = allocate_shared<NODE>( CFreeListNodeAlloc<NODE>( &pool_ ), CFreeListNodeKey<NODE>(), a );
+		if ( ! rval )
 			throw InternalError("Unable to allocate Buffer");
-		// do not use DTOR with a NULL pointer - it will still
-		// be used...
-		shared_ptr<NODE> rval = shared_ptr<NODE>( b, DTOR(this) );
 		rval->setSelf( rval );
 		return rval;
 	}
+};
+
+template <typename NODE>
+class CFreeList : public IFreeList<NODE> {
+public:
+
+	virtual unsigned int getExtraSize()
+	{
+		return 0;
+	}
+
+	virtual shared_ptr<NODE> mk()
+	{
+		return IFreeList<NODE>::template allocshared<NODE, 0>();
+	}
+
+};
+
+template <typename NODE, unsigned EXTRA = 0>
+class CFreeListExtra : public IFreeList<NODE>
+{
+public:
+
+	virtual unsigned int getExtraSize()
+	{
+		return EXTRA;
+	}
+
+	virtual shared_ptr<NODE> mk()
+	{
+		return IFreeList<NODE>::template allocsharedextra<NODE, EXTRA>();
+	}
+
 };
 
 #endif
