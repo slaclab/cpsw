@@ -1,4 +1,6 @@
 asyncSRP
+    Merge:  FIX for depacketizer V2 (SOF bit sometimes not cleared
+            in non-first fragments).
 
     Merge:  depacketizer V2 support (from master)
 
