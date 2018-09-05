@@ -222,6 +222,7 @@ public:
 	{
 		if ( hdrSize < getSize() )
 			throw InvalidArgError("Insufficient space for header");
+		memset( hdrBase, 0, getSize() );
 		setNum( hdrBase, VERSION_BIT_OFFSET,  VERSION_BIT_SIZE,  vers_    );
 		setNum( hdrBase, FRAG_NO_BIT_OFFSET,  FRAG_NO_BIT_SIZE,  fragNo_  );
 		setNum( hdrBase, TDEST_BIT_OFFSET,    TDEST_BIT_SIZE,    tDest_   );
@@ -376,7 +377,7 @@ public:
 		// fragNo may roll over (ok for the protocol) but we maintain it as an unsigned
 		// so getFragNo() == 0 only marks the first fragment.
 		if ( 0 == getFragNo() ) {
-			hdrBase[SOF_BIT_OFFSET/8] |= (1<<(SOF_BIT_OFFSET &7));
+			hdrBase[SOF_BIT_OFFSET/8] |=  (1<<(SOF_BIT_OFFSET & 7));
 		}
 		setNum( hdrBase, CRC_MODE_BIT_OFFSET, CRC_MODE_BIT_SIZE, (unsigned)crcMode_ );
 	}
