@@ -377,7 +377,7 @@ public:
 		// fragNo may roll over (ok for the protocol) but we maintain it as an unsigned
 		// so getFragNo() == 0 only marks the first fragment.
 		if ( 0 == getFragNo() ) {
-			hdrBase[SOF_BIT_OFFSET/8] |=  (1<<(SOF_BIT_OFFSET & 7));
+			hdrBase[SOF_BIT_OFFSET/8] |= ( 1 << (SOF_BIT_OFFSET & 7) );
 		}
 		setNum( hdrBase, CRC_MODE_BIT_OFFSET, CRC_MODE_BIT_SIZE, (unsigned)crcMode_ );
 	}
