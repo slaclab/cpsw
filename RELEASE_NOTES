@@ -1,3 +1,6 @@
+    Merge:  Set default for SRP retryCount to 0 if transport is RSSI
+            or TCP
+
     CFreeList now supports allocate_shared() (single allocation
     from free-list)
 
