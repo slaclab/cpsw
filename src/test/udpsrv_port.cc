@@ -14,9 +14,10 @@
 struct IoPrt_ {
 	ProtoPort prt_;
 	ProtoPort top_;
-	CMtx      mtx_;
+	CMtx      rmtx_;
+	CMtx      tmtx_;
 	int       hasConn_;
-	IoPrt_(const char *mtxnm):mtx_(mtxnm){}
+	IoPrt_(const char *mtxnm):rmtx_(mtxnm),tmtx_(mtxnm){}
 };
 
 int ioPrtRssiIsConn(IoPrt prt)
@@ -84,7 +85,7 @@ unsigned bufsz = bc->getSize();
 
 int ioPrtRecv(IoPrt p, void *buf, unsigned size, struct timespec *abs_timeout)
 {
-CMtx::lg guard( &p->mtx_ );
+CMtx::lg guard( &p->rmtx_ );
 
 BufChain bc;
 	if ( abs_timeout ) {
@@ -101,7 +102,7 @@ BufChain bc;
 
 int ioPrtIsConn(IoPrt p)
 {
-CMtx::lg guard( &p->mtx_ );
+CMtx::lg guard( &p->rmtx_ );
 	return p->prt_->isConnected();
 }
 
@@ -117,7 +118,7 @@ Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
 
 int ioPrtSend(IoPrt p, void *buf, unsigned size)
 {
-CMtx::lg guard( &p->mtx_ );
+CMtx::lg guard( &p->tmtx_ );
 
 BufChain bc = fill(buf, size);
 
