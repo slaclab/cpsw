@@ -150,7 +150,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual unsigned        getSRPRetryCount()
 		{
 			if ( (unsigned)-1 == SRPRetryCount_ )
-				return 10;
+				return ( hasRssi() || hasTcp() ) ? 0 : 10;
 			return SRPRetryCount_;
 		}
 

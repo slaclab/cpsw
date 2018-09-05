@@ -1,3 +1,6 @@
+            Set default for SRP retryCount to 0 if transport is RSSI
+            or TCP
+
     Bugfix: (in udpsrv, i.e., test code): incorrect use of lock guard
             lead to no mutex protection (in simulator only)!
 
