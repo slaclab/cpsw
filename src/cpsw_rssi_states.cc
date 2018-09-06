@@ -321,7 +321,6 @@ void CRssi::SERV_WAIT_SYN_ACK::handleRxEvent(CRssi *context, IIntEventSource *sr
 void CRssi::WAIT_SYN::extractConnectionParams(CRssi *context, RssiSynHeader &synHdr)
 {
 	context->peerOssMX_      = synHdr.getOssMX();
-printf("RSSI Perr OSS Max: %d\n", synHdr.getOssMX());
 	context->peerSgsMX_      = synHdr.getSgsMX();
 
 	if ( context->peerOssMX_ > context->unAckedSegs_.getCapa() )
