@@ -73,6 +73,7 @@ int CRssi::OPEN::getConnectionState(CRssi *context)
 void CRssi::CLOSED::advance(CRssi *context)
 {
 	context->close();
+	context->open();
 
 	if ( context->isServer_ ) {
 		context->changeState( &context->stateLISTEN );

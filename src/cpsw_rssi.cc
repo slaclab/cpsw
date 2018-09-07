@@ -125,9 +125,7 @@ fprintf(stderr,"%s: USR Output Event (state %s)\n", getName(), state_->getName()
 void CRssi::close()
 {
 	outQ_->shutdown();
-	outQ_->startup();
 	inpQ_->shutdown();
-	inpQ_->startup();
 	usrIEH()->disable();
 	usrOEH()->disable();
 	ackTimer()->cancel();
@@ -159,8 +157,19 @@ void CRssi::close()
 	peerOssMX_      = MAX_UNACKED_SEGS;
 	peerSgsMX_      = MAX_SEGMENT_SIZE;
 
+	closedReopenDelay_.tv_nsec = 0;
+	closedReopenDelay_.tv_sec  = 0;
+
 	conID_++;
 }
+
+void
+CRssi::open()
+{
+	outQ_->startup();
+	inpQ_->startup();
+}
+
 
 void CRssi::sendBuf(BufChain bc, bool retrans)
 {
@@ -435,7 +444,6 @@ fprintf(stderr,"%s: NulTimer expired\n", getName());
 
 void * CRssi::threadBody()
 {
-
 	while ( 1 ) {
 		state_->advance( this );
 	}
