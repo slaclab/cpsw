@@ -1026,8 +1026,6 @@ public:
 
 		printf("UDP thread %llx on port %d\n", (unsigned long long)pthread_self(), getUdpPort());
 
-		outQ_->startup();
-
 		while ( 1 ) {
 
 			BufChain bc = IBufChain::create();
@@ -1058,6 +1056,7 @@ public:
 
 	virtual void start()
 	{
+		outQ_->startup();
 		threadStart();
 	}
 
