@@ -963,6 +963,8 @@ public:
 
 		printf("UDP thread %llx on port %d\n", (unsigned long long)pthread_self(), getUdpPort());
 
+		outQ_->startup();
+
 		while ( 1 ) {
 
 			BufChain bc = IBufChain::create();
@@ -999,8 +1001,7 @@ public:
 	virtual void stop()
 	{
 		threadStop();
-		while ( tryPop() )
-			/* drain queue */;
+		outQ_->shutdown();
 	}
 };
 
@@ -1124,6 +1125,8 @@ public:
 
 		printf("TCP thread %llx on port %d\n", (unsigned long long)pthread_self(), getTcpPort());
 
+		outQ_->startup();
+
 		while ( ( (sl = sizeof(peer_)), (conn_ = accept(sd_.get(), (struct sockaddr*)&peer_, &sl)) ) >= 0 ) {
 			if ( conn_ >= 0 ) {
 
@@ -1198,8 +1201,7 @@ reconn:;
 		if ( conn_ >= 0 )
 			close(conn_);
 		conn_ = -1;
-		while ( tryPop() )
-			/* drain queue */;
+		outQ_->shutdown();
 	}
 };
 
