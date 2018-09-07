@@ -547,6 +547,7 @@ protected:
 	RssiTimerList  timers_;
 
 	void close();
+	void open();
 	void sendBufAndKeepForRetransmission(BufChain);
 	void sendBuf(BufChain, bool);
 	void armRexAndNulTimer();

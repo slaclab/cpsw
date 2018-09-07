@@ -889,7 +889,6 @@ private:
 	SD                 sd_;
 	struct sockaddr_in peer_;
 	BufQueue           outQ_;
-	BufQueue           inpQ_;
 	unsigned           rands_;
 	int                sim_loss_;
 	int                ldScrmbl_;
@@ -1027,6 +1026,8 @@ public:
 
 		printf("UDP thread %llx on port %d\n", (unsigned long long)pthread_self(), getUdpPort());
 
+		outQ_->startup();
+
 		while ( 1 ) {
 
 			BufChain bc = IBufChain::create();
@@ -1063,6 +1064,7 @@ public:
 	virtual void stop()
 	{
 		threadStop();
+		outQ_->shutdown();
 	}
 };
 
@@ -1072,7 +1074,6 @@ private:
 	int                conn_;
 	struct sockaddr_in peer_;
 	BufQueue           outQ_;
-	BufQueue           inpQ_;
 	bool               srv_;
 	std::string        ina_;
 	unsigned           port_;
@@ -1302,6 +1303,7 @@ reconn:;
 
 	virtual void start()
 	{
+		outQ_->startup();
 		threadStart();
 	}
 
@@ -1311,6 +1313,7 @@ reconn:;
 		if ( conn_ >= 0 )
 			close(conn_);
 		conn_ = -1;
+		outQ_->shutdown();
 	}
 };
 
