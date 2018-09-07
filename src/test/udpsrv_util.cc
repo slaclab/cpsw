@@ -838,7 +838,6 @@ private:
 	SD                 sd_;
 	struct sockaddr_in peer_;
 	BufQueue           outQ_;
-	BufQueue           inpQ_;
 	unsigned           rands_;
 	int                sim_loss_;
 	int                ldScrmbl_;
@@ -1000,6 +999,8 @@ public:
 	virtual void stop()
 	{
 		threadStop();
+		while ( tryPop() )
+			/* drain queue */;
 	}
 };
 
@@ -1009,7 +1010,6 @@ private:
 	int                conn_;
 	struct sockaddr_in peer_;
 	BufQueue           outQ_;
-	BufQueue           inpQ_;
 	TcpConnHandler     cHdl_;
 
 public:
@@ -1198,6 +1198,8 @@ reconn:;
 		if ( conn_ >= 0 )
 			close(conn_);
 		conn_ = -1;
+		while ( tryPop() )
+			/* drain queue */;
 	}
 };
 
