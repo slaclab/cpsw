@@ -1124,8 +1124,6 @@ public:
 
 		printf("TCP thread %llx on port %d\n", (unsigned long long)pthread_self(), getTcpPort());
 
-		outQ_->startup();
-
 		while ( ( (sl = sizeof(peer_)), (conn_ = accept(sd_.get(), (struct sockaddr*)&peer_, &sl)) ) >= 0 ) {
 			if ( conn_ >= 0 ) {
 
@@ -1191,6 +1189,7 @@ reconn:;
 
 	virtual void start()
 	{
+		outQ_->startup();
 		threadStart();
 	}
 
