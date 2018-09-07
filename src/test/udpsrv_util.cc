@@ -1010,13 +1010,15 @@ private:
 	struct sockaddr_in peer_;
 	BufQueue           outQ_;
 	BufQueue           inpQ_;
+	TcpConnHandler     cHdl_;
 
 public:
-	CTcpPort(const char *ina, unsigned port)
+	CTcpPort(const char *ina, unsigned port, TcpConnHandler cHdl)
 	: CRunnable("TCP RX"),
-	  sd_( SOCK_STREAM ),
-      conn_( -1 ),
-	  outQ_( IBufQueue::create(4) )
+	  sd_  ( SOCK_STREAM          ),
+	  conn_( -1                   ),
+	  outQ_( IBufQueue::create(4) ),
+	  cHdl_( cHdl                 )
 	{
 	struct sockaddr_in sin;
 
@@ -1123,47 +1125,56 @@ public:
 		printf("TCP thread %llx on port %d\n", (unsigned long long)pthread_self(), getTcpPort());
 
 		while ( ( (sl = sizeof(peer_)), (conn_ = accept(sd_.get(), (struct sockaddr*)&peer_, &sl)) ) >= 0 ) {
-			while ( conn_ >= 0 ) {
+			if ( conn_ >= 0 ) {
 
-				BufChain bc = IBufChain::create();
-				Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
+				if ( cHdl_ )
+					cHdl_->up();
 
-				uint32_t len;
-				uint8_t  *p;
-				int       s;
+				while (1) {
 
-				p = reinterpret_cast<uint8_t*>( &len );
-				s = sizeof(len);
+					BufChain bc = IBufChain::create();
+					Buf      b  = bc->createAtHead( IBuf::CAPA_ETH_BIG );
 
-				while ( s > 0 ) {
-					got = ::read(conn_, p, s);
-					if ( got <= 0 ) {
-						fprintf(stderr,"TCP: unable to read length; resetting connection\n");
-						goto reconn;
+					uint32_t len;
+					uint8_t  *p;
+					int       s;
+
+					p = reinterpret_cast<uint8_t*>( &len );
+					s = sizeof(len);
+
+					while ( s > 0 ) {
+						got = ::read(conn_, p, s);
+						if ( got <= 0 ) {
+							fprintf(stderr,"TCP: unable to read length; resetting connection\n");
+							goto reconn;
+						}
+						p += got;
+						s -= got;
 					}
-					p += got;
-					s -= got;
-				}
 
-				len = ntohl(len);
-				p   = b->getPayload();
-				b->setSize( len );
+					len = ntohl(len);
+					p   = b->getPayload();
+					b->setSize( len );
 
-				while ( len > 0 ) {
-					if ( (got = ::recv(conn_, p, len, 0)) <= 0 ) {
-						fprintf(stderr,"TCP: unable to read data; resetting connection\n");
-						goto reconn;
+					while ( len > 0 ) {
+						if ( (got = ::recv(conn_, p, len, 0)) <= 0 ) {
+							fprintf(stderr,"TCP: unable to read data; resetting connection\n");
+							goto reconn;
+						}
+						len -= got;
+						p   += got;
 					}
-					len -= got;
-					p   += got;
-				}
 
-				if ( ! outQ_->push( bc, 0 ) ) {
-					throw InternalError("unable to push", errno);
+					if ( ! outQ_->push( bc, 0 ) ) {
+						throw InternalError("unable to push", errno);
+					}
+
 				}
 			}
 
 reconn:;
+			if ( conn_ >= 0 && cHdl_ )
+				cHdl_->down();
 			close(conn_);
 			conn_ = -1;
 		}
@@ -1197,9 +1208,9 @@ CUdpPort *p = new CUdpPort(ina, port, simLoss, ldScrmbl);
 	return UdpPort(p);
 }
 
-TcpPort ITcpPort::create(const char *ina, unsigned port)
+TcpPort ITcpPort::create(const char *ina, unsigned port, TcpConnHandler cHdl)
 {
-CTcpPort *p = new CTcpPort(ina, port);
+CTcpPort *p = new CTcpPort(ina, port, cHdl);
 	return TcpPort(p);
 }
 
