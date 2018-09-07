@@ -1,4 +1,17 @@
 asyncSRP
+    Feature: rssi_bridge enhancements:
+      - added '-u' option to control for individual ports whether RSSI
+        is to be used or not (for bare UDP ports).
+          -> -p <port> tunnels an UDP/RSSI connection via TCP
+          -> -u <port> tunnels a bare UDP connection via TCP
+      - added connection handler. UDP side is only connected once
+        a TCP connection is accepted. The old behavior (UDP side is
+        connected to FPGA immediately) is available via '-C' option.
+
+        This feature (*without* -C) is useful as it allows the bridge
+        to be started with a standard set of ports. It is then up to
+        the remote peer (which has the YAML) to decide which ports
+        to actually use.
 
     Merge:  FIX for depacketizer V2 (SOF bit sometimes not cleared
             in non-first fragments).

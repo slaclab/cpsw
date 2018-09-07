@@ -1076,6 +1076,7 @@ private:
 	bool               srv_;
 	std::string        ina_;
 	unsigned           port_;
+    TcpConnHandler     cHdl_;
 
 protected:
 
@@ -1092,14 +1093,15 @@ protected:
 	}
 
 public:
-	CTcpPort(const char *ina, unsigned port, unsigned depth, bool isServer = true)
+	CTcpPort(const char *ina, unsigned port, unsigned depth, bool isServer = true, TcpConnHandler cHdl = TcpConnHandler())
 	: CRunnable("TCP RX"),
 	  sd_  ( SOCK_STREAM                ),
       conn_( -1                         ),
 	  outQ_( IBufQueue::create( depth ) ),
 	  srv_ ( isServer                   ),
 	  ina_ ( ina ? ina : ""             ),
-	  port_( port                       )
+	  port_( port                       ),
+	  cHdl_( cHdl                       )
 	{
 		if ( srv_ ) {
 			bind();
@@ -1240,6 +1242,9 @@ public:
 
 			reconnect();
 
+            if ( cHdl_ )
+				cHdl_->up();
+
 			while ( conn_ >= 0 ) {
 
 				BufChain bc = IBufChain::create();
@@ -1281,6 +1286,8 @@ public:
 			}
 
 reconn:;
+            if ( conn_ >= 0 && cHdl_ )
+				cHdl_->down();
 			close(conn_);
 			conn_ = -1;
 		}

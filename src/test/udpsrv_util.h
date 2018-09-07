@@ -88,6 +88,16 @@ public:
 class ITcpPort;
 typedef shared_ptr<ITcpPort> TcpPort;
 
+class ITcpConnHandler {
+public:
+	virtual void up()   = 0;
+	virtual void down() = 0;
+
+	virtual ~ITcpConnHandler() {}
+};
+
+typedef ITcpConnHandler *TcpConnHandler;
+
 class ITcpPort : public IProtoPort {
 public:
 
@@ -103,7 +113,7 @@ public:
 
 	virtual ~ITcpPort() {}
 
-	static TcpPort create(const char *ina, unsigned port, unsigned depth = 4, bool isServer = true);
+	static TcpPort create(const char *ina, unsigned port, unsigned depth = 4, bool isServer = true, TcpConnHandler connHandler = TcpConnHandler());
 };
 
 
