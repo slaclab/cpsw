@@ -1321,9 +1321,9 @@ UdpPort p = make_shared<CUdpPort>(ina, port, simLoss, ldScrmbl, depth);
 	return p;
 }
 
-TcpPort ITcpPort::create(const char *ina, unsigned port, unsigned depth, bool isServer)
+TcpPort ITcpPort::create(const char *ina, unsigned port, unsigned depth, bool isServer, TcpConnHandler cHdl)
 {
-TcpPort p = make_shared<CTcpPort>(ina, port, depth, isServer);
+TcpPort p = make_shared<CTcpPort>(ina, port, depth, isServer, cHdl);
 	return p;
 }
 
