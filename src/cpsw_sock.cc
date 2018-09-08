@@ -16,6 +16,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <libSocks.h>
+#include <pthread.h>
 
 CSockSd::CSockSd(int type)
 : sd_(-1),
@@ -78,6 +80,33 @@ socklen_t sl = sizeof(mtu);
 	return mtu;
 }
 
+static LibSocksProxy theProxy;
+
+static pthread_once_t *
+getOnceKey()
+{
+static pthread_once_t theOnce = PTHREAD_ONCE_INIT;
+	return &theOnce;
+}
+
+static void initProxy()
+{
+	if ( libSocksStrToProxy( &theProxy, getenv( "SOCKS_PROXY" ) ) )
+		throw InternalError( "libSocksStrToProxy failed" );
+}
+
+static LibSocksProxy *
+getProxy()
+{
+int err;
+
+	if ( (err = pthread_once( getOnceKey(), initProxy )) ) {
+		throw InternalError( "pthread_once failed", err );
+	}
+
+	return &theProxy;
+}
+
 void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
 {
 	int    optval;
@@ -121,7 +150,8 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 	}
 
 	if ( dest_ ) {
-		if ( ::connect( sd_, (struct sockaddr*)dest_, sizeof(*dest_) ) )
+		LibSocksProxy *proxy = ( SOCK_STREAM == type_ ? getProxy() : 0 );
+		if ( libSocksConnect( sd_, (struct sockaddr*)dest_, sizeof(*dest_), proxy ) )
 			throw IOError("connect failed ", errno);
 	}
 

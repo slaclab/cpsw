@@ -19,6 +19,10 @@ DOCS = doc/README.yamlDefinition doc/README.yamlDefinition.html doc/README.confi
 GENERATED_SRCS += git_version_string.h
 GENERATED_SRCS += $(DOCS)
 
+VPATH+=:$(SRCDIR)/socks/
+
+INCLUDE_DIRS+=$(SRCDIR)/socks/
+
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
 cpsw_SRCS+= cpsw_stream_adapt.cc
@@ -58,6 +62,11 @@ cpsw_SRCS+= cpsw_preproc.cc
 cpsw_SRCS+= cpsw_version.cc
 cpsw_SRCS+= cpsw_async_io.cc
 cpsw_SRCS+= cpsw_crc32_le.cc
+cpsw_SRCS+= libSocksConnect.c
+cpsw_SRCS+= libSocksNegotiate4.c
+cpsw_SRCS+= libSocksNegotiate5.c
+cpsw_SRCS+= libSocksParseName.c
+cpsw_SRCS+= libSocksUtil.c
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h
@@ -100,6 +109,8 @@ DEP_HEADERS += cpsw_command.h
 DEP_HEADERS += cpsw_yaml.h
 DEP_HEADERS += cpsw_preproc.h
 DEP_HEADERS += cpsw_async_io.h
+DEP_HEADERS += libSocks.h
+DEP_HEADERS += libSocksUtil.h
 
 STATIC_LIBRARIES_YES+=cpsw
 SHARED_LIBRARIES_YES+=cpsw
@@ -136,5 +147,3 @@ doc/README.yamlDefinition:doc/README.yamlDefinition.in
 
 %.html: %
 	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@
-
-
