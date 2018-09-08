@@ -67,8 +67,10 @@ static pthread_once_t theOnce = PTHREAD_ONCE_INIT;
 
 static void initProxy()
 {
-	if ( libSocksStrToProxy( &theProxy, getenv( "SOCKS_PROXY" ) ) )
+	if ( libSocksStrToProxy( &theProxy, getenv( "SOCKS_PROXY" ) ) ) {
+		fprintf( stderr, "Please check the SOCKS_PROXY environment variable\n" );
 		throw InternalError( "libSocksStrToProxy failed" );
+	}
 }
 
 static LibSocksProxy *
