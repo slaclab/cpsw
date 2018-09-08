@@ -116,7 +116,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual void            setSRPVersion(ProtocolVersion v)
 		{
 			if ( SRP_UDP_NONE != v && SRP_UDP_V1 != v && SRP_UDP_V2 != v && SRP_UDP_V3 != v ) {
-				throw InvalidArgError("Invalid protocol version");	
+				throw InvalidArgError("Invalid protocol version");
 			}
 			protocolVersion_ = v;
 			if ( SRP_UDP_NONE == v ) {
@@ -568,9 +568,15 @@ int                        i;
 		const YAML::PNode &nn( node.lookup(YAML_KEY_depack) );
 		if ( !!nn && nn.IsMap() )
 		{
+		std::string str;
 			bldr->useDepack( true );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				bldr->setDepackOutQueueDepth( u );
+			if ( readNode(nn, YAML_KEY_protocolVersion, &str) ) {
+				fprintf(stderr, "ERROR: this version of CPSW does not yet support depack/protocolVersion!\n");
+				fprintf(stderr, "       please upgrade if you need interleaved RSSI.\n");
+				throw InternalError("Depacketizer 'protocolVersion' not (yet) supported");
+			}
 			if ( readNode(nn, YAML_KEY_ldFrameWinSize, &u) )
 				bldr->setDepackLdFrameWinSize( u );
 			if ( readNode(nn, YAML_KEY_ldFragWinSize, &u) )
