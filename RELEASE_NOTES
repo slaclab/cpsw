@@ -1,3 +1,6 @@
+	Feature: Added SOCKS support for TCP connection (code stolen from
+	    my implementation for EPICS.
+
     Feature: rssi_bridge enhancements:
       - added '-u' option to control for individual ports whether RSSI
         is to be used or not (for bare UDP ports).

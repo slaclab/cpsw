@@ -16,6 +16,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <libSocks.h>
+#include <pthread.h>
 
 CSockSd::CSockSd(int type)
 : sd_(-1),
@@ -54,11 +56,37 @@ socklen_t sl = sizeof(mtu);
 	return mtu;
 }
 
+static LibSocksProxy theProxy;
+
+static pthread_once_t *
+getOnceKey()
+{
+static pthread_once_t theOnce = PTHREAD_ONCE_INIT;
+	return &theOnce;
+}
+
+static void initProxy()
+{
+	if ( libSocksStrToProxy( &theProxy, getenv( "SOCKS_PROXY" ) ) )
+		throw InternalError( "libSocksStrToProxy failed" );
+}
+
+static LibSocksProxy *
+getProxy()
+{
+int err;
+
+	if ( (err = pthread_once( getOnceKey(), initProxy )) ) {
+		throw InternalError( "pthread_once failed", err );
+	}
+
+	return &theProxy;
+}
+
 void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
 {
-	int    optval;
-
-	struct sockaddr_in me;
+int                optval;
+struct sockaddr_in me;
 
 	if ( NULL == me_p ) {
 		me.sin_family      = AF_INET;
@@ -92,7 +120,8 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 
 	// connect - filters any traffic from other destinations/fpgas in the kernel
 	if ( dest ) {
-		if ( ::connect( sd_, (struct sockaddr*)dest, sizeof(*dest) ) )
+		LibSocksProxy *proxy = ( SOCK_STREAM == type_ ? getProxy() : 0 );
+		if ( libSocksConnect( sd_, (struct sockaddr*)dest, sizeof(*dest), proxy ) )
 			throw IOError("connect failed ", errno);
 	}
 }
