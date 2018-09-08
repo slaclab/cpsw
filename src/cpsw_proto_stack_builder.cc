@@ -124,7 +124,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual void            setSRPVersion(SRPProtoVersion v)
 		{
 			if ( SRP_UDP_NONE != v && SRP_UDP_V1 != v && SRP_UDP_V2 != v && SRP_UDP_V3 != v ) {
-				throw InvalidArgError("Invalid protocol version");	
+				throw InvalidArgError("Invalid protocol version");
 			}
 			protocolVersion_ = v;
 			if ( SRP_UDP_NONE == v ) {
