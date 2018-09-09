@@ -17,10 +17,14 @@
 #include <vector>
 #include <stdint.h>
 
+#include <sys/file.h>
+
 #include <arpa/inet.h>
 #include <boost/make_shared.hpp>
 
-#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 using boost::make_shared;
 
@@ -118,6 +122,10 @@ TcpConnHandler connHdlr = (flags & Bridge::ALWAYSCONN) ? TcpConnHandler() : this
 
 UdpPort   udpPrt  = IUdpPort::create( NULL, 0, 0, 0 );
 TcpPort   tcpPrt  = ITcpPort::create( NULL, myPort, connHdlr );
+
+		if ( 0 == myPort ) {
+			printf("Peer/UDP port %hu served by our TCP port %hu\n", peerPort, tcpPrt->getTcpPort());
+		}
 
 		if ( useRssi() ) {
 			udpTop_ = CRssiPort::create( false );
@@ -290,6 +298,38 @@ std::vector< PP > ports;
 				}
 				peerIp = optarg;
 				break;
+		}
+	}
+
+	// Allow only a single instance for a given destination IP
+	{
+	in_addr_t dst = inet_addr( peerIp );
+	char      fnam[256];
+	int       fd;
+
+		snprintf(fnam, sizeof(fnam), "/var/lock/rssi_bridge.%x", ntohl( dst ) );
+
+		if ( (fd = open( fnam, O_RDONLY | O_CREAT, 0444) ) < 0 ) {
+			perror("Unable to open lock file");
+			return rval;
+		}
+
+		// Note: POSIX lock (fcntl(F_SETLK, F_WRLCK) or lockf
+		//       require write-permission for obtaining an
+		//       exclusive lock -- but flock doesnt!
+		//       This has the advantage that we don't have
+		//       to make the lock file world-writable and yet
+		//       any other user may use it (and do denial
+		//       of service, of course).
+
+		// Note: the lock is automatically released on exit
+		if ( flock( fd, LOCK_EX | LOCK_NB ) ) {
+			if ( EWOULDBLOCK == errno ) {
+				fprintf(stderr,"ERROR: Another bridge is already running for '%s'\n", peerIp);
+			} else {
+				perror("Unable to lock");
+			}
+			return rval;
 		}
 	}
 
