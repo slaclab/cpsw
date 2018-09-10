@@ -11,43 +11,27 @@ CPSW_DIR=..
 
 include $(CPSW_DIR)/defs.mak
 
-DEP_HEADERS += crc32-le-tbl-4.h
+INCLUDE_DIRS += $(SRCDIR)/../libtstaux
+
 DEP_HEADERS += udpsrv_regdefs.h
-DEP_HEADERS += udpsrv_port.h
-DEP_HEADERS += udpsrv_rssi_port.h
-DEP_HEADERS += udpsrv_stream_state_monitor.h
-DEP_HEADERS += udpsrv_util.h
-DEP_HEADERS += udpsrv_cutil.h
 
-tstaux_SRCS+= crc32-le-tbl-4.c
-
-tstauxlib_DIR=.
-
-STATIC_LIBRARIES_YES+=tstaux
-SHARED_LIBRARIES_YES+=tstaux
+cpswTstAuxlib_DIR=$(SRCDIR)/../libtstaux/O.$(TARCH)/
 
 udpsrv_SRCS = udpsrv.c
-udpsrv_SRCS+= udpsrv_port.cc
-udpsrv_SRCS+= udpsrv_util.cc
 udpsrv_SRCS+= udpsrv_mod_mem.cc
 udpsrv_SRCS+= udpsrv_mod_axiprom.cc
 udpsrv_SRCS+= udpsrv_mod_pendsim.cc
 udpsrv_SRCS+= udpsrv_mod_genadc.cc
 udpsrv_SRCS+= udpsrv_mod_mmio.cc
-udpsrv_SRCS+= udpsrv_stream_state_monitor.cc
 
-udpsrv_CXXFLAGS+= -DUDPSRV
-
-udpsrv_LIBS_NO = tstaux $(CPSW_LIBS)
-udpsrv_LIBS_YES= tstaux.a cpsw.a pthread rt
+udpsrv_LIBS_NO = cpswTstAux $(CPSW_LIBS)
+udpsrv_LIBS_YES= cpswTstAux pthread rt
 udpsrv_LIBS=$(udpsrv_LIBS_$(WITH_STATIC_LIBRARIES))
 
 rssi_bridge_SRCS = rssi_bridge.cc
-rssi_bridge_SRCS+= udpsrv_util.cc
-rssi_bridge_SRCS+= udpsrv_stream_state_monitor.cc
 
-rssi_bridge_LIBS_NO = $(CPSW_LIBS)
-rssi_bridge_LIBS_YES= cpsw.a pthread rt
+rssi_bridge_LIBS_NO = cpswTstAux $(CPSW_LIBS)
+rssi_bridge_LIBS_YES= cpswTstAux cpsw.a pthread rt
 rssi_bridge_LIBS=$(rssi_bridge_LIBS_$(WITH_STATIC_LIBRARIES))
 
 
@@ -86,7 +70,7 @@ TESTPROGRAMS            += cpsw_buf_tst
 
 cpsw_stream_tst_SRCS     = cpsw_stream_tst.cc
 cpsw_stream_tst_LIBS     = $(CPSW_LIBS)
-cpsw_stream_tst_LIBS    += tstaux
+cpsw_stream_tst_LIBS    += cpswTstAux
 TESTPROGRAMS            += cpsw_stream_tst
 
 cpsw_srpmux_tst_SRCS     = cpsw_srpmux_tst.cc
@@ -97,8 +81,8 @@ cpsw_enum_tst_SRCS       = cpsw_enum_tst.cc
 cpsw_enum_tst_LIBS       = $(CPSW_LIBS)
 TESTPROGRAMS            += cpsw_enum_tst
 
-rssi_tst_SRCS            = rssi_tst.cc udpsrv_port.cc udpsrv_util.cc udpsrv_stream_state_monitor.cc
-rssi_tst_LIBS            = $(CPSW_LIBS)
+rssi_tst_SRCS            = rssi_tst.cc
+rssi_tst_LIBS            = cpswTstAux $(CPSW_LIBS)
 TESTPROGRAMS            += rssi_tst
 
 cpsw_srpv3_large_tst_SRCS += cpsw_srpv3_large_tst.cc
