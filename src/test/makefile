@@ -11,11 +11,11 @@ CPSW_DIR=..
 
 include $(CPSW_DIR)/defs.mak
 
-INCLUDE_DIRS += $(SRCDIR)/../libtstaux
+INCLUDE_DIRS += $(SRCDIR)/../libTstAux
 
 DEP_HEADERS += udpsrv_regdefs.h
 
-cpswTstAuxlib_DIR=$(SRCDIR)/../libtstaux/O.$(TARCH)/
+cpswTstAuxlib_DIR=$(SRCDIR)/../libTstAux/O.$(TARCH)/
 
 udpsrv_SRCS = udpsrv.c
 udpsrv_SRCS+= udpsrv_mod_mem.cc
