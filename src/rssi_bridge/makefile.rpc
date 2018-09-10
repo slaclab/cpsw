@@ -1,0 +1,27 @@
+RPCGENF=-M
+
+all: prot.h protRelay_svc.c protMap_svc.c prot_xdr.c
+
+RPCGEN=rpcgen
+
+define WARN
+echo 'rpcgen regenerated source files; you may have to modify xx_proc.c'
+endef
+
+prot.h: prot.x
+	$(WARN)
+	$(RPCGEN) -h $(RPCGENF) $< > $@
+
+protRelay_svc.c: prot.x
+	$(WARN)
+	$(RPCGEN) -m $(RPCGENF) -DNO_RSSIB_MAP $< > $@
+	echo "made $@: MUST EDIT: replace fprintf(stderr,...) by printErrMsg!!!"
+
+protMap_svc.c: prot.x
+	$(WARN)
+	$(RPCGEN) -m $(RPCGENF) -DNO_RSSIB_REL $< > $@
+	echo "made $@: MUST EDIT: replace fprintf(stderr,...) by printErrMsg!!!"
+
+prot_xdr.c: prot.x
+	$(WARN)
+	$(RPCGEN) -c $(RPCGENF) $< > $@
