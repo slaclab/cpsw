@@ -11,7 +11,7 @@ CPSW_DIR=.
 
 include $(CPSW_DIR)/defs.mak
 
-POSTBUILD_SUBDIRS=test
+POSTBUILD_SUBDIRS=libTstAux test
 
 HEADERS = cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h
 DOCS = doc/README.yamlDefinition doc/README.yamlDefinition.html doc/README.configData.html doc/INSTALL.html
