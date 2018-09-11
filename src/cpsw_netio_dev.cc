@@ -39,11 +39,21 @@ CNetIODevImpl::CNetIODevImpl(Key &k, YamlState &ypath)
 : CDevImpl       (k, ypath     ),
   rssi_bridge_ip_( INADDR_NONE )
 {
+union {
+	struct sockaddr    sa;
+	struct sockaddr_in sin;
+}               addr;
+int             err;
+
 	socks_proxy_.version = SOCKS_VERSION_NONE;
+
 	if ( readNode(ypath, YAML_KEY_ipAddr, &ip_str_) ) {
-		if ( INADDR_NONE == ( d_ip_ = inet_addr( ip_str_.c_str() ) ) ) {
-			throw InvalidArgError( ip_str_.c_str() );
+		if ( (err = libSocksGetByName( ip_str_.c_str(), 0, &addr.sa )) ) {
+			std::string msg = std::string("ERROR: Invalid ipAddr value; getaddrinfo returned") + std::string( gai_strerror( err ) );
+			fprintf(stderr,"%s\n", msg.c_str());
+			throw InvalidArgError( msg );
 		}
+		d_ip_ = addr.sin.sin_addr.s_addr;
 	} else {
 		ip_str_ = std::string("ANY");
 		d_ip_   = INADDR_ANY;
@@ -59,16 +69,11 @@ CNetIODevImpl::CNetIODevImpl(Key &k, YamlState &ypath)
 		}
 	}
 	if ( readNode(ypath, YAML_KEY_rssiBridge, &rssi_bridge_str_) ) {
-		int             err;
-		struct addrinfo hint, *aires = 0;
-		if ( (err = getaddrinfo( rssi_bridge_str_.c_str(), 0, &hint, &aires )) ) {
+		if ( (err = libSocksGetByName( rssi_bridge_str_.c_str(), 0, &addr.sa )) ) {
 			std::string msg = std::string("Invalid rssiBridge value; getaddrinfo returned") + std::string( gai_strerror( err ) );
 			throw InvalidArgError( msg );
 		}
-		rssi_bridge_ip_ = ((struct sockaddr_in *)aires->ai_addr)->sin_addr.s_addr;
-		if ( aires ) {
-			freeaddrinfo( aires );
-		}
+		rssi_bridge_ip_ = addr.sin.sin_addr.s_addr;
 	}
 }
 
