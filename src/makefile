@@ -65,6 +65,7 @@ cpsw_SRCS+= libSocksConnect.c
 cpsw_SRCS+= libSocksNegotiate4.c
 cpsw_SRCS+= libSocksNegotiate5.c
 cpsw_SRCS+= libSocksParseName.c
+cpsw_SRCS+= libSocksGetByName.c
 cpsw_SRCS+= libSocksUtil.c
 cpsw_SRCS+= rpcMapLookup.c
 cpsw_SRCS+= prot_xdr.c

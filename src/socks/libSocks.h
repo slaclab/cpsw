@@ -73,6 +73,16 @@ libSocksConnect(int sockfd, const struct sockaddr *destination, socklen_t addrle
 int
 libSocksStrToProxy(LibSocksProxy *proxy, const char *str);
 
+/*
+ * Wrapper for 'getaddrinfo'. 'service' may be NULL in which case
+ * ((struct sockaddr_in*)res)->sin_port is undefined.
+ *
+ * RETURNS: 0 on success, getaddrinfo return status otherwise;
+ *          result in *res.
+ */
+int
+libSocksGetByName(const char *host, const char *service, struct sockaddr *res);
+
 #ifdef __cplusplus
 }
 #endif

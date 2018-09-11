@@ -44,7 +44,6 @@ char           *dup = 0;
 char           *col;
 const char     *str;
 int             rval = -1;
-struct addrinfo hint, *aires = 0;
 int             err;
 
 	proxy->version = -1; /* no proxy */
@@ -88,22 +87,14 @@ int             err;
 		col = "1080"; /* default port */
 	}
 
-	memset( &hint, 0, sizeof( hint ) );
-	hint.ai_family   = AF_INET;
-	hint.ai_socktype = SOCK_STREAM;
-
-	if ( (err = getaddrinfo( str, col, &hint, &aires )) ) {
+	if ( (err = libSocksGetByName( str, col, &proxy->address.sa )) ) {
 		fprintf( stderr, "ERROR by getaddrinfo: %s\n", gai_strerror( err ) );
 		goto bail;
 	}
-
-	proxy->address.sa = *aires->ai_addr;
 
 	rval = 0;
 
 bail:
 	free( dup );
-	if ( aires )
-		freeaddrinfo( aires );
 	return rval;
 }
