@@ -19,8 +19,9 @@
 #include <socks/libSocks.h>
 
 CSockSd::CSockSd(int type, const LibSocksProxy *proxy)
-: sd_(-1),
-  type_(type)
+: sd_   (  -1),
+  type_ (type),
+  proxy_(   0)
 {
 	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
@@ -40,8 +41,9 @@ void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
 }
 
 CSockSd::CSockSd(const CSockSd &orig)
-: sd_(-1),
-  type_(orig.type_)
+: sd_   (        -1),
+  type_ (orig.type_),
+  proxy_(         0)
 {
 	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
