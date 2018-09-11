@@ -30,7 +30,6 @@ const LibSocksProxy *orig;
 	}
 	if ( (orig = proxy_) ) {
 		proxy_  = new LibSocksProxy( *orig );
-//		*proxy_ = *orig;
 	}
 }
 
