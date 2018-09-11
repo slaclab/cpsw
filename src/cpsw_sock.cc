@@ -27,7 +27,9 @@ CSockSd::SA::SA()
 
 CSockSd::SA::SA( const struct sockaddr_in &orig )
 {
-	*this = orig;
+	sin_family = orig.sin_family;
+    sin_addr   = orig.sin_addr;
+    sin_port   = orig.sin_port;
 }
 
 
