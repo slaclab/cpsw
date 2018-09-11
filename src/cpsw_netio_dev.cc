@@ -34,6 +34,8 @@ CNetIODevImpl::CNetIODevImpl(Key &k, const char *name, const char *ip)
 CNetIODevImpl::CNetIODevImpl(Key &k, YamlState &ypath)
 : CDevImpl(k, ypath)
 {
+std::string dummy;
+
 	if ( readNode(ypath, YAML_KEY_ipAddr, &ip_str_) ) {
 		if ( INADDR_NONE == ( d_ip_ = inet_addr( ip_str_.c_str() ) ) ) {
 			throw InvalidArgError( ip_str_.c_str() );
@@ -41,6 +43,16 @@ CNetIODevImpl::CNetIODevImpl(Key &k, YamlState &ypath)
 	} else {
 		ip_str_ = std::string("ANY");
 		d_ip_   = INADDR_ANY;
+	}
+
+	if ( readNode(ypath, YAML_KEY_socksProxy, &dummy) ) {
+		fprintf(stderr,"This version of CPSW does not yet support SOCKS proxies (NetIODev/socksProxy); please upgrade.\n");
+		throw ConfigurationError("No support for 'socksProxy' in this version of CPSW; please upgrade.");
+	}
+
+	if ( readNode(ypath, YAML_KEY_rssiBridge, &dummy) ) {
+		fprintf(stderr,"This version of CPSW does not yet 'rssiBridge'; please upgrade.\n");
+		throw ConfigurationError("No support for 'rssiBridge' in this version of CPSW; please upgrade.");
 	}
 }
 
