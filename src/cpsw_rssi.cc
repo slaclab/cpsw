@@ -14,20 +14,20 @@
 using std::vector;
 
 #ifdef RSSI_DEBUG
-int rssi_debug = RSSI_DEBUG;
+int cpsw_rssi_debug = RSSI_DEBUG;
 #endif
 
 void CRssi::attach(IEventSource *upstreamReadEventSource)
 {
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 3 )
+if ( cpsw_rssi_debug > 3 )
 {
 fprintf(stderr,"%s: attach\n", ""); 
 }
 #endif
 	eventSet_->add( upstreamReadEventSource, recvEH() );
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 3 )
+if ( cpsw_rssi_debug > 3 )
 {
 fprintf(stderr,"%s: upstream port queue created\n", "");
 }
@@ -71,7 +71,7 @@ int acked;
 		}
 		if ( unAckedSegs_.getSize() == 0 ) {
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 3 )
+if ( cpsw_rssi_debug > 3 )
 {
 fprintf(stderr,"%s: got all ACKS (oldest %d)\n", getName(), unAckedSegs_.getOldest());
 }
@@ -80,7 +80,7 @@ fprintf(stderr,"%s: got all ACKS (oldest %d)\n", getName(), unAckedSegs_.getOlde
 			numRex_ = 0;
 		} else {
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 3 )
+if ( cpsw_rssi_debug > 3 )
 {
 fprintf(stderr,"%s: outstanding ACKS %d (oldest %d)\n", getName(), unAckedSegs_.getSize(), unAckedSegs_.getOldest());
 }
@@ -92,7 +92,7 @@ fprintf(stderr,"%s: outstanding ACKS %d (oldest %d)\n", getName(), unAckedSegs_.
 void CRssi::handleRxEvent(IIntEventSource *src)
 {
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 2 )
+if ( cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s: RX Event (state %s)\n", getName(), state_->getName());
 }
@@ -103,7 +103,7 @@ fprintf(stderr,"%s: RX Event (state %s)\n", getName(), state_->getName());
 void CRssi::handleUsrInputEvent(IIntEventSource *src)
 {
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 2 )
+if ( cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s: USR Input Event (state %s)\n", getName(), state_->getName());
 }
@@ -114,7 +114,7 @@ fprintf(stderr,"%s: USR Input Event (state %s)\n", getName(), state_->getName())
 void CRssi::handleUsrOutputEvent(IIntEventSource *src)
 {
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 2 )
+if ( cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s: USR Output Event (state %s)\n", getName(), state_->getName());
 }
@@ -189,7 +189,7 @@ void CRssi::sendBuf(BufChain bc, bool retrans)
 	hdr.setAckNo( lastSeqRecv_ );
 
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 0 )
+if ( cpsw_rssi_debug > 0 )
 {
 fprintf(stderr,"tX: %s -- ", getName());
 hdr.dump( stderr, b->getSize() > hdr.getHSize() ? 1 : 0 );
@@ -205,7 +205,7 @@ fprintf(stderr," (state %s) %s", state_->getName(), retrans ? "REX" : "");
 
 	if ( ! tryPushUpstream( bc ) ) {
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 0 )
+if ( cpsw_rssi_debug > 0 )
 {
 fprintf(stderr," => No space in upstream queue!");
 }
@@ -213,7 +213,7 @@ fprintf(stderr," => No space in upstream queue!");
 		stats_.outgoingDropped_++;
 	}
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 0 )
+if ( cpsw_rssi_debug > 0 )
 {
 fprintf(stderr,"\n");
 }
@@ -230,7 +230,7 @@ void CRssi::armRexAndNulTimer()
 		if ( ! peerBSY_ ) {
 			rexTimer()->arm_abs( now + rexTO_ );
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 2 )
+if ( cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s: REX timer armed (state %s)\n", getName(), state_->getName());
 }
@@ -240,7 +240,7 @@ fprintf(stderr,"%s: REX timer armed (state %s)\n", getName(), state_->getName())
 		if ( ! isServer_ ) {
 			nulTimer()->arm_abs( now + nulTO_ );
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 2 )
+if ( cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s: NUL timer armed (state %s)\n", getName(), state_->getName());
 }
@@ -284,7 +284,7 @@ RssiHeader hdr( b->getPayload(), b->getAvail(), false, RssiHeader::SET );
 	sendBuf( bc, false );
 
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 1 )
+if ( cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"%s: sent ACKONLY %d\n", getName(), lastSeqSent_ + 1);
 }
@@ -306,7 +306,7 @@ RssiHeader hdr( b->getPayload(), b->getAvail(), false, RssiHeader::SET );
 	sendBuf( bc, false );
 
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 1 )
+if ( cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"%s: sent RESET %d\n", getName(), lastSeqSent_);
 }
@@ -338,7 +338,7 @@ bool CRssi::sendNUL()
 		sendBufAndKeepForRetransmission( bc );
 
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 1 )
+if ( cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"%s: sent NUL %d\n", getName(), lastSeqSent_);
 }
@@ -375,12 +375,32 @@ int           maxSegSize;
 	if ( mtuQuerier_ ) {
 		maxSegSize  = mtuQuerier_->getRxMTU();
 		maxSegSize -= RssiHeader::getHSize( RssiHeader::getSupportedVersion() );
+#ifdef RSSI_DEBUG
+if ( cpsw_rssi_debug > 0 ) {
+	fprintf(stderr, "RSSI max. segment size from querier %d\n", maxSegSize);
+}
+#endif
 		if ( maxSegSize <= 0 ) {
 			maxSegSize = MAX_SEGMENT_SIZE;
+#ifdef RSSI_DEBUG
+if ( cpsw_rssi_debug > 0 ) {
+	fprintf(stderr,"RSSI max. segment size from querier (hard override) %d\n", maxSegSize);
+}
+#endif
 		}
 	} else {
 		maxSegSize = MAX_SEGMENT_SIZE;
+#ifdef RSSI_DEBUG
+if ( cpsw_rssi_debug > 0 ) {
+	fprintf(stderr, "RSSI max. segment size (hard) %d\n", maxSegSize);
+}
+#endif
 	}
+#ifdef RSSI_DEBUG
+if ( cpsw_rssi_debug > 0 ) {
+	fprintf(stderr, "RSSI max. segment size (clip) %d\n", maxSegSize);
+}
+#endif
 
 	synHdr.setSgsMX( maxSegSize       );
 	synHdr.setRexTO( RETRANSMIT_TIMEO );
@@ -399,7 +419,7 @@ int           maxSegSize;
 	sendBufAndKeepForRetransmission( bc );
 
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 1 )
+if ( cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"%s: SYN sent\n", getName());
 }
@@ -410,7 +430,7 @@ void CRssi::processRetransmissionTimeout()
 {
 	stats_.rexTimeouts_++;
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 2 )
+if ( cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s: RexTimer expired\n", getName());
 }
@@ -422,7 +442,7 @@ void CRssi::processAckTimeout()
 {
 	stats_.ackTimeouts_++;
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 2 )
+if ( cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s: AckTimer expired\n", getName());
 }
@@ -434,7 +454,7 @@ void CRssi::processNulTimeout()
 {
 	stats_.nulTimeouts_++;
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 2 )
+if ( cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s: NulTimer expired\n", getName());
 }
@@ -457,7 +477,7 @@ int newConnState = newState->getConnectionState( this );
 int oldConnState = state_->getConnectionState( this );
 
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 1 )
+if ( cpsw_rssi_debug > 1 )
 {
 	fprintf(stderr,"%s: Scheduling state change %s ==> %s\n", getName(), state_->getName(), newState->getName());
 }
@@ -547,7 +567,7 @@ BufChain bc;
 		Buf b = bc->getHead();
 		RssiHeader hdr(b->getPayload());
 #ifdef RSSI_DEBUG
-		if ( rssi_debug > 3 ) {
+		if ( cpsw_rssi_debug > 3 ) {
 			fprintf(stderr,"   >>>[%d - %p] ", it.idx_, b.get());
 			hdr.dump(stderr, b->getSize() > hdr.getHSize());
 			fprintf(stderr,"\n");

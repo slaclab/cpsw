@@ -29,9 +29,7 @@ using boost::atomic;
 
 #define RSSI_DEBUG 0 // level
 
-#ifdef RSSI_DEBUG
-extern int rssi_debug;
-#endif
+#include <cpsw_debug.h>
 
 class IRxEventHandler : public IEventHandler {
 protected:

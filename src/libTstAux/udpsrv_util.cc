@@ -395,7 +395,9 @@ protected:
 	  q_(depth),
 	  mtx_("QUEUE")
 	{
+#ifdef UDPSRV_UTIL_DEBUG
 		printf("Q %p: rdSync %p wrSync %p\n", this, rdSync_.get(), wrSync_.get());
+#endif
 	}
 
 	virtual bool push(BufChain b, bool wait, const CTimeout *abs_timeout)
@@ -1024,7 +1026,9 @@ public:
 	{
 	int got;
 
+#ifdef UDPSRV_UTIL_DEBUG
 		printf("UDP thread %llx on port %d\n", (unsigned long long)pthread_self(), getUdpPort());
+#endif
 
 		while ( 1 ) {
 
@@ -1236,7 +1240,9 @@ public:
 	{
 	int       got;
 
+#ifdef UDPSRV_UTIL_DEBUG
 		printf("TCP thread %llx on port %d\n", (unsigned long long)pthread_self(), getTcpPort());
+#endif
 
 		while ( 1 ) {
 

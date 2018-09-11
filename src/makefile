@@ -11,7 +11,9 @@ CPSW_DIR=.
 
 include $(CPSW_DIR)/defs.mak
 
-POSTBUILD_SUBDIRS=test
+POSTBUILD_SUBDIRS+=libTstAux
+POSTBUILD_SUBDIRS+=rssi_bridge
+POSTBUILD_SUBDIRS+=test
 
 HEADERS = cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h
 DOCS = doc/README.yamlDefinition doc/README.yamlDefinition.html doc/README.configData.html doc/INSTALL.html
@@ -20,8 +22,7 @@ GENERATED_SRCS += git_version_string.h
 GENERATED_SRCS += $(DOCS)
 
 VPATH+=:$(SRCDIR)/socks/
-
-INCLUDE_DIRS+=$(SRCDIR)/socks/
+VPATH+=:$(SRCDIR)/rssi_bridge/
 
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
@@ -60,13 +61,17 @@ cpsw_SRCS+= cpsw_thread.cc
 cpsw_SRCS+= cpsw_yaml.cc
 cpsw_SRCS+= cpsw_preproc.cc
 cpsw_SRCS+= cpsw_version.cc
+cpsw_SRCS+= cpsw_debug.cc
 cpsw_SRCS+= cpsw_async_io.cc
 cpsw_SRCS+= cpsw_crc32_le.cc
 cpsw_SRCS+= libSocksConnect.c
 cpsw_SRCS+= libSocksNegotiate4.c
 cpsw_SRCS+= libSocksNegotiate5.c
 cpsw_SRCS+= libSocksParseName.c
+cpsw_SRCS+= libSocksGetByName.c
 cpsw_SRCS+= libSocksUtil.c
+cpsw_SRCS+= rpcMapLookup.c
+cpsw_SRCS+= prot_xdr.c
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h
@@ -108,6 +113,7 @@ DEP_HEADERS += cpsw_mutex.h
 DEP_HEADERS += cpsw_command.h
 DEP_HEADERS += cpsw_yaml.h
 DEP_HEADERS += cpsw_preproc.h
+DEP_HEADERS += cpsw_debug.h>
 DEP_HEADERS += cpsw_async_io.h
 DEP_HEADERS += libSocks.h
 DEP_HEADERS += libSocksUtil.h

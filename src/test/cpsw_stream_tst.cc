@@ -28,8 +28,6 @@ static void usage(const char *nm)
 #define STRT(chnl) (0x01<<(chnl))
 #define STOP(chnl) (0x10<<(chnl))
 
-extern int rssi_debug;
-
 class StrmRxFailed {};
 
 #define NUM_STREAMS 2
@@ -272,7 +270,7 @@ StrmCtxt ctxt[NUM_STREAMS];
 	unsigned ldFragWinSize  = 5;
 	unsigned timeoutUs = 8000000;
 
-	rssi_debug=0;
+	setCPSWVerbosity( "rssi", 0 );
 
 	for ( i=0; i<NUM_STREAMS; i++ ) {
 		ctxt[i].status  = -1;

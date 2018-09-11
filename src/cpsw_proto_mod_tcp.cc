@@ -21,6 +21,7 @@
 #include <stdio.h>
 
 #include <cpsw_yaml.h>
+#include <rssi_bridge/rpcMapService.h>
 
 //#define TCP_DEBUG
 //#define TCP_DEBUG_STRM
@@ -198,15 +199,23 @@ void CProtoModTcp::modShutdown()
 		rxHandler_->threadStop();
 }
 
-CProtoModTcp::CProtoModTcp(Key &k, struct sockaddr_in *dest, unsigned depth, int threadPriority)
+CProtoModTcp::CProtoModTcp(
+	Key                      &k,
+	const struct sockaddr_in *dest,
+	unsigned                  depth,
+	int                       threadPriority,
+	const LibSocksProxy      *proxy,
+	const struct sockaddr_in *via
+)
 :CProtoMod(k, depth),
- dest_(*dest),
- sd_(SOCK_STREAM),
- nTxOctets_(0),
- nTxDgrams_(0),
- rxHandler_(NULL)
+ dest_     (*dest               ),
+ via_      ( via ? *via : *dest ),
+ sd_       (SOCK_STREAM, proxy  ),
+ nTxOctets_(0                   ),
+ nTxDgrams_(0                   ),
+ rxHandler_(NULL                )
 {
-	sd_.init( &dest_, 0, false );
+	sd_.init( &via_, 0, false );
 	createThread( threadPriority );
 }
 
@@ -226,11 +235,12 @@ int prio = rxHandler_->getPrio();
 CProtoModTcp::CProtoModTcp(CProtoModTcp &orig, Key &k)
 :CProtoMod(orig, k),
  dest_(orig.dest_),
- sd_(orig.sd_),
+ via_ (orig.via_ ),
+ sd_  (orig.sd_  ),
  nTxOctets_(0),
  nTxDgrams_(0)
 {
-	sd_.init( &dest_, 0, false );
+	sd_.init( &via_, 0, false );
 	createThread( orig.rxHandler_->getPrio() );
 }
 

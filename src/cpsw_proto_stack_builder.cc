@@ -21,13 +21,21 @@
 #include <cpsw_proto_depack.h>
 
 #include <cpsw_yaml.h>
+#include <cpsw_debug.h>
 
 #include <boost/make_shared.hpp>
+
+#include <socks/libSocks.h>
+#include <rssi_bridge/rpcMapService.h>
 
 using boost::make_shared;
 using boost::dynamic_pointer_cast;
 
-#undef  PSBLDR_DEBUG
+#define PSBLDR_DEBUG 0
+
+#ifdef PSBLDR_DEBUG
+int cpsw_psbldr_debug = PSBLDR_DEBUG;
+#endif
 
 class CProtoStackBuilder : public IProtoStackBuilder {
 	public:
@@ -63,6 +71,8 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		unsigned                   TDestMuxInpQueueDepth_;
 		int                        TDestMuxThreadPriority_;
 		in_addr_t                  IPAddr_;
+		struct LibSocksProxy       socksProxy_;
+		in_addr_t                  rssiBridgeIPAddr_;
 	public:
 		virtual void reset()
 		{
@@ -96,6 +106,8 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			TDestMuxInpQueueDepth_  = 0;
 			TDestMuxThreadPriority_ = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			IPAddr_                 = INADDR_NONE;
+			rssiBridgeIPAddr_       = INADDR_NONE;
+			socksProxy_.version     = SOCKS_VERSION_NONE;
 		}
 
 		CProtoStackBuilder()
@@ -113,6 +125,26 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		in_addr_t getIPAddr()
 		{
 			return IPAddr_;
+		}
+
+		void setRssiBridgeIPAddr(in_addr_t bridge)
+		{
+			rssiBridgeIPAddr_ = bridge;
+		}
+
+		in_addr_t getRssiBridgeIPAddr()
+		{
+			return rssiBridgeIPAddr_;
+		}
+
+		void setSocksProxy(const LibSocksProxy *proxy)
+		{
+			socksProxy_ = *proxy;
+		}
+
+		const LibSocksProxy *getSocksProxy()
+		{
+			return &socksProxy_;
 		}
 
 
@@ -146,7 +178,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual uint64_t        getSRPTimeoutUS()
 		{
 			if ( 0 == SRPTimeoutUS_ )
-				return hasRssi() ? 500000 : (getTcpPort() > 0 ? 4000000 : 10000);
+				return hasRssiAndUdp() ? 500000 : (getTcpPort() > 0 ? 4000000 : 10000);
 			return SRPTimeoutUS_;
 		}
 
@@ -158,7 +190,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual unsigned        getSRPRetryCount()
 		{
 			if ( (unsigned)-1 == SRPRetryCount_ )
-				return ( hasRssi() || hasTcp() ) ? 0 : 10;
+				return ( hasRssiAndUdp() || hasTcp() ) ? 0 : 10;
 			return SRPRetryCount_;
 		}
 
@@ -182,7 +214,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			if ( hasRssi() || getTcpPort() > 0 )
 				return false;
 			if ( SRPDynTimeout_ < 0 )
-				return ! hasTDestMux() && ! hasRssi();
+				return ! hasTDestMux() && ! hasRssiAndUdp();
 			return SRPDynTimeout_ ? true : false;
 		}
 
@@ -284,7 +316,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual int             getUdpPollSecs()
 		{
 			if ( 0 >  UdpPollSecs_ ) {
-				if ( ! hasRssi() && ( ! hasSRP() || hasTDestMux() ) )
+				if ( ! hasRssiAndUdp() && ( ! hasSRP() || hasTDestMux() ) )
 					return 60;
 			}
 			return UdpPollSecs_;
@@ -296,6 +328,11 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		}
 
 		virtual bool            hasRssi()
+		{
+			return hasRssi_;
+		}
+
+		virtual bool            hasRssiAndUdp()
 		{
 			return hasRssi_ && hasUdp();
 		}
@@ -310,7 +347,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual int             getRssiThreadPriority()
 		{
-			return hasRssi() ? RssiThreadPriority_ : IProtoStackBuilder::NO_THREAD_PRIORITY;
+			return hasRssiAndUdp() ? RssiThreadPriority_ : IProtoStackBuilder::NO_THREAD_PRIORITY;
 		}
 
 		virtual void            useDepack(bool v)
@@ -371,7 +408,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual unsigned        getDepackLdFrameWinSize()
 		{
 			if ( 0 == DepackLdFrameWinSize_ )
-				return hasRssi() ? 1 : 5;
+				return hasRssiAndUdp() ? 1 : 5;
 			return DepackLdFrameWinSize_;
 		}
 
@@ -386,7 +423,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual unsigned        getDepackLdFragWinSize()
 		{
 			if ( 0 == DepackLdFragWinSize_ )
-				return hasRssi() ? 1 : 5;
+				return hasRssiAndUdp() ? 1 : 5;
 			return DepackLdFragWinSize_;
 		}
 
@@ -700,7 +737,9 @@ int                                    requestedMatches = cmp->requestedMatches(
 		if ( requestedMatches == (found = cmp->findMatches( *it )) )
 			return *it;
 #ifdef PSBLDR_DEBUG
-		printf("%s; requested %d, found %d\n", (*it)->getProtoMod()->getName(), requestedMatches, found);
+if ( cpsw_psbldr_debug > 1 ) {
+		fprintf(stderr, "%s; requested %d, found %d\n", (*it)->getProtoMod()->getName(), requestedMatches, found);
+}
 #endif
 	}
 	return ProtoPort();
@@ -717,7 +756,9 @@ ProtoStackBuilder    bldr   = clone();
 bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVersion();
 
 #ifdef PSBLDR_DEBUG
-	printf("makeProtoPort...entering\n");
+if ( cpsw_psbldr_debug > 1 ) {
+	fprintf(stderr, "makeProtoPort...entering\n");
+}
 #endif
 
 	// sanity checks
@@ -734,7 +775,9 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 		cmp.tcpDestPort_ = bldr->getTcpPort();
 
 #ifdef PSBLDR_DEBUG
-	printf("makeProtoPort for %s port %d\n", bldr->hasUdp() ? "UDP" : "TCP" , bldr->hasUdp() ? bldr->getUdpPort() : bldr->getTcpPort());
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "makeProtoPort for %s port %d\n", bldr->hasUdp() ? "UDP" : "TCP" , bldr->hasUdp() ? bldr->getUdpPort() : bldr->getTcpPort());
+}
 #endif
 
 	if ( findProtoPort( &cmp, existingPorts ) ) {
@@ -744,18 +787,24 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 		}
 
 #ifdef PSBLDR_DEBUG
-	printf("makeProtoPort %s port %d found\n", bldr->hasUdp() ? "UDP" : "TCP" , bldr->hasUdp() ? bldr->getUdpPort() : bldr->getTcpPort());
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "makeProtoPort %s port %d found\n", bldr->hasUdp() ? "UDP" : "TCP" , bldr->hasUdp() ? bldr->getUdpPort() : bldr->getTcpPort());
+}
 #endif
 
 		// existing RSSI configuration must match the requested one
-		if ( bldr->hasRssi() ) {
+		if ( bldr->hasRssiAndUdp() ) {
 #ifdef PSBLDR_DEBUG
-	printf("  including RSSI\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  including RSSI\n");
+}
 #endif
 			cmp.haveRssi_.include();
 		} else {
 #ifdef PSBLDR_DEBUG
-	printf("  excluding RSSI\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  excluding RSSI\n");
+}
 #endif
 			cmp.haveRssi_.exclude();
 		}
@@ -765,12 +814,16 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 			cmp.haveDepack_.include();
 			cmp.depackVersion_ = bldr->getDepackVersion();
 #ifdef PSBLDR_DEBUG
-	printf("  including depack\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  including depack\n");
+}
 #endif
 		} else {
 			cmp.haveDepack_.exclude();
 #ifdef PSBLDR_DEBUG
-	printf("  excluding depack\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  excluding depack\n");
+}
 #endif
 		}
 
@@ -778,18 +831,24 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 			cmp.tDest_         = bldr->getTDestMuxTDEST();
 			cmp.depackVersion_ = bldr->getDepackVersion();
 #ifdef PSBLDR_DEBUG
-	printf("  tdest %d\n", bldr->getTDestMuxTDEST());
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  tdest %d\n", bldr->getTDestMuxTDEST());
+}
 #endif
 		} else {
 			cmp.tDest_.exclude();
 #ifdef PSBLDR_DEBUG
-	printf("  tdest excluded\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  tdest excluded\n");
+}
 #endif
 		}
 
 		if ( (foundTDestPort = findProtoPort( &cmp, existingPorts )) ) {
 #ifdef PSBLDR_DEBUG
-	printf("  tdest port FOUND\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  tdest port FOUND\n");
+}
 #endif
 
 			// either no tdest demuxer or using an existing tdest port
@@ -833,7 +892,9 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 					throw InternalError("No TDEST Demultiplexer (base-class pointer) - but there should be one");
 				}
 #ifdef PSBLDR_DEBUG
-	printf("  using (existing) tdest MUX\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  using (existing) tdest MUX\n");
+}
 #endif
 			} else {
 				throw ConfigurationError("Unable to create new port on existing protocol modules");
@@ -856,15 +917,53 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 			                                       bldr->getUdpPollSecs()
 			);
 		} else {
+			struct sockaddr_in via = dst;
+
+			if ( INADDR_NONE != bldr->getRssiBridgeIPAddr() ) {
+				/* lookup the TCP address via the RPC mapping service of the bridge */
+				PortMap        map[1];      
+				unsigned       nMaps = sizeof(map)/sizeof(map[0]);
+				unsigned long  timeoutUS = 4000000; /* hardcoded for now */
+				CSockSd        sock( SOCK_STREAM, bldr->getSocksProxy() );
+
+				via.sin_addr.s_addr = bldr->getRssiBridgeIPAddr();
+				via.sin_port        = htons( rpcRelayServerPort() );
+
+				map[0].reqPort      = bldr->getTcpPort();
+				map[0].flags        = 0;
+
+				if ( bldr->hasRssi() ) {
+					map[0].flags |= MAP_PORT_DESC_FLG_RSSI;
+				}
+
+				sock.init( &via, 0, false );
+
+				if ( rpcMapLookup( &via, dup( sock.getSd() ), dst.sin_addr.s_addr, map, nMaps, timeoutUS ) ) {
+					fprintf(stderr, "RPC Lookup failed for port %u @ %s -- maybe no rssi_bridge running?\n", map[0].reqPort, inet_ntoa( via.sin_addr ) );
+					throw NotFoundError("RPC Lookup failed");
+				}
+
+				if ( 0 == map[0].actPort ) {
+					fprintf(stderr, "RPC Lookup for port %u @ %s produced no mapping (missing -p/-u on bridge?)\n", map[0].reqPort, inet_ntoa( via.sin_addr ) );
+					throw NotFoundError("RPC Lookup produced no mapping");
+				}
+
+				via.sin_port = htons( map[0].actPort );
+			}
+
 			rval = CShObj::create< ProtoModTcp >( &dst,
-			                                       bldr->getTcpOutQueueDepth(),
-			                                       bldr->getTcpThreadPriority()
+			                                      bldr->getTcpOutQueueDepth(),
+			                                      bldr->getTcpThreadPriority(),
+			                                      bldr->getSocksProxy(),
+			                                      &via
 			);
 		}
 
-		if ( bldr->hasRssi() ) {
+		if ( bldr->hasRssiAndUdp() ) {
 #ifdef PSBLDR_DEBUG
-	printf("  creating RSSI\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  creating RSSI\n");
+}
 #endif
 			ProtoModRssi rssi = CShObj::create<ProtoModRssi>(
 			                                bldr->getRssiThreadPriority()
@@ -875,7 +974,9 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 
 		if ( bldr->hasDepack() && bldr->getDepackVersion() == DEPACKETIZER_V0 ) {
 #ifdef PSBLDR_DEBUG
-	printf("  creating depack\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  creating depack\n");
+}
 #endif
 			ProtoModDepack depackMod  = CShObj::create< ProtoModDepack > (
 			                                bldr->getDepackOutQueueDepth(),
@@ -890,26 +991,48 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 
 	if ( bldr->hasTDestMux()  && ! foundTDestPort ) {
 #ifdef PSBLDR_DEBUG
-	printf("  creating tdest port\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  creating tdest port\n");
+}
 #endif
 		ProtoModTDestMux  v0;
 		ProtoModTDestMux2 v2;
 
 		if ( ! tDestMuxMod ) {
 			if ( bldr->getDepackVersion() == DEPACKETIZER_V2 ) {
+#ifdef PSBLDR_DEBUG
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "    creating new TDest Mux V2 module\n");
+}
+#endif
 				v2 = CShObj::create< ProtoModTDestMux2 >( bldr->getTDestMuxThreadPriority() );
 				rval->addAtPort( v2 );
 			} else {
+#ifdef PSBLDR_DEBUG
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "    creating new TDest Mux V0 module\n");
+}
+#endif
 				v0 = CShObj::create< ProtoModTDestMux  >( bldr->getTDestMuxThreadPriority() );
 				rval->addAtPort( v0 );
 			}
 		} else {
 			if ( bldr->getDepackVersion() == DEPACKETIZER_V2 ) {
+#ifdef PSBLDR_DEBUG
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "    looking for existing TDest Mux V2 module\n");
+}
+#endif
 				v2 = dynamic_pointer_cast<ProtoModTDestMux2::element_type>( tDestMuxMod );
 				if ( ! v2 ) {
 					throw InternalError("No TDEST V2 Demultiplexer - but there should be one");
 				}
 			} else {
+#ifdef PSBLDR_DEBUG
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "    looking for existing TDest Mux V0 module\n");
+}
+#endif
 				v0 = dynamic_pointer_cast<ProtoModTDestMux::element_type>( tDestMuxMod );
 				if ( ! v0 ) {
 					throw InternalError("No TDEST V0 Demultiplexer - but there should be one");
@@ -917,6 +1040,11 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 			}
 		}
 		if ( v2 ) {
+#ifdef PSBLDR_DEBUG
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  creating TDest Mux V2 port\n");
+}
+#endif
 			rval = v2->createPort(
 			                       bldr->getTDestMuxTDEST(),
 			                       bldr->getTDestMuxStripHeader(),
@@ -924,6 +1052,11 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 			                       bldr->getTDestMuxInpQueueDepth()
 			                     );
 		} else {
+#ifdef PSBLDR_DEBUG
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  creating TDest Mux V0 port\n");
+}
+#endif
 			rval = v0->createPort(
 			                       bldr->getTDestMuxTDEST(),
 			                       bldr->getTDestMuxStripHeader(),
@@ -935,7 +1068,9 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 	if ( bldr->hasSRPMux() ) {
 		if ( ! srpMuxMod ) {
 #ifdef PSBLDR_DEBUG
-			printf("  creating SRP mux module\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  creating SRP mux module\n");
+}
 #endif
 			srpMuxMod   = CShObj::create< ProtoModSRPMux >( bldr->getSRPVersion(), bldr->getSRPMuxThreadPriority() );
 			rval->addAtPort( srpMuxMod );
@@ -945,7 +1080,9 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 		unsigned retryCount = bldr->getSRPRetryCount() & 0xffff; // undocumented hack to test byte-resolution access
 		rval = srpMuxMod->createPort( bldr->getSRPMuxVirtualChannel(), 2 * (retryCount + 1) );
 #ifdef PSBLDR_DEBUG
-	printf("  creating SRP mux port\n");
+if ( cpsw_psbldr_debug > 0 ) {
+	fprintf(stderr, "  creating SRP mux port\n");
+}
 #endif
 	}
 

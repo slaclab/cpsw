@@ -17,10 +17,10 @@
 #include <netinet/in.h>
 #include <errno.h>
 
-#include <libSocks.h>
+#include "libSocks.h"
 
 int 
-libSocksConnect(int sockfd, const struct sockaddr *addr, socklen_t addrlen, LibSocksProxy *proxy)
+libSocksConnect(int sockfd, const struct sockaddr *addr, socklen_t addrlen, const LibSocksProxy *proxy)
 {
 int rval;
 const struct sockaddr *dest = addr;

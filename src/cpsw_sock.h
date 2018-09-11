@@ -19,21 +19,38 @@ using boost::shared_ptr;
 class CSockSd;
 typedef shared_ptr<CSockSd> SockSd;
 
+struct LibSocksProxy;
+
 class CSockSd {
 private:
-	int                sd_;
-	int                type_;
-	struct sockaddr_in me_;
-	struct sockaddr_in *dest_;
-	bool               nblk_;
-	bool               isConn_;
-	CSockSd & operator=(CSockSd &orig);
+	// Wrapper class to get a default constructor
+	struct SA : public sockaddr_in {
+	public:
+		SA();
+		SA( const struct sockaddr_in &);
+	};
+
+	int                  sd_;
+	int                  type_;
+	SA                   me_;
+	SA                  *dest_;
+	bool                 nblk_;
+	bool                 isConn_;
+	const LibSocksProxy *proxy_;
+
+	CSockSd & operator=(const CSockSd &orig);
+
+protected:
+
+	void reset();
 
 public:
 
-	CSockSd(int type = SOCK_DGRAM);
+	CSockSd(int type             , const LibSocksProxy *proxy    );
 
-	CSockSd(CSockSd &orig);
+	CSockSd(int type = SOCK_DGRAM, const char      *proxydesc = 0);
+
+	CSockSd(const CSockSd &orig);
 
 	virtual void getMyAddr(struct sockaddr_in *addr_p);
 

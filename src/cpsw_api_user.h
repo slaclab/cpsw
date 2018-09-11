@@ -860,4 +860,14 @@ public:
  */
 const char *getCPSWVersionString();
 
+/*!
+ * Set verbosity of a library component.
+ * Returns 0 on success, negative value if
+ * component not supported.
+ *
+ * If 'component' is NULL then a list of all
+ * known components is printed.
+ */
+int setCPSWVerbosity(const char *component = 0, int value = 0);
+
 #endif

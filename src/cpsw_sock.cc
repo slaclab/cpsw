@@ -16,46 +16,59 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <libSocks.h>
-#include <pthread.h>
+#include <socks/libSocks.h>
 
-CSockSd::CSockSd(int type)
-: sd_(-1),
-  type_(type),
-  dest_(NULL),
-  nblk_(false),
-  isConn_(false)
+CSockSd::SA::SA()
 {
+	sin_family      = AF_INET;
+	sin_addr.s_addr = INADDR_ANY;
+	sin_port        = htons( 0 );
+}
+
+CSockSd::SA::SA( const struct sockaddr_in &orig )
+{
+	*this = orig;
+}
+
+
+void
+CSockSd::reset()
+{
+const LibSocksProxy *origProxy;
+SA                  *origDest;
+
+	/* This also can be used by the copy-constructor as it creates a
+	 * new socket
+	 */
+
 	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
 	}
-	me_.sin_family      = AF_INET;
-	me_.sin_addr.s_addr = INADDR_ANY;
-	me_.sin_port        = htons( 0 );
-}
 
-void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
-{
-	socklen_t l = sizeof(*addr_p);
-	if ( getsockname( getSd(), (struct sockaddr*)addr_p, &l ) ) {
-		throw IOError("getsockname() ", errno);
+	if ( (origDest = dest_ ) ) {
+		dest_   = new SA( *origDest );
 	}
-}
 
-CSockSd::CSockSd(CSockSd &orig)
-: sd_(-1),
-  type_(orig.type_),
-  me_(orig.me_),
-  dest_(orig.dest_ ? new struct sockaddr_in(*orig.dest_) : NULL),
-  nblk_(orig.nblk_),
-  isConn_(orig.isConn_)
-{
-	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
-		throw InternalError("Unable to create socket");
+	if ( (origProxy = proxy_) ) {
+		proxy_  = new LibSocksProxy( *origProxy );
 	}
+
 	if ( isConn_ ) {
 		init( dest_, NULL, nblk_ );
 	}
+
+}
+
+CSockSd::CSockSd(const CSockSd &orig)
+: sd_    ( -1           ),
+  type_  ( orig.type_   ),
+  me_    ( orig.me_     ),
+  dest_  ( orig.dest_   ),
+  nblk_  ( orig.nblk_   ),
+  isConn_( orig.isConn_ ),
+  proxy_ ( orig.proxy_  )
+{
+	reset();
 }
 
 void CSockSd::reconnect()
@@ -69,6 +82,48 @@ void CSockSd::reconnect()
 	}
 }
 
+CSockSd::CSockSd(int type, const LibSocksProxy *proxy)
+: sd_    ( -1    ),
+  type_  ( type  ),
+  dest_  ( NULL  ),
+  nblk_  ( false ),
+  isConn_( false ),
+  proxy_ ( proxy )
+{
+	reset();
+}
+
+
+CSockSd::CSockSd(int type, const char *proxyDesc)
+: sd_    ( -1    ),
+  type_  ( type  ),
+  dest_  ( NULL  ),
+  nblk_  ( false ),
+  isConn_( false ),
+  proxy_ ( 0     )
+{
+LibSocksProxy proxy;
+
+	if ( libSocksStrToProxy( &proxy, proxyDesc ) ) {
+		std::string msg = std::string("libSocksStrToProxy: unable to parse '") + std::string(proxyDesc) + std::string("'");
+		throw InvalidArgError( msg );
+	}
+
+	// 'reset' will make a copy
+	proxy_ = &proxy;
+
+	reset();
+}
+
+void
+CSockSd::getMyAddr(struct sockaddr_in *addr_p)
+{
+	socklen_t l = sizeof(*addr_p);
+	if ( getsockname( getSd(), (struct sockaddr*)addr_p, &l ) ) {
+		throw IOError("getsockname() ", errno);
+	}
+}
+
 int
 CSockSd::getMTU()
 {
@@ -78,35 +133,6 @@ socklen_t sl = sizeof(mtu);
 		throw InternalError("getsockopt(IP_MTU) failed", errno);
 	}
 	return mtu;
-}
-
-static LibSocksProxy theProxy;
-
-static pthread_once_t *
-getOnceKey()
-{
-static pthread_once_t theOnce = PTHREAD_ONCE_INIT;
-	return &theOnce;
-}
-
-static void initProxy()
-{
-	if ( libSocksStrToProxy( &theProxy, getenv( "SOCKS_PROXY" ) ) ) {
-		fprintf( stderr, "Please check the SOCKS_PROXY environment variable\n" );
-		throw InternalError( "libSocksStrToProxy failed" );
-	}
-}
-
-static LibSocksProxy *
-getProxy()
-{
-int err;
-
-	if ( (err = pthread_once( getOnceKey(), initProxy )) ) {
-		throw InternalError( "pthread_once failed", err );
-	}
-
-	return &theProxy;
 }
 
 void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
@@ -145,14 +171,14 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 	if ( dest ) {
 		struct sockaddr_in *tmp = dest_;
 
-		dest_ = new struct sockaddr_in(*dest);
+		dest_ = new SA(*dest);
 		// they may pass in dest_ which must not be deleted until now
 		if ( tmp )
 			delete tmp;
 	}
 
 	if ( dest_ ) {
-		LibSocksProxy *proxy = ( SOCK_STREAM == type_ ? getProxy() : 0 );
+		const LibSocksProxy *proxy = ( SOCK_STREAM == type_ ? proxy_ : 0 );
 		if ( libSocksConnect( sd_, (struct sockaddr*)dest_, sizeof(*dest_), proxy ) )
 			throw IOError("connect failed ", errno);
 	}
@@ -162,6 +188,9 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 
 CSockSd::~CSockSd()
 {
+	if ( proxy_ ) {
+		delete proxy_;
+	}
 	close( sd_ );
 	if ( dest_ )
 		delete dest_;

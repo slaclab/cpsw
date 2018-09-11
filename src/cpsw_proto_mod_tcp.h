@@ -62,6 +62,7 @@ protected:
 
 private:
 	struct sockaddr_in dest_;
+	struct sockaddr_in via_;
 	CSockSd            sd_;
 	atomic<uint64_t>   nTxOctets_;
 	atomic<uint64_t>   nTxDgrams_;
@@ -87,12 +88,19 @@ protected:
 	virtual int iMatch(ProtoPortMatchParams *cmp);
 
 public:
-	CProtoModTcp(Key &k, struct sockaddr_in *dest, unsigned depth, int threadPriority);
+	CProtoModTcp(
+		Key                      &k,
+		const struct sockaddr_in *dest,
+		unsigned                  depth,
+		int                       threadPriority,
+		const LibSocksProxy      *proxy,
+		const struct sockaddr_in *via
+	);
 
 	CProtoModTcp(CProtoModTcp &orig, Key &k);
 
 	virtual const char *getName()  const
-	{
+{
 		return "TCP";
 	}
 

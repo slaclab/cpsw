@@ -11,6 +11,7 @@
 #define CPSW_NETIO_DEV_H
 
 #include <cpsw_hub.h>
+#include <socks/libSocks.h>
 
 #include <vector>
 #include <string>
@@ -22,11 +23,19 @@ class CNetIODevImpl : public CDevImpl, public virtual INetIODev {
 private:
 	uint32_t         d_ip_;
 	std::string      ip_str_;
+	LibSocksProxy    socks_proxy_;
+	std::string      socks_proxy_str_;
+	uint32_t         rssi_bridge_ip_;
+	std::string      rssi_bridge_str_;
 protected:
 	CNetIODevImpl(const CNetIODevImpl &orig, Key &k)
-	: CDevImpl(orig, k),
-	  d_ip_(orig.d_ip_),
-	  ip_str_(orig.ip_str_)
+	: CDevImpl        ( orig, k               ),
+	  d_ip_           ( orig.d_ip_            ),
+	  ip_str_         ( orig.ip_str_          ),
+	  socks_proxy_    ( orig.socks_proxy_     ),
+	  socks_proxy_str_( orig.socks_proxy_str_ ),
+	  rssi_bridge_ip_ ( orig.rssi_bridge_ip_  ),
+	  rssi_bridge_str_( orig.rssi_bridge_str_ )
 	{
 		/* The real work is in cloning the protocols -  which is not supported */
 	}
@@ -44,8 +53,15 @@ public:
 	static  const char *_getClassName()       { return "NetIODev";      }
 	virtual const char * getClassName() const { return _getClassName(); }
 
-	virtual const char *getIpAddressString() const { return ip_str_.c_str(); }
-	virtual uint32_t    getIpAddress()       const { return d_ip_; }
+	virtual const char *getIpAddressString()     const { return ip_str_.c_str(); }
+	virtual uint32_t    getIpAddress()           const { return d_ip_; }
+
+	virtual const char *getSocksProxyString()    const { return socks_proxy_str_.c_str(); }
+	virtual const char *getRssiBridgeString()    const { return rssi_bridge_str_.c_str(); }
+
+	virtual uint32_t    getRssiBridgeIp()        const { return rssi_bridge_ip_; }
+
+	virtual const LibSocksProxy &getSocksProxy() const { return socks_proxy_; }
 
 	virtual CNetIODevImpl *clone(Key &k) { return new CNetIODevImpl( *this, k ); }
 

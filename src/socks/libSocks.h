@@ -13,6 +13,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 
 /*
  * SOCKS4 and SOCKS5 client implementation (partial). This is mostly aimed at the ssh proxy; hence
@@ -40,7 +41,9 @@ libSocksNegotiateV4(int sockfd, const struct sockaddr *destination);
 int
 libSocksNegotiateV5(int sockfd, const struct sockaddr *destination);
 
-typedef struct {
+#define SOCKS_VERSION_NONE (-1)
+
+typedef struct LibSocksProxy {
 	int    version; /* <0 (no proxy), 4 or 5 */
 	union {
 		struct sockaddr_in sin;
@@ -55,7 +58,7 @@ typedef struct {
  */
 
 int
-libSocksConnect(int sockfd, const struct sockaddr *destination, socklen_t addrlen, LibSocksProxy *viaProxy);
+libSocksConnect(int sockfd, const struct sockaddr *destination, socklen_t addrlen, const LibSocksProxy *viaProxy);
 
 /*
  * Parse a string into a LibSocksProxy struct. The string is
@@ -69,6 +72,16 @@ libSocksConnect(int sockfd, const struct sockaddr *destination, socklen_t addrle
 
 int
 libSocksStrToProxy(LibSocksProxy *proxy, const char *str);
+
+/*
+ * Wrapper for 'getaddrinfo'. 'service' may be NULL in which case
+ * ((struct sockaddr_in*)res)->sin_port is undefined.
+ *
+ * RETURNS: 0 on success, getaddrinfo return status otherwise;
+ *          result in *res.
+ */
+int
+libSocksGetByName(const char *host, const char *service, struct sockaddr *res);
 
 #ifdef __cplusplus
 }
