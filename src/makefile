@@ -60,6 +60,7 @@ cpsw_SRCS+= cpsw_thread.cc
 cpsw_SRCS+= cpsw_yaml.cc
 cpsw_SRCS+= cpsw_preproc.cc
 cpsw_SRCS+= cpsw_version.cc
+cpsw_SRCS+= cpsw_debug.cc
 cpsw_SRCS+= cpsw_crc32_le.cc
 cpsw_SRCS+= libSocksConnect.c
 cpsw_SRCS+= libSocksNegotiate4.c
@@ -109,6 +110,7 @@ DEP_HEADERS += cpsw_mutex.h
 DEP_HEADERS += cpsw_command.h
 DEP_HEADERS += cpsw_yaml.h
 DEP_HEADERS += cpsw_preproc.h
+DEP_HEADERS += cpsw_debug.h>
 DEP_HEADERS += libSocks.h
 DEP_HEADERS += libSocksUtil.h
 

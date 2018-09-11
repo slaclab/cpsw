@@ -98,14 +98,14 @@ RssiTimer *timer = context->timers_.getFirstToExpire();
 		throw InternalError("RSSI: no timer active!");
 	}
 #ifdef RSSI_DEBUG
-if (rssi_debug > 2 )
+if (cpsw_rssi_debug > 2 )
 {
 	fprintf(stderr, "%s: scheduling timer %s (state %s)\n", context->getName(), timer ? timer->getName() : "<NONE>", getName());
 }
 #endif
 	if ( ! context->eventSet_->processEvent(true, timer ? timer->getTimeout() : NULL ) ) {
 #ifdef RSSI_DEBUG
-if (rssi_debug > 2 )
+if (cpsw_rssi_debug > 2 )
 {
 		fprintf(stderr, "%s: canceling+processing timer %s (state %s)\n", context->getName(), timer ? timer->getName() : "<NONE>", getName());
 }
@@ -157,7 +157,7 @@ bool     hasPayload;
 		hasPayload = b->getSize() > hdr.getHSize();
 
 #ifdef RSSI_DEBUG
-if (rssi_debug > 0 )
+if (cpsw_rssi_debug > 0 )
 {
 fprintf(stderr,"RX: %s -- ", context->getName());
 hdr.dump( stderr, hasPayload ? 1 : 0 );
@@ -170,7 +170,7 @@ fprintf(stderr," (state %s)\n", getName());
 				RssiSynHeader synHdr( b->getPayload(), b->getSize(), false /* already verified */, RssiHeader::READ );
 				if ( ! handleSYN( context, synHdr ) ) {
 #ifdef RSSI_DEBUG
-if (rssi_debug > 2 )
+if (cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s syn rejected (state %s)\n", context->getName(), getName());
 }
@@ -179,7 +179,7 @@ fprintf(stderr,"%s syn rejected (state %s)\n", context->getName(), getName());
 				}
 			} catch ( RssiHeader::BadHeader ) {
 #ifdef RSSI_DEBUG
-if (rssi_debug > 2 )
+if (cpsw_rssi_debug > 2 )
 {
 fprintf(stderr, "%s: dropped (bad header)\n", context->getName());
 }
@@ -191,7 +191,7 @@ fprintf(stderr, "%s: dropped (bad header)\n", context->getName());
 			if ( ! handleOTH( context, hdr, hasPayload ) ) {
 				context->stats_.rejectedSegs_++;
 #ifdef RSSI_DEBUG
-if (rssi_debug > 2 )
+if (cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s OTH rejected (state %s)\n", context->getName(), getName());
 }
@@ -211,7 +211,7 @@ fprintf(stderr,"%s OTH rejected (state %s)\n", context->getName(), getName());
 			if ( context->unOrderedSegs_.canAccept( hdr.getSeqNo() ) ) {
 
 #ifdef RSSI_DEBUG
-if (rssi_debug > 1 )
+if (cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"RX: %s  storing (oldest %d)", context->getName(), context->unOrderedSegs_.getOldest());
 hdr.dump(stderr, b->getSize() > hdr.getHSize());
@@ -251,7 +251,7 @@ fprintf(stderr," (state %s)\n", getName());
 			context->stats_.busyDeassertRex_++;
 			processRetransmissionTimeout( context );
 #ifdef RSSI_DEBUG
-if (rssi_debug > 2 )
+if (cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s: Retransmission due to peerBSY -> !peerBSY (state %s)\n", context->getName(), getName());
 }
@@ -271,7 +271,7 @@ fprintf(stderr,"%s: Retransmission due to peerBSY -> !peerBSY (state %s)\n", con
 			else
 				context->sendACK();
 #ifdef RSSI_DEBUG
-if (rssi_debug > 1 )
+if (cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"%s: cakMX reached; sent %c (state %s)\n", context->getName(), b1 ? 'B':'A', getName());
 }
@@ -279,7 +279,7 @@ fprintf(stderr,"%s: cakMX reached; sent %c (state %s)\n", context->getName(), b1
 		} else if ( 1 == context->numCak_ ) {
 			// if SYN/ACK was sent in server mode then we don't want to use the timer
 #ifdef RSSI_DEBUG
-if (rssi_debug > 1 )
+if (cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"%s: arming ACK timer (state %s)\n", context->getName(), getName());
 }
@@ -287,7 +287,7 @@ fprintf(stderr,"%s: arming ACK timer (state %s)\n", context->getName(), getName(
 			context->ackTimer()->arm_rel( context->cakTO_ );
 		} else {
 #ifdef RSSI_DEBUG
-if (rssi_debug > 1 )
+if (cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"%s: skipping ACK (numCak: %d - max %d) (state %s)\n", context->getName(), context->numCak_, context->cakMX_, getName());
 }
@@ -301,7 +301,7 @@ fprintf(stderr,"%s: skipping ACK (numCak: %d - max %d) (state %s)\n", context->g
 
 	} catch ( RssiHeader::BadHeader ) {
 #ifdef RSSI_DEBUG
-if (rssi_debug > 2 )
+if (cpsw_rssi_debug > 2 )
 {
 fprintf(stderr, "%s: dropped (bad header)\n", context->getName());
 }
@@ -324,7 +324,7 @@ void CRssi::WAIT_SYN::extractConnectionParams(CRssi *context, RssiSynHeader &syn
 	context->peerOssMX_      = synHdr.getOssMX();
 
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 0 ) {
+if ( cpsw_rssi_debug > 0 ) {
 	fprintf(stderr, "RSSI Peer OSS Max: %d\n", synHdr.getOssMX());
 }
 #endif
@@ -332,7 +332,7 @@ if ( rssi_debug > 0 ) {
 	context->peerSgsMX_      = synHdr.getSgsMX();
 
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 0 ) {
+if ( cpsw_rssi_debug > 0 ) {
 	fprintf(stderr, "RSSI Peer SGS Max: %d\n", synHdr.getSgsMX());
 }
 #endif
@@ -383,7 +383,7 @@ bool CRssi::NOTCLOSED::handleSYN(CRssi *context, RssiSynHeader &synHdr)
 bool CRssi::LISTEN::handleSYN(CRssi *context, RssiSynHeader &synHdr)
 {
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 0 ) {
+if ( cpsw_rssi_debug > 0 ) {
 		fprintf(stderr, "%s SYN received, good checksum (state %s)\n", context->getName(), getName());
 }
 #endif
@@ -406,7 +406,7 @@ if ( rssi_debug > 0 ) {
 bool CRssi::CLNT_WAIT_SYN_ACK::handleSYN(CRssi *context, RssiSynHeader &synHdr)
 {
 #ifdef RSSI_DEBUG
-if ( rssi_debug > 0 ) {
+if ( cpsw_rssi_debug > 0 ) {
 		fprintf(stderr, "%s SYN received, good checksum (state %s)\n", context->getName(), getName());
 }
 #endif
@@ -496,7 +496,7 @@ void CRssi::NOTCLOSED::processRetransmissionTimeout(CRssi *context)
 		do {
 			context->stats_.rexSegments_++;
 #ifdef RSSI_DEBUG
-if (rssi_debug > 2 )
+if (cpsw_rssi_debug > 2 )
 {
 fprintf(stderr,"%s: retransmitting (state %s)\n", getName(), context->getName());
 }
@@ -565,7 +565,7 @@ BufChain bc;
 		if ( (hdr.getFlags() & RssiHeader::FLG_NUL) ) {
 			context->unOrderedSegs_.pop();
 #ifdef RSSI_DEBUG
-if (rssi_debug > 1 )
+if (cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"RX: %s  NUL dumped ", context->getName());
 hdr.dump(stderr, b->getSize() > hdr.getHSize());
@@ -575,7 +575,7 @@ fprintf(stderr," (state %s)\n", getName());
 		} else {
 			if ( ! context->outQ_->isFull() ) {
 #ifdef RSSI_DEBUG
-if (rssi_debug > 1 )
+if (cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"RX: %s  delivered  ", context->getName());
 hdr.dump(stderr, b->getSize() > hdr.getHSize());
@@ -594,7 +594,7 @@ fprintf(stderr," (state %s)\n", getName());
 			} else {
 				context->usrOEH()->enable();
 #ifdef RSSI_DEBUG
-if (rssi_debug > 1 )
+if (cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"RX: %s  NOT delivered  ", context->getName());
 hdr.dump(stderr, b->getSize() > hdr.getHSize());

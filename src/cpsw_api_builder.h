@@ -448,5 +448,4 @@ namespace IYamlSupport {
 	//
 	void dumpYamlFile(Entry top, const char *filename, const char *root_entry_name);
 };
-
 #endif

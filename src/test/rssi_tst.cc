@@ -14,7 +14,7 @@
 
 static void sh(int sig)
 {
-	rssi_debug=1;
+	cpsw_rssi_debug=1;
 }
 
 static void usage(const char *nm)

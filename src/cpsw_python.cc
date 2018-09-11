@@ -827,16 +827,6 @@ Hub hc(h);
 	return boost::python::tuple( l );
 }
 
-static void
-wrap_setRssiDebugLevel(int l)
-{
-#ifdef RSSI_DEBUG
-	rssi_debug = l;
-#else
-	throw NotFoundError("cpsw compiled with RSSI_DEBUG unset");
-#endif
-}
-
 // without the overload macros (using 'arg' within 'def') there
 // are problems when a default pointer is set to 0.
 // Complaints about mismatching python and c++ arg types (when using defaults)
@@ -862,6 +852,9 @@ BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_dumpConfigToYamlFile_ol,
 BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_dumpConfigToYamlString_ol,
                                  wrap_Path_dumpConfigToYamlString,
                                  1, 3 )
+BOOST_PYTHON_FUNCTION_OVERLOADS( setCPSWVerbosity_ol,
+                                 setCPSWVerbosity,
+                                 0, 2 )
 
 
 BOOST_PYTHON_MODULE(pycpsw)
@@ -885,6 +878,15 @@ BOOST_PYTHON_MODULE(pycpsw)
 	register_ptr_to_python< shared_ptr<std::string const> >();
 
 	def("getCPSWVersionString", getCPSWVersionString);
+	def("setCPSWVerbosity"    , setCPSWVerbosity    ,
+		setCPSWVerbosity_ol(
+			args("facility", "level"),
+            "\n"
+			"Set verbosity level for debugging messages of different\n"
+			"Facilities. Invocation w/o arguments prints a list of\n"
+			"currently supported facilities.\n"
+		)
+	);
 
 	// wrap 'IEntry' interface
 	class_<IEntry, boost::noncopyable>
@@ -1859,8 +1861,6 @@ BOOST_PYTHON_MODULE(pycpsw)
 	ExceptionTranslatorInstallDerived(MissingOnceTagError,          CPSWError);
 	ExceptionTranslatorInstallDerived(MissingIncludeFileNameError,  CPSWError);
 	ExceptionTranslatorInstallDerived(NoYAMLSupportError,           CPSWError);
-
-	def("setRssiDebug", wrap_setRssiDebugLevel, (arg("level")));
 
 }
 
