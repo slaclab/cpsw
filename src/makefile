@@ -22,6 +22,7 @@ GENERATED_SRCS += git_version_string.h
 GENERATED_SRCS += $(DOCS)
 
 VPATH+=:$(SRCDIR)/socks/
+VPATH+=:$(SRCDIR)/rssi_bridge/
 
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
@@ -65,6 +66,8 @@ cpsw_SRCS+= libSocksNegotiate4.c
 cpsw_SRCS+= libSocksNegotiate5.c
 cpsw_SRCS+= libSocksParseName.c
 cpsw_SRCS+= libSocksUtil.c
+cpsw_SRCS+= rpcMapLookup.c
+cpsw_SRCS+= prot_xdr.c
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h

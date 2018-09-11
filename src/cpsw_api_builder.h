@@ -140,6 +140,7 @@ typedef shared_ptr<IProtoStackBuilder> ProtoStackBuilder;
 class IProtoPort;
 typedef shared_ptr<IProtoPort>         ProtoPort;
 
+typedef const struct LibSocksProxy *LibSocksProxyPtr;
 
 class IProtoStackBuilder {
 public:
@@ -188,6 +189,7 @@ public:
 
 	virtual void               useRssi(bool)                       = 0; // default: NO
 	virtual bool               hasRssi()                           = 0;
+	virtual bool               hasRssiAndUdp()                     = 0;
 	virtual void               setRssiThreadPriority(int)          = 0;
 	virtual int                getRssiThreadPriority()             = 0;
 
@@ -226,6 +228,12 @@ public:
 
 	virtual void               setIPAddr(uint32_t)                 = 0;
 	virtual uint32_t           getIPAddr()                         = 0;
+
+	virtual void               setRssiBridgeIPAddr(uint32_t)       = 0;
+	virtual uint32_t           getRssiBridgeIPAddr()               = 0;
+
+	virtual void               setSocksProxy(LibSocksProxyPtr)     = 0;
+	virtual LibSocksProxyPtr   getSocksProxy()                     = 0;
 
 	virtual void               reset()                             = 0; // reset to defaults
 
@@ -275,7 +283,9 @@ public:
 	) = 0;
 #endif
 
-	virtual const char *getIpAddressString() const = 0;
+	virtual const char *getIpAddressString()  const = 0;
+	virtual const char *getSocksProxyString() const = 0;
+	virtual const char *getRssiBridgeString() const = 0;
 
 	static NetIODev create(const char *name, const char *ipaddr);
 };

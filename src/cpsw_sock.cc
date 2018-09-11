@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <socks/libSocks.h>
 
-CSockSd::CSockSd(int type, LibSocksProxy *proxy)
+CSockSd::CSockSd(int type, const LibSocksProxy *proxy)
 : sd_(-1),
   type_(type)
 {
@@ -39,7 +39,7 @@ void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
 	}
 }
 
-CSockSd::CSockSd(CSockSd &orig)
+CSockSd::CSockSd(const CSockSd &orig)
 : sd_(-1),
   type_(orig.type_)
 {

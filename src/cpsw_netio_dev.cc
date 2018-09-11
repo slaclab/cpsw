@@ -90,6 +90,17 @@ void CNetIODevImpl::dump(FILE *f) const
 	fprintf(f, "Peer: %s", ip_str_.c_str());
 }
 
+static int operator!=(const struct sockaddr_in &a, const struct sockaddr_in &b)
+{
+	return a.sin_family != b.sin_family || a.sin_addr.s_addr != b.sin_addr.s_addr || a.sin_port != b.sin_port;
+}
+
+static int operator!=(const LibSocksProxy &a, const LibSocksProxy &b)
+{
+	return a.version != b.version || a.address.sin != b.address.sin;
+}
+
+
 void CNetIODevImpl::addAtAddress(Field child, ProtoStackBuilder bldr)
 {
 IAddress::AKey         key  = getAKey();
@@ -99,6 +110,18 @@ std::vector<ProtoPort> myPorts;
 		bldr->setIPAddr( getIpAddress() );
 	} else if ( getIpAddress() != bldr->getIPAddr() ) {
 		throw ConfigurationError("CNetIODev: unexpected IP address");
+	}
+
+	if ( INADDR_NONE == bldr->getRssiBridgeIPAddr() ) {
+		bldr->setRssiBridgeIPAddr( getRssiBridgeIp() );
+	} else if ( getRssiBridgeIp() != bldr->getIPAddr() ) {
+		throw ConfigurationError("CNetIODev: unexpected RssiBridge IP address");
+	}
+
+	if ( bldr->getSocksProxy()->version == SOCKS_VERSION_NONE ) {
+		bldr->setSocksProxy( & getSocksProxy() );
+	} else if ( getSocksProxy() != * bldr->getSocksProxy() ) {
+		throw ConfigurationError("CNetIODev: unexpected SOCKS proxy");
 	}
 
 	getPorts( &myPorts );

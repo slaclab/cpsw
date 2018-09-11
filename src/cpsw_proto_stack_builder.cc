@@ -24,6 +24,9 @@
 
 #include <boost/make_shared.hpp>
 
+#include <socks/libSocks.h>
+#include <rssi_bridge/rpcMapService.h>
+
 using boost::make_shared;
 using boost::dynamic_pointer_cast;
 
@@ -62,6 +65,8 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		unsigned                   TDestMuxInpQueueDepth_;
 		int                        TDestMuxThreadPriority_;
 		in_addr_t                  IPAddr_;
+		struct LibSocksProxy       socksProxy_;
+		in_addr_t                  rssiBridgeIPAddr_;
 	public:
 		virtual void reset()
 		{
@@ -94,6 +99,8 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			TDestMuxInpQueueDepth_  = 0;
 			TDestMuxThreadPriority_ = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			IPAddr_                 = INADDR_NONE;
+			rssiBridgeIPAddr_       = INADDR_NONE;
+			socksProxy_.version     = SOCKS_VERSION_NONE;
 		}
 
 		CProtoStackBuilder()
@@ -111,6 +118,26 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		in_addr_t getIPAddr()
 		{
 			return IPAddr_;
+		}
+
+		void setRssiBridgeIPAddr(in_addr_t bridge)
+		{
+			rssiBridgeIPAddr_ = bridge;
+		}
+
+		in_addr_t getRssiBridgeIPAddr()
+		{
+			return rssiBridgeIPAddr_;
+		}
+
+		void setSocksProxy(const LibSocksProxy *proxy)
+		{
+			socksProxy_ = *proxy;
+		}
+
+		const LibSocksProxy *getSocksProxy()
+		{
+			return &socksProxy_;
 		}
 
 
@@ -144,7 +171,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual uint64_t        getSRPTimeoutUS()
 		{
 			if ( 0 == SRPTimeoutUS_ )
-				return hasRssi() ? 500000 : 10000;
+				return hasRssiAndUdp() ? 500000 : 10000;
 			return SRPTimeoutUS_;
 		}
 
@@ -156,7 +183,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual unsigned        getSRPRetryCount()
 		{
 			if ( (unsigned)-1 == SRPRetryCount_ )
-				return ( hasRssi() || hasTcp() ) ? 0 : 10;
+				return ( hasRssiAndUdp() || hasTcp() ) ? 0 : 10;
 			return SRPRetryCount_;
 		}
 
@@ -178,7 +205,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual bool            hasSRPDynTimeout()
 		{
 			if ( SRPDynTimeout_ < 0 )
-				return ! hasTDestMux() && ! hasRssi();
+				return ! hasTDestMux() && ! hasRssiAndUdp();
 			return SRPDynTimeout_ ? true : false;
 		}
 
@@ -280,7 +307,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual int             getUdpPollSecs()
 		{
 			if ( 0 >  UdpPollSecs_ ) {
-				if ( ! hasRssi() && ( ! hasSRP() || hasTDestMux() ) )
+				if ( ! hasRssiAndUdp() && ( ! hasSRP() || hasTDestMux() ) )
 					return 60;
 			}
 			return UdpPollSecs_;
@@ -292,6 +319,11 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		}
 
 		virtual bool            hasRssi()
+		{
+			return hasRssi_;
+		}
+
+		virtual bool            hasRssiAndUdp()
 		{
 			return hasRssi_ && hasUdp();
 		}
@@ -306,7 +338,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual int             getRssiThreadPriority()
 		{
-			return hasRssi() ? RssiThreadPriority_ : IProtoStackBuilder::NO_THREAD_PRIORITY;
+			return hasRssiAndUdp() ? RssiThreadPriority_ : IProtoStackBuilder::NO_THREAD_PRIORITY;
 		}
 
 		virtual void            useDepack(bool v)
@@ -367,7 +399,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual unsigned        getDepackLdFrameWinSize()
 		{
 			if ( 0 == DepackLdFrameWinSize_ )
-				return hasRssi() ? 1 : 5;
+				return hasRssiAndUdp() ? 1 : 5;
 			return DepackLdFrameWinSize_;
 		}
 
@@ -382,7 +414,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual unsigned        getDepackLdFragWinSize()
 		{
 			if ( 0 == DepackLdFragWinSize_ )
-				return hasRssi() ? 1 : 5;
+				return hasRssiAndUdp() ? 1 : 5;
 			return DepackLdFragWinSize_;
 		}
 
@@ -729,7 +761,7 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 #endif
 
 		// existing RSSI configuration must match the requested one
-		if ( bldr->hasRssi() ) {
+		if ( bldr->hasRssiAndUdp() ) {
 #ifdef PSBLDR_DEBUG
 	printf("  including RSSI\n");
 #endif
@@ -837,13 +869,47 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 			                                       bldr->getUdpPollSecs()
 			);
 		} else {
-			rval = CShObj::create< ProtoModTcp >( &dst,
+			struct sockaddr_in via = dst;
+
+			if ( INADDR_NONE != bldr->getRssiBridgeIPAddr() ) {
+				/* lookup the TCP address via the RPC mapping service of the bridge */
+				PortMap        map[1];      
+				unsigned       nMaps = sizeof(map)/sizeof(map[0]);
+				unsigned long  timeoutUS = 4000000; /* hardcoded for now */
+				CSockSd        sock( SOCK_STREAM, bldr->getSocksProxy() );
+
+				via.sin_addr.s_addr = bldr->getRssiBridgeIPAddr();
+				via.sin_port        = htons( rpcRelayServerPort() );
+
+				map[0].reqPort      = bldr->getTcpPort();
+				map[0].flags        = 0;
+
+				if ( bldr->hasRssi() ) {
+					map[0].flags |= MAP_PORT_DESC_FLG_RSSI;
+				}
+
+				if ( rpcMapLookup( &via, dup( sock.getSd() ), dst.sin_addr.s_addr, map, nMaps, timeoutUS ) ) {
+					fprintf(stderr, "RPC Lookup failed for port %u @ %s -- maybe no rssi_bridge running?\n", map[0].reqPort, inet_ntoa( via.sin_addr ) );
+					throw NotFoundError("RPC Lookup failed");
+				}
+
+				if ( 0 == map[0].actPort ) {
+					fprintf(stderr, "RPC Lookup for port %u @ %s produced no mapping (missing -p/-u on bridge?)\n", map[0].reqPort, inet_ntoa( via.sin_addr ) );
+					throw NotFoundError("RPC Lookup produced no mapping");
+				}
+
+				via.sin_port = htons( map[0].actPort );
+
+				rval = CShObj::create< ProtoModTcp >( &dst,
 			                                       bldr->getTcpOutQueueDepth(),
-			                                       bldr->getTcpThreadPriority()
-			);
+			                                       bldr->getTcpThreadPriority(),
+			                                       bldr->getSocksProxy(),
+				                                   &via
+				);
+			}
 		}
 
-		if ( bldr->hasRssi() ) {
+		if ( bldr->hasRssiAndUdp() ) {
 #ifdef PSBLDR_DEBUG
 	printf("  creating RSSI\n");
 #endif

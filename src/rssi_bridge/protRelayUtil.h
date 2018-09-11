@@ -1,8 +1,8 @@
 #ifndef RSSIB_PROT_RELAY_UTIL_H
 #define RSSIB_PROT_RELAY_UTIL_H
 
-#include <printErrMsg.h>
-#include <rpcMapService.h>
+#include "printErrMsg.h"
+#include "rpcMapService.h"
 
 #ifdef __cplusplus
 extern "C" {

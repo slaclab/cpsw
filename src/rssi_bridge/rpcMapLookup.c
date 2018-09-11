@@ -10,9 +10,9 @@
 #include <getopt.h>
 #include <unistd.h>
 
-#include <protRelayUtil.h>
+#include "protRelayUtil.h"
 
-#include <rpcMapService.h>
+#include "rpcMapService.h"
 
 unsigned short
 rpcRelayServerPort()

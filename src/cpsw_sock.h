@@ -27,13 +27,13 @@ private:
 	int            type_;
 	LibSocksProxy *proxy_;
 
-	CSockSd & operator=(CSockSd &orig);
+	CSockSd & operator=(const CSockSd &orig);
 
 public:
 
-	CSockSd(int type = SOCK_DGRAM, LibSocksProxy *proxy = 0);
+	CSockSd(int type = SOCK_DGRAM, const LibSocksProxy *proxy = 0);
 
-	CSockSd(CSockSd &orig);
+	CSockSd(const CSockSd &orig);
 
 	virtual void getMyAddr(struct sockaddr_in *addr_p);
 
