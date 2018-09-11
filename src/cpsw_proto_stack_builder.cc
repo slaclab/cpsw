@@ -225,6 +225,16 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			XprtPort_ = v;
 		}
 
+		virtual bool hasRssiBridge()
+		{
+			return INADDR_NONE != getRssiBridgeIPAddr();
+		}
+
+		virtual TransportProto  getXprt()
+		{
+			return hasRssiBridge() ? TCP : Xprt_;
+		}
+
 		virtual void            setUdpPort(unsigned v)
 		{
 			setXprtPort(v);
@@ -260,12 +270,12 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual unsigned        getUdpPort()
 		{
-			return Xprt_ == UDP ? XprtPort_ : 0;
+			return getXprt() == UDP ? XprtPort_ : 0;
 		}
 
 		virtual unsigned        getTcpPort()
 		{
-			return Xprt_ == TCP ? XprtPort_ : 0;
+			return getXprt() == TCP ? XprtPort_ : 0;
 		}
 
 		virtual void            setUdpOutQueueDepth(unsigned v)
@@ -399,7 +409,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual void            setDepackLdFrameWinSize(unsigned v)
 		{
-			if ( v > 10 )	
+			if ( v > 10 )
 				throw InvalidArgError("Requested depacketizer frame window too large");
 			DepackLdFrameWinSize_ = v;
 			useDepack( true );
@@ -414,7 +424,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual void            setDepackLdFragWinSize(unsigned v)
 		{
-			if ( v > 10 )	
+			if ( v > 10 )
 				throw InvalidArgError("Requested depacketizer frame window too large");
 			DepackLdFragWinSize_ = v;
 			useDepack( true );
@@ -518,7 +528,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual void            setTDestMuxOutQueueDepth(unsigned v)
 		{
-			TDestMuxOutQueueDepth_ = v;			
+			TDestMuxOutQueueDepth_ = v;
 			useTDestMux( true );
 		}
 
@@ -532,7 +542,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual void            setTDestMuxInpQueueDepth(unsigned v)
 		{
-			TDestMuxInpQueueDepth_ = v;			
+			TDestMuxInpQueueDepth_ = v;
 			useTDestMux( true );
 		}
 
@@ -776,7 +786,10 @@ if ( cpsw_psbldr_debug > 1 ) {
 
 #ifdef PSBLDR_DEBUG
 if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "makeProtoPort for %s port %d\n", bldr->hasUdp() ? "UDP" : "TCP" , bldr->hasUdp() ? bldr->getUdpPort() : bldr->getTcpPort());
+	fprintf(stderr, "makeProtoPort for %s port %d\n",
+		bldr->hasRssiBridge() ? "UDP (via bridge/TCP)" : (bldr->hasUdp() ? "UDP" : "TCP"),
+		bldr->hasUdp()        ? bldr->getUdpPort()     : bldr->getTcpPort()
+	);
 }
 #endif
 
@@ -788,7 +801,10 @@ if ( cpsw_psbldr_debug > 0 ) {
 
 #ifdef PSBLDR_DEBUG
 if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "makeProtoPort %s port %d found\n", bldr->hasUdp() ? "UDP" : "TCP" , bldr->hasUdp() ? bldr->getUdpPort() : bldr->getTcpPort());
+	fprintf(stderr, "        found %s port %d\n",
+		bldr->hasRssiBridge() ? "UDP (via bridge/TCP)" : (bldr->hasUdp() ? "UDP" : "TCP"),
+		bldr->hasUdp()        ? bldr->getUdpPort()     : bldr->getTcpPort()
+	);
 }
 #endif
 
@@ -921,7 +937,7 @@ if ( cpsw_psbldr_debug > 0 ) {
 
 			if ( INADDR_NONE != bldr->getRssiBridgeIPAddr() ) {
 				/* lookup the TCP address via the RPC mapping service of the bridge */
-				PortMap        map[1];      
+				PortMap        map[1];
 				unsigned       nMaps = sizeof(map)/sizeof(map[0]);
 				unsigned long  timeoutUS = 4000000; /* hardcoded for now */
 				CSockSd        sock( SOCK_STREAM, bldr->getSocksProxy() );
