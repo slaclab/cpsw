@@ -888,6 +888,8 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 					map[0].flags |= MAP_PORT_DESC_FLG_RSSI;
 				}
 
+				sock.init( &via, 0, false );
+
 				if ( rpcMapLookup( &via, dup( sock.getSd() ), dst.sin_addr.s_addr, map, nMaps, timeoutUS ) ) {
 					fprintf(stderr, "RPC Lookup failed for port %u @ %s -- maybe no rssi_bridge running?\n", map[0].reqPort, inet_ntoa( via.sin_addr ) );
 					throw NotFoundError("RPC Lookup failed");
@@ -899,14 +901,14 @@ bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVe
 				}
 
 				via.sin_port = htons( map[0].actPort );
-
-				rval = CShObj::create< ProtoModTcp >( &dst,
-			                                       bldr->getTcpOutQueueDepth(),
-			                                       bldr->getTcpThreadPriority(),
-			                                       bldr->getSocksProxy(),
-				                                   &via
-				);
 			}
+
+			rval = CShObj::create< ProtoModTcp >( &dst,
+			                                      bldr->getTcpOutQueueDepth(),
+			                                      bldr->getTcpThreadPriority(),
+			                                      bldr->getSocksProxy(),
+			                                      &via
+			);
 		}
 
 		if ( bldr->hasRssiAndUdp() ) {
