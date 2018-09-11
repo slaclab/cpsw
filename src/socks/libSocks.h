@@ -58,7 +58,7 @@ typedef struct LibSocksProxy {
  */
 
 int
-libSocksConnect(int sockfd, const struct sockaddr *destination, socklen_t addrlen, LibSocksProxy *viaProxy);
+libSocksConnect(int sockfd, const struct sockaddr *destination, socklen_t addrlen, const LibSocksProxy *viaProxy);
 
 /*
  * Parse a string into a LibSocksProxy struct. The string is

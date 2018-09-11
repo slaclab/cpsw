@@ -18,18 +18,56 @@
 #include <stdio.h>
 #include <socks/libSocks.h>
 
-CSockSd::CSockSd(int type, const LibSocksProxy *proxy)
-: sd_   (  -1),
-  type_ (type),
-  proxy_(   0)
+void
+CSockSd::reset(void)
 {
+const LibSocksProxy *orig;
+	/* This also can be used by the copy-constructor as it creates a
+	 * new socket
+	 */
 	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
 	}
-	if ( proxy ) {
-		proxy_  = new LibSocksProxy();
-		*proxy_ = *proxy;
+	if ( (orig = proxy_) ) {
+		proxy_  = new LibSocksProxy( *orig );
+//		*proxy_ = *orig;
 	}
+}
+
+CSockSd::CSockSd(int type, const LibSocksProxy *proxy)
+: sd_   ( -1    ),
+  type_ ( type  ),
+  proxy_( proxy )
+{
+	reset();
+}
+
+
+CSockSd::CSockSd(int type, const char *proxyDesc)
+: sd_   ( -1    ),
+  type_ ( type  ),
+  proxy_( 0     )
+{
+LibSocksProxy proxy;
+
+	if ( libSocksStrToProxy( &proxy, proxyDesc ) ) {
+		std::string msg = std::string("libSocksStrToProxy: unable to parse '") + std::string(proxyDesc) + std::string("'");
+		throw InvalidArgError( msg );
+	}
+
+	// 'reset' will make a copy
+	proxy_ = &proxy;
+
+	reset();
+}
+
+
+CSockSd::CSockSd(const CSockSd &orig)
+: sd_   ( -1          ),
+  type_ ( orig.type_  ),
+  proxy_( orig.proxy_ )
+{
+	reset();
 }
 
 void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
@@ -40,19 +78,6 @@ void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
 	}
 }
 
-CSockSd::CSockSd(const CSockSd &orig)
-: sd_   (        -1),
-  type_ (orig.type_),
-  proxy_(         0)
-{
-	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
-		throw InternalError("Unable to create socket");
-	}
-	if ( orig.proxy_ ) {
-		proxy_  = new LibSocksProxy();
-		*proxy_ = *orig.proxy_;
-	}
-}
 
 int
 CSockSd::getMTU()
@@ -102,7 +127,7 @@ struct sockaddr_in me;
 
 	// connect - filters any traffic from other destinations/fpgas in the kernel
 	if ( dest ) {
-		LibSocksProxy *proxy = ( SOCK_STREAM == type_ ? proxy_ : 0 );
+		const LibSocksProxy *proxy = ( SOCK_STREAM == type_ ? proxy_ : 0 );
 		if ( libSocksConnect( sd_, (struct sockaddr*)dest, sizeof(*dest), proxy ) )
 			throw IOError("connect failed ", errno);
 	}

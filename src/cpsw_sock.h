@@ -23,15 +23,21 @@ struct LibSocksProxy;
 
 class CSockSd {
 private:
-	int            sd_;
-	int            type_;
-	LibSocksProxy *proxy_;
+	int                  sd_;
+	int                  type_;
+	const LibSocksProxy *proxy_;
 
 	CSockSd & operator=(const CSockSd &orig);
 
+protected:
+
+	void reset();
+
 public:
 
-	CSockSd(int type = SOCK_DGRAM, const LibSocksProxy *proxy = 0);
+	CSockSd(int type             , const LibSocksProxy *proxy    );
+
+	CSockSd(int type = SOCK_DGRAM, const char      *proxydesc = 0);
 
 	CSockSd(const CSockSd &orig);
 
