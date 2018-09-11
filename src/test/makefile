@@ -25,15 +25,8 @@ udpsrv_SRCS+= udpsrv_mod_genadc.cc
 udpsrv_SRCS+= udpsrv_mod_mmio.cc
 
 udpsrv_LIBS_NO = cpswTstAux $(CPSW_LIBS)
-udpsrv_LIBS_YES= cpswTstAux pthread rt
+udpsrv_LIBS_YES= cpswTstAux cpsw.a pthread rt
 udpsrv_LIBS=$(udpsrv_LIBS_$(WITH_STATIC_LIBRARIES))
-
-rssi_bridge_SRCS = rssi_bridge.cc
-
-rssi_bridge_LIBS_NO = cpswTstAux $(CPSW_LIBS)
-rssi_bridge_LIBS_YES= cpswTstAux cpsw.a pthread rt
-rssi_bridge_LIBS=$(rssi_bridge_LIBS_$(WITH_STATIC_LIBRARIES))
-
 
 cpsw_path_tst_SRCS       = cpsw_path_tst.cc
 cpsw_path_tst_LIBS       = $(CPSW_LIBS)
@@ -119,7 +112,7 @@ TEST_AXIV_NO =cpsw_axiv_udp_tst
 TEST_AXIV    =NO
 DISABLED_TESTPROGRAMS=$(TEST_AXIV_$(TEST_AXIV))
 
-PROGRAMS = udpsrv rssi_bridge
+PROGRAMS = udpsrv
 include $(CPSW_DIR)/rules.mak
 
 # may override for individual test targets which will be

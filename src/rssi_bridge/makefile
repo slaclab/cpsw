@@ -24,19 +24,26 @@ DEP_HEADERS+=protRelayUtil.h
 rssi_bridge_SRCS+= rssi_bridge.cc
 rssi_bridge_SRCS+= daemonize.c
 rssi_bridge_SRCS+= printErrMsg.c
-rssi_bridge_SRCS+= protMap.c
 rssi_bridge_SRCS+= protMap_procs.c
 rssi_bridge_SRCS+= protRelay.c
+rssi_bridge_SRCS+= probeRelay.c
 rssi_bridge_SRCS+= protRelay_procs.c
 rssi_bridge_SRCS+= prot_xdr.c
 rssi_bridge_SRCS+= mcastSock.c
 rssi_bridge_SRCS+= mapClnt.c
 rssi_bridge_SRCS+= rpcMapServer.c
-rssi_bridge_SRCS+= rpcMapLookup.c
 
 rssi_bridge_LIBS_NO = cpswTstAux $(CPSW_LIBS)
 rssi_bridge_LIBS_YES= cpswTstAux cpsw.a pthread rt
 rssi_bridge_LIBS=$(rssi_bridge_LIBS_$(WITH_STATIC_LIBRARIES))
 
-PROGRAMS = rssi_bridge
+rssi_bqm_SRCS += rssi_bqm.cc
+rssi_bqm_SRCS += rpcMapLookup.c
+rssi_bqm_SRCS += prot_xdr.c
+
+rssi_bqm_LIBS_NO = cpswTstAux $(CPSW_LIBS)
+rssi_bqm_LIBS_YES= cpswTstAux cpsw.a pthread rt
+rssi_bqm_LIBS=$(rssi_bqm_LIBS_$(WITH_STATIC_LIBRARIES))
+
+PROGRAMS = rssi_bridge rssi_bqm
 include $(CPSW_DIR)/rules.mak

@@ -20,20 +20,26 @@
 
 #include <cpsw_yaml.h>
 
+#include <netdb.h>
+
 //#define NETIO_DEBUG
 
 CNetIODevImpl::CNetIODevImpl(Key &k, const char *name, const char *ip)
-: CDevImpl(k, name),
-  ip_str_(ip ? ip : "ANY")
+: CDevImpl       (k, name),
+  ip_str_        (ip ? ip : "ANY"),
+  rssi_bridge_ip_( INADDR_NONE )
 {
+	socks_proxy_.version = SOCKS_VERSION_NONE;
 	if ( INADDR_NONE == ( d_ip_ = ip ? inet_addr( ip ) : INADDR_ANY ) ) {
 		throw InvalidArgError( ip );
 	}
 }
 
 CNetIODevImpl::CNetIODevImpl(Key &k, YamlState &ypath)
-: CDevImpl(k, ypath)
+: CDevImpl       (k, ypath     ),
+  rssi_bridge_ip_( INADDR_NONE )
 {
+	socks_proxy_.version = SOCKS_VERSION_NONE;
 	if ( readNode(ypath, YAML_KEY_ipAddr, &ip_str_) ) {
 		if ( INADDR_NONE == ( d_ip_ = inet_addr( ip_str_.c_str() ) ) ) {
 			throw InvalidArgError( ip_str_.c_str() );
@@ -42,6 +48,28 @@ CNetIODevImpl::CNetIODevImpl(Key &k, YamlState &ypath)
 		ip_str_ = std::string("ANY");
 		d_ip_   = INADDR_ANY;
 	}
+	if ( readNode(ypath, YAML_KEY_socksProxy, &socks_proxy_str_) ) {
+		if ( libSocksStrToProxy( &socks_proxy_, socks_proxy_str_.c_str() ) ) {
+			throw InvalidArgError( socks_proxy_str_.c_str() );
+		}
+	} else {
+		const char *fromEnv = getenv("SOCKS_PROXY");
+		if ( fromEnv && libSocksStrToProxy( &socks_proxy_, fromEnv ) ) {
+			throw InvalidArgError( "Invalid proxy from env-var SOCKS_PROXY" );
+		}
+	}
+	if ( readNode(ypath, YAML_KEY_rssiBridge, &rssi_bridge_str_) ) {
+		int             err;
+		struct addrinfo hint, *aires = 0;
+		if ( (err = getaddrinfo( rssi_bridge_str_.c_str(), 0, &hint, &aires )) ) {
+			std::string msg = std::string("Invalid rssiBridge value; getaddrinfo returned") + std::string( gai_strerror( err ) );
+			throw InvalidArgError( msg );
+		}
+		rssi_bridge_ip_ = ((struct sockaddr_in *)aires->ai_addr)->sin_addr.s_addr;
+		if ( aires ) {
+			freeaddrinfo( aires );
+		}
+	}
 }
 
 void
@@ -49,6 +77,12 @@ CNetIODevImpl::dumpYamlPart(YAML::Node & node) const
 {
 	CDevImpl::dumpYamlPart( node );
 	writeNode(node, YAML_KEY_ipAddr, ip_str_);
+	if ( socks_proxy_str_.length() > 0 ) {
+		writeNode(node, YAML_KEY_socksProxy, socks_proxy_str_);
+	}
+	if ( rssi_bridge_str_.length() > 0 ) {
+		writeNode(node, YAML_KEY_rssiBridge, rssi_bridge_str_);
+	}
 }
 
 void CNetIODevImpl::dump(FILE *f) const

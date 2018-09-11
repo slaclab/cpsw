@@ -8,6 +8,22 @@
 
 #include <arpa/inet.h>
 
+#include <protRelayUtil.h>
+
+#define PROT_MAP_DEBUG
+
+static const PortMap *portMaps = 0;
+static unsigned       numMaps  = 0;
+static in_addr_t      ipAddr   = INADDR_NONE;
+
+void
+setPortMaps(in_addr_t addr, const PortMap *maps, unsigned nMaps)
+{
+	portMaps = maps;
+	numMaps  = nMaps;
+	ipAddr   = addr;
+}
+
 bool_t
 rssib_map_echo_0_svc(void *argp, void *result, struct svc_req *rqstp)
 {
@@ -18,31 +34,55 @@ rssib_map_echo_0_svc(void *argp, void *result, struct svc_req *rqstp)
 bool_t
 rssib_map_lkup_0_svc(struct MapReq *argp, struct MapReq *result, struct svc_req *rqstp)
 {
-	const char *num = getenv("NUM");
+int i,j;
 
 	result->ports.ports_len = 0;
 	result->ports.ports_val = 0;
 
-	if ( ! num )
-		return 0;
+#ifdef PROT_MAP_DEBUG
+	{
+	struct in_addr ina;
 
-	struct in_addr me;
-	struct in_addr you;
+	ina.s_addr = htonl( argp->ipAddr );
+	printf( "MAP: Lookup request for %s\n", inet_ntoa( ina ) );
+	}
+#endif
 
-	me.s_addr  = inet_addr(num);
-
-	you.s_addr = htonl(argp->ipAddr);
-
-	printf("LKUP (MAP) - checking %s == %s\n", num, inet_ntoa(you));
-
-	if ( me.s_addr == you.s_addr ) {
-		result->ipAddr = argp->ipAddr;
-		result->ports.ports_len            = 1;
+	if ( htonl( argp->ipAddr ) == ipAddr ) {
+		result->ipAddr          = argp->ipAddr;
+		result->ports.ports_len = argp->ports.ports_len;
 		result->ports.ports_val = mem_alloc( sizeof(result->ports.ports_val[0])*result->ports.ports_len );
-		result->ports.ports_val[0].hasRssi = 0;
-		result->ports.ports_val[0].portNum = 44;
+		if ( ! result->ports.ports_val ) {
+			/* no memory */
+			return 0;
+		}
+		for ( i=0; i<result->ports.ports_len; i++ ) {
+			result->ports.ports_val[i].portNum = 0;
 
-		printf("LKUP (MAP) OK\n");
+#ifdef PROT_MAP_DEBUG
+			printf("Checking requested port %u%s\n", argp->ports.ports_val[i].portNum, argp->ports.ports_val[i].hasRssi ? " (r)" : "" );
+#endif
+
+			for ( j = 0; j < numMaps; j++ ) {
+				if ( portMaps[j].reqPort == argp->ports.ports_val[i].portNum ) {
+#ifdef PROT_MAP_DEBUG
+			        printf("FOUND in slot %u", j);
+#endif
+					if ( !! argp->ports.ports_val[i].hasRssi == !! (portMaps[j].flags & MAP_PORT_DESC_FLG_RSSI) ) {
+						result->ports.ports_val[i].portNum = portMaps[j].actPort;
+#ifdef PROT_MAP_DEBUG
+			        	printf(" rssi MATCH\n");
+#endif
+					}
+#ifdef PROT_MAP_DEBUG
+					else {
+			        	printf(" rssi MISMATCH\n");
+					}
+#endif
+					break;
+				}
+			}
+		}
 		return 1;
 	}
 

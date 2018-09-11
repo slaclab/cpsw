@@ -13,6 +13,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 
 /*
  * SOCKS4 and SOCKS5 client implementation (partial). This is mostly aimed at the ssh proxy; hence
@@ -40,7 +41,9 @@ libSocksNegotiateV4(int sockfd, const struct sockaddr *destination);
 int
 libSocksNegotiateV5(int sockfd, const struct sockaddr *destination);
 
-typedef struct {
+#define SOCKS_VERSION_NONE (-1)
+
+typedef struct LibSocksProxy {
 	int    version; /* <0 (no proxy), 4 or 5 */
 	union {
 		struct sockaddr_in sin;

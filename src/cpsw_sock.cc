@@ -16,15 +16,18 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <libSocks.h>
-#include <pthread.h>
+#include <socks/libSocks.h>
 
-CSockSd::CSockSd(int type)
+CSockSd::CSockSd(int type, LibSocksProxy *proxy)
 : sd_(-1),
   type_(type)
 {
 	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
+	}
+	if ( proxy ) {
+		proxy_  = new LibSocksProxy();
+		*proxy_ = *proxy;
 	}
 }
 
@@ -43,6 +46,10 @@ CSockSd::CSockSd(CSockSd &orig)
 	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
 	}
+	if ( orig.proxy_ ) {
+		proxy_  = new LibSocksProxy();
+		*proxy_ = *orig.proxy_;
+	}
 }
 
 int
@@ -54,35 +61,6 @@ socklen_t sl = sizeof(mtu);
 		throw InternalError("getsockopt(IP_MTU) failed", errno);
 	}
 	return mtu;
-}
-
-static LibSocksProxy theProxy;
-
-static pthread_once_t *
-getOnceKey()
-{
-static pthread_once_t theOnce = PTHREAD_ONCE_INIT;
-	return &theOnce;
-}
-
-static void initProxy()
-{
-	if ( libSocksStrToProxy( &theProxy, getenv( "SOCKS_PROXY" ) ) ) {
-		fprintf( stderr, "Please check the SOCKS_PROXY environment variable\n" );
-		throw InternalError( "libSocksStrToProxy failed" );
-	}
-}
-
-static LibSocksProxy *
-getProxy()
-{
-int err;
-
-	if ( (err = pthread_once( getOnceKey(), initProxy )) ) {
-		throw InternalError( "pthread_once failed", err );
-	}
-
-	return &theProxy;
 }
 
 void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
@@ -122,7 +100,7 @@ struct sockaddr_in me;
 
 	// connect - filters any traffic from other destinations/fpgas in the kernel
 	if ( dest ) {
-		LibSocksProxy *proxy = ( SOCK_STREAM == type_ ? getProxy() : 0 );
+		LibSocksProxy *proxy = ( SOCK_STREAM == type_ ? proxy_ : 0 );
 		if ( libSocksConnect( sd_, (struct sockaddr*)dest, sizeof(*dest), proxy ) )
 			throw IOError("connect failed ", errno);
 	}
@@ -130,5 +108,8 @@ struct sockaddr_in me;
 
 CSockSd::~CSockSd()
 {
+	if ( proxy_ ) {
+		delete proxy_;
+	}
 	close( sd_ );
 }

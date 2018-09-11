@@ -18,19 +18,22 @@ DEP_HEADERS += udpsrv_stream_state_monitor.h
 DEP_HEADERS += udpsrv_util.h
 DEP_HEADERS += udpsrv_cutil.h
 
-VPATH       += $(SRCDIR)/../
-INCLUDES    += $(SRCDIR)/../
+#VPATH       += $(SRCDIR)/../
+#VPATH       += $(SRCDIR)/../socks
+#INCLUDES    += $(SRCDIR)/../
+#INCLUDES    += $(SRCDIR)/../socks
 cpswTstAux_SRCS += crc32-le-tbl-4.c
 cpswTstAux_SRCS += udpsrv_port.cc
 cpswTstAux_SRCS += udpsrv_util.cc
 cpswTstAux_SRCS += udpsrv_stream_state_monitor.cc
-cpswTstAux_SRCS += cpsw_thread.cc
-cpswTstAux_SRCS += cpsw_event.cc
-cpswTstAux_SRCS += cpsw_obj_cnt.cc
-cpswTstAux_SRCS += cpsw_rssi.cc
-cpswTstAux_SRCS += cpsw_rssi_states.cc
-cpswTstAux_SRCS += cpsw_rssi_proto.cc
-cpswTstAux_SRCS += cpsw_rssi_timer.cc
+#cpswTstAux_SRCS += cpsw_thread.cc
+#cpswTstAux_SRCS += cpsw_event.cc
+#cpswTstAux_SRCS += cpsw_obj_cnt.cc
+#cpswTstAux_SRCS += cpsw_rssi.cc
+#cpswTstAux_SRCS += cpsw_rssi_states.cc
+#cpswTstAux_SRCS += cpsw_rssi_proto.cc
+#cpswTstAux_SRCS += cpsw_rssi_timer.cc
+#cpswTstAux_SRCS += cpsw_sock.cc
 
 STATIC_LIBRARIES+=cpswTstAux
 

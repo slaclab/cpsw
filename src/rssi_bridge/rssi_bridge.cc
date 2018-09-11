@@ -26,6 +26,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <rpcMapService.h>
+#include <rpc/rpc.h>
+
 using boost::make_shared;
 
 #define RSSI_BR_DEBUG
@@ -49,14 +52,16 @@ typedef shared_ptr<CMover> Mover;
 
 class Bridge : public ITcpConnHandler {
 private:
-	Mover     udpToTcp_;
-	Mover     tcpToUdp_;
-	ProtoPort udpTop_;
-	ProtoPort tcpTop_;
-	unsigned  flags_;
+	Mover          udpToTcp_;
+	Mover          tcpToUdp_;
+	ProtoPort      udpTop_;
+	ProtoPort      tcpTop_;
+	unsigned       flags_;
+	unsigned short peerPort_;
+	unsigned short myPort_;
 
 public:
-	typedef enum { NONE = 0, RSSI=1, DEBUG=2, ALWAYSCONN=4 } Flags;
+	typedef enum { NONE = 0, RSSI=1, DEBUG=2, ALWAYSCONN=4, INFO=8 } Flags;
 
 	Bridge(const char *peerIp, unsigned short peerPort, unsigned short myPort, Flags flags);
 
@@ -73,6 +78,18 @@ public:
 
 	virtual void up();
 	virtual void down();
+
+	virtual unsigned short
+	getPeerPort()
+	{
+		return peerPort_;
+	}
+
+	virtual unsigned short
+	getPort()
+	{
+		return myPort_;
+	}
 
 	void shutdown();
 
@@ -116,7 +133,8 @@ CMover::~CMover()
 }
 
 Bridge::Bridge(const char *peerIp, unsigned short peerPort, unsigned short myPort, Flags flags)
-: flags_(flags)
+: flags_   ( flags    ),
+  peerPort_( peerPort )
 {
 TcpConnHandler connHdlr = (flags & Bridge::ALWAYSCONN) ? TcpConnHandler() : this;
 
@@ -124,8 +142,12 @@ UdpPort   udpPrt  = IUdpPort::create( NULL, 0, 0, 0 );
 TcpPort   tcpPrt  = ITcpPort::create( NULL, myPort, connHdlr );
 
 		if ( 0 == myPort ) {
-			printf("Peer/UDP port %hu served by our TCP port %hu\n", peerPort, tcpPrt->getTcpPort());
+			if ( ( flags & Bridge::INFO ) ) {
+				printf("Peer/UDP port %hu served by our TCP port %hu\n", peerPort, tcpPrt->getTcpPort());
+			}
 		}
+
+		myPort_ = tcpPrt->getTcpPort();
 
 		if ( useRssi() ) {
 			udpTop_ = CRssiPort::create( false );
@@ -202,7 +224,7 @@ Bridge::~Bridge()
 static void
 usage(const char *nm)
 {
-	fprintf(stderr,"Usage: %s [-hdC] -a <dest_ip> [-p <dst_port>[:<tcp_srv_port>]] [-u <dst_port>[:<tcp_srv_port>]]\n", nm);
+	fprintf(stderr,"Usage: %s [-hdCR] -a <dest_ip> [-p <dst_port>[:<tcp_srv_port>]] [-u <dst_port>[:<tcp_srv_port>]]\n", nm);
 	fprintf(stderr,"       RSSI <-> TCP bridge\n");
 	fprintf(stderr,"       -a <dest_ip>              : remote address where a RSSI server is listening.\n");
 	fprintf(stderr,"       -p <dst_port>[:<tcp_port>]: <dst_port> identifies the remote UDP port and <tcp_port>\n");
@@ -225,25 +247,55 @@ usage(const char *nm)
 	fprintf(stderr,"       -C                        : Always connect UDP side. If this is omitted\n");
 	fprintf(stderr,"                                   then connections on the UDP side are only\n");
 	fprintf(stderr,"                                   initiated when a TCP connection is accepted\n");
+	fprintf(stderr,"       -R                        : Do not start the RPC service\n");
+	fprintf(stderr,"       -v                        : Increase verbosity\n");
 }
 
 #define DFLT_PORT 8192
+#define DFLT_RSSI 0
 
 typedef std::pair<unsigned short, unsigned short> PP;
+
+static std::vector< PortMap > portMaps;
 
 int
 main(int argc, char **argv)
 {
-const char    *peerIp      = "127.0.0.1";
-int            rval        = 1;
-int            opt;
-Bridge::Flags  flags       = Bridge::NONE;
-uint64_t       rssiMsk     = 0;
-uint64_t       rssiBit     = 1;
+const char        *peerIp      = "127.0.0.1";
+int                rval        = 1;
+int                opt;
+Bridge::Flags      flags       = Bridge::NONE;
+uint64_t           rssiMsk     = 0;
+uint64_t           rssiBit     = 1;
+int                useRpc      = 1;
+in_addr_t          peer;
+const char        *opts        = "hRCp:u:a:dv";
+int                verbose     = 0;
+struct sockaddr_in mcsa;
 
 std::vector< PP > ports;
 
-	while ( (opt = getopt(argc, argv, "hCp:u:a:d")) > 0 ) {
+	while ( (opt = getopt(argc, argv, opts )) > 0 ) {
+		switch (opt ) {
+			case 'R':
+				useRpc = 0;
+			break;
+
+			default:
+			break;
+		}
+	}
+
+	optind = 1;
+
+	if ( useRpc ) {
+		if ( rpcProbeRelay( &mcsa ) ) {
+			fprintf(stderr,"Unable to contact RELAY service\n");
+			return 1;
+		}
+	}
+
+	while ( (opt = getopt(argc, argv, "hRCp:u:a:d")) > 0 ) {
 		switch (opt) {
 			case 'h':
 				rval = 0;
@@ -268,14 +320,14 @@ std::vector< PP > ports;
 					st = (2 != sscanf(optarg, "%hi:%hi", &peer, &me) );
 				} else {
 					st = (1 != sscanf(optarg, "%hi", &peer));
-					me = peer;
+					me = useRpc ? 0 : peer;
 				}
 				if ( st ) {
 					fprintf(stderr,"Error: -%c argument misformed\n", opt);
 					return rval;
 				}
 				for ( std::vector<PP>::const_iterator it=ports.begin(); it != ports.end(); ++it ) {
-					if ( it->first == peer || it->second == me ) {
+					if ( it->first == peer || (it->second == me && me != 0) ) {
 						fprintf(stderr,"Error: ports cannot be used multiple times\n");
 						return rval;
 					}
@@ -292,22 +344,31 @@ std::vector< PP > ports;
 				break;
 
 			case 'a':
-				if ( INADDR_NONE == inet_addr( optarg ) ) {
-					fprintf(stderr,"Error: invalid IP address in -%c\n", opt);
-					return rval;
-				}
 				peerIp = optarg;
+				break;
+			case 'R':
+				/* already done above */
+				useRpc = 0;
+				break;
+
+			case 'v':
+				verbose++;
 				break;
 		}
 	}
 
+	peer = inet_addr( peerIp );
+	if ( INADDR_NONE == peer ) {
+		fprintf(stderr,"Error: invalid IP address in -%c\n", opt);
+		return rval;
+	}
+
 	// Allow only a single instance for a given destination IP
 	{
-	in_addr_t dst = inet_addr( peerIp );
 	char      fnam[256];
 	int       fd;
 
-		snprintf(fnam, sizeof(fnam), "/var/lock/rssi_bridge.%x", ntohl( dst ) );
+		snprintf(fnam, sizeof(fnam), "/var/lock/rssi_bridge.%x", ntohl( peer ) );
 
 		if ( (fd = open( fnam, O_RDONLY | O_CREAT, 0444) ) < 0 ) {
 			perror("Unable to open lock file");
@@ -334,7 +395,10 @@ std::vector< PP > ports;
 	}
 
 	if ( ports.empty() ) {
-		ports.push_back( PP( DFLT_PORT, DFLT_PORT ) );
+		ports.push_back( PP( DFLT_PORT, useRpc ? 0 : DFLT_PORT ) );
+		if ( DFLT_RSSI ) {
+			rssiMsk |= 1;
+		}
 	}
 
 try {
@@ -342,16 +406,43 @@ try {
 
 	rssiBit = 1;
 
+	if ( verbose || !useRpc ) {
+		flags = (Bridge::Flags)(flags | Bridge::INFO);
+	}
+
 	for ( std::vector<PP>::const_iterator it = ports.begin(); it != ports.end(); ++it ) {
 		Bridge::Flags f = flags;
 		if ( (rssiBit & rssiMsk) ) {
 			f = (Bridge::Flags)(f | Bridge::RSSI);
 		}
 		bridges.push_back( make_shared<Bridge>( peerIp, it->first, it->second, f ) );
+		shared_ptr<Bridge> b = bridges.back();
+
+		PortMap            m;
+		m.reqPort = b->getPeerPort();	
+		m.actPort = b->getPort();
+		m.flags   = 0;
+		if ( b->useRssi() ) {
+			m.flags |= MAP_PORT_DESC_FLG_RSSI;
+		}
+		portMaps.push_back( m );
+		
 		rssiBit <<= 1;
 	}
 
-	pause();
+	if ( useRpc ) {
+		SVCXPRT *mapSvc;
+		if ( ! (mapSvc = rpcMapServer( &mcsa, peer, &portMaps[0], portMaps.size() )) )
+		{
+			fprintf(stderr, "Unable to start RPC MAP server\n" );
+			return 1;
+		}
+		svc_run();
+	} else {
+		pause();
+	}
+
+	/* Never get here */
 
 } catch (CPSWError &e) {
 	std::cerr <<  e.getInfo() << "\n";

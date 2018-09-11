@@ -19,15 +19,19 @@ using boost::shared_ptr;
 class CSockSd;
 typedef shared_ptr<CSockSd> SockSd;
 
+struct LibSocksProxy;
+
 class CSockSd {
 private:
-	int sd_;
-	int type_;
+	int            sd_;
+	int            type_;
+	LibSocksProxy *proxy_;
+
 	CSockSd & operator=(CSockSd &orig);
 
 public:
 
-	CSockSd(int type = SOCK_DGRAM);
+	CSockSd(int type = SOCK_DGRAM, LibSocksProxy *proxy = 0);
 
 	CSockSd(CSockSd &orig);
 

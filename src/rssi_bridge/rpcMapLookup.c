@@ -12,41 +12,63 @@
 
 #include <protRelayUtil.h>
 
+#include <rpcMapService.h>
+
+unsigned short
+rpcRelayServerPort()
+{
+	return RELAY_SERVER_PORT;
+}
+
 int
-rpcMapLookup(in_addr_t ipAddr, unsigned short *ports, unsigned num_ports, unsigned long timeoutUS)
+rpcMapLookup(struct sockaddr_in *srva, int sd, in_addr_t ipAddr, PortMap *ports, unsigned num_ports, unsigned long timeoutUS)
 {
 CLIENT             *clnt = 0;
 struct timeval      tout;
 
 int                 stat;
-struct sockaddr_in  srvr;
-int                 sd;
-int                 result;
-PortDesc            d[num_ports];
 MapReq              req;
 MapReq              res;
 int                 rval = 1;
 int                 i;
+struct PortDesc     reqArg[num_ports];
+
+	for ( i=0; i<num_ports; i++ ) {
+		reqArg[i].portNum = ports[i].reqPort;
+		reqArg[i].hasRssi = !!(ports[i].flags & MAP_PORT_DESC_FLG_RSSI);
+		ports[i].actPort  = 0;
+	}
 
 	req.ipAddr          = ntohl( ipAddr );
-	res.ports.ports_len = num_ports;
-	res.ports.ports_val = num_ports ? ports : 0;
+	req.ports.ports_len = num_ports;
+	req.ports.ports_val = reqArg;
 
-	srvr.sin_family      = AF_INET;
-	srvr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
-	srvr.sin_port        = htons( RELAY_SERVER_PORT );
+	res.ports.ports_len = 0;
+	res.ports.ports_val = 0;
 
-	if ( (sd = socket( AF_INET, SOCK_STREAM, 0 )) < 0 ) {
-		perror("Creating socket(SOCK_STREAM)");
-		goto bail;
+	if ( 0 == ntohs( srva->sin_port ) ) {
+		srva->sin_port   = htons( RELAY_SERVER_PORT );
 	}
 
-	if ( connect(sd, (struct sockaddr*)&srvr, sizeof(srvr)) ) {
-		perror("Unable to connect to server");
-		goto bail;
+	if ( sd < 0 ) {
+
+		if ( (sd = socket( AF_INET, SOCK_STREAM, 0 )) < 0 ) {
+			perror("Creating socket(SOCK_STREAM)");
+			goto bail;
+		}
+
+		if ( connect(sd, (struct sockaddr*)srva, sizeof(*srva)) ) {
+			perror("Unable to connect to server");
+			goto bail;
+		}
+
+	} else {
+		if ( -1 == (sd = dup( sd )) ) {
+			perror("Unable to dup sd\n");
+		}
 	}
 
-	if ( ! (clnt = clnttcp_create( &srvr, RSSIB_REL, RSSIB_REL_V0, &sd, 0, 0)) ) {
+	if ( ! (clnt = clnttcp_create( srva, RSSIB_REL, RSSIB_REL_V0, &sd, 0, 0)) ) {
 		clnt_pcreateerror("127.0.0.1");
 		fprintf(stderr,"\nERROR: unable to create RELAY client\n");
 		goto bail;
@@ -74,7 +96,7 @@ int                 i;
 	}
 
 	for ( i=0; i<num_ports; i++ ) {
-		ports[i] = (unsigned short)res->ports.ports_val[i];
+		ports[i].actPort = (unsigned short)res.ports.ports_val[i].portNum;
 	}
 
 	if ( ! clnt_freeres( clnt, (xdrproc_t)xdr_MapReq, (caddr_t)&res ) ) {

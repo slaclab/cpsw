@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include "daemonize.h"
 #include <sys/wait.h>
+#include <syslog.h>
 
 pid_t
 daemonize()
@@ -91,11 +92,11 @@ int   stat;
 	close( 1 );
 	close( 2 );
 
-	if ( dup( nulfd ) )
+	if ( -1 == dup( nulfd ) )
 		goto bail;
-	if ( dup( nulfd ) )
+	if ( -1 == dup( nulfd ) )
 		goto bail;
-	if ( dup( nulfd ) )
+	if ( -1 == dup( nulfd ) )
 		goto bail;
 
 	close( nulfd );
@@ -111,8 +112,10 @@ int   stat;
 	return (pid_t)0;
 
 bail:
+	syslog( LOG_ERR, "daemonize: FAILED\n");
 	gchild = (pid_t) -1;
-	(void)write( peip[1], &gchild, sizeof(gchild) );
+	/* silence warning about unused result */
+	if ( write( peip[1], &gchild, sizeof(gchild) ) );
 	exit(1);
 	/* never get here */
 	return (pid_t)-1;
