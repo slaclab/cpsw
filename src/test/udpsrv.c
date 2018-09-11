@@ -21,7 +21,7 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include <errno.h>
-#include <crc32-le-tbl-4.h>
+#include "crc32-le-tbl-4.h"
 
 #define CMD_MSK    (0x3fffffff)
 #define CMD_WR(a)  (0x40000000 | (((a)>>2)&CMD_MSK))
