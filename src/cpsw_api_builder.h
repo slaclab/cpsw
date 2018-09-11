@@ -231,6 +231,7 @@ public:
 
 	virtual void               setRssiBridgeIPAddr(uint32_t)       = 0;
 	virtual uint32_t           getRssiBridgeIPAddr()               = 0;
+	virtual bool               hasRssiBridge()                     = 0;
 
 	virtual void               setSocksProxy(LibSocksProxyPtr)     = 0;
 	virtual LibSocksProxyPtr   getSocksProxy()                     = 0;

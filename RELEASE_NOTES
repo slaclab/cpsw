@@ -1,3 +1,35 @@
+    Feature: NetIODev supports 'rssiBridge' property. When set then
+        CPSW contacts the bridge's RPC service to learn the TCP port
+        serving <ipAddress>:<port> on the target.
+        I.e., if the 'normal' YAML says
+
+          ipAddr: 192.168.2.10
+          ...
+            UDP:
+              port: 8198
+            RSSI:
+
+        and is changed into
+
+          ipAddr:     192.168.2.10
+          rssiBridge: cpu-b084-hp01
+          ...
+            UDP:
+              port: 8198
+            RSSI:
+
+        then the code uses a RSSI bridge at cpu-b084-hp01 to
+        proxy traffic to 192.168.2.10:8198 off that bridge.
+
+        The RPC service takes care of remapping UDP to TCP
+        ports in case multiple bridges are running (connecting
+        to different targets).
+     
+
+ 
+    Feature: NetIODev supports 'socksProxy' property (SOCKS_PROXY env-
+        var is also supported) for selecting a proxy.
+
 	Feature: Added SOCKS support for TCP connection (code stolen from
 	    my implementation for EPICS.
 

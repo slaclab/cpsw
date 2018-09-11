@@ -744,7 +744,7 @@ of 40 characters where each character is aligned on a
 NetIODev is -- for most applications -- the 'root' device which
 handles all communication with a remote endpoint.
 
-NetIODev itself defines only a single property: the IP address
+The main property supported by NetIODev is the IP address
 of the peer:
 
         myNetIODev:
@@ -774,6 +774,41 @@ instance is required. These could be attached to a dummy root Dev:
               YAML_KEY_class:  NetIODev
               YAML_KEY_ipAddr: 10.0.0.2
               YAML_KEY_at: # empty 'at' -- no addressing info needed
+
+In addition to the peer's address the following settings help
+with tunneling/proxying connections over TCP and even SSH:
+
+        myRoot:
+          YAML_KEY_class:       NetIODev
+          YAML_KEY_rssiBridge: <rssi_bridge_ip_or_name>
+          YAML_KEY_socksProxy: <socks_proxy_ip_or_name>[:<socks_proxy_port>]
+
+If the `YAML_KEY_rssiBridge` property is set then it points to a computer
+with direct connectivity to the target. On that computer a properly configured
+`rssi_bridge` must be running. Such a bridge serves as a proxy for RSSI/UDP
+communication:
+
+        CPSW <-- TCP connection --> rssi_bridge <-- RSSI/UDP connection --> target
+
+If `rssiBridge` is defined in YAML then all `UDP` modules are automatically
+converted into `TCP`.
+
+In addition to `YAML_KEY_rssiBridge` the `YAML_KEY_socksProxy` property
+may be used for tunneling TCP connection(s) over SSH. Typically, an
+SSH connection is started with the `-D` option ("dynamic port forwarding")
+letting the SOCKS protocol (which is supported by CPSW) taking care of
+the rest. Alternatively to `YAML_KEY_socksProxy`, the environment-variable
+`SOCKS_PROXY` may also be used for defining a SOCKS proxy.
+
+It is often convenient to start an `rssi_bridge` via ssh:
+
+        ssh -D1080 -tt user@host <path>/rssi_bridge -a <target_ip> -p 8198 -u 8197 <other ports>
+
+In most cases `YAML_KEY_socksProxy` is simply set to `localhost`.
+
+Note that the SOCKS proxy is ignored if no TCP is defined in the YAML (explicitly
+or implicitly due to `YAML_KEY_rssiBridge`).
+
 
 #### 2.8.1 NetIODev Address Objects
 
