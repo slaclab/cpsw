@@ -100,14 +100,14 @@ RssiTimer *timer = context->timers_.getFirstToExpire();
 #ifdef RSSI_DEBUG
 if (rssi_debug > 2 )
 {
-	printf("%s: scheduling timer %s (state %s)\n", context->getName(), timer ? timer->getName() : "<NONE>", getName());
+	fprintf(stderr, "%s: scheduling timer %s (state %s)\n", context->getName(), timer ? timer->getName() : "<NONE>", getName());
 }
 #endif
 	if ( ! context->eventSet_->processEvent(true, timer ? timer->getTimeout() : NULL ) ) {
 #ifdef RSSI_DEBUG
 if (rssi_debug > 2 )
 {
-		printf("%s: canceling+processing timer %s (state %s)\n", context->getName(), timer ? timer->getName() : "<NONE>", getName());
+		fprintf(stderr, "%s: canceling+processing timer %s (state %s)\n", context->getName(), timer ? timer->getName() : "<NONE>", getName());
 }
 #endif
 		timer->cancel();
@@ -147,7 +147,7 @@ bool     hasPayload;
 		RssiHeader hdr( b->getPayload(), b->getSize(), context->verifyChecksum_, RssiHeader::READ );
 
 		if ( ! hdr.getChkOk() ) {
-			printf("%s dropped, bad checksum\n", getName());
+			fprintf(stderr, "%s dropped, bad checksum\n", getName());
 			context->stats_.badChecksum_++;
 			// DROP
 			return;
@@ -322,9 +322,20 @@ void CRssi::SERV_WAIT_SYN_ACK::handleRxEvent(CRssi *context, IIntEventSource *sr
 void CRssi::WAIT_SYN::extractConnectionParams(CRssi *context, RssiSynHeader &synHdr)
 {
 	context->peerOssMX_      = synHdr.getOssMX();
-printf("RSSI Peer OSS Max: %d\n", synHdr.getOssMX());
+
+#ifdef RSSI_DEBUG
+if ( rssi_debug > 0 ) {
+	fprintf(stderr, "RSSI Peer OSS Max: %d\n", synHdr.getOssMX());
+}
+#endif
+
 	context->peerSgsMX_      = synHdr.getSgsMX();
-printf("RSSI Peer SGS Max: %d\n", synHdr.getSgsMX());
+
+#ifdef RSSI_DEBUG
+if ( rssi_debug > 0 ) {
+	fprintf(stderr, "RSSI Peer SGS Max: %d\n", synHdr.getSgsMX());
+}
+#endif
 
 	if ( context->peerOssMX_ > context->unAckedSegs_.getCapa() )
 		context->unAckedSegs_.resize( context->peerOssMX_ );

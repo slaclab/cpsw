@@ -375,19 +375,32 @@ int           maxSegSize;
 	if ( mtuQuerier_ ) {
 		maxSegSize  = mtuQuerier_->getRxMTU();
 		maxSegSize -= RssiHeader::getHSize( RssiHeader::getSupportedVersion() );
-printf("RSSI max. segment size from querier %d\n", maxSegSize);
+#ifdef RSSI_DEBUG
+if ( rssi_debug > 0 ) {
+	fprintf(stderr, "RSSI max. segment size from querier %d\n", maxSegSize);
+}
+#endif
 		if ( maxSegSize <= 0 ) {
 			maxSegSize = MAX_SEGMENT_SIZE;
-printf("RSSI max. segment size from querier (hard override) %d\n", maxSegSize);
+#ifdef RSSI_DEBUG
+if ( rssi_debug > 0 ) {
+	fprintf(stderr,"RSSI max. segment size from querier (hard override) %d\n", maxSegSize);
+}
+#endif
 		}
 	} else {
 		maxSegSize = MAX_SEGMENT_SIZE;
-printf("RSSI max. segment size (hard) %d\n", maxSegSize);
-	}
-if ( 0 ) {
-	maxSegSize = 504;
-printf("RSSI max. segment size (clip) %d\n", maxSegSize);
+#ifdef RSSI_DEBUG
+if ( rssi_debug > 0 ) {
+	fprintf(stderr, "RSSI max. segment size (hard) %d\n", maxSegSize);
 }
+#endif
+	}
+#ifdef RSSI_DEBUG
+if ( rssi_debug > 0 ) {
+	fprintf(stderr, "RSSI max. segment size (clip) %d\n", maxSegSize);
+}
+#endif
 
 	synHdr.setSgsMX( maxSegSize       );
 	synHdr.setRexTO( RETRANSMIT_TIMEO );
