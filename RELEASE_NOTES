@@ -1,3 +1,5 @@
+R3.6.5
+
     Guard:  Reject newer YAML properties which require a more recent
             version of CPSW:
               depack/protocolVersion:
