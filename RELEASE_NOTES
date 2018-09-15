@@ -24,8 +24,6 @@
         The RPC service takes care of remapping UDP to TCP
         ports in case multiple bridges are running (connecting
         to different targets).
-     
-
  
     Feature: NetIODev supports 'socksProxy' property (SOCKS_PROXY env-
         var is also supported) for selecting a proxy.
