@@ -78,6 +78,19 @@ R3.7.branch
 
 	Feature: added 'getPath()', 'getConstPath()' to ICommand
 
+R3.6.6
+
+    Bugfix: cpsw_bufq.cc: If multiple threads sleep in
+            CEventBufSync::getSlot() some may never wake up!
+
+R3.6.5 (merged)
+
+    Guard:  Reject newer YAML properties which require a more recent
+            version of CPSW:
+              depack/protocolVersion:
+              rssiBridge
+              socksProxy
+
 R3.6.4
 
     Added i686 and zynq (arm) targets
