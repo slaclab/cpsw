@@ -136,10 +136,32 @@ bool CEventBufSync::getSlot(bool wait, const CTimeout *abs_timeout)
 
 void CEventBufSync::putSlot()
 {
-	if ( WATERMARK == slots_.fetch_add(1, memory_order_release) ) {
-		// wake up folks who are blocking in 'processEvent'
+	/*
+
+	if ( WATERMARK == slots_.fetch_add(1, memory_order_release) ) 
 		notify();
-	}
+
+	 * NOTE: notifying only when the current slot count == WATERMARK
+	 *       is NOT correct!
+	 *       If more than one thread are sleeping and 'putSlot' is
+	 *       called repeatedly and faster than the first thread
+	 *       which wakes up consumes the new slot then the slot
+	 *       count keeps incrementing without additional threads
+	 *       being woken!
+	 *
+	 *       T1, T2 asleep, slots_ == WATERMARK
+	 *
+	 *       putSlot() -> wakes T2, slots_ == WATERMARK + 1
+	 *       T2 wakes up
+	 *       putSlot() -> (slots_ == WATERMARK + 2 => no notification)
+	 *       T2 consumes slot -> slots_ == WATERMARK + 1
+	 *       ...
+     *       T1 may never wake!
+	 */
+
+	slots_.fetch_add(1, memory_order_release);
+	// wake up folks who are blocking in 'processEvent'
+	notify();
 }
 
 

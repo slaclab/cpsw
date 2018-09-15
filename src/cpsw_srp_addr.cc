@@ -482,8 +482,6 @@ struct timespec retry_then = {0}; // initialize to avoid compiler warning
 #endif
 int      expected;
 int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initialized use
-// 201808: posted writes DO work with non-interleaved packetizer but DO NOT work with
-//         interleaved packetizer.
 int      posted   = 0;
 
 	if ( dbytes == 0 )
