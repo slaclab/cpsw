@@ -249,6 +249,34 @@ namespace YAML {
 		};
 
 	template<>
+		struct convert<WriteMode> {
+			static bool decode(const Node& node, WriteMode& rhs) {
+				if (!node.IsScalar())
+					return false;
+
+				std::string str = node.Scalar();
+
+				if( str.compare( "POSTED" ) == 0 )
+					rhs = POSTED;
+				else if (str.compare( "SYNCHRONOUS" ) == 0 )
+					rhs = SYNCHRONOUS;
+				else
+					return false;
+
+				return true;
+			}
+
+			static Node encode(const WriteMode &rhs) {
+				Node node;
+				if ( POSTED == rhs )
+					node = "POSTED";
+				else if ( SYNCHRONOUS == rhs )
+					node = "SYNCHRONOUS";
+				return node;
+			}
+		};
+
+	template<>
 		struct convert<IField::Cacheable> {
 			static bool decode(const Node& node, IField::Cacheable& rhs) {
 				if (!node.IsScalar())

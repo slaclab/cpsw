@@ -39,12 +39,14 @@ int cpsw_psbldr_debug = PSBLDR_DEBUG;
 
 class CProtoStackBuilder : public IProtoStackBuilder {
 	public:
-		typedef enum TransportProto { NONE = 0, UDP = 1, TCP = 2 } TransportProto;
+		typedef enum TransportProto { NONE = 0,  UDP  = 1,  TCP = 2 } TransportProto;
+		typedef enum SRPWriteMode   { UNSP = -1, POST = 0, SYNC = 1 } SRPWriteMode;
 	private:
 		INetIODev::ProtocolVersion protocolVersion_;
 		uint64_t                   SRPTimeoutUS_;
 		int                        SRPDynTimeout_;
 		unsigned                   SRPRetryCount_;
+		SRPWriteMode               SRPDefaultWriteMode_;
 		TransportProto             Xprt_;
 		unsigned                   XprtPort_;
 		unsigned                   XprtOutQueueDepth_;
@@ -79,6 +81,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			SRPTimeoutUS_           = 0;
 			SRPDynTimeout_          = -1;
 			SRPRetryCount_          = -1;
+			SRPDefaultWriteMode_    = UNSP;
 			Xprt_                   = UDP;
 			XprtPort_               = 8192;
 			XprtOutQueueDepth_      = 0;
@@ -178,6 +181,26 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			if ( 0 == SRPTimeoutUS_ )
 				return hasRssiAndUdp() ? 500000 : 10000;
 			return SRPTimeoutUS_;
+		}
+
+		virtual void            setSRPDefaultWriteMode(WriteMode mode)
+		{
+			switch ( mode ) {
+				case SYNCHRONOUS:
+					SRPDefaultWriteMode_ = SYNC;
+				break;
+				default:
+					SRPDefaultWriteMode_ = POST;
+				break;
+			}
+		}
+
+		virtual WriteMode       getSRPDefaultWriteMode()
+		{
+			// If this was never set (UNSP) -> default to POSTED
+			if ( UNSP == SRPDefaultWriteMode_ )
+				return hasRssi() ? POSTED : SYNCHRONOUS;
+			return SRPDefaultWriteMode_ == SYNC ? SYNCHRONOUS : POSTED;
 		}
 
 		virtual void            setSRPRetryCount(unsigned v)
@@ -562,19 +585,20 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		static ProtoPort findProtoPort( ProtoPortMatchParams *, std::vector<ProtoPort>& );
 
-		static ProtoStackBuilder  create(YamlState &ypath);
-		static ProtoStackBuilder  create();
+		static shared_ptr<CProtoStackBuilder>  create(YamlState &ypath);
+		static shared_ptr<CProtoStackBuilder>  create();
 };
 
-ProtoStackBuilder
+shared_ptr<CProtoStackBuilder>
 CProtoStackBuilder::create(YamlState &node)
 {
-ProtoStackBuilder          bldr( IProtoStackBuilder::create() );
+shared_ptr<CProtoStackBuilder> bldr( CProtoStackBuilder::create() );
 unsigned                   u;
 uint64_t                   u64;
 bool                       b;
 SRPProtoVersion            proto_vers;
 int                        i;
+WriteMode                  writeMode;
 
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_SRP) );
@@ -594,6 +618,13 @@ int                        i;
 				bldr->useSRPDynTimeout( b );
 			if ( readNode(nn, YAML_KEY_retryCount, &u) )
 				bldr->setSRPRetryCount( u );
+			if ( readNode(nn, YAML_KEY_defaultWriteMode, &writeMode) )
+			{
+				if ( bldr->hasSRPMux_ < 0 || UNSP == bldr->SRPDefaultWriteMode_ ) {
+					/* SRPMux'es setting overrides what we find here.. */
+					bldr->setSRPDefaultWriteMode( writeMode );
+				}
+			}
 		}
 	}
 	{
@@ -674,6 +705,11 @@ int                        i;
 				bldr->setSRPMuxThreadPriority( i );
 			if ( readNode(nn, YAML_KEY_instantiate, &b) )
 				bldr->useSRPMux( b );
+			if ( readNode(nn, YAML_KEY_defaultWriteMode, &writeMode) )
+			{
+				// SRPMux overrides any setting SRP might have made
+				bldr->setSRPDefaultWriteMode( writeMode );
+			}
 		}
 	}
 	{
@@ -705,12 +741,14 @@ IProtoStackBuilder::create(YamlState &node)
 	return CProtoStackBuilder::create( node );
 }
 
-ProtoStackBuilder CProtoStackBuilder::create()
+shared_ptr<CProtoStackBuilder>
+CProtoStackBuilder::create()
 {
 	return make_shared<CProtoStackBuilder>();
 }
 
-ProtoStackBuilder IProtoStackBuilder::create()
+ProtoStackBuilder
+IProtoStackBuilder::create()
 {
 	return CProtoStackBuilder::create();
 }

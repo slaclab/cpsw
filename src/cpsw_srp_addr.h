@@ -68,6 +68,7 @@ private:
 	bool             byteResolution_;
 	unsigned         maxWordsRx_;
 	unsigned         maxWordsTx_;
+	WriteMode        defaultWriteMode_;
 
 	BufChain         assembleXBuf(struct srp_iovec *iov, unsigned iovlen, int iov_pld, int toput) const;
 

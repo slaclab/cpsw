@@ -44,7 +44,9 @@ namespace YAML {
 	class PNode;
 };
 
-typedef enum ByteOrder { UNKNOWN           = 0, LE = 12, BE = 21, NATIVE = 22 } ByteOrder;
+typedef enum ByteOrder { UNKNOWN = 0, LE = 12, BE = 21, NATIVE = 22 } ByteOrder;
+
+typedef enum WriteMode { POSTED = 0, SYNCHRONOUS = 1 } WriteMode;
 
 ByteOrder hostByteOrder();
 
@@ -147,7 +149,6 @@ public:
 	typedef enum SRPProtoVersion    { SRP_UDP_NONE = -1, SRP_UDP_V1 = 1, SRP_UDP_V2 = 2, SRP_UDP_V3 = 3 } SRPProtoVersion;
 	typedef enum DepackProtoVersion { DEPACKETIZER_V0 =  0, DEPACKETIZER_V2 = 2                         } DepackProtoVersion;
 
-
 	const static int DFLT_THREAD_PRIORITY =  0;
 	const static int NORT_THREAD_PRIORITY =  0;
 	const static int   NO_THREAD_PRIORITY = -1; /* no thread in module */
@@ -166,6 +167,9 @@ public:
 	virtual bool               hasSRPDynTimeout()                  = 0; // dynamically adjusted timeout (based on RTT)
 	virtual void               setSRPRetryCount(unsigned)          = 0; // default: 10
 	virtual unsigned           getSRPRetryCount()                  = 0;
+
+	virtual void               setSRPDefaultWriteMode(WriteMode)   = 0; // default: POSTED
+	virtual WriteMode          getSRPDefaultWriteMode()            = 0;
 
 	virtual bool               hasTcp()                            = 0; // default: NO
     virtual void               setTcpPort(unsigned)                = 0; // default: 8192

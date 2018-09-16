@@ -63,6 +63,7 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort sta
  byteResolution_( bldr->getSRPVersion() >= IProtoStackBuilder::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
  maxWordsRx_( 0 ),
  maxWordsTx_( 0 ),
+ defaultWriteMode_( bldr->getSRPDefaultWriteMode() ),
  mutex_( CMtx::AttrRecursive(), "SRPADDR" )
 {
 ProtoModSRPMux       srpMuxMod( dynamic_pointer_cast<ProtoModSRPMux::element_type>( stack->getProtoMod() ) );
@@ -125,10 +126,11 @@ CSRPAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CCommAddressImpl::dumpYamlPart( node );
 	YAML::Node srpParms;
-	writeNode(srpParms, YAML_KEY_protocolVersion, protoVersion_      );
-	writeNode(srpParms, YAML_KEY_timeoutUS      , usrTimeout_.getUs());
-	writeNode(srpParms, YAML_KEY_dynTimeout     , useDynTimeout_     );
-	writeNode(srpParms, YAML_KEY_retryCount     , retryCnt_          );
+	writeNode(srpParms, YAML_KEY_protocolVersion , protoVersion_      );
+	writeNode(srpParms, YAML_KEY_timeoutUS       , usrTimeout_.getUs());
+	writeNode(srpParms, YAML_KEY_dynTimeout      , useDynTimeout_     );
+	writeNode(srpParms, YAML_KEY_retryCount      , retryCnt_          );
+	writeNode(srpParms, YAML_KEY_defaultWriteMode, defaultWriteMode_  );
 	writeNode(node, YAML_KEY_SRP, srpParms);
 }
 
@@ -191,7 +193,6 @@ struct timespec now;
 
 #define CMD_READ_V3         0x000
 #define CMD_WRITE_V3        0x100
-/* 2018/08: Posted writes don't seem to work well. Result in RSSI re-transmits :-( */
 #define CMD_POSTED_WRITE_V3 0x200
 
 #define PROTO_VERS_3     3
@@ -539,7 +540,8 @@ struct timespec retry_then = {0}; // initialize to avoid compiler warning
 int      expected;
 int      tidoff;
 int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initialized use
-int      posted   = 0;
+int      posted   = (    POSTED        == defaultWriteMode_
+                      && protoVersion_ >= IProtoStackBuilder::SRP_UDP_V3 );
 
 	if ( dbytes == 0 )
 		return 0;
@@ -855,6 +857,7 @@ void CSRPAddressImpl::dump(FILE *f) const
 	fprintf(f,"CSRPAddressImpl:\n");
 	fprintf(f,"SRP Info:\n");
 	fprintf(f,"  Protocol Version  : %8u\n",   protoVersion_);
+	fprintf(f,"  Default Write Mode: %s\n",   SYNCHRONOUS == defaultWriteMode_ ? "Synchronous" : "Posted");
 	fprintf(f,"  Timeout (user)    : %8"PRIu64"us\n", usrTimeout_.getUs());
 	fprintf(f,"  Timeout %s : %8"PRIu64"us\n", useDynTimeout_ ? "(dynamic)" : "(capped) ", dynTimeout_.get().getUs());
 	if ( useDynTimeout_ )
