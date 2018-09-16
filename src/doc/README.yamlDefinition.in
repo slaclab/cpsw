@@ -750,15 +750,29 @@ of the peer:
         myNetIODev:
           YAML_KEY_class : NetIODev
 
-            # CPSW does not attempt to resolve DNS names.
-            # IP addresses need to be provided in 'numbers-
-            # and-dot' notation.
+            # CPSW does attempt to resolve DNS names.
+            # IP addresses may be provided in 'numbers-
+            # and-dot' notation or as names.
 
             # Note: omitting the peer's IP lets
             # CPSW pick 'INADDR_ANY' which on some systems
             # causes communication with the local host
             # (which may be useful for testing only).
-          YAML_KEY_ipAddr: <string>     # *optional*
+          YAML_KEY_ipAddr:     <string>     # *optional*
+
+            # Connect to 'ipAddr' via an 'rssi bridge'
+            # proxy. This property defines the address
+            # of the proxy (you must make sure such a
+            # bridge is actually running!)
+          YAML_KEY_rssiBridge: <string>
+
+            # Connect to a TCP destination (either
+            # a 'native' TCP destination or an 'rssi
+            # bridge') via a SOCKS proxy (the most
+            # common case being an SSH connection
+            # with SOCKS support - see open-ssh's
+            # '-D' option for details).
+          YAML_KEY_socksProxy: <string>
 
 Thus, for each peer with a different IP address a separate NetIODev 
 instance is required. These could be attached to a dummy root Dev:
@@ -806,8 +820,8 @@ It is often convenient to start an `rssi_bridge` via ssh:
 
 In most cases `YAML_KEY_socksProxy` is simply set to `localhost`.
 
-Note that the SOCKS proxy is ignored if no TCP is defined in the YAML (explicitly
-or implicitly due to `YAML_KEY_rssiBridge`).
+Note that the SOCKS proxy is ignored if no TCP is defined in the YAML
+(explicitly or implicitly due to `YAML_KEY_rssiBridge`).
 
 
 #### 2.8.1 NetIODev Address Objects
@@ -1026,6 +1040,12 @@ deliberately to use maps so that merge keys work across all levels).
             
             # How many times to retry a failed SRP transaction
           YAML_KEY_retryCount:     <int>
+
+            # The default write mode (might be overridden by
+            # for individual operations if the API offers such
+            # a feature). POSTED or SYNCHRONOUS (defaults to
+            # POSTED).
+          YAML_KEY_defaultWriteMode: <WriteMode>
 
             # The presence of this key enables the
             # SRP VirtualChannel (De)Muxer.

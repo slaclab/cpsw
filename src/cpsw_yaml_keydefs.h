@@ -23,6 +23,7 @@
 #define YAML_KEY_class  "class"
 #define YAML_KEY_configBase  "configBase"
 #define YAML_KEY_configPrio  "configPrio"
+#define YAML_KEY_defaultWriteMode  "defaultWriteMode"
 #define YAML_KEY_depack  "depack"
 #define YAML_KEY_description  "description"
 #define YAML_KEY_dynTimeout  "dynTimeout"

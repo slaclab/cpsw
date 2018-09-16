@@ -78,7 +78,7 @@ CMtx M::mtx_;
 static void* test_thread(void* arg)
 {
 char nm[100];
-int loops = 20;
+int loops = 5;
 intptr_t vc_idx = reinterpret_cast<intptr_t>(arg);
 void *rval = (void*)-1;
 
@@ -100,7 +100,7 @@ void *rval = (void*)-1;
 				v->setVal( myData.mem_[loops&1], myData.getNelms() );
 				v->getVal( myData.mem_[2],       myData.getNelms() );
 			} catch (IOError &e) {
-				fprintf(stderr,"IO Error in thread %s; is 'udpsrv' running?\n", nm);
+				fprintf(stderr,"IO Error (%s) in thread %s; is 'udpsrv' running?\n", e.what(), nm);
 				goto bail;
 			}
 			if ( memcmp( myData.mem_[loops&1], myData.mem_[2], myData.getNelms() * sizeof(M::ELT) ) ) {
@@ -121,6 +121,7 @@ void *rval = (void*)-1;
 				}
 				goto bail;
 			}
+			printf("%d: loop completed\n", vc_idx);
 		}
 		// success
 		rval = (void*)0;
@@ -129,7 +130,7 @@ bail:
 		// print some statistics
 		Path comm_addr( p->clone() );
 		comm_addr->up();
-		comm_addr->tail()->dump();
+//		comm_addr->tail()->dump();
 	} catch (CPSWError &e) {
 		fprintf(stderr,"CPSW Error in thread %s: %s\n", nm, e.getInfo().c_str());
 	}
@@ -215,6 +216,7 @@ int  depack2   = 0;
 		ProtoStackBuilder bldr( IProtoStackBuilder::create() );
 
 		bldr->setSRPVersion       (    vers );
+//		bldr->setSRPDefaultWriteMode( SYNCHRONOUS );
 		bldr->setUdpPort          (    port );
 		bldr->useRssi             ( useRssi );
 		if ( tDest >= 0 ) {
@@ -235,8 +237,10 @@ int  depack2   = 0;
 
 		IntField f = IIntField::create("val", 8*sizeof(M::ELT), false, 0);
 
-		mmio_vc_1->addAtAddress( f, REGBASE + REG_ARR_OFF + 0,              REG_ARR_SZ/2, 2*sizeof(M::ELT) );
-		mmio_vc_2->addAtAddress( f, REGBASE + REG_ARR_OFF + sizeof(M::ELT), REG_ARR_SZ/2, 2*sizeof(M::ELT) );
+		unsigned nelms = REG_ARR_SZ/2;
+
+		mmio_vc_1->addAtAddress( f, REGBASE + REG_ARR_OFF + 0,              nelms, 2*sizeof(M::ELT) );
+		mmio_vc_2->addAtAddress( f, REGBASE + REG_ARR_OFF + sizeof(M::ELT), nelms, 2*sizeof(M::ELT) );
 
 		pthread_t even_tid;
 		pthread_t odd_tid;

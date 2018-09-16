@@ -764,9 +764,11 @@ unsigned fram;
 		got -= taillen;
 
 		if ( tdest == sa->srp_tdest ) {
-			if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, bufsz - taillen, got - HEADSIZE)) <= 0 ) {
+			if ( (put = handleSRP(sa->srp_vers, sa->srp_opts, bufp, bufsz - taillen, got - HEADSIZE)) < 0 ) {
 				fprintf(stderr,"handleSRP ERROR (from fragger)\n");
 			}
+			if ( 0 == put )
+				continue;
 		} else {
 			put = got;
 		}
@@ -1096,6 +1098,8 @@ uint32_t status   =  0;
 					}
 #endif
 				}
+				if ( CMD_PWR == cmd )
+					return 0;
 				break;
 			}
 		}

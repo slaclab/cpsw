@@ -1,5 +1,13 @@
 asyncSRP
 
+    Feature: Support SRP 'posted' writes. This is now the default.
+        However, the write mode can be set from YAML. Future API
+        additions could override the default for each individual
+        SRP operations. Posted writes should be just fine, however.
+        Interspersed reads always serve as synchronization points,
+        i.e., all writes and reads over a single SRP VC are issued
+        (and executed on target) strictly in order.
+
     Feature: NetIODev supports 'rssiBridge' property. When set then
         CPSW contacts the bridge's RPC service to learn the TCP port
         serving <ipAddress>:<port> on the target.
