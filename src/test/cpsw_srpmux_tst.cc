@@ -78,7 +78,7 @@ CMtx M::mtx_;
 static void* test_thread(void* arg)
 {
 char nm[100];
-int loops = 5;
+int loops = 20;
 intptr_t vc_idx = reinterpret_cast<intptr_t>(arg);
 void *rval = (void*)-1;
 
@@ -130,7 +130,7 @@ bail:
 		// print some statistics
 		Path comm_addr( p->clone() );
 		comm_addr->up();
-//		comm_addr->tail()->dump();
+		comm_addr->tail()->dump();
 	} catch (CPSWError &e) {
 		fprintf(stderr,"CPSW Error in thread %s: %s\n", nm, e.getInfo().c_str());
 	}
