@@ -121,7 +121,7 @@ void *rval = (void*)-1;
 				}
 				goto bail;
 			}
-			printf("%d: loop completed\n", vc_idx);
+			printf("%d: loop completed\n", (unsigned)vc_idx);
 		}
 		// success
 		rval = (void*)0;
