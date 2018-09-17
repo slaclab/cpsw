@@ -391,3 +391,63 @@ IAsyncIOParallelCompletion::create(AsyncIO parent, bool recordLastError)
 {
 	return CAsyncIOParallelCompletion::create(parent, recordLastError);
 }
+
+// IAsyncIO which synchronizes with the IAsyncIO callback
+class CAsyncIOCompletionWaiter : public CFreeListNode<CAsyncIOCompletionWaiter>, public CMtx, public CCond, public IAsyncIOCompletionWaiter {
+private:
+    bool         done_;
+	CPSWErrorHdl error_;
+public:
+    CAsyncIOCompletionWaiter(CFreeListNodeKey<CAsyncIOCompletionWaiter> k);
+
+    virtual void callback(CPSWError *err);
+
+    virtual void wait();
+};
+
+CAsyncIOCompletionWaiter::CAsyncIOCompletionWaiter(
+	CFreeListNodeKey<CAsyncIOCompletionWaiter> key
+)
+  : CFreeListNode<CAsyncIOCompletionWaiter>( key ),
+    done_(false)
+{
+}
+
+void
+CAsyncIOCompletionWaiter::callback(CPSWError *err)
+{
+int syserr;
+	if ( err ) {
+		error_ = err->clone();
+	}
+	{
+	CMtx::lg guard( this );
+		done_ = true;
+		if ( (syserr = pthread_cond_signal( CCond::getp() ) ) ) {
+			throw InternalError("CAsyncIOCompletionWaiter: pthread_cond_signal failed", syserr);
+		}
+	}
+}
+
+void
+CAsyncIOCompletionWaiter::wait()
+{
+CMtx::lg guard( this );
+int      syserr;
+	while ( ! done_ ) {
+		if ( (syserr = pthread_cond_wait( CCond::getp(), CMtx::getp() )) ) {
+			throw InternalError("CAsyncIOCompletionWaiter: pthread_cond_wait failed", syserr);
+		}
+	}
+	done_ = false; // so they can reuse this object
+	if ( error_ ) {
+		throw (*error_);
+	}
+}
+
+AsyncIOCompletionWaiter
+IAsyncIOCompletionWaiter::create()
+{
+static CFreeList<CAsyncIOCompletionWaiter> pool;
+	return pool.alloc();
+}

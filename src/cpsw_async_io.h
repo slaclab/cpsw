@@ -131,4 +131,18 @@ public:
 	// record either the last or the first error and pass to the parent callback
 	static AsyncIOParallelCompletion create(AsyncIO parent, bool recordLastError = false);
 };
+
+class IAsyncIOCompletionWaiter;
+typedef shared_ptr<IAsyncIOCompletionWaiter> AsyncIOCompletionWaiter;
+
+// IAsyncIO which synchronizes with the IAsyncIO callback
+class IAsyncIOCompletionWaiter : public IAsyncIO {
+public:
+    virtual void wait()                   = 0;
+
+	virtual ~IAsyncIOCompletionWaiter()   {}
+
+	static AsyncIOCompletionWaiter create();
+};
+
 #endif
