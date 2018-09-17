@@ -115,35 +115,20 @@ public:
  * destructor, thus letting the shared pointer keeping track for us.
  */
 
-class CAsyncIOParallelCompletion;
-typedef shared_ptr<CAsyncIOParallelCompletion> AsyncIOParallelCompletion;
+class IAsyncIOParallelCompletion;
+typedef shared_ptr<IAsyncIOParallelCompletion> AsyncIOParallelCompletion;
 
-class CAsyncIOParallelCompletion : public IAsyncIO, public CFreeListNode<CAsyncIOParallelCompletion> {
-private:
-	AsyncIO      parent_;
-	bool         recordLastError_;
-	CMtx         mutex_;
-	CPSWErrorHdl error_;
-
-	CAsyncIOParallelCompletion(const CAsyncIOParallelCompletion &);
-	CAsyncIOParallelCompletion operator=(const CAsyncIOParallelCompletion&);
-
+class IAsyncIOParallelCompletion : public IAsyncIO {
 public:
-	CAsyncIOParallelCompletion(
-		const CFreeListNodeKey<CAsyncIOParallelCompletion> & key,
-		AsyncIO parent,
-		bool recordLastError = false
-	);
-
 	// the callback is executed by all the sub-work tasks and merely
 	// records either the first or the last error encountered.
-	virtual void callback(CPSWError *subWorkError);
+	virtual void callback(CPSWError *subWorkError) = 0;
 
 	// once the last reference to this object goes out of scope
 	// the parent's callback is executed from this destructor.
-	virtual ~CAsyncIOParallelCompletion();
+	virtual ~IAsyncIOParallelCompletion()          {}
 
-	static AsyncIOParallelCompletion create(AsyncIO parent);
+	// record either the last or the first error and pass to the parent callback
+	static AsyncIOParallelCompletion create(AsyncIO parent, bool recordLastError = false);
 };
-
 #endif

@@ -313,6 +313,35 @@ CAsyncIOCompletion::callback (CPSWError *upstreamError)
 	}
 }
 
+
+class CAsyncIOParallelCompletion : public IAsyncIOParallelCompletion, public CFreeListNode<CAsyncIOParallelCompletion> {
+private:
+	AsyncIO      parent_;
+	bool         recordLastError_;
+	CMtx         mutex_;
+	CPSWErrorHdl error_;
+
+	CAsyncIOParallelCompletion(const CAsyncIOParallelCompletion &);
+	CAsyncIOParallelCompletion operator=(const CAsyncIOParallelCompletion&);
+
+public:
+	CAsyncIOParallelCompletion(
+		const CFreeListNodeKey<CAsyncIOParallelCompletion> & key,
+		AsyncIO parent,
+		bool recordLastError = false
+	);
+
+	// the callback is executed by all the sub-work tasks and merely
+	// records either the first or the last error encountered.
+	virtual void callback(CPSWError *subWorkError);
+
+	// once the last reference to this object goes out of scope
+	// the parent's callback is executed from this destructor.
+	virtual ~CAsyncIOParallelCompletion();
+
+	static AsyncIOParallelCompletion create(AsyncIO parent, bool recordLastError = false);
+};
+
 CAsyncIOParallelCompletion::CAsyncIOParallelCompletion(
 	const CFreeListNodeKey<CAsyncIOParallelCompletion> & key,
 	AsyncIO parent,
@@ -343,9 +372,22 @@ CAsyncIOParallelCompletion::~CAsyncIOParallelCompletion()
 }
 
 AsyncIOParallelCompletion
-CAsyncIOParallelCompletion::create(AsyncIO parent)
+CAsyncIOParallelCompletion::create(AsyncIO parent, bool recordLastError)
 {
 static CFreeList<CAsyncIOParallelCompletion> pool;
 
-	return pool.alloc( parent );
+shared_ptr<CAsyncIOParallelCompletion> rval = pool.alloc( parent );
+
+	// free-list supports only one initializer...
+	if ( rval ) {
+		rval->recordLastError_ = recordLastError;
+	}
+
+	return rval;
+}
+
+AsyncIOParallelCompletion
+IAsyncIOParallelCompletion::create(AsyncIO parent, bool recordLastError)
+{
+	return CAsyncIOParallelCompletion::create(parent, recordLastError);
 }

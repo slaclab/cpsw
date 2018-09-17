@@ -394,7 +394,7 @@ unsigned nWords;
 	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
 	if ( args->aio_ ) {
-		args->aio_ =  CAsyncIOParallelCompletion::create( args->aio_ );
+		args->aio_ =  IAsyncIOParallelCompletion::create( args->aio_ );
 	}
 
 	{

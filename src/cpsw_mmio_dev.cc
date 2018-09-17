@@ -68,7 +68,7 @@ CReadArgs  nargs = *args;
 	 * the original callback from the parallel context's destructor.
 	 */
 	if ( to > (*node)->idxf_ && nargs.aio_ ) {
-		nargs.aio_ = CAsyncIOParallelCompletion::create( nargs.aio_ );
+		nargs.aio_ = IAsyncIOParallelCompletion::create( nargs.aio_ );
 	}
 
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
