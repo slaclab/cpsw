@@ -14,6 +14,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <syslog.h>
+#include <signal.h>
 
 #include <protRelayUtil.h>
 #include <daemonize.h>
