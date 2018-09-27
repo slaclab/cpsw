@@ -301,7 +301,7 @@ public:
 	// Templates to find the right size list
 
 	virtual NODE *
-	allocate( std::size_t nelms, const void *hint)
+	allocate( std::size_t nelms, const void *hint = 0)
 	{
 		if ( nelms != 1 ) {
 			throw std::bad_alloc();
