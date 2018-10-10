@@ -522,8 +522,9 @@ bool rval;
 bool
 CTDestPort2::tryPush(BufChain bc)
 {
-   if ( ! isOpen() )
+   if ( ! isOpen() ) {
         return false;
+	}
 
 	if ( inputQueue_->tryPush( bc ) ) {
 		getOwner()->postWork( slot_ );
