@@ -54,6 +54,7 @@ udpsrv_mmio_range *mr = reinterpret_cast<udpsrv_mmio_range*>(r);
 	}
 	off >>= 2; /* log2 sizeof(mr->map[0]) */
 	while ( nbytes > 0 ) {
+		/* SLAC Axi/Axi-Lite bridge doesn't support bursts */
 		uint32_t wrd = *(mr->map + off);
 		memcpy(data, &wrd, sizeof(wrd));
 		off++;
@@ -77,6 +78,7 @@ udpsrv_mmio_range *mr = reinterpret_cast<udpsrv_mmio_range*>(r);
 		fprintf(stderr, "mmio_wr: misaligned offset\n");
 	}
 	while ( nbytes > 0 ) {
+		/* SLAC Axi/Axi-Lite bridge doesn't support bursts */
 		uint32_t wrd;
 		memcpy( &wrd, data, sizeof(wrd) );
 		*(mr->map + off) = wrd;
