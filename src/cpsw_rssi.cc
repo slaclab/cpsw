@@ -184,6 +184,7 @@ void CRssi::sendBuf(BufChain bc, bool retrans)
 
 	if ( outQ_->isFull() ) {
 		hdr.setFlags( hdr.getFlags() | RssiHeader::FLG_BSY );
+		stats_.busyFlagsCountedTx_++;
 	}
 
 	hdr.setAckNo( lastSeqRecv_ );
@@ -556,7 +557,8 @@ void CRssi::dumpStats(FILE *f)
 	fprintf(f ,"  # NUL replaced by ACK      : %12u\n", stats_.skippedNULs_       );
 	fprintf(f ,"  # segments ACKed by peer   : %12u\n", stats_.numSegsAckedByPeer_);
 	fprintf(f ,"  # segments delivered to usr: %12u\n", stats_.numSegsGivenToUser_);
-	fprintf(f ,"  # segs with BSY asserted   : %12u\n", stats_.busyFlagsCounted_  );
+	fprintf(f ,"  # RX segs with BSY asserted: %12u\n", stats_.busyFlagsCountedRx_);
+	fprintf(f ,"  # TX segs with BSY asserted: %12u\n", stats_.busyFlagsCountedTx_);
 }
 
 void CRssi::RingBuf::dump()

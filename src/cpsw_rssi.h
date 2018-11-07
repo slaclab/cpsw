@@ -571,7 +571,8 @@ protected:
 		unsigned skippedNULs_;
 		unsigned numSegsAckedByPeer_;
 		unsigned numSegsGivenToUser_;
-		unsigned busyFlagsCounted_;
+		unsigned busyFlagsCountedRx_;
+		unsigned busyFlagsCountedTx_;
 		unsigned busyDeassertRex_;
 	} stats_;
 
