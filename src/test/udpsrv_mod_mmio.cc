@@ -105,7 +105,7 @@ char        buf[256];
 		return -1;
 	}
 
-	if ( 1 != sscanf(comma + 1, "%"SCNi64, &start) ) {
+	if ( 1 != sscanf(comma + 1, "%" SCNi64, &start) ) {
 		fprintf(stderr,"register_io_range_1 -- unable to scan base address\n");
 		return -1;
 	}
@@ -139,13 +139,13 @@ int           mmap_flags = 0;
 		}
 
 		// UIO device
-		if ( 1 != fscanf(f, "%"SCNi64, &mapsz) ) {
+		if ( 1 != fscanf(f, "%" SCNi64, &mapsz) ) {
 			fprintf(stderr,"register_io_range: Unable to scan map size\n");
 			goto bail;
 		}
 
 		if ( (r = udpsrv_check_range( map_start, mapsz )) ) {
-			fprintf(stderr,"%s: [%"PRIx64":%"PRIx64" overlaps existing range [%"PRIx64":%"PRIx64"]\n",
+			fprintf(stderr,"%s: [%" PRIx64 ":%" PRIx64 " overlaps existing range [%" PRIx64 ":%" PRIx64 "]\n",
 				sysfs_name,
 				map_start,
 				mapsz,

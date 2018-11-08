@@ -126,7 +126,7 @@ struct udpsrv_range {
 	)
 	:next(udpsrv_ranges), base(base), size(size), name(name), read(read), write(write)
 	{
-printf("Registering range %"PRIx64" %"PRIx64"\n", base, size);
+printf("Registering range %" PRIx64 " %" PRIx64 "\n", base, size);
 		udpsrv_ranges = this;
 		if ( init )
 			init( this );

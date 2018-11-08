@@ -323,11 +323,11 @@ unsigned o,l,i;
 
 			// compare
 			if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
-				fprintf(stderr,"BRAM write-test: Readback (offset %"PRId64", len %"PRId64") FAILED\n", offs[o], lens[l]);
+				fprintf(stderr,"BRAM write-test: Readback (offset %" PRId64 ", len %" PRId64 ") FAILED\n", offs[o], lens[l]);
 				throw TestFailed();
 #ifdef DEBUG
 			} else {
-				printf("BRAM write-test (offset %"PRId64", len %"PRId64") PASSED\n", offs[o], lens[l]);
+				printf("BRAM write-test (offset %" PRId64 ", len %" PRId64 ") PASSED\n", offs[o], lens[l]);
 #endif
 			}
 
@@ -339,11 +339,11 @@ unsigned o,l,i;
 
 			// compare
 			if ( memcmp(oval, ival, sizeof(oval[0])*nelms) ) {
-				fprintf(stderr,"BRAM read-test: (offset %"PRId64", len %"PRId64") FAILED\n", offs[o], lens[l]);
+				fprintf(stderr,"BRAM read-test: (offset %" PRId64 ", len %" PRId64 ") FAILED\n", offs[o], lens[l]);
 				throw TestFailed();
 #ifdef DEBUG
 			} else {
-				printf("BRAM read-test (offset %"PRId64", len %"PRId64") PASSED\n", offs[o], lens[l]);
+				printf("BRAM read-test (offset %" PRId64 ", len %" PRId64 ") PASSED\n", offs[o], lens[l]);
 #endif
 			}
 
@@ -496,15 +496,15 @@ const char *dmp_yaml  = 0;
 		}
 	}
 
-	if ( (str = getenv("VERS_BASE")) && 1 != sscanf(str,"%"SCNi32, &vers_base) ) {
+	if ( (str = getenv("VERS_BASE")) && 1 != sscanf(str,"%" SCNi32 , &vers_base) ) {
 		fprintf(stderr,"Unable to scan VERS_BASE envvar\n");
 		throw TestFailed();
 	}
-	if ( (str = getenv("SYSM_BASE")) && 1 != sscanf(str,"%"SCNi32, &sysm_base) ) {
+	if ( (str = getenv("SYSM_BASE")) && 1 != sscanf(str,"%" SCNi32 , &sysm_base) ) {
 		fprintf(stderr,"Unable to scan SYSM_BASE envvar\n");
 		throw TestFailed();
 	}
-	if ( (str = getenv("PRBS_BASE")) && 1 != sscanf(str,"%"SCNi32, &prbs_base) ) {
+	if ( (str = getenv("PRBS_BASE")) && 1 != sscanf(str,"%" SCNi32 , &prbs_base) ) {
 		fprintf(stderr,"Unable to scan PRBS_BASE envvar\n");
 		throw TestFailed();
 	}
@@ -691,27 +691,27 @@ MyFixup     fix;
 
 	printf("AxiVersion:\n");
 	fpgaVers->getVal( &u64 );
-	printf("FpgaVersion: %"PRIu64"\n", u64);
+	printf("FpgaVersion: %" PRIu64 "\n", u64);
 	unsigned nelms = bldStamp->getNelms();
 	str.reserve( nelms );
 	bldStamp->getVal( &str[0], nelms );
 	printf("Build String:\n%s\n", &str[0]);
 
 	fdSerial->getVal( &u64, 1 );
-	printf("Serial #: 0x%"PRIx64"\n", u64);
+	printf("Serial #: 0x%" PRIx64 "\n", u64);
 	dnaValue->getVal( &u64, 1 );
-	printf("DNA    #: 0x%"PRIx64"\n", u64);
+	printf("DNA    #: 0x%" PRIx64 "\n", u64);
 	counter->getVal( &u32, 1 );
-	printf("Counter : 0x%"PRIx32"\n", u32);
+	printf("Counter : 0x%" PRIx32 "\n", u32);
 	counter->getVal( &u32, 1 );
-	printf("Counter : 0x%"PRIx32"\n", u32);
+	printf("Counter : 0x%" PRIx32 "\n", u32);
 
 	u16=0x6765;
 	u32=0xffffffff;
 	scratchPad->setVal( &u32, 1 );
 	bits->setVal( &u16, 1 );
 	scratchPad->getVal( &u32, 1 );
-	printf("ScratchPad: 0x%"PRIx32"\n", u32);
+	printf("ScratchPad: 0x%" PRIx32 "\n", u32);
 
 	if ( u32 == 0xfc06765f ) {
 		printf("Readback of merged bits (expected 0xfc06765f) PASSED\n");

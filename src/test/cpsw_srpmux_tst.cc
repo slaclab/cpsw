@@ -31,7 +31,7 @@ public:
 static CMtx mtx_;
 
 	typedef uint32_t   ELT;
-#define xFMT        "%"PRIx32
+#define xFMT        "%" PRIx32 
 
 	ELT *mem_[3];
 
@@ -82,7 +82,7 @@ int loops = 20;
 intptr_t vc_idx = reinterpret_cast<intptr_t>(arg);
 void *rval = (void*)-1;
 
-	sprintf(nm, "comm/mmio_vc_%"PRIdPTR"/val", vc_idx);
+	sprintf(nm, "comm/mmio_vc_%" PRIdPTR "/val", vc_idx);
 	printf("starting test thread %s\n", nm);
 
 	try {
@@ -111,7 +111,7 @@ void *rval = (void*)-1;
 				for ( unsigned i=0; i<myData.getNelms(); i++ ) {
 					M::ELT got, exp;
 					if ( (exp = myData.mem_[loops&1][i]) != (got = myData.mem_[2][i]) ) {
-						printf("@[%d == addr 0x%"PRIxPTR"]: got ", i, REGBASE + REG_ARR_OFF + 4*i + (vc_idx - 1)*sizeof(M::ELT));
+						printf("@[%d == addr 0x%" PRIxPTR "]: got ", i, REGBASE + REG_ARR_OFF + 4*i + (vc_idx - 1)*sizeof(M::ELT));
 						printf(xFMT, got);
 						printf(", expected ");
 						printf(xFMT, exp);

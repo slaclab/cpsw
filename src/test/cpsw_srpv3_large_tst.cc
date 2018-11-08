@@ -93,7 +93,7 @@ unsigned    i;
 failed:
 	fprintf(stderr,"Readback ");
 	if ( patt ) {
-		fprintf(stderr,"of pattern 0x%04"PRIx16" ", patt);
+		fprintf(stderr,"of pattern 0x%04" PRIx16 " ", patt);
 	}
 	fprintf(stderr,"failed @i %d\n", i);
 	throw TestFailed();

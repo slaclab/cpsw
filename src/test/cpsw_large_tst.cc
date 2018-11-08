@@ -144,7 +144,7 @@ uint64_t   uv;
 			e |= ~msk;
 		vals[i]->getVal( &v, 1 );
 		if ( v != e ) {
-			printf( "FAILED: got 0x%08"PRIx32" -- expected 0x%08"PRIx32"\n", v, e );
+			printf( "FAILED: got 0x%08" PRIx32 " -- expected 0x%08" PRIx32 "\n", v, e );
 			throw TestFailed();
 		}
 	}
@@ -156,9 +156,9 @@ uint64_t   uv;
 }
 
 	printf("Large test successful; read %i registers of size %u-bits\n", nelms, (unsigned)elsz);
-	printf("Building hierarchy:                 %8"PRIu64"us\n", build_us);
-	printf("Name lookup:                        %8"PRIu64"us\n", lkup_us);
-	printf("Reading (from memory pseudo device) %8"PRIu64"us\n", read_us);
+	printf("Building hierarchy:                 %8" PRIu64 "us\n", build_us);
+	printf("Name lookup:                        %8" PRIu64 "us\n", lkup_us);
+	printf("Reading (from memory pseudo device) %8" PRIu64 "us\n", read_us);
 
 	if ( CpswObjCounter::report() ) {
 		fprintf(stderr,"FAILED -- Objects leaked!\n");

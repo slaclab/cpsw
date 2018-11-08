@@ -96,7 +96,7 @@ public:
 
 		vsbe->getVal( &v64, 1 );
 		if ( v64 != vexp ) {
-			fprintf(stderr,"Unable to %s pseudo registers (got 0x%016"PRIx64" -- expected 0x%016"PRIx64"\n", val ? "set" : "clear", v64, vexp);
+			fprintf(stderr,"Unable to %s pseudo registers (got 0x%016" PRIx64 " -- expected 0x%016" PRIx64 "\n", val ? "set" : "clear", v64, vexp);
 			throw TestFailed();
 		}
 	}
@@ -231,14 +231,14 @@ int      depack2     =  0;
 					uint64_t shft_le = (offs[off_idx]*8 + lsbs[lsb_idx]);
 					uint64_t msk     = sizes[size_idx] > 63 ? 0xffffffffffffffffULL : ((((uint64_t)1)<<sizes[size_idx]) - 1 );
 					if ( v_got != (v = ((v_expect >> shft_le) & msk)) ) {
-						fprintf(stderr,"Mismatch (%s - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_le->getName(), v_le->getSizeBits(), sizes[size_idx], v_got, v);
+						fprintf(stderr,"Mismatch (%s - %" PRIu64 " - %u): got %" PRIx64 " - expected %" PRIx64 "\n", v_le->getName(), v_le->getSizeBits(), sizes[size_idx], v_got, v);
 						throw TestFailed();
 					}
 
 					v_be->getVal( &v_got, 1 );
 					uint64_t shft_be = ((sizeof(v_expect) - (offs[off_idx] + v_be->getSize()))*8 + lsbs[lsb_idx]);
 					if ( v_got != (v = ((v_expect >> shft_be) & msk)) ) {
-						fprintf(stderr,"Mismatch (%s - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_be->getName(), v_be->getSizeBits(), sizes[size_idx], v_got, v);
+						fprintf(stderr,"Mismatch (%s - %" PRIu64 " - %u): got %" PRIx64 " - expected %" PRIx64 "\n", v_be->getName(), v_be->getSizeBits(), sizes[size_idx], v_got, v);
 {
 uint64_t xxx;
 	v_be->getVal( &xxx );
@@ -288,7 +288,7 @@ uint64_t xxx;
 						v = (clr.getPatt(patt, LE) & ~msk_le) | ((v_expect << shft_le) & msk_le);
 
 						if ( v_got != v ) {
-							fprintf(stderr,"Mismatch (%s patt %i - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_le->getName(), patt, v_le->getSizeBits(), sizes[size_idx], v_got, v);
+							fprintf(stderr,"Mismatch (%s patt %i - %" PRIu64 " - %u): got %" PRIx64 " - expected %" PRIx64 "\n", v_le->getName(), patt, v_le->getSizeBits(), sizes[size_idx], v_got, v);
 							throw TestFailed();
 						}
 
@@ -299,7 +299,7 @@ uint64_t xxx;
 						v = (clr.getPatt(patt, BE) & ~msk_be) | ((v_expect << shft_be) & msk_be);
 
 						if ( v_got != v ) {
-							fprintf(stderr,"Mismatch (%s patt %i - %"PRIu64" - %u): got %"PRIx64" - expected %"PRIx64"\n", v_be->getName(), patt, v_be->getSizeBits(), sizes[size_idx], v_got, v);
+							fprintf(stderr,"Mismatch (%s patt %i - %" PRIu64 " - %u): got %" PRIx64 " - expected %" PRIx64 "\n", v_be->getName(), patt, v_be->getSizeBits(), sizes[size_idx], v_got, v);
 							throw TestFailed();
 						}
 					}

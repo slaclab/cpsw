@@ -165,7 +165,7 @@ printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<N
 		got = strm->read( buf, sizeof(buf), CTimeout(c->timeoutUs), 0 );
 
 		if ( c->debug > 1 )
-			printf("Read %"PRIu64" octets\n", got);
+			printf("Read %" PRIu64 " octets\n", got);
 
 		if ( 0 == got ) {
 			fprintf(stderr,"Read -- timeout. Is udpsrv running?\n");
@@ -174,7 +174,7 @@ printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<N
 
 		if ( c->debug > 1 ) {
 			for ( unsigned k = 0; k<8; k++ )
-				printf("FRM/FRG 0x%"PRIx8"\n", buf[k]);
+				printf("FRM/FRG 0x%" PRIx8 "\n", buf[k]);
 		}
 
 		if ( c->depack2 ) {

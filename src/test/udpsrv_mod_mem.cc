@@ -26,7 +26,7 @@ unsigned n;
 	else
 		printf("Writing to");
 
-	printf(" %"PRIx64" (%"PRId64"); %d bytes\n", off, off, nbytes);
+	printf(" %" PRIx64 " (%" PRId64 "); %d bytes\n", off, off, nbytes);
 
 	for ( n=0; n<nbytes; n++ ) {
 		printf("%02x ",mem[off+n]);	
