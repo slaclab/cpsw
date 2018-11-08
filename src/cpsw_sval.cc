@@ -1300,7 +1300,7 @@ Enum             enm = getEnum();
 			buf[i] = item.second;
 		}
 	} else {
-		const char *fmt = isSigned() ? "%"SCNi64 : "%"SCNu64;
+		const char *fmt = isSigned() ? "%" SCNi64 : "%" SCNu64;
 		for ( i=0; i<nelms; i++ ) {
 			if ( 1 != sscanf(strs[i], fmt, &buf[i]) ) {
 				throw ConversionError("CScalVal_RO::setVal -- unable to scan string into number");
@@ -1436,12 +1436,12 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p, YAML::Node &node) const
 
 		// base 10 settings
 		int field_width = 0;
-		const char *fmt = isSigned() ? "%*"PRId64 : "%*"PRIu64;
+		const char *fmt = isSigned() ? "%*" PRId64 : "%*" PRIu64;
 
 		if ( 16 == getConfigBase() ) {
 			// base 16 settings
 			field_width = (getSizeBits() + 3) / 4; // one hex char per nibble
-			fmt         = "0x%0*"PRIx64;
+			fmt         = "0x%0*" PRIx64;
 		}
 
 		if ( i ) {

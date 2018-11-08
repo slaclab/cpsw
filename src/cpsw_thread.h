@@ -38,7 +38,7 @@ protected:
 		pthread_attr_t a_;
 	public:
 		Attr();
-		~Attr();
+		~Attr() throw();
 
 		pthread_attr_t *getp()
 		{

@@ -77,7 +77,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 				n_ = n;
 			}
 
-			~CUniqueListHead();
+			~CUniqueListHead() throw();
 		};
 
 		mutable Cacheable       cacheable_;

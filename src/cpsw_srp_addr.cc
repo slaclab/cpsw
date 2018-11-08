@@ -227,7 +227,7 @@ struct timespec now;
 	if ( attempt > 0 ) {
 		CTimeout xx(now);
 		xx -= CTimeout(*then);
-		printf(stderr, "%s -- retry (attempt %d) took %"PRId64"us\n", pre, attempt, xx.getUs());
+		printf(stderr, "%s -- retry (attempt %d) took %" PRId64 "us\n", pre, attempt, xx.getUs());
 	}
 	*then = now;
 }
@@ -281,7 +281,7 @@ struct timespec retry_then;
 #endif
 
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP readBlk_unlocked off %"PRIx64"; sbytes %d, protoVersion %d\n", off, sbytes, protoVersion_);
+	fprintf(stderr, "SRP readBlk_unlocked off %" PRIx64 "; sbytes %d, protoVersion %d\n", off, sbytes, protoVersion_);
 #endif
 
 	if ( sbytes == 0 )
@@ -499,7 +499,7 @@ int      posted   = (    POSTED        == defaultWriteMode_
 	nWords = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP writeBlk_unlocked off %"PRIx64"; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i, msk1 0x%02x, mskn 0x%02x\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords, msk1, mskn);
+	fprintf(stderr, "SRP writeBlk_unlocked off %" PRIx64 "; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i, msk1 0x%02x, mskn 0x%02x\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords, msk1, mskn);
 #endif
 
 
@@ -768,12 +768,12 @@ void CSRPAddressImpl::dump(FILE *f) const
 	fprintf(f,"SRP Info:\n");
 	fprintf(f,"  Protocol Version  : %8u\n",   protoVersion_);
 	fprintf(f,"  Default Write Mode: %s\n",   SYNCHRONOUS == defaultWriteMode_ ? "Synchronous" : "Posted");
-	fprintf(f,"  Timeout (user)    : %8"PRIu64"us\n", usrTimeout_.getUs());
-	fprintf(f,"  Timeout %s : %8"PRIu64"us\n", useDynTimeout_ ? "(dynamic)" : "(capped) ", dynTimeout_.get().getUs());
+	fprintf(f,"  Timeout (user)    : %8" PRIu64 "us\n", usrTimeout_.getUs());
+	fprintf(f,"  Timeout %s : %8" PRIu64 "us\n", useDynTimeout_ ? "(dynamic)" : "(capped) ", dynTimeout_.get().getUs());
 	if ( useDynTimeout_ )
 	{
-	fprintf(f,"  max Roundtrip time: %8"PRIu64"us\n", dynTimeout_.getMaxRndTrip().getUs());
-	fprintf(f,"  avg Roundtrip time: %8"PRIu64"us\n", dynTimeout_.getAvgRndTrip().getUs());
+	fprintf(f,"  max Roundtrip time: %8" PRIu64 "us\n", dynTimeout_.getMaxRndTrip().getUs());
+	fprintf(f,"  avg Roundtrip time: %8" PRIu64 "us\n", dynTimeout_.getAvgRndTrip().getUs());
 	}
 	fprintf(f,"  Retry Limit       : %8u\n",   retryCnt_);
 	fprintf(f,"  # of retried ops  : %8u\n",   nRetries_);
@@ -821,7 +821,7 @@ void DynTimeout::reset(const CTimeout &iniv)
 	avgRndTrip_ = iniv.getUs() << (AVG_SHFT - MARG_SHFT);
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	fprintf(stderr, "dynTimeout reset to %"PRId64"\n", dynTimeout_.getUs());
+	fprintf(stderr, "dynTimeout reset to %" PRId64 "\n", dynTimeout_.getUs());
 #endif
 }
 
@@ -833,7 +833,7 @@ void DynTimeout::relax()
 
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	fprintf(stderr, "RETRY (timeout %"PRId64")\n", dynTimeout_.getUs());
+	fprintf(stderr, "RETRY (timeout %" PRId64 ")\n", dynTimeout_.getUs());
 #endif
 }
 
@@ -851,7 +851,7 @@ int64_t  diffus;
 
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	fprintf(stderr, "dynTimeout update to %"PRId64" (rnd %"PRId64" -- diff %"PRId64", avg %"PRId64" = 128*%"PRId64")\n",
+	fprintf(stderr, "dynTimeout update to %" PRId64 " (rnd %" PRId64 " -- diff %" PRId64 ", avg %" PRId64 " = 128*%" PRId64 ")\n",
 		dynTimeout_.getUs(),
 		diff.getUs(),
 		diffus,

@@ -82,6 +82,10 @@ INSTALL=install -C
 OPT_CXXFLAGS=-g -Wall -O2
 OPT_CFLAGS  =-g -Wall -O2
 
+CXXFLAGS+=-std=c++98
+#CXXFLAGS+=-Werror
+#CFLAGS+=-Werror
+
 CPPFLAGS+= $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
 CPPFLAGS+= $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
 CPPFLAGS+= $(USR_CPPFLAGS)

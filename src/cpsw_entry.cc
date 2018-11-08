@@ -239,7 +239,7 @@ Field IField::create(const char *name, uint64_t size)
 	return CShObj::create<EntryImpl>(name, size);
 }
 
-CEntryImpl::CUniqueListHead::~CUniqueListHead()
+CEntryImpl::CUniqueListHead::~CUniqueListHead() throw()
 {
 	if ( n_ )
 		throw InternalError("UniqueListHead not empty on destruction!");

@@ -91,7 +91,7 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 		len = ntohl(len);
 
 #ifdef TCP_DEBUG
-		printf("TCP RX -- got length: %"PRId32"\n", len);
+		printf("TCP RX -- got length: %" PRId32 "\n", len);
 #endif
 
 		siz = len;
@@ -269,10 +269,10 @@ void CProtoModTcp::dumpInfo(FILE *f)
 	fprintf(f,"CProtoModTcp:\n");
 	fprintf(f,"  Peer port : %15u\n",    getDestPort());
 	fprintf(f,"  ThreadPrio: %15d\n",    rxHandler_->getPrio());
-	fprintf(f,"  #TX Octets: %15"PRIu64"\n", getNumTxOctets());
-	fprintf(f,"  #TX DGRAMs: %15"PRIu64"\n", getNumTxDgrams());
-	fprintf(f,"  #RX Octets: %15"PRIu64"\n", getNumRxOctets());
-	fprintf(f,"  #RX DGRAMs: %15"PRIu64"\n", getNumRxDgrams());
+	fprintf(f,"  #TX Octets: %15" PRIu64 "\n", getNumTxOctets());
+	fprintf(f,"  #TX DGRAMs: %15" PRIu64 "\n", getNumTxDgrams());
+	fprintf(f,"  #RX Octets: %15" PRIu64 "\n", getNumRxOctets());
+	fprintf(f,"  #RX DGRAMs: %15" PRIu64 "\n", getNumRxDgrams());
 }
 
 bool CProtoModTcp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)

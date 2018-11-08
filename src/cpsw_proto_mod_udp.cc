@@ -323,10 +323,10 @@ void CProtoModUdp::dumpInfo(FILE *f)
 	fprintf(f,"  RX Threads: %15lu\n",   rxHandlers_.size());
 	fprintf(f,"  ThreadPrio: %15d\n",    threadPriority_);
 	fprintf(f,"  Has Poller:               %c\n", poller_ ? 'Y' : 'N');
-	fprintf(f,"  #TX Octets: %15"PRIu64"\n", getNumTxOctets());
-	fprintf(f,"  #TX DGRAMs: %15"PRIu64"\n", getNumTxDgrams());
-	fprintf(f,"  #RX Octets: %15"PRIu64"\n", getNumRxOctets());
-	fprintf(f,"  #RX DGRAMs: %15"PRIu64"\n", getNumRxDgrams());
+	fprintf(f,"  #TX Octets: %15" PRIu64 "\n", getNumTxOctets());
+	fprintf(f,"  #TX DGRAMs: %15" PRIu64 "\n", getNumTxDgrams());
+	fprintf(f,"  #RX Octets: %15" PRIu64 "\n", getNumRxOctets());
+	fprintf(f,"  #RX DGRAMs: %15" PRIu64  "\n", getNumRxDgrams());
 }
 
 bool CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)

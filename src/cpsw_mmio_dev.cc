@@ -32,7 +32,7 @@ CMMIOAddressImpl::CMMIOAddressImpl(
 
 void CMMIOAddressImpl::dump(FILE *f) const
 {
-	CAddressImpl::dump( f ); fprintf(f, "+0x%"PRIx64" (stride %"PRId64")", offset_, stride_);
+	CAddressImpl::dump( f ); fprintf(f, "+0x%" PRIx64 " (stride %" PRId64 ")", offset_, stride_);
 }
 
 uint64_t CMMIOAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
