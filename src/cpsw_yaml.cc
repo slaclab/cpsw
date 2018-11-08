@@ -710,7 +710,7 @@ public:
 								not_instantiated_.insert( k );
 								std::string errmsg =   std::string("Child '")
 								                     + child.toString()
-								                     + std::string("' found but missing '"YAML_KEY_at"' key");
+								                     + std::string("' found but missing '" YAML_KEY_at "' key");
 								throw InvalidArgError(errmsg);
 							}
 						} else {

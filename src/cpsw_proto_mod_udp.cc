@@ -320,7 +320,7 @@ void CProtoModUdp::dumpInfo(FILE *f)
 
 	fprintf(f,"CProtoModUdp:\n");
 	fprintf(f,"  Peer port : %15u\n",    getDestPort());
-	fprintf(f,"  RX Threads: %15lu\n",   rxHandlers_.size());
+	fprintf(f,"  RX Threads: %15lu\n",   (unsigned long)rxHandlers_.size());
 	fprintf(f,"  ThreadPrio: %15d\n",    threadPriority_);
 	fprintf(f,"  Has Poller:               %c\n", poller_ ? 'Y' : 'N');
 	fprintf(f,"  #TX Octets: %15" PRIu64 "\n", getNumTxOctets());

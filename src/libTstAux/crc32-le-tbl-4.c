@@ -33,7 +33,7 @@ static uint32_t crc32_tbl_4[16] = {
 
 
 /* crc32(0, &{0xff,ff,ff,ff}, 4) ^ 0xffffffff */
-static const uint32_t good = 0x2144df1c;
+/* static const uint32_t good = 0x2144df1c;   */
 
 uint32_t
 crc32_le_t4(uint32_t crc, uint8_t *buf, unsigned len)
