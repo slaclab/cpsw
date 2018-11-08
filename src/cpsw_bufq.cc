@@ -327,14 +327,11 @@ bool CBufQueue::push(BufChain b, bool wait, const CTimeout *abs_timeout)
 	// 1 ref in our local var
 	// (*owner) has been reset
 
-	if ( bounded_push( 0/*b.get()*/ ) ) {
+	if ( bounded_push( b.get() ) ) {
 
-#if TSILL
 		rd_sync_->putSlot();
 		return true;
-#endif
 	} else {
-#if TSILL
 
 		wr_sync_->putSlot();
 
@@ -343,7 +340,6 @@ bool CBufQueue::push(BufChain b, bool wait, const CTimeout *abs_timeout)
 		b->yield_ownership();
 
 		throw InternalError("Queue inconsistency???");
-#endif
 	}
 	return false;
 }
