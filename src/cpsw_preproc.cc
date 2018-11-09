@@ -16,10 +16,10 @@
 #include <string.h>
 
 StreamMuxBuf::StreamMuxBuf(unsigned bufsz)
-: buf_( new Char[bufsz] ),
-  bufsz_(bufsz),
+: bufsz_(bufsz),
   done_(false)
 {
+	buf_.reserve( bufsz );
 	current_ = streams_.end();
 }
 
@@ -33,9 +33,9 @@ StreamMuxBuf::underflow()
 			done_ = true;
 			return std::char_traits<Char>::eof();
 		}
-		got = (*current_)->rdbuf()->sgetn(buf_, bufsz_);
+		got = (*current_)->rdbuf()->sgetn( &buf_[0], bufsz_);
 		if ( got > 0 ) {
-			setg( buf_, buf_, buf_ + got );
+			setg( &buf_[0], &buf_[0], &buf_[0] + got );
 		} else {
 			++current_;
 		}
