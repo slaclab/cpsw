@@ -238,7 +238,7 @@ public:
 			throw InternalError("clock_gettime failed");
 	}
 
-	virtual ~CEventSet();
+	virtual ~CEventSet() throw();
 
 	static EventSetImpl create();
 };
@@ -347,7 +347,7 @@ CMtx::lg guard( &mutx_ );
 	return true;
 }
 
-CEventSet::~CEventSet()
+CEventSet::~CEventSet() throw()
 {
 	// DONT remove event sources; the set must be empty since
 	// every active source holds a reference to this event set

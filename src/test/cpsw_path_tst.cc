@@ -63,7 +63,7 @@ public:
 	{
 	}
 
-	~ExploreVisitor()
+	~ExploreVisitor() throw()
 	{
 		if ( it_ != en_ ) {
 			fprintf(stderr,"Not all expected results checked\n");

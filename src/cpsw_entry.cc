@@ -47,7 +47,7 @@ CEntryImpl::CEntryImpl(Key &k, const char *name, uint64_t size)
   cacheable_( DFLT_CACHEABLE ),
   configPrio_( DFLT_CONFIG_PRIO ),
   configPrioSet_( false ),
-  pollSecs_(DFLT_POLL_SECS),
+  pollSecs_(DFLT_POLL_SECS()),
   locked_( false )
 {
 	checkArgs();
@@ -62,7 +62,7 @@ CEntryImpl::CEntryImpl(const CEntryImpl &ei, Key &k)
   cacheable_( DFLT_CACHEABLE ),      // reset copy to default
   configPrio_( DFLT_CONFIG_PRIO ),   // reset copy to default
   configPrioSet_( false ),           // reset copy to default
-  pollSecs_( DFLT_POLL_SECS ),       // reset copy to default
+  pollSecs_( DFLT_POLL_SECS() ),       // reset copy to default
   locked_( false )
 {
 	++ocnt();
@@ -75,7 +75,7 @@ CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
   cacheable_( DFLT_CACHEABLE ),
   configPrio_( DFLT_CONFIG_PRIO ),
   configPrioSet_( false ),
-  pollSecs_( DFLT_POLL_SECS ),
+  pollSecs_( DFLT_POLL_SECS() ),
   locked_( false )
 {
 
@@ -149,7 +149,7 @@ int CEntryImpl::getDefaultConfigPrio() const
 
 double CEntryImpl::getDefaultPollSecs() const
 {
-	return DFLT_POLL_SECS;
+	return DFLT_POLL_SECS();
 }
 
 CEntryImpl::~CEntryImpl()

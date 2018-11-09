@@ -272,6 +272,8 @@ private:
 
 public:
 
+	typedef NODE value_type;
+
 	template <typename U>
 	struct rebind {
 		typedef CFreeListNodeAlloc<U, EXTRA> other;

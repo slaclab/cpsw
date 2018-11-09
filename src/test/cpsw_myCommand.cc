@@ -55,7 +55,7 @@ public:
 	// make a new CMyContext
 	virtual CommandImplContext createContext(Path pParent) const
 	{
-		return make_shared<CMyContext>(pParent, connectTo_->c_str());
+		return boost::make_shared<CMyContext>(pParent, connectTo_->c_str());
 	}
 
 	// execute the command using the ScalVal stored
@@ -74,7 +74,7 @@ public:
 	// constructor
 	CMyCommandImpl(Key &k, const char *name, const char *connectTo)
 	: CCommandImpl(k, name),
-	  connectTo_( make_shared<const std::string>(connectTo) )
+	  connectTo_( boost::make_shared<const std::string>(connectTo) )
 	{
 	}
 
@@ -84,7 +84,7 @@ public:
 	{
 	std::string connectTo;
 		mustReadNode( node, "connectTo", &connectTo );
-		connectTo_ = make_shared< const std::string >(connectTo);
+		connectTo_ = boost::make_shared< const std::string >(connectTo);
 	}
 
 	// copy constructor (for cloning)

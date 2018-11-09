@@ -339,7 +339,7 @@ CPathImpl::const_iterator a_e( end()      );
 CPathImpl::const_iterator b  ( _toConstPathImpl(p)->begin() );
 CPathImpl::const_iterator b_e( _toConstPathImpl(p)->end()   );
 
-PathImpl rval( make_shared<CPathImpl>( originAsDevImpl() ) );
+PathImpl rval( boost::make_shared<CPathImpl>( originAsDevImpl() ) );
 
 
 	while ( a != a_e ) {
@@ -425,18 +425,18 @@ std::string rval;
 
 Path IPath::create()
 {
-	return Path( make_shared<CPathImpl>() );
+	return Path( boost::make_shared<CPathImpl>() );
 }
 
 Path IPath::create(const char *key)
 {
-	return Path( make_shared<CPathImpl>() )->findByName( key );
+	return Path( boost::make_shared<CPathImpl>() )->findByName( key );
 }
 
 
 Path IPath::create(Hub h)
 {
-	return Path( make_shared<CPathImpl>( h ) );
+	return Path( boost::make_shared<CPathImpl>( h ) );
 }
 
 
@@ -459,8 +459,8 @@ Path CPathImpl::findByName(const char *s) const
 {
 Address      found;
 ConstDevImpl h;
-Path         rval = make_shared<CPathImpl>( *this );
-CPathImpl    *p    = _toPathImpl( rval );
+Path         rval = boost::make_shared<CPathImpl>( *this );
+CPathImpl    *p   = _toPathImpl( rval );
 const char  *sl;
 
 shared_ptr<const EntryImpl::element_type> tailp;
@@ -630,7 +630,7 @@ Path CPathImpl::clone() const
 
 PathImpl CPathImpl::cloneAsPathImpl() const
 {
-	return make_shared<CPathImpl>( *this );
+	return boost::make_shared<CPathImpl>( *this );
 }
 
 Path CPathImpl::concat(ConstPath p) const

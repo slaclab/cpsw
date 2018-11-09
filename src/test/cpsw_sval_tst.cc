@@ -18,6 +18,7 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <iostream>
+#include <math.h>
 
 extern void _setHostByteOrder(ByteOrder);
 
