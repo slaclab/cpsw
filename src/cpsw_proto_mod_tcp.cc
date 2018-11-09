@@ -17,6 +17,7 @@
 
 #include <errno.h>
 #include <sys/select.h>
+#include <sys/uio.h>
 
 #include <stdio.h>
 
