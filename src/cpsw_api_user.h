@@ -13,12 +13,10 @@
 #include <stdint.h>
 #include <list>
 #include <string.h>
-#include <boost/shared_ptr.hpp>
 #include <vector>
 #include <string>
 
-using std::list;
-using boost::shared_ptr;
+#include <cpsw_shared_ptr.h>
 
 class IEntry;
 class IHub;

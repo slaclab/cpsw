@@ -7,32 +7,28 @@
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
-#include <boost/weak_ptr.hpp>
-#include <boost/lockfree/stack.hpp>
-#include <boost/atomic.hpp>
-#include <boost/make_shared.hpp>
+#include <cpsw_compat.h>
 
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
+#include <cpsw_compat.h>
 #include <cpsw_freelist.h>
 #include <cpsw_buf.h>
 
 #include <stdio.h>
 
-using boost::make_shared;
 
 class CBufImpl;
 class CBufChainImpl;
 typedef shared_ptr<CBufImpl>      BufImpl;
 typedef shared_ptr<CBufChainImpl> BufChainImpl;
 
-using boost::weak_ptr;
-using boost::static_pointer_cast;
-using boost::lockfree::detail::freelist_stack;
-using boost::atomic;
-using boost::memory_order_relaxed;
-using boost::memory_order_release;
-using boost::memory_order_acquire;
+using cpsw::weak_ptr;
+using cpsw::static_pointer_cast;
+using cpsw::atomic;
+using cpsw::memory_order_relaxed;
+using cpsw::memory_order_release;
+using cpsw::memory_order_acquire;
 
 #define NULLBUF   BufImpl( reinterpret_cast<CBufImpl*>(0) )
 #define NULLCHAIN BufChainImpl( reinterpret_cast<CBufChainImpl*>(0) )

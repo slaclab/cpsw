@@ -45,7 +45,7 @@ void CNullDevImpl::addAtAddress(Field child)
 {
 IAddress::AKey k = getAKey();
 
-	add( make_shared<CNullAddressImpl>(k), child );
+	add( cpsw::make_shared<CNullAddressImpl>(k), child );
 }
 
 void CNullDevImpl::addAtAddress(Field child, unsigned nelms)

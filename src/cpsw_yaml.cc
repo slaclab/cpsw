@@ -11,7 +11,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <boost/unordered_set.hpp>
+#include <cpsw_compat.h>
 
 #include <string.h>
 
@@ -33,8 +33,8 @@
 
 #include <dlfcn.h>
 
-using boost::dynamic_pointer_cast;
-using boost::unordered_set;
+using cpsw::dynamic_pointer_cast;
+using cpsw::unordered_set;
 
 using YAML::PNode;
 using YAML::Node;

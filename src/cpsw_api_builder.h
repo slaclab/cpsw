@@ -27,8 +27,6 @@
  *       a hierarchy rather than coding C++.
  */
 
-using boost::static_pointer_cast;
-
 class IVisitor;
 class IField;
 class CEntryImpl;
@@ -93,7 +91,7 @@ public:
 class IVisitor {
 public:
 	virtual void visit( Field ) = 0;
-	virtual void visit( Dev d ) { visit( static_pointer_cast<Field::element_type, Dev::element_type>( d ) ); }
+	virtual void visit( Dev d );
 	virtual ~IVisitor() {}
 };
 

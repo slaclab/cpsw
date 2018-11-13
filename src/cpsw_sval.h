@@ -13,8 +13,8 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_entry_adapt.h>
 
-using boost::static_pointer_cast;
-using boost::weak_ptr;
+using cpsw::static_pointer_cast;
+using cpsw::weak_ptr;
 
 class CIntEntryImpl;
 typedef shared_ptr<CIntEntryImpl> IntEntryImpl;

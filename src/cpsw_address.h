@@ -12,13 +12,12 @@
 
 #include <cpsw_api_builder.h>
 #include <cpsw_entry.h>
+#include <cpsw_compat.h>
 
 #include <stdio.h>
 //#include <cpsw_hub.h>
 
-#include <boost/weak_ptr.hpp>
-#include <boost/atomic.hpp>
-using boost::weak_ptr;
+using cpsw::weak_ptr;
 
 class   CDevImpl;
 class   CAddressImpl;
@@ -119,7 +118,7 @@ class CAddressImpl : public IAddress {
 	private:
 		mutable EntryImpl  child_;
 		unsigned           nelms_;
-		boost::atomic<int> openCount_;
+		cpsw::atomic<int> openCount_;
 	protected:
 		ByteOrder      byteOrder_;
 
@@ -175,7 +174,7 @@ class CAddressImpl : public IAddress {
 
 		virtual int  getOpenCount()
 		{
-			return openCount_.load( boost::memory_order_acquire );
+			return openCount_.load( cpsw::memory_order_acquire );
 		}
 
 		virtual void dump(FILE *f) const;

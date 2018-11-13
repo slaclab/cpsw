@@ -12,13 +12,11 @@
 // Object referenced via shared pointer
 
 #include <cpsw_obj_cnt.h>
+#include <cpsw_compat.h>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
 
-using boost::shared_ptr;
-using boost::weak_ptr;
-using boost::static_pointer_cast;
+using cpsw::weak_ptr;
+using cpsw::static_pointer_cast;
 
 class CShObj {
 public:

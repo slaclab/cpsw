@@ -21,8 +21,7 @@
 
 #include <cpsw_yaml.h>
 
-using boost::dynamic_pointer_cast;
-using boost::make_shared;
+using cpsw::dynamic_pointer_cast;
 
 const int CEntryImpl::CONFIG_PRIO_OFF;
 const int CEntryImpl::DFLT_CONFIG_PRIO;
@@ -315,7 +314,7 @@ CUniqueHandle *nod = uniqueListHead_.getNext();
 		nod = nod->getNext();
 	}
 
-	UniqueHandle h = make_shared<CUniqueHandle>( mtx, path );
+	UniqueHandle h = cpsw::make_shared<CUniqueHandle>( mtx, path );
 
 	// still protected by the guard (see above)
 	h->add_unguarded( &uniqueListHead_ );

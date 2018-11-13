@@ -16,12 +16,9 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include <boost/make_shared.hpp>
-#include <boost/weak_ptr.hpp>
 
 using std::vector;
-using boost::make_shared;
-using boost::weak_ptr;
+using cpsw::weak_ptr;
 
 class CEventSet : public IEventSet, public CShObj {
 protected:

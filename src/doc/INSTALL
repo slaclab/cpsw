@@ -192,6 +192,18 @@ to `CROSS_<archname>`.
 
         CROSS_linuxRT_x86_64=/path/to/tools/x86_64-linux-
 
+#### 2.2.1 C++11 Support
+CPSW can be built with a C++-11 compiler. This has the advantage of
+removing the dependency on `boost` for _applications_. I.e., CPSW
+itself still requires some features provided by `boost` but these
+are not exported to the API. The variables
+
+        USE_CXX11_default
+        USE_CXX11_<architecture>
+
+can be set to `YES` or `NO`, respectively in order to enable or
+disable the use of C++-11.
+
 ### 2.3 Dependent 'boost' and 'yaml-cpp' Packages
 
 If the 'boost' and 'yaml-cpp' packages are not installed in a standard

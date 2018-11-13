@@ -12,9 +12,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <cpsw_compat.h>
 
 class CSockSd;
 typedef shared_ptr<CSockSd> SockSd;

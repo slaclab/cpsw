@@ -10,10 +10,8 @@
 #ifndef CPSW_FREE_LIST_H
 #define CPSW_FREE_LIST_H
 
-#include <boost/weak_ptr.hpp>
+#include <cpsw_compat.h>
 #include <boost/lockfree/stack.hpp>
-#include <boost/atomic.hpp>
-#include <boost/make_shared.hpp>
 
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
@@ -24,15 +22,13 @@
 // handed out via smart/shared pointers.
 // Also: keep statistics
 
-using boost::weak_ptr;
-using boost::static_pointer_cast;
+using cpsw::weak_ptr;
+using cpsw::static_pointer_cast;
 using boost::lockfree::detail::freelist_stack;
-using boost::atomic;
-using boost::memory_order_relaxed;
-using boost::memory_order_release;
-using boost::memory_order_acquire;
-using boost::make_shared;
-using boost::allocate_shared;
+using cpsw::atomic;
+using cpsw::memory_order_relaxed;
+using cpsw::memory_order_release;
+using cpsw::memory_order_acquire;
 
 template <typename, typename> class CFreeList;
 
@@ -336,13 +332,13 @@ private:
 	template <typename T, unsigned E, typename B> shared_ptr<T>
 	allocshared()
 	{
-		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<B>() );
+		return cpsw::allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<B>() );
 	}
 
 	template <typename T, unsigned E, typename B> shared_ptr<T>
 	allocsharedextra()
 	{
-		return allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<B>(), E );
+		return cpsw::allocate_shared<T>( CFreeListNodeAlloc<T,E>( &pool_ ), CFreeListNodeKey<B>(), E );
 	}
 
 public:
@@ -399,7 +395,7 @@ public:
 	template <typename ARG> shared_ptr<NODE>
 	alloc(ARG a)
 	{
-		shared_ptr<NODE> rval = allocate_shared<NODE>( CFreeListNodeAlloc<NODE>( &pool_ ), CFreeListNodeKey<NODEBASE>(), a );
+		shared_ptr<NODE> rval = cpsw::allocate_shared<NODE>( CFreeListNodeAlloc<NODE>( &pool_ ), CFreeListNodeKey<NODEBASE>(), a );
 		if ( ! rval )
 			throw InternalError("Unable to allocate Buffer");
 		rval->setSelf( rval );

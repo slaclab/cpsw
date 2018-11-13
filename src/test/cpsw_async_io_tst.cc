@@ -3,11 +3,7 @@
 
 #include <stdio.h>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
 
-using boost::shared_ptr;
-using boost::make_shared;
 
 class MyCallback : public CAsyncIOTransaction {
 private:
@@ -41,7 +37,7 @@ int
 main(int argc, char **argv)
 {
 AsyncIOTransactionManager mgr = IAsyncIOTransactionManager::create();
-Pool                     pool = make_shared< CAsyncIOTransactionPool<MyCallback> >();
+Pool                     pool = cpsw::make_shared< CAsyncIOTransactionPool<MyCallback> >();
 int                       i;
 
 for ( i = 0; i<2; i++ ) {

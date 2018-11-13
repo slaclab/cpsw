@@ -11,16 +11,15 @@
 #define CPSW_PROTO_MOD_H
 
 #include <cpsw_api_user.h>
+#include <cpsw_compat.h>
 
-#include <boost/weak_ptr.hpp>
-#include <boost/atomic.hpp>
 #include <stdio.h>
 
 #include <cpsw_buf.h>
 #include <cpsw_shared_obj.h>
 #include <cpsw_event.h>
 
-using boost::weak_ptr;
+using cpsw::weak_ptr;
 
 class IProtoPort;
 typedef shared_ptr<IProtoPort> ProtoPort;
@@ -313,9 +312,9 @@ public:
 
 class IPortImpl : public IProtoDoor {
 private:
-	boost::atomic<bool>    spinlock_;
+	cpsw::atomic<bool>    spinlock_;
 	ProtoPort              forcedSelfReference_;
-    boost::atomic<int>     openCount_;
+    cpsw::atomic<int>     openCount_;
 
 protected:
 	virtual ProtoPort getSelfAsProtoPort()        = 0;

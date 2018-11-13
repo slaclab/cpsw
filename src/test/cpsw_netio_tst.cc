@@ -21,8 +21,6 @@
 
 #include <cpsw_obj_cnt.h>
 
-using boost::dynamic_pointer_cast;
-
 class TestFailed {};
 
 class Clr {

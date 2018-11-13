@@ -21,11 +21,8 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <boost/weak_ptr.hpp>
-#include <boost/make_shared.hpp>
 
-using boost::weak_ptr;
-using boost::make_shared;
+using cpsw::weak_ptr;
 
 class   Visitor;
 
@@ -83,7 +80,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual void addAtAddress(Field child, unsigned nelms)
 		{
 		    IAddress::AKey k = getAKey();
-			add( make_shared<CAddressImpl>(k, nelms), child->getSelf() );
+			add( cpsw::make_shared<CAddressImpl>(k, nelms), child->getSelf() );
 		}
 
 		virtual void addAtAddress(Field child, YamlState &ypath);

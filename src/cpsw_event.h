@@ -13,14 +13,11 @@
 #include <cpsw_api_timeout.h>
 #include <cpsw_error.h>
 #include <cpsw_mutex.h>
+#include <cpsw_compat.h>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/atomic.hpp>
-
-using boost::shared_ptr;
-using boost::atomic;
-using boost::memory_order_acquire;
-using boost::memory_order_release;
+using cpsw::atomic;
+using cpsw::memory_order_acquire;
+using cpsw::memory_order_release;
 
 // The 'event' facility allows for a thread waiting until
 // any of a set of conditions become true (similar to unix poll/select).

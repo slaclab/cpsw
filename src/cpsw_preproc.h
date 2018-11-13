@@ -15,15 +15,10 @@
 #include <vector>
 #include <list>
 
+#include <cpsw_compat.h>
 #include <cpsw_error.h>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/unordered_set.hpp>
-
 using std::streambuf;
-
-using boost::shared_ptr;
-using boost::unordered_set;
 
 // class to multiplex/concatenate multiple
 // istreams into a single streambuf.
@@ -73,17 +68,17 @@ public:
 
 class YamlPreprocessor {
 private:
-	typedef unordered_set<std::string>  Map;
-	StreamMuxBuf::Stream                main_;
-	std::string                         mainName_;
-	StreamMuxBuf                       *mux_;
-	Map                                 tags_;
-	std::string                         path_;
-	bool                                versionSet_;
-	int                                 major_;
-	int                                 minor_;
-	int                                 revision_;
-	bool                                verbose_;
+	typedef cpsw::unordered_set<std::string>  Map;
+	StreamMuxBuf::Stream                      main_;
+	std::string                               mainName_;
+	StreamMuxBuf                             *mux_;
+	Map                                       tags_;
+	std::string                               path_;
+	bool                                      versionSet_;
+	int                                       major_;
+	int                                       minor_;
+	int                                       revision_;
+	bool                                      verbose_;
 
 	// no copying
 	YamlPreprocessor(const YamlPreprocessor &);

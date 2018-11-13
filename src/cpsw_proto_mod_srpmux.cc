@@ -52,7 +52,7 @@ BufChain bc  = *bcp;
 
 INetIODev::ProtocolVersion CSRPPort::getProtoVersion()
 {
-	return boost::static_pointer_cast<ProtoModSRPMux::element_type>( getProtoMod() )->getProtoVersion();
+	return cpsw::static_pointer_cast<ProtoModSRPMux::element_type>( getProtoMod() )->getProtoVersion();
 }
 
 SRPPort CProtoModSRPMux::newPort(int dest, unsigned queueDepth)

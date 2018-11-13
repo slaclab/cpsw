@@ -15,8 +15,6 @@
 
 #include <cpsw_error.h>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
 
 DECLARE_OBJ_COUNTER( CCommandImplContext::sh_ocnt_, "CommandImplContext", 0 )
 
@@ -50,7 +48,7 @@ CCommandImpl::loadMyConfigFromYaml(Path p, YAML::Node &node) const
 
 CommandImplContext CCommandImpl::createContext(Path pParent) const
 {
-	return make_shared<CCommandImplContext>(pParent);
+	return cpsw::make_shared<CCommandImplContext>(pParent);
 }
 
 

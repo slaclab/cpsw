@@ -12,10 +12,10 @@
 
 // count objects (for debugging)
 
-#include <boost/atomic.hpp>
+#include <cpsw_compat.h>
 
-using boost::atomic;
-using boost::memory_order_relaxed;
+using cpsw::atomic;
+using cpsw::memory_order_relaxed;
 
 class CpswObjCounter {
 private:

@@ -7,6 +7,10 @@
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
+// This silences the 'auto_ptr deprecated' warnings.
+// See https://github.com/boostorg/python/issues/176
+#define BOOST_NO_AUTO_PTR
+
 #include <cpsw_api_user.h>
 #include <cpsw_path.h>
 #include <cpsw_yaml.h>
@@ -15,16 +19,15 @@
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
 #include <boost/python/list.hpp>
-#include <boost/weak_ptr.hpp>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <vector>
 
-using boost::static_pointer_cast;
+using cpsw::static_pointer_cast;
 
 using namespace boost::python;
-using boost::weak_ptr;
+using cpsw::weak_ptr;
 
 namespace cpsw_python {
 
@@ -1451,7 +1454,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.staticmethod("loadYaml")
 	;
 
-	class_<IPathVisitor, WrapPathVisitor, boost::noncopyable, boost::shared_ptr<WrapPathVisitor> >
+	class_<IPathVisitor, WrapPathVisitor, boost::noncopyable, shared_ptr<WrapPathVisitor> >
 	WrapPathVisitorClazz(
 		"PathVisitor",
 		"\n"
@@ -1485,7 +1488,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 		"\n"
 	);
 
-	class_<IYamlFixup, WrapYamlFixup, boost::noncopyable, boost::shared_ptr<WrapYamlFixup> >
+	class_<IYamlFixup, WrapYamlFixup, boost::noncopyable, shared_ptr<WrapYamlFixup> >
 	WrapYamlFixupClazz(
 		"YamlFixup",
 		"\n"

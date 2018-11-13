@@ -110,8 +110,8 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 			
 		xfer("readv()", ::readv, sd_, iov, idx, len);
 
-		nDgrams_.fetch_add(1,   boost::memory_order_relaxed);
-		nOctets_.fetch_add(len, boost::memory_order_relaxed);
+		nDgrams_.fetch_add(1,   cpsw::memory_order_relaxed);
+		nOctets_.fetch_add(len, cpsw::memory_order_relaxed);
 
 		BufChain bufch = IBufChain::create();
 
@@ -304,8 +304,8 @@ unsigned       nios;
 
 	}
 
-	nTxDgrams_.fetch_add( 1, boost::memory_order_relaxed );
-	nTxOctets_.fetch_add( bc->getSize(), boost::memory_order_relaxed );
+	nTxDgrams_.fetch_add( 1, cpsw::memory_order_relaxed );
+	nTxOctets_.fetch_add( bc->getSize(), cpsw::memory_order_relaxed );
 
 	for ( nios=0, b=bc->getHead(); b; nios++, b=b->getNext() ) {
 		iov[nios].iov_base = b->getPayload();

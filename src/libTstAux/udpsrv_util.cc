@@ -7,13 +7,10 @@
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
+#include <cpsw_compat.h>
 #include <udpsrv_util.h>
 #include <udpsrv_cutil.h>
 #include <cpsw_thread.h>
-
-#include <boost/make_shared.hpp>
-#include <boost/atomic.hpp>
-#include <boost/weak_ptr.hpp>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,13 +23,12 @@
 #include <vector>
 
 using std::vector;
-using boost::atomic;
-using boost::weak_ptr;
-using boost::make_shared;
-using boost::memory_order_acq_rel;
-using boost::memory_order_acquire;
-using boost::memory_order_release;
-using boost::static_pointer_cast;
+using cpsw::atomic;
+using cpsw::weak_ptr;
+using cpsw::memory_order_acq_rel;
+using cpsw::memory_order_acquire;
+using cpsw::memory_order_release;
+using cpsw::static_pointer_cast;
 
 class IEventBufSync;
 typedef shared_ptr<IEventBufSync> EventBufSync;
@@ -1325,13 +1321,13 @@ reconn:;
 
 UdpPort IUdpPort::create(const char *ina, unsigned port, unsigned simLoss, unsigned ldScrmbl, unsigned depth)
 {
-UdpPort p = make_shared<CUdpPort>(ina, port, simLoss, ldScrmbl, depth);
+UdpPort p = cpsw::make_shared<CUdpPort>(ina, port, simLoss, ldScrmbl, depth);
 	return p;
 }
 
 TcpPort ITcpPort::create(const char *ina, unsigned port, unsigned depth, bool isServer, TcpConnHandler cHdl)
 {
-TcpPort p = make_shared<CTcpPort>(ina, port, depth, isServer, cHdl);
+TcpPort p = cpsw::make_shared<CTcpPort>(ina, port, depth, isServer, cHdl);
 	return p;
 }
 

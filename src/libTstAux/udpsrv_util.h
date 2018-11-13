@@ -10,8 +10,7 @@
 #ifndef Q_HELPER_H
 #define Q_HELPER_H
 
-#include <boost/shared_ptr.hpp>
-#include <boost/atomic.hpp>
+#include <cpsw_shared_ptr.h>
 
 // simplified implementation of buffers etc.
 // for use by udpsrv to have a testbed which
@@ -31,10 +30,6 @@
 #include <stdio.h>
 
 #define MAXBUFSZ 65536
-
-
-using boost::shared_ptr;
-using boost::atomic;
 
 class IProtoPort;
 typedef shared_ptr<IProtoPort> ProtoPort;

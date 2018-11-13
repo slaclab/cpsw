@@ -20,7 +20,7 @@
 
 #include <cpsw_yaml.h>
 
-using boost::dynamic_pointer_cast;
+using cpsw::dynamic_pointer_cast;
 
 //#define SRPADDR_DEBUG 0
 //#define TIMEOUT_DEBUG

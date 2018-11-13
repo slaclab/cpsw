@@ -95,7 +95,7 @@ try {
 		Path top = IPath::loadYamlStream( yaml );
 		Hub    h = top->origin();
 
-		ConstMemDevImpl mem = boost::dynamic_pointer_cast<ConstMemDevImpl::element_type>( h );
+		ConstMemDevImpl mem = cpsw::dynamic_pointer_cast<ConstMemDevImpl::element_type>( h );
 
 		bufp = mem->getBufp();
 

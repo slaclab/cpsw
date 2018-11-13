@@ -15,6 +15,10 @@
 // high-level details such as ip-address and the like...
 //
 
+// This silences the 'auto_ptr deprecated' warnings.
+// See https://github.com/boostorg/python/issues/176
+#define BOOST_NO_AUTO_PTR
+
 #include <boost/python.hpp>
 #include <yaml-cpp/yaml.h>
 

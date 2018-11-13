@@ -155,7 +155,7 @@ void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, ui
 {
 	IAddress::AKey k = getAKey();
 	add(
-			make_shared<CMMIOAddressImpl>(k, offset, nelms, stride, byteOrder),
+			cpsw::make_shared<CMMIOAddressImpl>(k, offset, nelms, stride, byteOrder),
 			child
 	   );
 }

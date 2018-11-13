@@ -7,12 +7,8 @@
 #include <cpsw_shared_obj.h>
 #include <cpsw_freelist.h>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/make_shared.hpp>
 
-using boost::make_shared;
-using boost::weak_ptr;
+using cpsw::weak_ptr;
 
 class   CAsyncIOTransactionNode;
 typedef shared_ptr<CAsyncIOTransactionNode> AsyncIOTransactionNode;

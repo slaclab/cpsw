@@ -13,9 +13,7 @@
 #include <stdint.h>
 #include <cpsw_srp_addr.h>
 #include <cpsw_async_io.h>
-#include <boost/shared_ptr.hpp>
 
-using boost::shared_ptr;
 
 class CSRPAddressImpl;
 

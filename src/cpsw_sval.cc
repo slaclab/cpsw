@@ -894,7 +894,7 @@ ByteOrder          targetEndian = cl->getByteOrder();
 
 	CReadArgs args;
 
-	shared_ptr<CGetIntValContext> ctxt = boost::make_shared<CGetIntValContext> (
+	shared_ptr<CGetIntValContext> ctxt = cpsw::make_shared<CGetIntValContext> (
 	                                             getSelfAs<IntEntryAdapt>(),
 	                                             buf,
                                                  nelms,
@@ -992,7 +992,7 @@ public:
 				}
 				for ( i=0; i < nelms_; i++ ) {
 					::snprintf(strbuf, sizeof(strbuf) - 1, fmt, reinterpret_cast<uint64_t*>( buf_ )[i]);
-					strs_[i] = boost::make_shared<string>( strbuf );
+					strs_[i] = cpsw::make_shared<string>( strbuf );
 				}
 			}
 		} else {
@@ -1012,7 +1012,7 @@ public:
 						s.append( strbuf );
 					}
 				}
-				strs_[i] = boost::make_shared<string>( s );
+				strs_[i] = cpsw::make_shared<string>( s );
 
 				bufp += elsz_;
 			}
@@ -1029,7 +1029,7 @@ unsigned           rval;
 
 	nelms = checkNelms(nelms, &it);
 
-	shared_ptr<CGetStringValContext> ctxt = boost::make_shared<CGetStringValContext>( getSelfAs<IntEntryAdapt>(), strs, nelms, aio);
+	shared_ptr<CGetStringValContext> ctxt = cpsw::make_shared<CGetStringValContext>( getSelfAs<IntEntryAdapt>(), strs, nelms, aio);
 
 	uint8_t *tmpBuf = ctxt->getTmpBuf();
 
@@ -1104,7 +1104,7 @@ unsigned rval;
 
 	nelms = checkNelms(nelms, &it);
 
-shared_ptr<CGetDoubleValContext> ctxt = boost::make_shared<CGetDoubleValContext>( getSelfAs<IntEntryAdapt>(), this, buf, nelms, aio );
+shared_ptr<CGetDoubleValContext> ctxt = cpsw::make_shared<CGetDoubleValContext>( getSelfAs<IntEntryAdapt>(), this, buf, nelms, aio );
 
 	if ( IScalVal_Base::IEEE_754 == getEncoding() && 64 != getSizeBits() ) {
 		float *fBuf = reinterpret_cast<float*>(buf);

@@ -14,15 +14,12 @@
 #include <cpsw_shared_obj.h>
 #include <cpsw_mutex.h>
 
-#include <boost/weak_ptr.hpp>
-#include <boost/make_shared.hpp>
 
 #include <cpsw_yaml.h>
 
 #include <typeinfo>
 
-using boost::weak_ptr;
-using boost::make_shared;
+using cpsw::weak_ptr;
 
 class   Visitor;
 

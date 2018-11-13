@@ -107,7 +107,7 @@ template <typename EL> void tst(uint8_t *buf, unsigned bufsz, ScalVal_RO val, By
 
 	int64_t r;
 
-	ScalVal val_w = boost::dynamic_pointer_cast<ScalVal::element_type, ScalVal_RO::element_type>(val);
+	ScalVal val_w = cpsw::dynamic_pointer_cast<ScalVal::element_type, ScalVal_RO::element_type>(val);
 
 	for ( bo = 0; bo < 2; bo++ ) {
 
@@ -199,8 +199,6 @@ template <typename EL> void tst(uint8_t *buf, unsigned bufsz, ScalVal_RO val, By
 	_setHostByteOrder( native );
 }
 
-using boost::dynamic_pointer_cast;
-
 typedef shared_ptr<const MemDev::element_type> ConstMemDev;
 
 int
@@ -248,7 +246,7 @@ while ( --run > 0 ) {
 	if ( use_yaml ) {
 		root = IPath::loadYamlFile(use_yaml, "root")->origin();
 
-		cmm = dynamic_pointer_cast<ConstMemDev::element_type>( root );
+		cmm = cpsw::dynamic_pointer_cast<ConstMemDev::element_type>( root );
 
 		if ( ! cmm ) {
 			throw TestFailed("MemDev not found after loading YAML");
@@ -270,7 +268,7 @@ while ( --run > 0 ) {
 			/* test cloning entire hierarchy */
 			EntryImpl ei = CShObj::clone( mm->getSelf() );
 			root = ei->isHub();
-			cmm  = dynamic_pointer_cast<ConstMemDev::element_type>( root );
+			cmm  = cpsw::dynamic_pointer_cast<ConstMemDev::element_type>( root );
 			mmio_le.reset();
 			mmio_be.reset();
 			mm.reset();
@@ -501,7 +499,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 	std::cout << "2D-TEST\n";
 	{
 
-	ConstMemDevImpl memDev = boost::dynamic_pointer_cast<ConstMemDevImpl::element_type>( root );
+	ConstMemDevImpl memDev = cpsw::dynamic_pointer_cast<ConstMemDevImpl::element_type>( root );
 		if ( ! memDev )
 			throw TestFailed("Memory Device not found");
 		uint8_t *bufp=memDev->getBufp();
@@ -621,7 +619,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 
 			memset(dbl, 0, sizeof(dbl));
 
-			shared_ptr<AioTester> wai = make_shared<AioTester>();
+			shared_ptr<AioTester> wai = cpsw::make_shared<AioTester>();
 
 			got = d_arr->getVal(wai, dbl, nelms);
 			if ( got != nelms )

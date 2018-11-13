@@ -141,7 +141,7 @@ shared_ptr<CCommAddressImpl> addr;
 #ifdef NETIO_DEBUG
 			fprintf(stderr,"Creating CCommAddress\n");
 #endif
-			addr = make_shared<CCommAddressImpl>(key, port);
+			addr = cpsw::make_shared<CCommAddressImpl>(key, port);
 		break;
 
 		case IProtoStackBuilder::SRP_UDP_V1:
@@ -150,7 +150,7 @@ shared_ptr<CCommAddressImpl> addr;
 #ifdef NETIO_DEBUG
 			fprintf(stderr,"Creating SRP address (V %d)\n", bldr->getSRPVersion());
 #endif
-			addr = make_shared<CSRPAddressImpl>(key, bldr, port);
+			addr = cpsw::make_shared<CSRPAddressImpl>(key, bldr, port);
 		break;
 
 		default:

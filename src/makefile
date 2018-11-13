@@ -10,13 +10,14 @@
 CPSW_DIR=.
 
 include $(CPSW_DIR)/defs.mak
+include $(CPSW_DIR)/std.mak
 
 POSTBUILD_SUBDIRS+=libTstAux
 POSTBUILD_SUBDIRS+=rssi_bridge
 POSTBUILD_SUBDIRS+=test
 
-HEADERS = cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h
-DOCS = doc/README.yamlDefinition doc/README.yamlDefinition.html doc/README.configData.html doc/INSTALL.html
+HEADERS        += cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h $(SHPTR_DIR_USE_CXX11)cpsw_shared_ptr.h
+DOCS           += doc/README.yamlDefinition doc/README.yamlDefinition.html doc/README.configData.html doc/INSTALL.html
 
 GENERATED_SRCS += git_version_string.h
 GENERATED_SRCS += $(DOCS)
@@ -25,6 +26,7 @@ VPATH+=:$(SRCDIR)/socks/
 VPATH+=:$(SRCDIR)/rssi_bridge/
 
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
+cpsw_SRCS+= cpsw_api_builder.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
 cpsw_SRCS+= cpsw_stream_adapt.cc
 cpsw_SRCS+= cpsw_sval.cc

@@ -72,8 +72,8 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 			sleep(10);
 			continue;
 		}
-		nDgrams_.fetch_add(1,   boost::memory_order_relaxed);
-		nOctets_.fetch_add(got, boost::memory_order_relaxed);
+		nDgrams_.fetch_add(1,   cpsw::memory_order_relaxed);
+		nOctets_.fetch_add(got, cpsw::memory_order_relaxed);
 
 		if ( got > 0 ) {
 			BufChain bufch = IBufChain::create();
@@ -344,8 +344,8 @@ unsigned       nios;
 	// If they were to fragment a large frame they have to push each
 	// fragment individually.
 
-	nTxDgrams_.fetch_add( 1, boost::memory_order_relaxed );
-	nTxOctets_.fetch_add( bc->getSize(), boost::memory_order_relaxed );
+	nTxDgrams_.fetch_add( 1, cpsw::memory_order_relaxed );
+	nTxOctets_.fetch_add( bc->getSize(), cpsw::memory_order_relaxed );
 
 	for (nios=0, b=bc->getHead(); nios<bc->getLen(); nios++, b=b->getNext()) {
 		iov[nios].iov_base = b->getPayload();

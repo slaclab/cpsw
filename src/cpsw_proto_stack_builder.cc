@@ -23,13 +23,11 @@
 #include <cpsw_yaml.h>
 #include <cpsw_debug.h>
 
-#include <boost/make_shared.hpp>
 
 #include <socks/libSocks.h>
 #include <rssi_bridge/rpcMapService.h>
 
-using boost::make_shared;
-using boost::dynamic_pointer_cast;
+using cpsw::dynamic_pointer_cast;
 
 #define PSBLDR_DEBUG 0
 
@@ -595,7 +593,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual ProtoStackBuilder clone()
 		{
-			return make_shared<CProtoStackBuilder>( *this );
+			return cpsw::make_shared<CProtoStackBuilder>( *this );
 		}
 
 		virtual ProtoPort build( std::vector<ProtoPort>& );
@@ -763,7 +761,7 @@ IProtoStackBuilder::create(YamlState &node)
 shared_ptr<CProtoStackBuilder>
 CProtoStackBuilder::create()
 {
-	return make_shared<CProtoStackBuilder>();
+	return cpsw::make_shared<CProtoStackBuilder>();
 }
 
 ProtoStackBuilder

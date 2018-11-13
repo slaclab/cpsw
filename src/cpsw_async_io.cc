@@ -7,9 +7,7 @@
 #include <cpsw_error.h>
 #include <cpsw_shared_obj.h>
 
-#include <boost/make_shared.hpp>
 
-using boost::make_shared;
 
 class CListAnchor : public CShObj, public CAsyncIOTransactionNode {
 private:
@@ -286,7 +284,7 @@ AsyncIOTransactionNode xact;
 AsyncIOTransactionManager
 IAsyncIOTransactionManager::create(uint64_t timeoutUs)
 {
-	return make_shared<CAsyncIOTransactionManager>( timeoutUs );
+	return cpsw::make_shared<CAsyncIOTransactionManager>( timeoutUs );
 }
 
 CAsyncIOCompletion::CAsyncIOCompletion(AsyncIO parent)

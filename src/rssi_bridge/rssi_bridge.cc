@@ -20,7 +20,6 @@
 #include <sys/file.h>
 
 #include <arpa/inet.h>
-#include <boost/make_shared.hpp>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -29,7 +28,6 @@
 #include <rpcMapService.h>
 #include <rpc/rpc.h>
 
-using boost::make_shared;
 
 #define RSSI_BR_DEBUG
 
@@ -207,7 +205,7 @@ Throttler      thrtlr;
 			udpTop_->attach( udpPrt );
 		} else {
 			udpTop_    = udpPrt;
-			thrtlr     = make_shared<CThrottler>( udpPrt );
+			thrtlr     = cpsw::make_shared<CThrottler>( udpPrt );
 		}
 
 		tcpTop_ = tcpPrt;
@@ -223,10 +221,10 @@ Throttler      thrtlr;
 
 		try {
 
-			udpToTcp_ = make_shared<CMover>( "UDP->TCP", tcpTop_, udpTop_, debug(), thrtlr, thrtlr ? -1 : 0 );
+			udpToTcp_ = cpsw::make_shared<CMover>( "UDP->TCP", tcpTop_, udpTop_, debug(), thrtlr, thrtlr ? -1 : 0 );
 			udpToTcp_->threadStart();
 
-			tcpToUdp_ = make_shared<CMover>( "TCP->UDP", udpTop_, tcpTop_, debug(), thrtlr, thrtlr ?  1 : 0 );
+			tcpToUdp_ = cpsw::make_shared<CMover>( "TCP->UDP", udpTop_, tcpTop_, debug(), thrtlr, thrtlr ?  1 : 0 );
 			tcpToUdp_->threadStart();
 
 		} catch (...) {
@@ -469,7 +467,7 @@ try {
 		if ( (rssiBit & rssiMsk) ) {
 			f = (Bridge::Flags)(f | Bridge::RSSI);
 		}
-		bridges.push_back( make_shared<Bridge>( peerIp, it->first, it->second, f ) );
+		bridges.push_back( cpsw::make_shared<Bridge>( peerIp, it->first, it->second, f ) );
 		shared_ptr<Bridge> b = bridges.back();
 
 		PortMap            m;

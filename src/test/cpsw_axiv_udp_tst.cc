@@ -8,8 +8,8 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #include <cpsw_api_builder.h>
+#include <cpsw_compat.h>
 #include <cpsw_mmio_dev.h>
-#include <boost/atomic.hpp>
 #include <yaml-cpp/yaml.h>
 
 #include <string.h>
@@ -28,9 +28,9 @@
 
 #define SYNC_LIMIT 10
 
-using boost::atomic;
-using boost::memory_order_acquire;
-using boost::memory_order_release;
+using cpsw::atomic;
+using cpsw::memory_order_acquire;
+using cpsw::memory_order_release;
 
 using std::vector;
 

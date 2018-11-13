@@ -12,7 +12,7 @@
 #include <cpsw_entry_adapt.h>
 #include <cpsw_address.h>
 
-using boost::dynamic_pointer_cast;
+using cpsw::dynamic_pointer_cast;
 
 IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
 	:CShObj(k),
