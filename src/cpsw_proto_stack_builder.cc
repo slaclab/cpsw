@@ -693,7 +693,7 @@ WriteMode                  writeMode;
 		const YAML::PNode &nn( node.lookup(YAML_KEY_depack) );
 		if ( !!nn && nn.IsMap() )
 		{
-		DepackProtoVersion proto_vers;
+		DepackProtoVersion proto_vers = DEPACKETIZER_V0; // silence rhel g++ warning about un-initialized use (??)
 			bldr->useDepack( true );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				bldr->setDepackOutQueueDepth( u );
