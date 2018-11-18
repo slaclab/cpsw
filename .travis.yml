@@ -54,4 +54,4 @@ before_script:
 
 script:
     - make
-    - make install
+    - sudo make install
