@@ -48,13 +48,8 @@ install:
 
 before_script:
     # Prepare config.mak file
-    - |
-      cat <<EOF > config.mak
-      HARCH=linux-x86_64
-      ARCHES +=
-      USE_CXX11_default=NO
-      INSTALL_DIR=/usr/local/cpsw
-      EOF
+    - echo "USE_CXX11_default=NO" > config.mak
+    - echo "INSTALL_DIR=/usr/local/cpsw" >> config.mak
 
 script:
     - make
