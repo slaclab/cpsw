@@ -43,8 +43,14 @@ install:
     - make install
 
 before_script:
-    # Let's build only for the host
-    - sed -i -e 's/^ARCHES +=.*/ARCHES +=/g' config.mak
+    # Prepare config.mak file
+    - |
+      cat <<EOF > config.mak
+      HARCH=linux-x86_64
+      ARCHES +=
+      USE_CXX11_default=NO
+      INSTALL_DIR=/usr/local/cpsw
+      EOF
 
 script:
     - make
