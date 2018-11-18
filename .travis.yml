@@ -1,0 +1,12 @@
+os: linux
+
+language: c
+
+compiler: gcc
+
+before_script:
+    # Let's build only for the host
+    - sed -i -e 's/^ARCHES +=.*/ARCHES +=/g' config.mak
+
+script:
+    - make
