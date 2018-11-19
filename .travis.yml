@@ -26,7 +26,7 @@ install:
     - cd $PYTHON_DIR
     - wget -O Python-3.6.1.tgz https://www.python.org/ftp/python/3.6.1/Python-3.6.1.tgz
     - tar xzf Python-3.6.1.tgz --strip 1
-    - ./configure
+    - ./configure --quiet
     - make --quiet
     - sudo make install
 
