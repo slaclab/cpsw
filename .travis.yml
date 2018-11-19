@@ -49,6 +49,7 @@ install:
 
 before_script:
     # Prepare config.mak file
+    - cd $TRAVIS_BUILD_DIR
     - echo "USE_CXX11_default=NO" > config.mak
     - echo "INSTALL_DIR=/usr/local/cpsw" >> config.mak
 
