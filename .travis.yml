@@ -57,5 +57,7 @@ script:
     - make
     - sudo make install
 
-    # Run the tests. Thsis should failed as udpsrv will not be running
-    - make test
+    # Run the tests:
+    - source env.slac.sh    # Setup the enviroment
+    - udpsrv -S0 -L0 &      # Start udpsrv in the background
+    - make test             # Run the tests
