@@ -28,7 +28,7 @@ install:
     - tar xzf Python-3.6.1.tgz --strip 1
     - ./configure --quiet
     - make --quiet
-    - sudo make install
+    - sudo make install 1>/dev/null 2>&1
 
     # Install boost
     - cd $BOOST_DIR
@@ -36,7 +36,7 @@ install:
     - tar xzf boost_1_63_0.tar.gz --strip 1
     - ./bootstrap.sh --with-libraries=atomic,python
     - travis_wait ./b2 -d0
-    - sudo ./b2 install
+    - sudo ./b2 install 1>/dev/null 2>&1
 
     # Install YAML-CPP
     - cd $YAML_CPP_DIR
@@ -45,7 +45,7 @@ install:
     - mkdir build; cd build
     - cmake ..
     - make --quiet
-    - sudo make install
+    - sudo make install 1>/dev/null 2>&1
 
 before_script:
     # Prepare config.mak file
