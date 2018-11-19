@@ -55,3 +55,6 @@ before_script:
 script:
     - make
     - sudo make install
+
+    # Run the tests. Thsis should failed as udpsrv will not be running
+    - make test
