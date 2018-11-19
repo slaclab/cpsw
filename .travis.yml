@@ -34,7 +34,7 @@ install:
     - cd $BOOST_DIR
     - wget -O boost_1_63_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.gz/download
     - tar xzf boost_1_63_0.tar.gz --strip 1
-    - ./bootstrap.sh --with-libraries=atomic,python
+    - ./bootstrap.sh --with-libraries=atomic,python --with-python=python3
     - travis_wait ./b2 -d0
     - sudo ./b2 install 1>/dev/null 2>&1
 
