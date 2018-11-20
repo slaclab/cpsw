@@ -47,8 +47,8 @@ install:
     - tar zxf yaml-cpp-0.5.3.tar.gz --strip 1
     - mkdir build; cd build
     - cmake .. -DBUILD_SHARED_LIBS=ON -DPYTHON_EXECUTABLE:FILEPATH=/usr/local/bin/python3
-    - make --quiet
-    - sudo make install 1>/dev/null 2>&1
+    - make #--quiet
+    - sudo make install #1>/dev/null 2>&1
 
 before_script:
     # Prepare config.mak file
