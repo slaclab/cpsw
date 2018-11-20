@@ -63,10 +63,14 @@ script:
     - make
     - sudo make install
 
+    - echo $LD_LIBRARY_PATH
+    - source env.slac.sh
+    - echo $LD_LIBRARY_PATH
+    - ldd /usr/local/cpsw/linux-x86_64/bin/udpsrv
     # Run the tests:
-    - source env.slac.sh    # Setup the enviroment
-    - udpsrv -S0 -L0 &      # Start udpsrv in the background
-    - make test             # Run the tests
+    #- source env.slac.sh    # Setup the enviroment
+    #- udpsrv -S0 -L0 &      # Start udpsrv in the background
+    #- make test             # Run the tests
 
     # Test to import the python wrapper
     # - python3 -c "import pycpsw"
