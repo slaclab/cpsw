@@ -37,7 +37,7 @@ install:
     - ./bootstrap.sh --with-libraries=atomic,python
     # Boost fails to find the correct python3 paths automatically, so we need to patch project-config.jam
     - |
-      sed -i -e 's/using python.*/using python : 3.6 : \/usr\/local\/bin\/python3 : \/usr\/local\/include\/python3.6m\/ : \/usr\/local\/lib\/python3.6\/; /g' project-config.jam
+      sed -i -e 's/using python.*/using python : 3.6 : \/usr\/local\/bin\/python3 : \/usr\/local\/include\/python3.6m\/ : \/usr\/local\/lib\/python3.6\/ ;/g' project-config.jam
     - travis_wait ./b2 -d0
     - sudo ./b2 install 1>/dev/null 2>&1
 
