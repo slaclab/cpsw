@@ -54,7 +54,7 @@ before_script:
     # Prepare config.mak file
     - cd $TRAVIS_BUILD_DIR
     - rm -f config.mak
-    - echo "WITH_STATIC_LIBRARIES_default=YES"        >> config.mak
+    # - echo "WITH_STATIC_LIBRARIES_default=YES"        >> config.mak
     - echo "pyinc_DIR=/usr/local/include/python3.6m/" >> config.mak
     - echo "USE_CXX11_default=NO"                     >> config.mak
     - echo "INSTALL_DIR=/usr/local/cpsw/"             >> config.mak
@@ -69,4 +69,4 @@ script:
     - make test             # Run the tests
 
     # Test to import the python wrapper
-    - python3 -c "import pycpsw"
+    # - python3 -c "import pycpsw"
