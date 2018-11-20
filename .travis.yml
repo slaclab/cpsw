@@ -46,7 +46,7 @@ install:
     - wget -O yaml-cpp-0.5.3.tar.gz https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.5.3.tar.gz
     - tar zxf yaml-cpp-0.5.3.tar.gz --strip 1
     - mkdir build; cd build
-    - cmake .. -DBUILD_SHARED_LIBS=ON -DPYTHON_EXECUTABLE:FILEPATH=/usr/local/bin/python3
+    - cmake .. -DPYTHON_EXECUTABLE:FILEPATH=/usr/local/bin/python3
     - make #--quiet
     - sudo make install #1>/dev/null 2>&1
 
@@ -67,6 +67,7 @@ script:
     - source env.slac.sh
     - echo $LD_LIBRARY_PATH
     - ldd /usr/local/cpsw/linux-x86_64/bin/udpsrv
+    - ls
     # Run the tests:
     #- source env.slac.sh    # Setup the enviroment
     #- udpsrv -S0 -L0 &      # Start udpsrv in the background
