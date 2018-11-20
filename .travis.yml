@@ -46,7 +46,7 @@ install:
     - wget -O yaml-cpp-0.5.3.tar.gz https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.5.3.tar.gz
     - tar zxf yaml-cpp-0.5.3.tar.gz --strip 1
     - mkdir build; cd build
-    - cmake .. -DPYTHON_EXECUTABLE:FILEPATH=/usr/local/bin/python3
+    - cmake .. -DBUILD_SHARED_LIBS=ON -DPYTHON_EXECUTABLE:FILEPATH=/usr/local/bin/python3
     - make --quiet
     - sudo make install 1>/dev/null 2>&1
 
