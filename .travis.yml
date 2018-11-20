@@ -66,3 +66,6 @@ script:
     - source env.slac.sh    # Setup the enviroment
     - udpsrv -S0 -L0 &      # Start udpsrv in the background
     - make test             # Run the tests
+
+    # Test to import the python wrapper
+    - python3 -c "import pycpsw"
