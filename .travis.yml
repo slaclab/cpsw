@@ -87,5 +87,6 @@ deploy:
     github-token: $GITHUB_TOKEN
     keep-history: true
     local-dir: gh-pages
-    # on:
+    on:
+        branch: ci-tools
         # tags: true
