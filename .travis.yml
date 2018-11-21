@@ -73,3 +73,19 @@ script:
 
     # Test to import the python wrapper
     - python3 -c "import pycpsw"
+
+after_success:
+    # Prepare the documentation to be deployed
+    - echo "Preparing documentation..."
+    - mkdir gh-pages
+    - cp src/doc/*md gh-pages/
+
+deploy:
+    # Deploy documentation on tagged releases
+    provider: pages
+    skip-cleanup: true
+    github-token: $GITHUB_TOKEN
+    keep-history: true
+    local-dir: gh-pages
+    # on:
+        # tags: true
