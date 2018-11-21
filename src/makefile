@@ -119,6 +119,7 @@ DEP_HEADERS += cpsw_debug.h>
 DEP_HEADERS += cpsw_async_io.h
 DEP_HEADERS += libSocks.h
 DEP_HEADERS += libSocksUtil.h
+DEP_HEADERS += cpsw_swig_python.h
 
 STATIC_LIBRARIES_YES+=cpsw
 SHARED_LIBRARIES_YES+=cpsw
@@ -142,13 +143,21 @@ yaml_cpp_so_LIBS    = $(BOOST_PYTHON_LIB) $(filter yaml-cpp%,$(CPSW_LIBS))
 yaml_cpp_so_CPPFLAGS= $(addprefix -I,$(pyinc_DIR))
 yaml_cpp_so_CXXFLAGS= -fno-strict-aliasing
 
+_pycpsw_so_SRCS    += pycpsw_wrap.cc
+_pycpsw_so_SRCS    += cpsw_swig_python.cc
+_pycpsw_so_CPPFLAGS+= $(addprefix -I,$(pyinc_DIR))
+_pycpsw_so_LIBS    += $(CPSW_LIBS)
 
 PYYAML_YES          = yaml_cpp.so
 PYYAML              = $(PYYAML_$(WITH_PYCPSW))
 
-PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML)
+PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML) _pycpsw.so
 
 include $(CPSW_DIR)/rules.mak
+
+#pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_error.h cpsw_api_timeout.h
+#	swig -python -c++ -o $@ $<
+
 
 doc/README.yamlDefinition:doc/README.yamlDefinition.in
 	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
