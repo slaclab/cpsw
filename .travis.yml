@@ -47,8 +47,8 @@ install:
     - tar zxf yaml-cpp-0.5.3.tar.gz --strip 1
     - mkdir build; cd build
     - cmake .. -DBUILD_SHARED_LIBS=ON -DPYTHON_EXECUTABLE:FILEPATH=/usr/local/bin/python3
-    - make #--quiet
-    - sudo make install #1>/dev/null 2>&1
+    - make --quiet
+    - sudo make install 1>/dev/null 2>&1
 
 before_script:
     # Prepare config.mak file
@@ -65,15 +65,10 @@ script:
     - make
     - sudo make install
 
-    - echo $LD_LIBRARY_PATH
-    - source env.slac.sh
-    - echo $LD_LIBRARY_PATH
-    - ldd /usr/local/cpsw/linux-x86_64/bin/udpsrv
-    - ls
     # Run the tests:
-    #- source env.slac.sh    # Setup the enviroment
-    #- udpsrv -S0 -L0 &      # Start udpsrv in the background
-    #- make test             # Run the tests
+    - source env.slac.sh    # Setup the enviroment
+    - udpsrv -S0 -L0 &      # Start udpsrv in the background
+    - make test             # Run the tests
 
     # Test to import the python wrapper
-    # - python3 -c "import pycpsw"
+    - python3 -c "import pycpsw"
