@@ -32,6 +32,13 @@ using cpsw::dynamic_pointer_cast;
 // UPDATE: writes officially only support 4kB max.
 #define MAXTXWORDS 1024
 
+// If multiple words need to be read back for an RMW operation
+// then -- instead of reading the first and second words separately
+// we can collapse into a single read operation.
+#define RMW_COLLAPSE_EXTRA_WORDS 7
+
+#define SRPWRDALGNMSK ((sizeof(SRPWord) - 1))
+
 static bool hasRssi(ProtoPort stack)
 {
 ProtoPortMatchParams cmp;
@@ -139,7 +146,7 @@ ProtoPort            stack = getProtoStack();
 	CCommAddressImpl::startProtoStack();
 
 	// there seems to be a bug in either the depacketizer or SRP:
-	// weird things happen if fragment payload is not 8-byte 
+	// weird things happen if fragment payload is not 8-byte
 	// aligned
 	mtu_        = (mtu_ / 8) * 8;
 
@@ -227,7 +234,7 @@ struct timespec now;
 	if ( attempt > 0 ) {
 		CTimeout xx(now);
 		xx -= CTimeout(*then);
-		printf(stderr, "%s -- retry (attempt %d) took %" PRId64 "us\n", pre, attempt, xx.getUs());
+		fprintf(stderr, "%s -- retry (attempt %d) took %" PRId64 "us\n", pre, attempt, xx.getUs());
 	}
 	*then = now;
 }
@@ -379,7 +386,7 @@ int rval = CAddressImpl::close( node );
 uint64_t CSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 uint64_t rval            = 0;
-unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
+unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & SRPWRDALGNMSK) );
 uint64_t off             = args->off_;
 uint8_t *dst             = args->dst_;
 unsigned sbytes          = args->nbytes_;
@@ -469,11 +476,11 @@ uint64_t CSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField:
 SRPWord  xbuf[5];
 SRPWord  zero = 0;
 SRPWord  pad  = 0;
-uint8_t  first_word[sizeof(SRPWord)];
+uint8_t  first_words[sizeof(SRPWord)*(1+RMW_COLLAPSE_EXTRA_WORDS)];
 uint8_t  last_word[sizeof(SRPWord)];
 int      j, put;
 unsigned i;
-unsigned headbytes       = ( byteResolution_ ? 0 : (off & (sizeof(SRPWord)-1)) );
+unsigned headbytes       = ( byteResolution_ ? 0 : (off & SRPWRDALGNMSK) );
 unsigned totbytes;
 IOVec    iov[5];
 int      nWords;
@@ -494,79 +501,96 @@ int      posted   = (    POSTED        == defaultWriteMode_
 	bool doSwapV1 = needsPayloadSwap();
 	bool doSwap   = needsHdrSwap();
 
-	totbytes = headbytes + dbytes;
+	totbytes      = headbytes + dbytes;
 
-	nWords = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
+	nWords        = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
 #ifdef SRPADDR_DEBUG
 	fprintf(stderr, "SRP writeBlk_unlocked off %" PRIx64 "; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i, msk1 0x%02x, mskn 0x%02x\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords, msk1, mskn);
 #endif
 
 
-	bool merge_first = headbytes      || msk1;
-	bool merge_last  = ( ! byteResolution_ && (totbytes & (sizeof(SRPWord)-1)) ) || mskn;
+	bool merge_first            = headbytes || msk1;
+	bool merge_last             = ( ! byteResolution_ && (totbytes & SRPWRDALGNMSK) ) || mskn;
+	bool lastbyte_in_firstwords = false;
 
 	if ( (merge_first || merge_last) && cacheable < IField::WB_CACHEABLE ) {
 		throw IOError("Cannot merge bits/bytes to non-cacheable area");
 	}
 
-	int toput = dbytes;
+	AsyncIO                 aio;
+	AsyncIOCompletionWaiter wai;
+
+	// Note on merging of posted writes:
+	// We want/need to maintain the order of transactions as issued by
+	// the user. This means that if we have a write transaction which
+	// requires RMW then we have to wait until the readback values
+	// come in until we can issue the write -- or any further transactions.
+	// Most notably, we *cannot* postpone issueing the write transaction
+	// until the read results come back because other transactions could
+	// then be scheduled meanwhile.
+	// All of this boils down to asynchronous readbacks only being (slightly)
+	// beneficial if we need two readback operations (which can then be
+	// sent 'in parallel').
+
+	if ( merge_first && merge_last ) {
+		if ( dbytes == 1 ) {
+			// first and last byte overlap
+			msk1       |= mskn;
+			merge_last  = false;
+		} else if ( totbytes <= sizeof(first_words) ) {
+			// first and last byte still in first word but do not overlap
+            lastbyte_in_firstwords = true;
+			merge_last             = false;
+		} else {
+			// must merge both; can issue asynchronous reads.
+			//
+			// Since we must synchronize posting the write operation
+			// with
+			wai = IAsyncIOCompletionWaiter::create();
+			aio = IAsyncIOParallelCompletion::create( wai );
+		}
+	}
+
+	int toput       = dbytes;
+	int first_byte  = headbytes;
+	int last_byte   = 0; // keep compiler happy
+	int remaining   = 0; // keep compiler happy
 
 	if ( merge_first ) {
-		if ( merge_last && dbytes == 1 ) {
-			// first and last byte overlap
-			msk1 |= mskn;
-			merge_last = false;
-		}
-
-		int first_byte = headbytes;
-		int remaining;
 
 		CReadArgs rargs;
 		rargs.cacheable_  = cacheable;
-		rargs.dst_        = first_word;
+		rargs.dst_        = first_words;
 
-		bool lastbyte_in_firstword =  ( merge_last && totbytes <= (int)sizeof(SRPWord) );
 
 		if ( byteResolution_ ) {
-			if ( lastbyte_in_firstword ) {
-				rargs.nbytes_ = totbytes; //lastbyte_in_firstword implies totbytes <= sizeof(SRPWord)
+			if ( lastbyte_in_firstwords ) {
+				rargs.nbytes_ = totbytes; //lastbyte_in_firstwords implies totbytes <= sizeof(first_words)
 			} else {
 				rargs.nbytes_ = 1;
 			}
 			rargs.off_    = off;
+			firstlen      = rargs.nbytes_;
 		} else {
-			rargs.nbytes_ = sizeof(first_word);
-			rargs.off_    = off & ~3ULL;
+			rargs.nbytes_ = lastbyte_in_firstwords ? (totbytes + sizeof(SRPWord) - 1) & ~SRPWRDALGNMSK : sizeof(SRPWord);
+			rargs.off_    = off & ~(unsigned long long)SRPWRDALGNMSK;
 		}
 		remaining = (totbytes <= rargs.nbytes_ ? totbytes : rargs.nbytes_) - first_byte - 1;
 
-		firstlen  = rargs.nbytes_;
+		firstlen   = rargs.nbytes_;
+		if ( firstlen > static_cast<int>( sizeof(SRPWord) ) ) {
+			// clip in case we collapse a 1st + last read into a single operation
+			firstlen = sizeof(SRPWord);
+		}
+
+		rargs.aio_ = aio;
 
 		read(node, &rargs);
-
-		first_word[ first_byte  ] = (first_word[ first_byte ] & msk1) | (src[0] & ~msk1);
-
-		toput--;
-
-		if ( lastbyte_in_firstword ) {
-			// totbytes must be <= sizeof(SRPWord) and > 0 (since last==first was handled above)
-			int last_byte = (totbytes-1);
-			first_word[ last_byte  ] = (first_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
-			remaining--;
-			toput--;
-			merge_last = false;
-		}
-
-		if ( remaining > 0 ) {
-			memcpy( first_word + first_byte + 1, src + 1, remaining );
-			toput -= remaining;
-		}
 	}
 	if ( merge_last ) {
 
 		CReadArgs rargs;
-		int       last_byte;
 
 		rargs.cacheable_ = cacheable;
 		rargs.dst_       = last_word;
@@ -577,21 +601,67 @@ int      posted   = (    POSTED        == defaultWriteMode_
 			last_byte        = 0;
 		} else {
 			rargs.nbytes_    = sizeof(last_word);
-			rargs.off_       = (off + dbytes - 1) & ~3ULL;
-			last_byte        = (totbytes-1) & (sizeof(SRPWord)-1);
+			rargs.off_       = (off + dbytes - 1) & ~ (unsigned long long)SRPWRDALGNMSK;
+			last_byte        = (totbytes-1)       & SRPWRDALGNMSK;
 		}
 
 		lastlen = rargs.nbytes_;
 
+        // must make sure not to hold
+        // any ref. to the parallel completion waiter
+        // (it won't complete until destroyed!)
+        rargs.aio_.swap(aio);
+
 		read(node, &rargs);
 
-		last_word[ last_byte  ] = (last_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
+	}
+
+	if ( wai ) {
+		// block until readbacks come in
+		wai->wait();
+	}
+
+	if ( merge_first ) {
+
+		first_words[ first_byte  ] = (first_words[ first_byte ] & msk1) | (src[0] & ~msk1);
+
+		toput--;
+
+		if ( lastbyte_in_firstwords ) {
+			// totbytes must be <= sizeof(first_words) and > 0 (since last==first was handled above)
+
+			if ( totbytes > sizeof(SRPWord) ) {
+				// read multiple words to get the first+last in a single operation
+				memcpy( last_word, first_words + ( (totbytes - 1) & ~SRPWRDALGNMSK ), sizeof(last_word) );
+                merge_last = true;
+				last_byte  = (totbytes - 1) & SRPWRDALGNMSK;
+				lastlen    = (byteResolution_ ? last_byte + 1 : sizeof(last_word));
+			} else {
+				last_byte = (totbytes-1);
+				first_words[ last_byte  ] = (first_words[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
+				remaining--;
+				toput--;
+			}
+		}
+
+		if ( remaining > 0 ) {
+			memcpy( first_words + first_byte + 1, src + 1, remaining );
+			toput -= remaining;
+		}
+	}
+
+	if ( merge_last ) {
+
 		toput--;
 
 		if ( last_byte > 0 ) {
 			memcpy(last_word, &src[dbytes-1-last_byte], last_byte);
 			toput -= last_byte;
 		}
+#ifdef SRPADDR_DEBUG
+		fprintf(stderr,"merge_last: last_byte %d, lastlen %d, toput %d, firstlen %d, byteres %d\n", last_byte, lastlen, toput, firstlen, byteResolution_);
+#endif
+		last_word[ last_byte  ] = (last_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
 	}
 
 	put = 0;
@@ -608,7 +678,7 @@ int      posted   = (    POSTED        == defaultWriteMode_
 	} else {
 		xbuf[put++] = (posted ? CMD_POSTED_WRITE_V3 : CMD_WRITE_V3) | PROTO_VERS_3;
 		xbuf[put++] = tid;
-		xbuf[put++] = ( byteResolution_ ? off : (off & ~3ULL) );
+		xbuf[put++] = ( byteResolution_ ? off : (off & ~(uint64_t)SRPWRDALGNMSK) );
 		xbuf[put++] = off >> 32;
 		xbuf[put++] = ( byteResolution_ ? totbytes : nWords << 2 ) - 1;
 		expected    = 6;
@@ -630,8 +700,8 @@ int      posted   = (    POSTED        == defaultWriteMode_
 	if ( merge_first ) {
 		iov[i].iov_len  = firstlen;
 		if ( doSwapV1 )
-			swpw( first_word );
-		iov[i].iov_base = first_word;
+			swpw( first_words );
+		iov[i].iov_base = first_words;
 		i++;
 	}
 
@@ -663,9 +733,9 @@ int      posted   = (    POSTED        == defaultWriteMode_
 		iov[i].iov_base = &zero;
 		iov[i].iov_len  = sizeof(SRPWord);
 		i++;
-	} else if ( byteResolution_ && (totbytes & 3) ) {
+	} else if ( byteResolution_ && (totbytes & SRPWRDALGNMSK) ) {
 		iov[i].iov_base = &pad;
-		iov[i].iov_len  = sizeof(SRPWord) - (totbytes & 3);
+		iov[i].iov_len  = sizeof(SRPWord) - (totbytes & SRPWRDALGNMSK);
 		i++;
 	}
 
@@ -724,7 +794,7 @@ retry:
 uint64_t CSRPAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 uint64_t rval            = 0;
-unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
+unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & SRPWRDALGNMSK) );
 unsigned dbytes          = args->nbytes_;
 uint64_t off             = args->off_;
 uint8_t *src             = args->src_;

@@ -1,4 +1,8 @@
 asyncSRP
+    Feature: When performing an RMW operation over SRP that spans
+        multiple words then read back (up to a max.) multiple
+        words in a single read operation.
+
     Feature: Support C++11; reduce dependency on boost if C++11
         is used. Boost is still used internally but not visible
         from the API.
