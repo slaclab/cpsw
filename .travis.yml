@@ -82,11 +82,11 @@ after_success:
 
 deploy:
     # Deploy documentation on tagged releases
-    provider: pages
+    provider:     pages
     skip-cleanup: true
     github-token: $GITHUB_TOKEN
     keep-history: true
-    local-dir: gh-pages
+    local-dir:    gh-pages
     on:
-        branch: ci-tools
-        # tags: true
+        all_branches: true
+        tags:         true
