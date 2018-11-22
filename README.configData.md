@@ -3,7 +3,7 @@
 ## Copyright Notice
 This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
 file found in the top-level directory of this distribution and
-[at](https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html).
+[here](https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html).
 
 No part of CPSW, including this file, may be copied, modified, propagated, or
 distributed except according to the terms contained in the LICENSE.txt file.
@@ -59,17 +59,17 @@ The same sequence could have been coded in YAML, e.g., as:
           - c/d:
           - e:
         - f:
- 
+
 In some cases it may be desirable to 'collapse' multiple path elements into
 a single YAML key. Note that YAML anchors and references work as expected.
 
 HOWEVER: YAML merge key notation is not supported as this would violate the
-'single-key' rule. Also, due to the extensive use of sequences merging 
+'single-key' rule. Also, due to the extensive use of sequences merging
 (which is most useful in the context of maps) is not very attractive.
 
-The presence of actual configuration data/values is indicated by a 
+The presence of actual configuration data/values is indicated by a
 
-        !<value> 
+        !<value>
 
 YAML tag. Thus, if the above leaf nodes `a/b`, `a/c/d`, `a/e` and `a/f` could have
 properties attached to them which store the actual configuration values:
@@ -87,7 +87,7 @@ properties attached to them which store the actual configuration values:
         - f:  !<value>
            key: value
 
-The YAML value-tagged nodes are interpreted by the CPSW objects which are 
+The YAML value-tagged nodes are interpreted by the CPSW objects which are
 present in the CPSW hierarchy at the location identified by the path
 constructed as described above.
 
@@ -158,17 +158,17 @@ is relevant:
 
  1. Entries with a `configPrio` or zero are ignored, i.e., their configuration
         is not dumped.
- 2. Children of a container are dumped in increasing order of `configPrio`, 
+ 2. Children of a container are dumped in increasing order of `configPrio`,
         i.e., children with `configPrio == -1` are dumped prior to dumping `configPrio == +1`.
         Children with `configPrio == 0` (and all of their descendants) are ignored.
 
 There is no defined order among children with the same `configPrio`.
 
 Thus, the `configPrio` helps creating a configuration 'template' for the
-first time. The `configPrio` is defined (usually by the firmware engineer) in the YAML 
+first time. The `configPrio` is defined (usually by the firmware engineer) in the YAML
 file which is used for building the hierarchy (i.e., NOT in the configuration
 file itself). It is a property of each object in the CPSW hierarchy.
-        
+
 The default `configPrio` is specific to each CPSW class:
 
  - +1 for IntFields (scalar values) in read/write mode
@@ -196,7 +196,7 @@ supports properties of a container device:
           - container:
               - child: !<value>
                    key: something for the child
-                 
+
 Even though `container` may have children there is indeed a sequence
 with a single-entry map '`- mykey:`' the presence of the `!<value> tag`
 makes it clear that no recursion into `mykey` should be attempted.

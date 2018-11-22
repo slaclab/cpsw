@@ -3,7 +3,7 @@
 ## Copyright Notice
 This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
 file found in the top-level directory of this distribution and
-[at](https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html).
+[here](https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html).
 
 No part of CPSW, including this file, may be copied, modified, propagated, or
 distributed except according to the terms contained in the LICENSE.txt file.
@@ -55,7 +55,7 @@ The 'include' directive (a line starting with '`#include `' [notice the blank]):
         nonket_char       = nonwhite_char - '>' ;
 
         include_directive = 'include ', { whitespace }, include_filename, { whitespace } ;
- 
+
         include_filename  = bracketed_name | nonbracketed_name ;
 
         nonbracketed_name = nonbra_char, { nonwhite_char } ;
@@ -97,11 +97,11 @@ E.g., if `me.yaml` contains:
         #once protect_me
         #
         #include me.yaml
-  
+
         a_yaml_node: something
 
 then the preprocessor will emit `a_yaml_node: something` just once.
-  
+
 
 ### 1.2 YAML Merge Key --- `<<`
 
@@ -117,18 +117,18 @@ while being able to *override* select parts.
 This cannot be achieved with standard YAML. As a result, the 'Merge Key'
 for YAML 'maps' has been [proposed:](http://yaml.org/type/merge.html).
 
-#### 1.2.2 The Semantics of the Merge Key 
+#### 1.2.2 The Semantics of the Merge Key
 
 Assume we have a definition
 
         default: &default_tag
           setting_1: value_1
           setting_2: value_2
-        
+
 which we want to use in our map 'mymap':
 
         mymap: *default_tag
-        
+
 However, what if we want to override (just) `setting_2` in `mymap` with let's
 say `my_value_2`.
 
@@ -137,7 +137,7 @@ at most *once* in a map. Thus we might try:
 
         mymap: *default_tag
           setting_2: my_value_2
-        
+
 but this would not be valid YAML code. (mymap already has the 'default' node
 as its value and there is no way to add additional entries to that node. And
 even if there were, it would be illegal to use the `setting_2` key again.)
@@ -177,9 +177,9 @@ NOTE:
 #### 1.2.3 Complex Merging
 
 The idea of merging looks simple enough. However, as described above
-it works only across a single level. Imagine our default definition 
+it works only across a single level. Imagine our default definition
 looks like this:
-          
+
         default: &default_tag
           nested_map:
             setting_1: value_1
@@ -196,7 +196,7 @@ no longer works, since `setting_2` is not at the same hierarchy level
 as `setting_2` inside `nested_map`.
 
 What we mean is
-            
+
         mymap:
           <<       : *default_tag
           nested_map:
@@ -221,7 +221,7 @@ for lookup if a key is not found/present at all.
 ## 2. CPSW Building Blocks
 
 This section describes the building blocks made available by
-the CPSW framework which can be used to assemble hierarchies 
+the CPSW framework which can be used to assemble hierarchies
 in YAML.
 
 CPSW is extensible and user-defined classes which derive from
@@ -235,7 +235,7 @@ its name in the hierarchy:
 
         myname:
           property: value
-        
+
 will define a CPSW node called 'myname' and it's map contains
 a key 'property'. The exact properties which are supported
 and/or expected by a particular node depend in its underlying
@@ -257,7 +257,7 @@ Thus, the basic node is defined by
 
 The value of this key may also be a sequence of class names.
 In this case, CPSW tries to locate a class in the specified
-order. E.g., 
+order. E.g.,
 
         myname:
           class:
@@ -328,14 +328,14 @@ It supports the following properties (in addition to 'Basic Node'):
           configPrio:  <int>       # optional
 
 The default value for `cacheable` is <unknown> for
-leaves and `WT_CACHEABLE` for containers. During the build 
+leaves and `WT_CACHEABLE` for containers. During the build
 process <unknown> settings are resolved by using the parent
 container's value. This makes it easier to manage a default
 (via the container) and override select Field(s) only.
 
 ### 2.3 'Dev' Class
 
-The Dev is the base class for all containers. It is derived from 
+The Dev is the base class for all containers. It is derived from
 Field and inherits all of its properties (but the default value
 for `cacheable` is `WB_CACHEABLE`).
 
@@ -460,10 +460,10 @@ maps:
               ...
 
 The `entry` value strings identify a cpsw Path (starting
-at the sequence node's parent) to which the numbers are 
+at the sequence node's parent) to which the numbers are
 written in the sequence defined by the list.
 
-E.g., 
+E.g.,
              - entry: sibling
                value: 1234
              - entry: usleep
@@ -561,7 +561,7 @@ floating-point numbers.
             # Swap words of specified length (in bytes;
             # the IntField's bit-size *must* be a multiple
             # of the word-length!)
-            # 
+            #
             # Defaults to 0.
           wordSwap: <int>           # optional
 
@@ -581,7 +581,7 @@ floating-point numbers.
           encoding: <int>           # optional
 
             # The base in which values are saved to a configuration
-            # file. Legal values are 10 (decimal) or 16 (hex). 
+            # file. Legal values are 10 (decimal) or 16 (hex).
             # The only effect of this parameter is increasing
             # readability of saved configuration files.
             #
@@ -636,7 +636,7 @@ it is interpreted as a `double` else as a 64-bit integer
 (honoring `isSigned`).
 
 A 'Enum' menu with a single entry which maps a string to
-the numerical value is always attached to ConstIntField 
+the numerical value is always attached to ConstIntField
 (except if IEEE_754 encoding is used) but it is not
 necessary to define such a menu in YAML.
 
@@ -673,7 +673,7 @@ this setting individually for the specific child).
 
         myMMIODev:
           class: MMIODev               # *mandatory*
- 
+
             # NOTE: An MMIODev must specify a non-zero size
           size:  <int>
 
@@ -692,7 +692,7 @@ this setting individually for the specific child).
             #  "BE"   (big-endian)
             #  "LE"   (little-endian)
             #  "UNKNOWN"
- 
+
           byteOrder: <ByteOrder>
 
 #### 2.7.1 MMIOAddress
@@ -705,7 +705,7 @@ inherited from Address):
           # where the child resides (if the child spans more than one
           # byte then this means the offset of the byte with the
           # lowest byte-address ).
-          # 
+          #
           # Default: <none>
         offset: <int>                   # *see note*
 
@@ -738,7 +738,7 @@ of 40 characters where each character is aligned on a
                 offset: 0x10
                 stride:    4
                 nelms:    40
-           
+
 ### 2.8 The 'NetIODev' Class
 
 NetIODev is -- for most applications -- the 'root' device which
@@ -774,7 +774,7 @@ of the peer:
             # '-D' option for details).
           socksProxy: <string>
 
-Thus, for each peer with a different IP address a separate NetIODev 
+Thus, for each peer with a different IP address a separate NetIODev
 instance is required. These could be attached to a dummy root Dev:
 
         myRoot:
@@ -1029,7 +1029,7 @@ deliberately to use maps so that merge keys work across all levels).
             # zero (default) picks a suitable value
           timeoutUS:      <int>
 
-            # Whether to automatically adjust the 
+            # Whether to automatically adjust the
             # retransmission timeout based on statistics.
             # Should be disabled if RSSI or TDESTMux
             # are being used (large frames to a different
@@ -1037,7 +1037,7 @@ deliberately to use maps so that merge keys work across all levels).
             # SRP)
             # Default: yes unless TDESTMux is configured
           dynTimeout:     <bool>
-            
+
             # How many times to retry a failed SRP transaction
           retryCount:     <int>
 
@@ -1071,7 +1071,7 @@ deliberately to use maps so that merge keys work across all levels).
           threadPriority: <int>
 
 ##### 2.8.1.1 TCP Module
-A TCP protocol module is also available. It is intended to 
+A TCP protocol module is also available. It is intended to
 substitute UDP and RSSI. This module is useful when contacting
 a server implemented in software (as opposed to firmware).
 In software, TCP is readily available and provides a reliable
@@ -1105,7 +1105,7 @@ The TCP module supports the following YAML properties:
 
 There are two layers of protocol-multiplexers available
 in the stack: messages may be routed based on TDEST
-information and in addition, SRP transactions may be 
+information and in addition, SRP transactions may be
 multiplexed by virtual channel:
 
 Items in brackets [] represent protocol modules, (*)
@@ -1129,7 +1129,7 @@ are attached.
                                         |     |     |
                                        (*)   (*)   (*)
                                    MMIODev MMIODev MMIODev
-    
+
 The diagram shows a configuration with a `TDEST` multiplexer
 which has three different `TDEST`s configured. `TDEST_0`
 and `TDEST_1` are used as raw (non-SRP) endpoints, e.g., to
