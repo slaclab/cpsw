@@ -81,12 +81,18 @@ before_deploy:
     - cp src/doc/*md gh-pages/
 
 deploy:
-    # Deploy documentation on tagged releases
     provider:     pages
     skip-cleanup: true
     github-token: $GITHUB_TOKEN
     keep-history: true
     local-dir:    gh-pages
     on:
+        # Deploy documentation from any branch.
+        # We can also deploy on a specific branch, like master
+        # removing the 'all_branches' key and defining:
+        #branch: master
         all_branches: true
-        tags:         true
+
+        # We can use this condition to deploy documentation
+        # only with tagged commits.
+        #tags:         true
