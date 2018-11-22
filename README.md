@@ -1,12 +1,13 @@
+# CPSW: Common Platform Software
+
 ## Copyright Notice
 This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
 file found in the top-level directory of this distribution and
-[at](https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html).
+[here](https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html).
 
 No part of CPSW, including this file, may be copied, modified, propagated, or
 distributed except according to the terms contained in the LICENSE.txt file.
 
-## Installation Instructions 
+## Documentation
 
-The installation instructions can be found in src/doc/INSTALL.
-
+The official CPSW documentation is published [here](https://slaclab.github.io/cpsw).
