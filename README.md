@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/slaclab/cpsw.svg?branch=master)](https://travis-ci.org/slaclab/cpsw)
+
 # CPSW: Common Platform Software
 
 ## Copyright Notice
