@@ -74,7 +74,7 @@ script:
     # Test to import the python wrapper
     - python3 -c "import pycpsw"
 
-after_success:
+before_deploy:
     # Prepare the documentation to be deployed
     - echo "Preparing documentation..."
     - mkdir gh-pages
