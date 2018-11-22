@@ -12,6 +12,7 @@
 #define BOOST_NO_AUTO_PTR
 
 #include <cpsw_api_user.h>
+#include <cpsw_python.h>
 #include <cpsw_path.h>
 #include <cpsw_yaml.h>
 #include <yaml-cpp/yaml.h>
@@ -30,21 +31,6 @@ using namespace boost::python;
 using cpsw::weak_ptr;
 
 namespace cpsw_python {
-
-class GILUnlocker {
-private:
-	PyThreadState *_save;
-public:
-	GILUnlocker()
-	{
-		Py_UNBLOCK_THREADS;
-	}
-
-	~GILUnlocker()
-	{
-		Py_BLOCK_THREADS;
-	}
-};
 
 // Translate CPSW Errors/exceptions into python exceptions
 //
@@ -169,62 +155,6 @@ public:
 	register_exception_translator<clazz>( tr_##clazz );
 };
 
-static uint64_t wrap_Path_loadConfigFromYamlFile(Path p, const char *yamlFile,  const char *yaml_dir = 0)
-{
-GILUnlocker allowThreadingWhileWaiting;
-	return p->loadConfigFromYamlFile( yamlFile, yaml_dir );
-}
-
-static uint64_t wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir = 0)
-{
-GILUnlocker allowThreadingWhileWaiting;
-YAML::Node  conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
-	return p->loadConfigFromYaml( conf );
-}
-
-static uint64_t wrap_Path_dumpConfigToYamlFile(Path p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0)
-{
-GILUnlocker allowThreadingWhileWaiting;
-uint64_t    rval;
-YAML::Node  conf;
-
-	if ( templFilename ) {
-		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
-	}
-
-	rval = p->dumpConfigToYaml( conf );
-
-YAML::Emitter emit;
-	emit << conf;
-
-std::fstream strm( filename, std::fstream::out );
-	strm << emit.c_str() << "\n";
-
-	return rval;
-}
-
-static std::string wrap_Path_dumpConfigToYamlString(Path p, const char *templFilename = 0, const char *yaml_dir = 0)
-{
-GILUnlocker allowThreadingWhileWaiting;
-YAML::Node  conf;
-
-	if ( templFilename ) {
-		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
-	}
-
-	p->dumpConfigToYaml( conf );
-
-YAML::Emitter emit;
-	emit << conf;
-
-std::ostringstream strm;
-
-	strm << emit.c_str() << "\n";
-
-	return strm.str();
-}
-
-
 // Need wrappers for methods which take
 // shared pointers to const objects which
 // do not seem to be handled correctly
@@ -241,12 +171,6 @@ Hub hc(h);
 	return IPath::create(hc);
 }
 
-static std::string
-wrap_Val_Base_repr(shared_ptr<IVal_Base> obj)
-{
-	return obj->getPath()->toString();
-}
-
 static boost::python::list wrap_Enum_getItems(Enum enm)
 {
 boost::python::list l;
@@ -260,36 +184,6 @@ IEnum::iterator ite = enm->end();
 
 	return l;
 }
-
-// It is OK to release the GIL while holding
-// a reference to the Py_buffer.
-//
-// I tested with python2.7.12 and python3.5 --
-// when trying to resize a buffer (from python)
-// which has an exported view this will be
-// rejected:
-//
-// (numpy.array, python2.7)
-// ValueError: cannot resize an array that references or is referenced
-// by another array in this way.
-//
-// (bytearray, python3.5)
-// BufferError: Existing exports of data: object cannot be re-sized
-class ViewGuard {
-private:
-	Py_buffer *theview_;
-
-public:
-	ViewGuard(Py_buffer *view)
-	: theview_(view)
-	{
-	}
-
-	~ViewGuard()
-	{
-		PyBuffer_Release( theview_ );
-	}
-};
 
 static object wrap_Val_Base_getEncoding(shared_ptr<IVal_Base> val)
 {

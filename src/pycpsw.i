@@ -1,3 +1,12 @@
+ //@C Copyright Notice
+ //@C ================
+ //@C This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
+ //@C file found in the top-level directory of this distribution and at
+ //@C https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+ //@C
+ //@C No part of CPSW, including this file, may be copied, modified, propagated, or
+ //@C distributed except according to the terms contained in the LICENSE.txt file.
+
 %module pycpsw
 %include <std_shared_ptr.i>
 %include <std_string.i>
@@ -21,6 +30,13 @@
 %shared_ptr(IDoubleVal_WO)
 %shared_ptr(IDoubleVal)
 %shared_ptr(IStream)
+
+%{
+    #include "cpsw_api_user.h"
+    #include "cpsw_swig_python.h"
+    #include "cpsw_python.h"
+    using namespace cpsw_python;
+%}
 
 /* FIXME */
 %ignore IEnum::IIterator;
@@ -59,10 +75,24 @@
 %ignore                         cpsw_python::handleException;
 %rename("_registerExceptions_") cpsw_python::registerExceptions;
 
-%{
-    #include "cpsw_api_user.h"
-    #include "cpsw_swig_python.h"
-%}
+%extend IPath {
+    uint64_t
+    loadConfigFromYamlFile(const char *yamlFile, const char *yaml_dir=0);
+
+    uint64_t
+    loadConfigFromYamlString(const char *yaml,  const char *yaml_dir = 0);
+
+    uint64_t
+    dumpConfigToYamlFile(const char *filename, const char *templFilename = 0, const char *yaml_dir = 0);
+
+    std::string
+    dumpConfigToYamlString(const char *templFilename = 0, const char *yaml_dir = 0);
+}
+
+%extend IVal_Base {
+    std::string
+    repr();
+};
 
 %pythoncode %{
 from sys import modules as sys_modules
@@ -72,6 +102,8 @@ del sys_modules
 
 %template(PairIntInt)    std::pair<int,int>;
 %template(VecPairIntInt) std::vector< std::pair<int, int> >;
+
+%feature("python:tp_repr") IVal_Base "_wrap_Val_Base_repr";
 
 %typemap(out)               Children
 {
@@ -109,6 +141,6 @@ Py_ssize_t i;
 /* Swig currently (V3) does not handle a 'using std::shared_ptr' clause correctly */
 #define shared_ptr std::shared_ptr
 
-%include "cpsw_error.h"
 %include "cpsw_api_user.h"
 %include "cpsw_swig_python.h"
+

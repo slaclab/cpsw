@@ -130,7 +130,7 @@ cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 cpsw_ypp_SRCS        += cpsw_ypp.cc cpsw_preproc.cc
 
 # Python wrapper; only built if WITH_PYCPSW is set to YES (can be target specific)
-pycpsw_so_SRCS      = cpsw_boost_python.cc
+pycpsw_so_SRCS      = cpsw_boost_python.cc cpsw_python.cc
 pycpsw_so_LIBS      = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
 pycpsw_so_CPPFLAGS  = $(addprefix -I,$(pyinc_DIR))
 pycpsw_so_CXXFLAGS  = -fno-strict-aliasing
@@ -145,6 +145,7 @@ yaml_cpp_so_CXXFLAGS= -fno-strict-aliasing
 
 _pycpsw_so_SRCS    += pycpsw_wrap.cc
 _pycpsw_so_SRCS    += cpsw_swig_python.cc
+_pycpsw_so_SRCS    += cpsw_python.cc
 _pycpsw_so_CPPFLAGS+= $(addprefix -I,$(pyinc_DIR))
 _pycpsw_so_LIBS    += $(CPSW_LIBS)
 
@@ -155,8 +156,8 @@ PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML) _pycpsw.so
 
 include $(CPSW_DIR)/rules.mak
 
-#pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_error.h cpsw_api_timeout.h cpsw_swig_python.h
-#	swig -python -c++ -builtin -o $@ $<
+pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_swig_python.h
+	swig -python -c++ -builtin -o $@ $<
 
 doc/README.yamlDefinition:doc/README.yamlDefinition.in
 	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
