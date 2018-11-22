@@ -17,6 +17,7 @@ env:
     - ARCH=linux-x86_64
 
 before_install:
+    # Prepare the package directories
     - mkdir -p $BOOST_DIR
     - mkdir -p $YAML_CPP_DIR
     - mkdir -p $PYTHON_DIR
@@ -63,29 +64,31 @@ before_script:
     - echo "INSTALL_DIR=/usr/local/cpsw/"             >> config.mak
 
 script:
+    # Test building the code
     - make
-    - sudo make install
 
-    # Run the tests:
-    - source env.slac.sh    # Setup the enviroment
-    - udpsrv -S0 -L0 &      # Start udpsrv in the background
-    - make test             # Run the tests
-
-    # Test to import the python wrapper
-    - python3 -c "import pycpsw"
+    # Run the tests
+    - sudo make install           # Install CPSW in the system.
+    - source env.slac.sh          # Setup the enviroment.
+    - udpsrv -S0 -L0 &            # Start udpsrv in the background.
+    - make test                   # Run the tests.
+    - python3 -c "import pycpsw"  # Test to import the python wrapper.
 
 before_deploy:
-    # Prepare the documentation to be deployed
+    # Prepare the documentation to be deployed to github pages
+    # copying all the markdown files into a temporal directory
+    # called 'gh-pages'.
     - echo "Preparing documentation..."
     - mkdir gh-pages
     - cp src/doc/*md gh-pages/
 
 deploy:
-    provider:     pages
-    skip-cleanup: true
-    github-token: $GITHUB_TOKEN
-    keep-history: true
-    local-dir:    gh-pages
+    # Deploy documentation to github pages
+    provider:     pages         # Deploy to github pages.
+    skip-cleanup: true          # Do not delete the build products.
+    github-token: $GITHUB_TOKEN # Token to allow push to github.
+    keep-history: true          # Create incremental commit.
+    local-dir:    gh-pages      # Deploy the files located here.
     on:
         # Deploy documentation from any branch.
         # We can also deploy on a specific branch, like master
