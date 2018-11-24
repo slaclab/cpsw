@@ -113,6 +113,7 @@ del sys_modules
 %template(VecPairIntInt) std::vector< std::pair<int, int> >;
 
 %feature("python:tp_repr") IVal_Base "_wrap_Val_Base_repr";
+%feature("python:slot", "tp_repr", functype="reprfunc") IPath::toString;
 
 %typemap(out)               Children
 {
