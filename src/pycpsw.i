@@ -75,6 +75,9 @@
 %ignore                         cpsw_python::handleException;
 %rename("_registerExceptions_") cpsw_python::registerExceptions;
 
+%ignore                         IPath::loadYamlStream(std::istream&, char const* root_name = "root", char const * yaml_dir_name=0, IYamlFixup* fixup = 0);
+%ignore                         IPath::loadYamlStream(char const * , char const* root_name = "root", char const * yaml_dir_name=0, IYamlFixup* fixup = 0);
+
 %extend IPath {
     uint64_t
     loadConfigFromYamlFile(const char *yamlFile, const char *yaml_dir=0);
@@ -87,6 +90,12 @@
 
     std::string
     dumpConfigToYamlString(const char *templFilename = 0, const char *yaml_dir = 0);
+
+    static Path
+    loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0, IYamlFixup *fixup = 0)
+    {
+        return wrap_Path_loadYamlStream(yaml, root_name, yaml_dir_name, fixup);
+    }
 }
 
 %extend IVal_Base {
