@@ -7,7 +7,7 @@
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
-%module pycpsw
+%module(directors = 1) pycpsw
 %include <std_shared_ptr.i>
 %include <std_string.i>
 %include <std_pair.i>
@@ -35,6 +35,7 @@
     #include "cpsw_api_user.h"
     #include "cpsw_swig_python.h"
     #include "cpsw_python.h"
+    #include <yaml-cpp/yaml.h>
     using namespace cpsw_python;
 %}
 
@@ -51,9 +52,6 @@
 %shared_ptr(std::vector<Child>)
 */
 
-/* FIXME */
-%ignore                         IYamlFixup;
-%ignore                         IPathVisitor;
     
 %rename("Entry")                IEntry;
 %rename("Child")                IChild;
@@ -71,6 +69,8 @@
 %ignore                         IDoubleVal_WO;
 %rename("DoubleVal")            IDoubleVal;
 %rename("Stream")               IStream;
+%rename("PathVisitor")          IPathVisitor;
+%rename("YamlFixup")            IYamlFixup;
     
 %ignore                         cpsw_python::handleException;
 %rename("_registerExceptions_") cpsw_python::registerExceptions;
@@ -137,6 +137,9 @@ Py_ssize_t i;
         SWIG_fail;
     }
 }
+
+%feature("director") IYamlFixup;
+%feature("director") IPathVisitor;
 
 /* Swig currently (V3) does not handle a 'using std::shared_ptr' clause correctly */
 #define shared_ptr std::shared_ptr
