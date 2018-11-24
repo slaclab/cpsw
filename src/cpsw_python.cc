@@ -113,5 +113,14 @@ IVal_Base_repr(IVal_Base *obj)
 	return obj->getPath()->toString();
 }
 
+Path
+wrap_Path_loadYamlStream(const std::string &yaml, const char *root_name, const char *yaml_dir_name, IYamlFixup *fixup)
+{
+// could use IPath::loadYamlStream(const char *,...) but that would make a new string
+// which we want to avoid.
+std::istringstream sstrm( yaml );
+	return IPath::loadYamlStream( sstrm, root_name, yaml_dir_name, fixup );
+}
+
 
 };

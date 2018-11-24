@@ -858,15 +858,6 @@ public:
 
 };
 
-static Path
-wrap_Path_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0, IYamlFixup *fixup = 0)
-{
-// could use IPath::loadYamlStream(const char *,...) but that would make a new string
-// which we want to avoid.
-std::istringstream sstrm( yaml );
-	return IPath::loadYamlStream( sstrm, root_name, yaml_dir_name, fixup );
-}
-
 static boost::python::tuple
 wrap_Hub_getChildren(shared_ptr<IHub> h)
 {

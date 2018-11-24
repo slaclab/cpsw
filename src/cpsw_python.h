@@ -87,6 +87,9 @@ wrap_Path_dumpConfigToYamlString(Path p, const char *templFilename = 0, const ch
 std::string
 IPath_dumpConfigToYamlString(IPath *p, const char *templFilename = 0, const char *yaml_dir = 0);
 
+Path
+wrap_Path_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0, IYamlFixup *fixup = 0);
+
 std::string
 wrap_Val_Base_repr(shared_ptr<IVal_Base> obj);
 
