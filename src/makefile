@@ -120,6 +120,7 @@ DEP_HEADERS += cpsw_async_io.h
 DEP_HEADERS += libSocks.h
 DEP_HEADERS += libSocksUtil.h
 DEP_HEADERS += cpsw_swig_python.h
+DEP_HEADERS += cpsw_python.h
 
 STATIC_LIBRARIES_YES+=cpsw
 SHARED_LIBRARIES_YES+=cpsw
