@@ -173,6 +173,8 @@ public:
 	 * Executed after recursion into children.
 	 */
 	virtual void  visitPost(ConstPath here) = 0;
+
+	virtual ~IPathVisitor() {}
 };
 
 /*!
