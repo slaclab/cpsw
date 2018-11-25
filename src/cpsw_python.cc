@@ -122,5 +122,17 @@ std::istringstream sstrm( yaml );
 	return IPath::loadYamlStream( sstrm, root_name, yaml_dir_name, fixup );
 }
 
+void
+wrap_Command_execute(Command command)
+{
+	ICommand_execute( command.get() );
+}
+
+void
+ICommand_execute(ICommand *command)
+{
+GILUnlocker allowThreadingWhileWaiting;
+	command->execute();
+}
 
 };

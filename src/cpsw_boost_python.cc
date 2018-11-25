@@ -753,12 +753,6 @@ StreamMgr theMgr  = StreamMgr( new CStreamMgr( path ) );
 	return theMgr;
 }
 
-static void wrap_Command_execute(Command command)
-{
-GILUnlocker allowThreadingWhileWaiting;
-	command->execute();
-}
-
 static boost::python::object wrap_DoubleVal_RO_getValAsync(DoubleVal_RO val, AsyncGetValWrapperContext ctxt, int from, int to)
 {
 unsigned rval = ctxt->issueGetVal( val, from, to, ctxt );

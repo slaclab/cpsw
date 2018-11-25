@@ -96,6 +96,12 @@ wrap_Val_Base_repr(shared_ptr<IVal_Base> obj);
 std::string
 IVal_Base_repr(IVal_Base *obj);
 
+void
+wrap_Command_execute(Command command);
+
+void
+ICommand_execute(ICommand *command);
+
 };
 
 #endif
