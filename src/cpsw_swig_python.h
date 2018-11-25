@@ -17,8 +17,11 @@ namespace cpsw_python {
 	// To be used from a 'catch' block
 	void handleException();
 
-	void registerExceptions(PyObject *module);
 };
+
+// not recognized by 'rename' (if I use the 'ignore all' method)
+// if in a namespace :-(
+void cpswSwigRegisterExceptions(PyObject *module);
 
 #endif
 

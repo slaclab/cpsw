@@ -54,7 +54,7 @@ PyObject *exc = PyErr_NewException( qual.c_str(), base, NULL );
 	do { pCpswPyExc_##clazz = makeException(mod, #clazz, pCpswPyExc_##bazz); } while ( 0)
 
 void
-cpsw_python::registerExceptions(PyObject *module)
+cpswSwigRegisterExceptions(PyObject *module)
 {
 	ExceptionTranslatorInstallDerived(module, InternalError,                ErrnoError);
 	ExceptionTranslatorInstallDerived(module, IOError,                      ErrnoError);
