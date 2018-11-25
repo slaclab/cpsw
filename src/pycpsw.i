@@ -122,13 +122,13 @@ Children::element_type::const_iterator it( children->begin() );
 Children::element_type::const_iterator ie( children->end()   );
 Py_ssize_t i;
 
-    PyObject *tup = PyTuple_New( children->size() );
+    UniquePyObj tup( PyTuple_New( children->size() ) );
     i = 0;
     while ( it != ie ) {
         std::shared_ptr< const IChild > *smartresult = new std::shared_ptr< const IChild >( *it );
-        PyObject *o = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_IChild_t, SWIG_POINTER_OWN);
+        PyObject *o = SWIG_NewPointerObj(%as_voidptr(smartresult), $descriptor(std::shared_ptr<IChild>*), SWIG_POINTER_OWN);
 
-        if ( PyTuple_SetItem( tup, i, o ) ) {
+        if ( PyTuple_SetItem( tup.get(), i, o ) ) {
             Py_DECREF( o );
             PyErr_SetString(PyExc_RuntimeError, "typemap(out) Children: error; unable to set tuple item");
             SWIG_fail;
@@ -136,7 +136,7 @@ Py_ssize_t i;
         ++it;
         ++i;
     }
-    $result = tup;
+    $result = tup.release();
 }
 
 %exception {

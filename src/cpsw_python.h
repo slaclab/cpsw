@@ -33,6 +33,15 @@ public:
 	}
 };
 
+struct PyObjDestructor {
+	void operator()(PyObject *p)
+	{
+		Py_DECREF( p );
+	}
+};
+
+typedef std::unique_ptr<PyObject, PyObjDestructor> UniquePyObj;
+
 // It is OK to release the GIL while holding
 // a reference to the Py_buffer.
 //
