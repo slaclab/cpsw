@@ -84,9 +84,9 @@ before_deploy:
 
 deploy:
     # Deploy documentation to github pages
+    github-token: $GITHUB_TOKEN
     provider:     pages         # Deploy to github pages.
     skip-cleanup: true          # Do not delete the build products.
-    github-token: $GITHUB_TOKEN # Token to allow push to github.
     keep-history: true          # Create incremental commit.
     local-dir:    gh-pages      # Deploy the files located here.
     on:
