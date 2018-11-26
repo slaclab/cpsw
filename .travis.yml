@@ -1,0 +1,100 @@
+sudo: required
+
+os: linux
+
+dist: xenial
+
+language: c
+
+compiler: gcc
+
+env:
+  global:
+    - PACKAGE_TOP=$HOME/package
+    - BOOST_DIR=$PACKAGE_TOP/boost/1.63.0
+    - YAML_CPP_DIR=$PACKAGE_TOP/yaml-cpp/yaml-cpp-0.5.3
+    - PYTHON_DIR=$PACKAGE_TOP/python/3.6.1
+    - ARCH=linux-x86_64
+
+before_install:
+    # Prepare the package directories
+    - mkdir -p $BOOST_DIR
+    - mkdir -p $YAML_CPP_DIR
+    - mkdir -p $PYTHON_DIR
+
+install:
+    # install python 3.6.1
+    - cd $PYTHON_DIR
+    - wget -O Python-3.6.1.tgz https://www.python.org/ftp/python/3.6.1/Python-3.6.1.tgz
+    - tar xzf Python-3.6.1.tgz --strip 1
+    - ./configure --quiet
+    - make --quiet
+    - sudo make install 1>/dev/null 2>&1
+
+    # Install boost
+    - cd $BOOST_DIR
+    - wget -O boost_1_63_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.gz/download
+    - tar xzf boost_1_63_0.tar.gz --strip 1
+    - ./bootstrap.sh --with-libraries=atomic,python
+    # Boost fails to find the correct python3 paths automatically, so we need to patch project-config.jam
+    - |
+      sed -i -e 's/using python.*/using python : 3.6 : \/usr\/local\/bin\/python3 : \/usr\/local\/include\/python3.6m\/ : \/usr\/local\/lib\/python3.6\/ ;/g' project-config.jam
+    - travis_wait ./b2 variant=release threading=multi -d0
+    - sudo ./b2 install 1>/dev/null 2>&1
+
+    # Install YAML-CPP
+    - cd $YAML_CPP_DIR
+    - wget -O yaml-cpp-0.5.3.tar.gz https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.5.3.tar.gz
+    - tar zxf yaml-cpp-0.5.3.tar.gz --strip 1
+    - mkdir build; cd build
+    - cmake .. -DBUILD_SHARED_LIBS=ON -DPYTHON_EXECUTABLE:FILEPATH=/usr/local/bin/python3
+    - make --quiet
+    - sudo make install 1>/dev/null 2>&1
+
+before_script:
+    # Prepare config.mak file
+    - cd $TRAVIS_BUILD_DIR
+    - rm -f config.mak
+    - echo "WITH_STATIC_LIBRARIES=YES"                >> config.mak
+    - echo "WITH_SHARED_LIBRARIES=YES"                >> config.mak
+    - echo "yaml_cppinc_DIR=/usr/local/include/"      >> config.mak
+    - echo "yaml_cpplib_DIR=/usr/local/lib/"          >> config.mak
+    - echo "pyinc_DIR=/usr/local/include/python3.6m/" >> config.mak
+    - echo "USE_CXX11_default=NO"                     >> config.mak
+    - echo "INSTALL_DIR=/usr/local/cpsw/"             >> config.mak
+
+script:
+    # Test building the code
+    - make
+
+    # Run the tests
+    - sudo make install           # Install CPSW in the system.
+    - source env.slac.sh          # Setup the enviroment.
+    - udpsrv -S0 -L0 &            # Start udpsrv in the background.
+    - make test                   # Run the tests.
+    - python3 -c "import pycpsw"  # Test to import the python wrapper.
+
+before_deploy:
+    # Prepare the documentation to be deployed to github pages
+    # copying all the markdown files into a temporal directory
+    # called 'gh-pages'.
+    - echo "Preparing documentation..."
+    - mkdir gh-pages
+    - cp src/doc/*md gh-pages/
+
+deploy:
+    # Deploy documentation to github pages
+    github-token: $GITHUB_TOKEN
+    provider:     pages         # Deploy to github pages.
+    skip-cleanup: true          # Do not delete the build products.
+    keep-history: true          # Create incremental commit.
+    local-dir:    gh-pages      # Deploy the files located here.
+    on:
+        # Deploy documentation from any branch.
+        # We can also deploy on a specific branch, like master
+        # removing the 'all_branches' key and defining:
+        #branch: master
+        all_branches: true
+
+        # Deploy documentation only with tagged commits.
+        tags:         true
