@@ -96,6 +96,5 @@ deploy:
         #branch: master
         all_branches: true
 
-        # We can use this condition to deploy documentation
-        # only with tagged commits.
-        #tags:         true
+        # Deploy documentation only with tagged commits.
+        tags:         true
