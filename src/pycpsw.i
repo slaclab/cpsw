@@ -23,7 +23,6 @@
 %shared_ptr(IEnum)
 %shared_ptr(IVal_Base)
 %shared_ptr(IScalVal_Base)
-%shared_ptr(IAsyncIO)
 %shared_ptr(IScalVal_RO)
 %shared_ptr(IScalVal_WO)
 %shared_ptr(IScalVal)
@@ -97,7 +96,6 @@
 %rename("%s")                   IPath::loadConfigFromYamlString;
 %rename("%s")                   IPath::dumpConfigToYamlFile;
 %rename("%s")                   IPath::dumpConfigToYamlString;
-%rename("__add__")              IPath::findByName;
 %ignore                         IPath::loadYamlStream(std::istream&, char const* root_name = "root", char const * yaml_dir_name=0, IYamlFixup* fixup = 0);
 %ignore                         IPath::loadYamlStream(char const * , char const* root_name = "root", char const * yaml_dir_name=0, IYamlFixup* fixup = 0);
 %rename("loadYaml")             IPath::loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0, IYamlFixup *fixup = 0);
@@ -119,7 +117,14 @@
     {
         return wrap_Path_loadYamlStream(yaml, root_name, yaml_dir_name, fixup);
     }
+
+    Path
+    __add__(const char *name)
+    {
+        return $self->findByName( name );
+    }
 }
+
 %feature("python:slot", "tp_repr", functype="reprfunc") IPath::toString;
 
 %rename("Val_Base")             IVal_Base;
@@ -146,12 +151,12 @@
     {
     IEnum::iterator it = $self->begin();
     IEnum::iterator ie = $self->end();
-    UniquePyObj     lis( PyList_New( 0 ) );
+    PyUniqueObj     lis( PyList_New( 0 ) );
         while ( it != ie ) {
 
-            UniquePyObj tup( PyTuple_New( 2 ) );
-            UniquePyObj idx( PyLong_FromUnsignedLongLong( (*it).second ) );
-            UniquePyObj nam( PyUnicode_FromString( (*it).first->c_str()) );
+            PyUniqueObj tup( PyTuple_New( 2 ) );
+            PyUniqueObj idx( PyLong_FromUnsignedLongLong( (*it).second ) );
+            PyUniqueObj nam( PyUnicode_FromString( (*it).first->c_str()) );
 
             if ( PyTuple_SetItem( tup.get(), 0, nam.get() ) ) {
                 PyErr_SetString(PyExc_RuntimeError, "typemap(out) Enum: error; unable to set tuple item 'name'");
@@ -176,9 +181,9 @@
     }
 };
 
-// FIXME
-%rename("AsyncIO")              IAsyncIO;
-%rename("%s")                   IAsyncIO::~IAsyncIO;
+%rename("AsyncIO")              CAsyncIOWrapper;
+%rename("%s")                   CAsyncIOWrapper::~CAsyncIOWrapper;
+%rename("callback")             CAsyncIOWrapper::py_callback;
 
 %rename("ScalVal_Base")         IScalVal_Base;
 %rename("%s")                   IScalVal_Base::~IScalVal_Base;
@@ -250,7 +255,7 @@ Children::element_type::const_iterator it( children->begin() );
 Children::element_type::const_iterator ie( children->end()   );
 Py_ssize_t i;
 
-    UniquePyObj tup( PyTuple_New( children->size() ) );
+    PyUniqueObj tup( PyTuple_New( children->size() ) );
     i = 0;
     while ( it != ie ) {
         std::shared_ptr< const IChild > *smartresult = new std::shared_ptr< const IChild >( *it );
@@ -278,6 +283,7 @@ Py_ssize_t i;
 
 %feature("director") IYamlFixup;
 %feature("director") IPathVisitor;
+%feature("director") CAsyncIOWrapper;
 
 /* Swig currently (V3) does not handle a 'using std::shared_ptr' clause correctly */
 #define shared_ptr std::shared_ptr

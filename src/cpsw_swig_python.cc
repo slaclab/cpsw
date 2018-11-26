@@ -8,7 +8,10 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #include <cpsw_swig_python.h>
+#include <cpsw_python.h>
 #include <string>
+
+using namespace cpsw_python;
 
 static PyObject *pCpswPyExc_InternalError                = 0;
 static PyObject *pCpswPyExc_IOError                      = 0;
@@ -168,4 +171,29 @@ cpsw_python::handleException()
 	catch ( CPSWError &e ) {
 		PyErr_SetString( pCpswPyExc_CPSWError, e.what() );
 	}
+}
+
+typedef CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> CGetValWrapperContext;
+
+CAsyncIOWrapper::CAsyncIOWrapper()
+: ctxt_( new CGetValWrapperContext() )
+{
+}
+
+CAsyncIOWrapper::~CAsyncIOWrapper()
+{
+}
+
+void
+CAsyncIOWrapper::callback(CPSWError *err)
+{
+	PyGILState_STATE state_ = PyGILState_Ensure();
+
+	/* Call into Python */
+
+    PyUniqueObj result = ctxt_->complete( err );
+
+	py_callback( result.release() );
+
+	PyGILState_Release( state_ );
 }

@@ -17,10 +17,39 @@ namespace cpsw_python {
 	// To be used from a 'catch' block
 	void handleException();
 
+	template <typename, typename> class CGetValWrapperContextTmpl;
+	class PyUniqueObj;
+	class PyListObj;
+
 };
 
-// not recognized by 'rename' (if I use the 'ignore all' method)
-// if in a namespace :-(
+// The following are not recognized by 'rename' (if I use the 'ignore all'
+// method) when in the cpsw_python namespace :-(
+
+class CAsyncIOWrapper : public IAsyncIO {
+private:
+	CAsyncIOWrapper(const CAsyncIOWrapper&);
+
+	CAsyncIOWrapper &
+	operator=(const CAsyncIOWrapper&);
+
+	std::unique_ptr<
+		cpsw_python::CGetValWrapperContextTmpl<
+			cpsw_python::PyUniqueObj,
+			cpsw_python::PyListObj            >
+                   > ctxt_;
+
+public:
+	CAsyncIOWrapper();
+
+	virtual void py_callback(PyObject *) = 0;
+
+	virtual void callback(CPSWError *);
+
+	virtual ~CAsyncIOWrapper();
+};
+
+
 void cpswSwigRegisterExceptions(PyObject *module);
 
 #endif

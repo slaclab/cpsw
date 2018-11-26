@@ -13,8 +13,11 @@
 #define CPSW_PYTHON_H
 
 #include <cpsw_api_user.h>
+#include <cpsw_path.h>
 #include <Python.h>
 #include <string>
+#include <vector>
+#include <iostream>
 
 namespace cpsw_python {
 
@@ -40,7 +43,70 @@ struct PyObjDestructor {
 	}
 };
 
-typedef std::unique_ptr<PyObject, PyObjDestructor> UniquePyObj;
+static inline PyObject *
+PyObj(PyObject *v)
+{
+	return ( v );
+}
+
+static inline PyObject *
+PyObj(int64_t   v)
+{
+	return PyLong_FromLongLong( v );
+}
+
+static inline PyObject *
+PyObj(uint64_t  v)
+{
+	return PyLong_FromUnsignedLongLong( v );
+}
+
+static inline PyObject *
+PyObj(double    v)
+{
+	return PyFloat_FromDouble( v );
+}
+
+static inline PyObject *
+PyObj(const std::string &v)
+{
+	return PyUnicode_FromString( v.c_str() );
+}
+
+class PyListObj;
+
+class PyUniqueObj : public std::unique_ptr<PyObject, PyObjDestructor> {
+private:
+
+typedef std::unique_ptr<PyObject, PyObjDestructor> B;
+
+public:
+	PyUniqueObj()
+	{}
+
+	PyUniqueObj(PyListObj &o);
+
+	template <typename T>
+	PyUniqueObj(T o)
+	: B( PyObj( o ) )
+	{
+	}
+};
+
+class PyListObj : public PyUniqueObj {
+public:
+	PyListObj()
+	: PyUniqueObj( PyList_New( 0 ) )
+	{}
+
+	template <typename T>
+	void append( T a )
+	{
+		if ( PyList_Append( get(), PyObj( a ) ) ) {
+			throw InternalError("Unable to append to python list");
+		}
+	}
+};
 
 // It is OK to release the GIL while holding
 // a reference to the Py_buffer.
@@ -110,6 +176,157 @@ wrap_Command_execute(Command command);
 
 void
 ICommand_execute(ICommand *command);
+
+unsigned
+IScalVal_RO_getVal_into(IScalVal_RO *val, PyObject *o, int from, int to);
+
+unsigned
+IScalVal_setVal(IScalVal *val, PyObject *op, int from, int to);
+
+template <typename T, typename LT>
+class CGetValWrapperContextTmpl {
+private:
+	typedef enum { NONE, STRING, SIGNED, UNSIGNED, DOUBLE } ValType;
+
+	Val_Base              val_;
+	ValType               type_;
+	unsigned              nelms_;
+	std::vector<CString>  stringBuf_;
+	std::vector<uint64_t> v64_;
+	std::vector<double>   d64_;
+	IndexRange            range_;
+
+public:
+
+	virtual void prepare(Val_Base val, int from, int to)
+	{
+		val_   = val;
+		nelms_ = val_->getNelms();
+		range_ = IndexRange( from, to );
+
+		if ( from >= 0 || to >= 0 ) {
+			// index range may reduce nelms
+			SlicedPathIterator it( val_->getPath(), &range_ );
+			nelms_ = it.getNelmsLeft();
+		}
+	}
+
+	virtual T complete(CPSWError *err)
+	{
+		if ( err ) {
+			std::cerr << "CGetValWrapper -- exception in callback: " << err->getInfo() << "\n";
+			T rval;
+			return rval;
+		}
+		if ( STRING == type_ ) {
+			if ( 1 == nelms_ ) {
+				T rval( *stringBuf_[0] );
+				return rval;
+			}
+
+			LT l;
+			for ( unsigned i = 0; i<nelms_; i++ ) {
+				l.append( *stringBuf_[i] );
+			}
+			return l;
+		} else if ( DOUBLE == type_ ) {
+			if ( 1 == nelms_ ) {
+				T rval( d64_[0] );
+				return rval;
+			}
+
+			LT l;
+			for ( unsigned i = 0; i<nelms_; i++ ) {
+				l.append( d64_[i] );
+			}
+			return l;
+		} else {
+			if ( 1 == nelms_ ) {
+				if ( SIGNED == type_ ) {
+					int64_t ival = (int64_t)v64_[0];
+					T rval( ival );
+					return rval;
+				} else {
+					T rval( v64_[0] );
+					return rval;
+				}
+			}
+
+			LT l;
+			if ( SIGNED == type_ ) {
+				for ( unsigned i = 0; i<nelms_; i++ ) {
+					int64_t ival = (int64_t)v64_[i];
+					l.append( ival );
+				}
+			} else {
+				for ( unsigned i = 0; i<nelms_; i++ ) {
+					l.append( v64_[i] );
+				}
+			}
+			return l;
+		}
+	}
+
+
+	virtual unsigned issueGetVal(ScalVal_RO val, int from, int to, bool forceNumeric, AsyncIO aio)
+	{
+	GILUnlocker allowThreadingWhileWaiting;
+
+		prepare( val, from , to );
+
+		if ( ! forceNumeric && val->getEnum() ) {
+			type_ = STRING;
+		} else {
+			type_ = val->isSigned() ? SIGNED : UNSIGNED;
+		}
+
+		if ( STRING == type_ ) {
+			// must not use 'reserve' which doesn't construct invalid shared pointers!
+			stringBuf_ = std::vector<CString>( nelms_, CString() );
+
+			if ( aio ) {
+				return val->getVal( aio, &stringBuf_[0], nelms_, &range_ );
+			} else {
+				return val->getVal( &stringBuf_[0], nelms_, &range_ );
+			}
+		} else {
+			v64_.reserve( nelms_ );
+
+			if ( aio ) {
+				return val->getVal( aio, &v64_[0], nelms_, &range_ );
+			} else {
+				return val->getVal( &v64_[0], nelms_, &range_ );
+			}
+		}
+	}
+
+	virtual unsigned issueGetVal(DoubleVal_RO val, int from, int to, AsyncIO aio)
+	{
+	GILUnlocker allowThreadingWhileWaiting;
+
+		prepare( val, from , to );
+		type_ = DOUBLE;
+		d64_.reserve( nelms_ );
+
+		if ( aio ) {
+			return val->getVal( aio, &d64_[0], nelms_, &range_ );
+		} else {
+			return val->getVal( &d64_[0], nelms_, &range_ );
+		}
+	}
+
+	CGetValWrapperContextTmpl()
+	: type_ ( NONE ),
+	  nelms_( 0    ),
+	  range_( -1, -1 )
+	{
+	}
+
+		~CGetValWrapperContextTmpl()
+	{
+	}
+};
+
 
 };
 

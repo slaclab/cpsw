@@ -155,6 +155,8 @@ public:
 	register_exception_translator<clazz>( tr_##clazz );
 };
 
+typedef CGetValWrapperContextTmpl<boost::python::object, boost::python::list> CGetValWrapperContext;
+
 // Need wrappers for methods which take
 // shared pointers to const objects which
 // do not seem to be handled correctly
@@ -200,180 +202,8 @@ static object wrap_Val_Base_getEncoding(shared_ptr<IVal_Base> val)
 static unsigned wrap_ScalVal_RO_getVal_into(ScalVal_RO val, object &o, int from, int to)
 {
 PyObject  *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
-Py_buffer  view;
-IndexRange rng(from, to);
-
-	if ( !  PyObject_CheckBuffer( op )
-	     || 0 != PyObject_GetBuffer( op, &view, PyBUF_C_CONTIGUOUS | PyBUF_WRITEABLE ) ) {
-		throw InvalidArgError("Require an object which implements the buffer interface");
-	}
-	ViewGuard guard( &view );
-
-	Py_ssize_t nelms = view.len / view.itemsize;
-
-	if ( nelms > val->getNelms() )
-		nelms = val->getNelms();
-
-	{
-	GILUnlocker allowThreadingWhileWaiting;
-	// Nobody else must mess with the buffer while the GIL is unlocked!
-
-	if        ( view.itemsize == sizeof(uint8_t ) ) {
-		uint8_t *bufp = reinterpret_cast<uint8_t*>(view.buf);
-		// set same value to all elements ?
-		return val->getVal( bufp, nelms, &rng );
-	} else if ( view.itemsize == sizeof(uint16_t) ) {
-		uint16_t *bufp = reinterpret_cast<uint16_t*>(view.buf);
-		return val->getVal( bufp, nelms, &rng );
-	} else if ( view.itemsize == sizeof(uint32_t) ) {
-		uint32_t *bufp = reinterpret_cast<uint32_t*>(view.buf);
-		return val->getVal( bufp, nelms, &rng );
-	} else if ( view.itemsize == sizeof(uint64_t) ) {
-		uint64_t *bufp = reinterpret_cast<uint64_t*>(view.buf);
-		return val->getVal( bufp, nelms, &rng );
-	}
-	}
-
-	throw InvalidArgError("Unable to convert python argument");
+	return IScalVal_RO_getVal_into( val.get(), op, from, to );
 }
-
-class CGetValWrapperContext {
-private:
-	typedef enum { NONE, STRING, SIGNED, UNSIGNED, DOUBLE } ValType;
-
-	Val_Base              val_;
-	ValType               type_;
-	unsigned              nelms_;
-	std::vector<CString>  stringBuf_;
-	std::vector<uint64_t> v64_;
-	std::vector<double>   d64_;
-	IndexRange            range_;
-
-public:
-
-	virtual void prepare(Val_Base val, int from, int to)
-	{
-		val_   = val;
-		nelms_ = val_->getNelms();
-		range_ = IndexRange( from, to );
-
-		if ( from >= 0 || to >= 0 ) {
-			// index range may reduce nelms
-			SlicedPathIterator it( val_->getPath(), &range_ );
-			nelms_ = it.getNelmsLeft();
-		}
-	}
-
-	virtual boost::python::object complete(CPSWError *err)
-	{
-		if ( err ) {
-			std::cerr << "CGetValWrapper -- exception in callback: " << err->getInfo() << "\n";
-			return boost::python::object( );
-		}
-		if ( STRING == type_ ) {
-			if ( 1 == nelms_ ) {
-				return boost::python::object( *stringBuf_[0] );
-			}
-
-			boost::python::list l;
-			for ( unsigned i = 0; i<nelms_; i++ ) {
-				l.append( *stringBuf_[i] );
-			}
-			return l;
-		} else if ( DOUBLE == type_ ) {
-			if ( 1 == nelms_ ) {
-				return boost::python::object( d64_[0] );
-			}
-
-			boost::python::list l;
-			for ( unsigned i = 0; i<nelms_; i++ ) {
-				l.append( d64_[i] );
-			}
-			return l;
-		} else {
-			if ( 1 == nelms_ ) {
-				if ( SIGNED == type_ ) {
-					int64_t ival = (int64_t)v64_[0];
-					return boost::python::object( ival );
-				} else {
-					return boost::python::object( v64_[0] );
-				}
-			}
-
-			boost::python::list l;
-			if ( SIGNED == type_ ) {
-				for ( unsigned i = 0; i<nelms_; i++ ) {
-					int64_t ival = (int64_t)v64_[i];
-					l.append( ival );
-				}
-			} else {
-				for ( unsigned i = 0; i<nelms_; i++ ) {
-					l.append( v64_[i] );
-				}
-			}
-			return l;
-		}
-	}
-
-
-	virtual unsigned issueGetVal(ScalVal_RO val, int from, int to, bool forceNumeric, AsyncIO aio)
-	{
-	GILUnlocker allowThreadingWhileWaiting;
-
-		prepare( val, from , to );
-
-		if ( ! forceNumeric && val->getEnum() ) {
-			type_ = STRING;
-		} else {
-			type_ = val->isSigned() ? SIGNED : UNSIGNED;
-		}
-
-		if ( STRING == type_ ) {
-			// must not use 'reserve' which doesn't construct invalid shared pointers!
-			stringBuf_ = std::vector<CString>( nelms_, CString() );
-
-			if ( aio ) {
-				return val->getVal( aio, &stringBuf_[0], nelms_, &range_ );
-			} else {
-				return val->getVal( &stringBuf_[0], nelms_, &range_ );
-			}
-		} else {
-			v64_.reserve( nelms_ );
-
-			if ( aio ) {
-				return val->getVal( aio, &v64_[0], nelms_, &range_ );
-			} else {
-				return val->getVal( &v64_[0], nelms_, &range_ );
-			}
-		}
-	}
-
-	virtual unsigned issueGetVal(DoubleVal_RO val, int from, int to, AsyncIO aio)
-	{
-	GILUnlocker allowThreadingWhileWaiting;
-
-		prepare( val, from , to );
-		type_ = DOUBLE;
-		d64_.reserve( nelms_ );
-
-		if ( aio ) {
-			return val->getVal( aio, &d64_[0], nelms_, &range_ );
-		} else {
-			return val->getVal( &d64_[0], nelms_, &range_ );
-		}
-	}
-
-	CGetValWrapperContext()
-	: type_ ( NONE ),
-	  nelms_( 0    ),
-	  range_( -1, -1 )
-	{
-	}
-
-		~CGetValWrapperContext()
-	{
-	}
-};
 
 class IPyAsyncIO {
 public:
@@ -438,6 +268,13 @@ static boost::python::object wrap_ScalVal_RO_getVal(ScalVal_RO val, int from, in
 static unsigned wrap_ScalVal_setVal(ScalVal val, object &o, int from, int to)
 {
 PyObject  *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
+	return IScalVal_setVal( val.get(), op, from, to );
+}
+
+#if 0
+unsigned
+IScalVal_setVal(IScalVal *val, PyObject *op, int from, int to)
+{
 Py_buffer  view;
 IndexRange rng(from, to);
 
@@ -573,6 +410,7 @@ bool enumScalar = false;
 		}
 	}
 }
+#endif
 
 static int64_t wrap_Stream_read(Stream val, object &o, int64_t timeoutUs, uint64_t offset)
 {
