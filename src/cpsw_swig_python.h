@@ -21,6 +21,8 @@ namespace cpsw_python {
 	class PyUniqueObj;
 	class PyListObj;
 
+	typedef CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> CGetValWrapperContext;
+
 };
 
 // The following are not recognized by 'rename' (if I use the 'ignore all'
@@ -49,6 +51,8 @@ public:
 	virtual ~CAsyncIOWrapper();
 };
 
+PyObject *
+IScalVal_RO_getVal(IScalVal_RO *val, int fromIdx = -1, int toIdx = -1, bool forceNumeric = false);
 
 void cpswSwigRegisterExceptions(PyObject *module);
 

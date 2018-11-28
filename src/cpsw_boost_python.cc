@@ -202,7 +202,7 @@ static object wrap_Val_Base_getEncoding(shared_ptr<IVal_Base> val)
 static unsigned wrap_ScalVal_RO_getVal_into(ScalVal_RO val, object &o, int from, int to)
 {
 PyObject  *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
-	return IScalVal_RO_getVal_into( val.get(), op, from, to );
+	return IScalVal_RO_getVal( val.get(), op, from, to );
 }
 
 class IPyAsyncIO {
@@ -250,7 +250,7 @@ typedef shared_ptr<CAsyncGetValWrapperContext> AsyncGetValWrapperContext;
 
 static boost::python::object wrap_ScalVal_RO_getValAsync(ScalVal_RO val, AsyncGetValWrapperContext ctxt, int from, int to, bool forceNumeric)
 {
-	unsigned rval = ctxt->issueGetVal( val, from, to, forceNumeric, ctxt );
+	unsigned rval = ctxt->issueGetVal( val.get(), from, to, forceNumeric, ctxt );
 
 	return boost::python::object( rval );
 }
@@ -260,7 +260,7 @@ static boost::python::object wrap_ScalVal_RO_getVal(ScalVal_RO val, int from, in
 {
 	CGetValWrapperContext ctxt;
 
-	ctxt.issueGetVal( val, from, to, forceNumeric, AsyncIO() );
+	ctxt.issueGetVal( val.get(), from, to, forceNumeric, AsyncIO() );
 
 	return ctxt.complete( 0 );
 }
@@ -271,188 +271,19 @@ PyObject  *op = o.ptr(); // no need for incrementing the refcnt while 'o' is ali
 	return IScalVal_setVal( val.get(), op, from, to );
 }
 
-#if 0
-unsigned
-IScalVal_setVal(IScalVal *val, PyObject *op, int from, int to)
+static int64_t
+wrap_Stream_read(Stream val, object &o, int64_t timeoutUs, uint64_t offset)
 {
-Py_buffer  view;
-IndexRange rng(from, to);
-
-bool useEnum    = !!val->getEnum();
-bool enumScalar = false;
-
-	// use buffer interface only for non-enums
-
-	if ( useEnum ) {
-		if ( ! PyBytes_Check( op ) && ! PyUnicode_Check( op ) ) {
-			if ( PySequence_Check( op ) ) {
-				// could be a sequence of strings
-				object o1( o[0] );
-				PyObject *op1 = o1.ptr();
-				if ( ! PyBytes_Check( op1 ) && ! PyUnicode_Check( op1 ) ) {
-					// not a sequence of strings - do not use enums
-					useEnum = false;
-				}
-			} else {
-				// a scalar that is not a string cannot use enums
-				useEnum = false;
-			}
-		} else {
-			enumScalar = true;
-		}
-	}
-
-	if (  ! useEnum
-		 && PyObject_CheckBuffer( op )
-	     && 0 == PyObject_GetBuffer( op, &view, PyBUF_C_CONTIGUOUS ) ) {
-		// new style buffer interface
-		ViewGuard guard( &view );
-
-		Py_ssize_t nelms = view.len / view.itemsize;
-
-		{
-		GILUnlocker allowThreadingWhileWaiting;
-		if        ( view.itemsize == sizeof(uint8_t ) ) {
-			uint8_t *bufp = reinterpret_cast<uint8_t*>(view.buf);
-			// set same value to all elements ?
-			return 1==nelms ? val->setVal( (uint64_t)*bufp ) : val->setVal( bufp, nelms, &rng );
-		} else if ( view.itemsize == sizeof(uint16_t) ) {
-			uint16_t *bufp = reinterpret_cast<uint16_t*>(view.buf);
-			return 1==nelms ? val->setVal( (uint64_t)*bufp ) : val->setVal( bufp, nelms, &rng );
-		} else if ( view.itemsize == sizeof(uint32_t) ) {
-			uint32_t *bufp = reinterpret_cast<uint32_t*>(view.buf);
-			return 1==nelms ? val->setVal( (uint64_t)*bufp ) : val->setVal( bufp, nelms, &rng );
-		} else if ( view.itemsize == sizeof(uint64_t) ) {
-			uint64_t *bufp = reinterpret_cast<uint64_t*>(view.buf);
-			return 1==nelms ? val->setVal( (uint64_t)*bufp ) : val->setVal( bufp, nelms, &rng );
-		}
-		}
-
-		// if we get here then we couldn't deal with the buffer interface;
-		// try the hard way...
-	}
-
-	// if the object is not a python sequence then 'len()' cannot be used.
-	// Thus, we have to handle this case separately...
-
-	if ( ! PySequence_Check( op ) ) {
-		// a single string (attempt to set enum) is also a sequence
-		// boost::python::extract() is not very useful here
-		// since it does a range check (and produces a mysterious
-		// segfault [g++-5.4/python3.5] if the number if out of
-		// range. We really want modulo 2^64 here which is what
-		// the PyLong_AsUnsignedLongLongMask() achieves.
-		uint64_t num64;
-		if ( ! PyLong_Check( op ) ) {
-#if PY_VERSION_HEX < 0x03000000
-			if ( PyInt_Check( op ) ) {
-				num64 = PyInt_AsUnsignedLongLongMask( op );
-			} else 
-#endif
-			throw InvalidArgError("int/long value expected");
-		} else {
-        	num64 = PyLong_AsUnsignedLongLongMask( op );
-		}
-		{
-			GILUnlocker allowThreadingWhileWaiting;
-			return val->setVal( num64, &rng );
-		}
-	}
-
-	unsigned nelms = enumScalar ? 1 : len(o);
-
-	if ( useEnum ) {
-		if ( enumScalar ) {
-			std::string str = extract<std::string>( o );
-			{
-				GILUnlocker allowThreadingWhileWaiting;
-				return val->setVal( str.c_str(), &rng );
-			}
-		} else {
-			// we can't just extract a 'const char *' pointer -- under
-			// python3 all strings are unicode and we must first convert
-			// to a c++ std::string. Should be backwards compatible to
-			// python 2.7.
-			std::vector<std::string>  vstr;
-			std::vector<const char *> vcstr;
-
-			for ( unsigned i = 0; i < nelms; ++i ) {
-				vstr.push_back( extract<std::string>( o[i] ) );
-				vcstr.push_back( vstr[i].c_str() );
-			}
-			{
-				GILUnlocker allowThreadingWhileWaiting;
-				return val->setVal( &vcstr[0], nelms, &rng );
-			}
-		}
-	} else {
-		std::vector<uint64_t> v64;
-		for ( unsigned i = 0; i < nelms; ++i ) {
-			object ob_tmp( o[i] );
-			PyObject *op = ob_tmp.ptr();
-			// see above why we use this instead of boost::python::extract
-			uint64_t num64;
-			if ( ! PyLong_Check( op ) ) {
-#if PY_VERSION_HEX < 0x03000000
-				if ( PyInt_Check( op ) ) {
-					num64 = PyInt_AsUnsignedLongLongMask( op );
-				} else 
-#endif
-				throw InvalidArgError("int/long value expected");
-			} else {
-				num64 = PyLong_AsUnsignedLongLongMask( op );
-			}
-			v64.push_back( num64 );
-		}
-		{
-		GILUnlocker allowThreadingWhileWaiting;
-		return val->setVal( &v64[0], nelms, &rng );
-		}
-	}
-}
-#endif
-
-static int64_t wrap_Stream_read(Stream val, object &o, int64_t timeoutUs, uint64_t offset)
-{
-PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
-Py_buffer view;
-	if ( !  PyObject_CheckBuffer( op )
-	     || 0 != PyObject_GetBuffer( op, &view, PyBUF_C_CONTIGUOUS | PyBUF_WRITEABLE ) ) {
-		throw InvalidArgError("Require an object which implements the buffer interface");
-	}
-	ViewGuard guard( &view );
-
-	CTimeout timeout;
-
-	if ( timeoutUs >= 0 )
-		timeout.set( (uint64_t)timeoutUs );
-
-	{
-	// hopefully it's OK to release the GIL while operating on the buffer view...
-	GILUnlocker allowThreadingWhileWaiting;
-		return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout, offset );
-	}
+	// no need for incrementing the refcnt while 'o' is alive
+	return IStream_read( val.get(), o.ptr(), timeoutUs, offset );
 }
 
-static int64_t wrap_Stream_write(Stream val, object &o, int64_t timeoutUs)
+
+static int64_t
+wrap_Stream_write(Stream val, object &o, int64_t timeoutUs)
 {
-PyObject *op = o.ptr(); // no need for incrementing the refcnt while 'o' is alive
-Py_buffer view;
-	if ( !  PyObject_CheckBuffer( op )
-	     || 0 != PyObject_GetBuffer( op, &view, PyBUF_C_CONTIGUOUS ) ) {
-		throw InvalidArgError("Require an object which implements the buffer interface");
-	}
-	ViewGuard guard( &view );
-
-	CTimeout timeout;
-	if ( timeoutUs >= 0 )
-		timeout.set( (uint64_t)timeoutUs );
-
-	{
-	// hopefully it's OK to release the GIL while operating on the buffer view...
-	GILUnlocker allowThreadingWhileWaiting;
-	return val->write( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
-	}
+	// no need for incrementing the refcnt while 'o' is alive
+	return IStream_write( val.get(), o.ptr(), timeoutUs );
 }
 
 // CPSW Streams are (implicitly) opened/closed during construction/destruction.
@@ -593,7 +424,7 @@ StreamMgr theMgr  = StreamMgr( new CStreamMgr( path ) );
 
 static boost::python::object wrap_DoubleVal_RO_getValAsync(DoubleVal_RO val, AsyncGetValWrapperContext ctxt, int from, int to)
 {
-unsigned rval = ctxt->issueGetVal( val, from, to, ctxt );
+unsigned rval = ctxt->issueGetVal( val.get(), from, to, ctxt );
 
 	return boost::python::object( rval );
 }
@@ -603,7 +434,7 @@ static boost::python::object wrap_DoubleVal_RO_getVal(DoubleVal_RO val, int from
 {
 	CGetValWrapperContext ctxt;
 
-	ctxt.issueGetVal( val, from, to, AsyncIO() );
+	ctxt.issueGetVal( val.get(), from, to, AsyncIO() );
 
 	return ctxt.complete( 0 );
 }

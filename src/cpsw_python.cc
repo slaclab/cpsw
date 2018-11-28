@@ -136,7 +136,7 @@ GILUnlocker allowThreadingWhileWaiting;
 }
 
 unsigned
-IScalVal_RO_getVal_into(IScalVal_RO *val, PyObject *op, int from, int to)
+IScalVal_RO_getVal(IScalVal_RO *val, PyObject *op, int from, int to)
 {
 Py_buffer  view;
 IndexRange rng(from, to);
@@ -322,6 +322,49 @@ bool enumScalar = false;
 		GILUnlocker allowThreadingWhileWaiting;
 		return val->setVal( &v64[0], nelms, &rng );
 		}
+	}
+}
+
+int64_t
+IStream_read(IStream *val, PyObject *op, int64_t timeoutUs, uint64_t offset)
+{
+Py_buffer view;
+	if ( !  PyObject_CheckBuffer( op )
+	     || 0 != PyObject_GetBuffer( op, &view, PyBUF_C_CONTIGUOUS | PyBUF_WRITEABLE ) ) {
+		throw InvalidArgError("Require an object which implements the buffer interface");
+	}
+	ViewGuard guard( &view );
+
+	CTimeout timeout;
+
+	if ( timeoutUs >= 0 )
+		timeout.set( (uint64_t)timeoutUs );
+
+	{
+	// hopefully it's OK to release the GIL while operating on the buffer view...
+	GILUnlocker allowThreadingWhileWaiting;
+		return val->read( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout, offset );
+	}
+}
+
+int64_t
+IStream_write(IStream *val, PyObject *op, int64_t timeoutUs)
+{
+Py_buffer view;
+	if ( !  PyObject_CheckBuffer( op )
+	     || 0 != PyObject_GetBuffer( op, &view, PyBUF_C_CONTIGUOUS ) ) {
+		throw InvalidArgError("Require an object which implements the buffer interface");
+	}
+	ViewGuard guard( &view );
+
+	CTimeout timeout;
+	if ( timeoutUs >= 0 )
+		timeout.set( (uint64_t)timeoutUs );
+
+	{
+	// hopefully it's OK to release the GIL while operating on the buffer view...
+	GILUnlocker allowThreadingWhileWaiting;
+	return val->write( reinterpret_cast<uint8_t*>(view.buf), view.len, timeout );
 	}
 }
 

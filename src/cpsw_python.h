@@ -178,17 +178,22 @@ void
 ICommand_execute(ICommand *command);
 
 unsigned
-IScalVal_RO_getVal_into(IScalVal_RO *val, PyObject *o, int from, int to);
+IScalVal_RO_getVal(IScalVal_RO *val, PyObject *o, int from = -1, int to = -1);
 
 unsigned
-IScalVal_setVal(IScalVal *val, PyObject *op, int from, int to);
+IScalVal_setVal(IScalVal *val, PyObject *op, int from = -1, int to = -1);
+
+int64_t
+IStream_read(IStream *val, PyObject *op, int64_t timeoutUs, uint64_t offset);
+
+int64_t
+IStream_write(IStream *val, PyObject *op, int64_t timeoutUs);
 
 template <typename T, typename LT>
 class CGetValWrapperContextTmpl {
 private:
 	typedef enum { NONE, STRING, SIGNED, UNSIGNED, DOUBLE } ValType;
 
-	Val_Base              val_;
 	ValType               type_;
 	unsigned              nelms_;
 	std::vector<CString>  stringBuf_;
@@ -196,17 +201,19 @@ private:
 	std::vector<double>   d64_;
 	IndexRange            range_;
 
+	CGetValWrapperContextTmpl(const CGetValWrapperContextTmpl &);
+	CGetValWrapperContextTmpl & operator=(const CGetValWrapperContextTmpl&);
+
 public:
 
-	virtual void prepare(Val_Base val, int from, int to)
+	virtual void prepare(IVal_Base *val, int from, int to)
 	{
-		val_   = val;
-		nelms_ = val_->getNelms();
+		nelms_ = val->getNelms();
 		range_ = IndexRange( from, to );
 
 		if ( from >= 0 || to >= 0 ) {
 			// index range may reduce nelms
-			SlicedPathIterator it( val_->getPath(), &range_ );
+			SlicedPathIterator it( val->getPath(), &range_ );
 			nelms_ = it.getNelmsLeft();
 		}
 	}
@@ -267,8 +274,7 @@ public:
 		}
 	}
 
-
-	virtual unsigned issueGetVal(ScalVal_RO val, int from, int to, bool forceNumeric, AsyncIO aio)
+	virtual unsigned issueGetVal(IScalVal_RO *val, int from, int to, bool forceNumeric, AsyncIO aio)
 	{
 	GILUnlocker allowThreadingWhileWaiting;
 
@@ -300,7 +306,7 @@ public:
 		}
 	}
 
-	virtual unsigned issueGetVal(DoubleVal_RO val, int from, int to, AsyncIO aio)
+	virtual unsigned issueGetVal(IDoubleVal_RO *val, int from, int to, AsyncIO aio)
 	{
 	GILUnlocker allowThreadingWhileWaiting;
 

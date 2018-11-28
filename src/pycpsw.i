@@ -31,6 +31,7 @@
 %shared_ptr(IDoubleVal_WO)
 %shared_ptr(IDoubleVal)
 %shared_ptr(IStream)
+%shared_ptr(CAsyncIOWrapper)
 
 %{
     #include "cpsw_api_user.h"
@@ -192,16 +193,36 @@
 %rename("%s")                   IScalVal_Base::getEnum;
 %rename("%s")                   IScalVal_Base::create;
 
-// FIXME
 %rename("ScalVal_RO")           IScalVal_RO;
 %rename("%s")                   IScalVal_RO::~IScalVal_RO;
 %rename("%s")                   IScalVal_RO::create;
+%rename("%s")                   IScalVal_RO::getVal(int fromIdx = -1, int toIdx = -1,bool forceNumeric = false);
+%rename("%s")                   IScalVal_RO::getVal(PyObject *buf,int fromIdx = -1,int toIdx = -1);
+%rename("%s")                   IScalVal_RO::getValAsync(std::shared_ptr<CAsyncIOWrapper>);
+%extend                         IScalVal_RO {
+    PyObject *
+    getVal(int fromIdx = -1, int toIdx = -1, bool forceNumeric = false);
+
+    unsigned
+    getVal(PyObject *buf, int fromIdx = -1, int toIdx = -1);
+
+    unsigned
+    getValAsync(std::shared_ptr<CAsyncIOWrapper> aio)
+    {
+        return 0;
+    }
+    
+};
 
 %ignore                         IScalVal_WO;
 
-// FIXME (setVal)
 %rename("ScalVal")              IScalVal;
 %rename("%s")                   IScalVal::~IScalVal;
+%rename("%s")                   IScalVal::setVal(PyObject *values,int fromIdx = -1, int toIdx = -1);
+%extend                         IScalVal {
+    unsigned
+    setVal(PyObject *values, int fromIdx = -1, int toIdx = -1);
+};
 
 // FIXME
 %rename("DoubleVal_RO")         IDoubleVal_RO;
