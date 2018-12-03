@@ -788,27 +788,38 @@ StreamMuxBuf         muxer;
 
 YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
 
-	preprocessor.process();
+	try {
 
-	std::istream top_preprocessed_stream( &muxer );
+		preprocessor.process();
 
-	YAML::Node rootNode( YAML::Load( top_preprocessed_stream ) );
+		std::istream top_preprocessed_stream( &muxer );
 
-	int vers;
-	if ( (vers = preprocessor.getSchemaVersionMajor()) >= 0 ) {
-		rootNode[ YAML_KEY_schemaVersionMajor ] = vers;
+		YAML::Node rootNode( YAML::Load( top_preprocessed_stream ) );
+
+		int vers;
+		if ( (vers = preprocessor.getSchemaVersionMajor()) >= 0 ) {
+			rootNode[ YAML_KEY_schemaVersionMajor ] = vers;
+		}
+
+		if ( (vers = preprocessor.getSchemaVersionMinor()) >= 0 ) {
+			rootNode[ YAML_KEY_schemaVersionMinor ] = vers;
+		}
+
+		if ( (vers = preprocessor.getSchemaVersionRevision()) >= 0 ) {
+			rootNode[ YAML_KEY_schemaVersionRevision ] = vers;
+		}
+
+
+		return rootNode;
+
+	} catch (YAML::Exception &err) {
+		// line number is 1-based; but our calculations are zero-based.
+		unsigned line = err.mark.line - muxer.getOtherScopeLines() + 1;
+		fprintf(stderr,"ERROR: %s\n", err.what());
+		fprintf(stderr,"Current file: %s: %u\n", muxer.getFileName(), line);
+		throw;
 	}
 
-	if ( (vers = preprocessor.getSchemaVersionMinor()) >= 0 ) {
-		rootNode[ YAML_KEY_schemaVersionMinor ] = vers;
-	}
-
-	if ( (vers = preprocessor.getSchemaVersionRevision()) >= 0 ) {
-		rootNode[ YAML_KEY_schemaVersionRevision ] = vers;
-	}
-
-
-	return rootNode;
 }
 
 class NoOpDeletor {

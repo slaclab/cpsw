@@ -1,4 +1,7 @@
 asyncSRP
+    Feature: Provide file/line info when loading YAML fails due
+        to parser errors.
+
     Feature: When performing an RMW operation over SRP that spans
         multiple words then read back (up to a max.) multiple
         words in a single read operation.
