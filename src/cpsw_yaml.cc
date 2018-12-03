@@ -342,6 +342,9 @@ PNode::visitMergekeys(MergekeyVisitor *visitor, int maxlevel)
 {
 const PNode *top   = this->parent_;
 unsigned     nelms = 1;
+#ifdef CPSW_YAML_DEBUG
+const PNode *otop  = top;
+#endif
 
 #ifdef CPSW_YAML_DEBUG
 	printf("visitMergekeys: ENTERING: "); pp(top); printf("/%s\n", getName());
@@ -381,6 +384,10 @@ unsigned     nelms = 1;
 		if ( maxlevel > 0 )
 			maxlevel--;
 	}
+
+#ifdef CPSW_YAML_DEBUG
+	printf("visitMergekeys: LEAVING: "); pp(otop); printf("/%s\n", getName());
+#endif
 
 }
 
@@ -570,7 +577,7 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 	if ( ! class_node ) {
 		throw   NotFoundError( std::string("No property '")
 			  + std::string(YAML_KEY_class)
-			  + std::string("' in: ") + node.getName()
+			  + std::string("' in: ") + node.toString()
 			    );
 	} else {
 		if( class_node.IsSequence() ) {
