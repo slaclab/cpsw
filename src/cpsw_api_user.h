@@ -58,6 +58,35 @@ typedef shared_ptr<IDoubleVal>           DoubleVal;
 
 namespace YAML {
 	class Node;
+
+	// YAML-CPP's map-lookup operator 'operator[]'
+	// has very cumbersome semantics:
+	//
+	//   Node operator[](const Key &);
+	//
+	// actually creates a new map entry (and breaks
+	// iterators as of version 0.6.2; even though a
+	// new map entry may not be 'visible' if it is
+	// not assigned a value the operation voids
+	// existing iterators -- the latter did not
+	// happen under 0.5.3!).
+	//
+	// However,
+	//
+	//   Node operator[](const Key *) const;
+	//
+	// is a pure lookup. We provide a helper function
+	// so that intentions can be made clear:
+	const Node NodeFind(const Node &n, const Node &key);
+
+	// The second template argument is only a dummy
+	// so that we can define this w/o pulling in
+	// yaml-cpp headers.
+	template <typename Key, typename N=const YAML::Node>
+	N NodeFind(const YAML::Node &n, const Key &key)
+	{
+		return static_cast<const N>(n)[key];
+	}
 };
 
 class IYamlSupportBase {
@@ -185,13 +214,24 @@ public:
  */
 class IYamlFixup {
 public:
-	// Find a YAML node in a hierarchy of YAML::Map's
-	// while traversing merge keys.
-	// The path from the src to the destination node is
-	// given as a string separated with the separation character.
-	// E.g., find( rootNode, "children/mmio/at/UDP/port" )
-	static  YAML::Node findByName(YAML::Node &src, const char *path, char sep = '/');
+	/*!
+	 * Find a YAML node in a hierarchy of YAML::Map's
+	 * while traversing merge keys.
+	 * The path from the src to the destination node is
+	 * given as a string separated with the separation character.
+	 * E.g., find( rootNode, "children/mmio/at/UDP/port" )
+     */
+	static  YAML::Node findByName(const YAML::Node &src, const char *path, char sep = '/');
 
+	/*!
+	 * NOTE: When writing fixup code, be aware that the index
+     *       operator 'operator[](Key &k)' creates a new map
+	 *       entry if 'k' is not found.
+	 *       You must use 'operator[](Key &k) const', i.e.,
+	 *       do the lookup from a 'const YAML::Node' object.
+	 *       You may use the 'YAML::NodeFind' template above
+	 *       to make your intentions more obvious.
+	 */
 	virtual void operator()(YAML::Node &root, YAML::Node &top) = 0;
 
 	virtual ~IYamlFixup() {}
