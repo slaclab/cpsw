@@ -103,13 +103,8 @@ struct udpsrv_range *udpsrv_ranges;
 
 inline int hostIsLE()
 {
-union { uint16_t s; uint8_t c[2]; } u = {
-#if __STDC_VERSION__ >= 199901L
-	/* rhel6 is not C99 :-( !  */
-	.s =
-#endif
-	(uint16_t)1
-	};
+union { uint16_t s; uint8_t c[2]; } u;
+	u.s = 1;
 	return u.c[0];
 }
 
@@ -131,7 +126,7 @@ struct udpsrv_range {
 	)
 	:next(udpsrv_ranges), base(base), size(size), name(name), read(read), write(write)
 	{
-printf("Registering range %"PRIx64" %"PRIx64"\n", base, size);
+printf("Registering range %" PRIx64 " %" PRIx64 "\n", base, size);
 		udpsrv_ranges = this;
 		if ( init )
 			init( this );

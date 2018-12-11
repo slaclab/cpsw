@@ -10,8 +10,7 @@
 #ifndef Q_HELPER_H
 #define Q_HELPER_H
 
-#include <boost/shared_ptr.hpp>
-#include <boost/atomic.hpp>
+#include <cpsw_shared_ptr.h>
 
 // simplified implementation of buffers etc.
 // for use by udpsrv to have a testbed which
@@ -32,10 +31,6 @@
 
 #define MAXBUFSZ 65536
 
-
-using boost::shared_ptr;
-using boost::atomic;
-
 class IProtoPort;
 typedef shared_ptr<IProtoPort> ProtoPort;
 
@@ -45,6 +40,7 @@ public:
 	virtual BufChain tryPop()                              = 0;
 
 	virtual IEventSource *getReadEventSource()             = 0;
+	virtual IEventSource *getWriteEventSource()            = 0;
 
 	virtual ProtoPort     getUpstreamPort()                = 0;
 
@@ -75,11 +71,13 @@ public:
 
 	virtual unsigned getUdpPort()                          = 0;
 
+	virtual bool     isFull()                              = 0;
+
 	virtual void connect(const char *ina, unsigned port)   = 0;
 
 	virtual ~IUdpPort() {}
 
-	static UdpPort create(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler);
+	static UdpPort create(const char *ina, unsigned port, unsigned simLossPercent, unsigned ldScrambler, unsigned depth = 4);
 };
 
 class ITcpPort;
@@ -105,9 +103,12 @@ public:
 
 	virtual unsigned getTcpPort()                 = 0;
 
+	/* in client mode only */
+	virtual void connect(const char *ina, unsigned port) = 0;
+
 	virtual ~ITcpPort() {}
 
-	static TcpPort create(const char *ina, unsigned port, TcpConnHandler connHandler = TcpConnHandler());
+	static TcpPort create(const char *ina, unsigned port, unsigned depth = 4, bool isServer = true, TcpConnHandler connHandler = TcpConnHandler());
 };
 
 

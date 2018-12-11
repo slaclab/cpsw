@@ -7,6 +7,7 @@
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
+#include <cpsw_compat.h>
 #include <udpsrv_util.h>
 #include <udpsrv_port.h>
 #include <udpsrv_rssi_port.h>

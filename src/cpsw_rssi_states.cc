@@ -241,7 +241,7 @@ fprintf(stderr," (state %s)\n", getName());
 		context->peerBSY_ = peerNowBSY;
 
 		if ( context->peerBSY_ ) {
-			context->stats_.busyFlagsCounted_++;
+			context->stats_.busyFlagsCountedRx_++;
 			if ( ! peerWasBSY )
 				context->rexTimer()->cancel();
 		}

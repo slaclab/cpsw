@@ -11,9 +11,9 @@
 #define CPSW_MUTEX_HELPER_H
 
 #include <cpsw_error.h>
+#include <cpsw_compat.h>
 #include <pthread.h>
 #include <errno.h>
-#include <boost/atomic.hpp>
 
 class CMtx {
 	pthread_mutex_t m_;
@@ -157,7 +157,7 @@ public:
 // mutex with lazy initialization
 class CMtxLazy {
 private:
-	boost::atomic<CMtx *> theMtx_;
+	cpsw::atomic<CMtx *> theMtx_;
 	bool                  recursive_;
     const char           *name_;
 
@@ -171,16 +171,16 @@ public:
 	: recursive_(recursive),
 	  name_(name)
 	{
-		theMtx_.store( 0, boost::memory_order_release );
+		theMtx_.store( 0, cpsw::memory_order_release );
 	}
 
 	CMtx * getMtx()
 	{
-		CMtx *mtx = theMtx_.load( boost::memory_order_acquire );
+		CMtx *mtx = theMtx_.load( cpsw::memory_order_acquire );
 		if ( ! mtx ) {
 			CMtx *nmtx = recursive_ ? new CMtx( CMtx::AttrRecursive(), name_ ) : new CMtx( name_ );
 			do {
-				if ( theMtx_.compare_exchange_weak( mtx,  nmtx, boost::memory_order_acq_rel ) )
+				if ( theMtx_.compare_exchange_weak( mtx,  nmtx, cpsw::memory_order_acq_rel ) )
 					// successfully exchanged; 'nmtx' installed
 					return nmtx;
 			} while ( ! mtx );
@@ -198,7 +198,7 @@ public:
 	// Nobody must hold the mutex when it is being destroyed!
 	~CMtxLazy()
 	{
-		CMtx *mtx = theMtx_.load( boost::memory_order_acquire );
+		CMtx *mtx = theMtx_.load( cpsw::memory_order_acquire );
 		if ( mtx )
 			delete( mtx );
 	}

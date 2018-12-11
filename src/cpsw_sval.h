@@ -13,8 +13,8 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_entry_adapt.h>
 
-using boost::static_pointer_cast;
-using boost::weak_ptr;
+using cpsw::static_pointer_cast;
+using cpsw::weak_ptr;
 
 class CIntEntryImpl;
 typedef shared_ptr<CIntEntryImpl> IntEntryImpl;
@@ -188,12 +188,33 @@ public:
 protected:
 	virtual shared_ptr<const CIntEntryImpl> asIntEntry() const { return static_pointer_cast<const CIntEntryImpl, const CEntryImpl>(ie_); }
 
-	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0 );
+	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, SlicedPathIterator *it);
+	virtual unsigned getVal(AsyncIO aio, uint8_t  *, unsigned, unsigned, SlicedPathIterator *it);
 
 	template <typename E> unsigned getVal(E *e, unsigned nelms, IndexRange *r)
 	{
-		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), r );
+	SlicedPathIterator it(p_, r);
+		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), &it );
 	}
+
+	template <typename E> unsigned getVal(AsyncIO aio, E *e, unsigned nelms, IndexRange *r)
+	{
+	SlicedPathIterator it(p_, r);
+		return getVal(aio, reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), &it );
+	}
+
+	template <typename E> unsigned getVal(E *e, unsigned nelms, SlicedPathIterator *it)
+	{
+		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), it );
+	}
+
+	template <typename E> unsigned getVal(AsyncIO aio, E *e, unsigned nelms, SlicedPathIterator *it)
+	{
+		return getVal(aio, reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), it );
+	}
+
+
+	virtual unsigned checkNelms(unsigned nelms, SlicedPathIterator *it);
 
 	virtual unsigned setVal(uint8_t  *, unsigned, unsigned, IndexRange *r = 0);
 
@@ -213,9 +234,19 @@ public:
 		return IIntEntryAdapt::getVal<uint64_t>(p,n,r);
 	}
 
+	virtual unsigned getVal(AsyncIO aio, uint64_t *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint64_t>(aio, p,n,r);
+	}
+
 	virtual unsigned getVal(uint32_t *p, unsigned n, IndexRange *r=0)
 	{
 		return IIntEntryAdapt::getVal<uint32_t>(p,n,r);
+	}
+
+	virtual unsigned getVal(AsyncIO aio, uint32_t *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint32_t>(aio, p,n,r);
 	}
 
 	virtual unsigned getVal(uint16_t *p, unsigned n, IndexRange *r=0)
@@ -223,12 +254,23 @@ public:
 		return IIntEntryAdapt::getVal<uint16_t>(p,n,r);
 	}
 
+	virtual unsigned getVal(AsyncIO aio, uint16_t *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint16_t>(aio, p,n,r);
+	}
+
 	virtual unsigned getVal(uint8_t  *p, unsigned n, IndexRange *r=0)
 	{
 		return IIntEntryAdapt::getVal<uint8_t> (p,n,r);
 	}
 
+	virtual unsigned getVal(AsyncIO aio, uint8_t *p, unsigned n, IndexRange *r=0)
+	{
+		return IIntEntryAdapt::getVal<uint8_t>(aio, p,n,r);
+	}
+
 	virtual unsigned getVal(CString  *p, unsigned n, IndexRange *r=0);
+	virtual unsigned getVal(AsyncIO aio, CString  *p, unsigned n, IndexRange *r=0);
 
 protected:
 	using IIntEntryAdapt::getVal;
@@ -242,6 +284,7 @@ public:
 	virtual void     dbl2dbl(double *dst, unsigned n);
 
 	virtual unsigned getVal(double   *p, unsigned n, IndexRange *r=0);
+	virtual unsigned getVal(AsyncIO aio, double   *p, unsigned n, IndexRange *r=0);
 };
 
 class CScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {

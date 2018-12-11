@@ -10,6 +10,7 @@
 CPSW_DIR=..
 
 include $(CPSW_DIR)/defs.mak
+include $(CPSW_DIR)/std.mak
 
 INCLUDE_DIRS += $(SRCDIR)/../libTstAux
 
@@ -95,13 +96,17 @@ cpsw_yaml_preproc_tst_SRCS = cpsw_yaml_preproc_tst.cc
 cpsw_yaml_preproc_tst_LIBS = $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_yaml_preproc_tst
 
-cpsw_yaml_merge_tst_SRCS = cpsw_yaml_merge_tst.cc
-cpsw_yaml_merge_tst_LIBS = $(CPSW_LIBS)
+cpsw_yaml_merge_tst_SRCS   = cpsw_yaml_merge_tst.cc
+cpsw_yaml_merge_tst_LIBS   = $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_yaml_merge_tst
 
-cpsw_yaml_config_tst_SRCS = cpsw_yaml_config_tst.cc
-cpsw_yaml_config_tst_LIBS = $(CPSW_LIBS)
+cpsw_yaml_config_tst_SRCS  = cpsw_yaml_config_tst.cc
+cpsw_yaml_config_tst_LIBS  = $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_yaml_config_tst
+
+cpsw_async_io_tst_SRCS     = cpsw_async_io_tst.cc
+cpsw_async_io_tst_LIBS     = $(CPSW_LIBS)
+TESTPROGRAMS              += cpsw_async_io_tst
 
 cpsw_strval_tst_SRCS      = cpsw_strval_tst.cc
 cpsw_strval_tst_LIBS      = $(CPSW_LIBS)

@@ -10,13 +10,11 @@
 #ifndef CPSW_BUF_H
 #define CPSW_BUF_H
 
-#include <boost/shared_ptr.hpp>
 #include <stdint.h>
 #include <time.h>
 
 #include <cpsw_event.h>
 
-using boost::shared_ptr;
 
 class IBuf;
 class IBufChain;

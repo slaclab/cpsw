@@ -30,30 +30,30 @@ const char *v31 = "#schemaversion 3.1.0\n";
 
 const char *top00=
 "#\n"
-"#include "INC_V00"\n"
+"#include " INC_V00 "\n"
 "root:\n"
-"  "YAML_KEY_class": Dev\n";
+"  " YAML_KEY_class ": Dev\n";
 
 const char *top03=
 "#\n"
-"#include "INC_V00"\n"
+"#include " INC_V00 "\n"
 "#schemaversion 3.0.0\n"
 "root:\n"
-"  "YAML_KEY_class": Dev\n";
+"  " YAML_KEY_class ": Dev\n";
 
 const char *top23=
 "#\n"
-"#include <"INC_V20">\n"
+"#include <" INC_V20 ">\n"
 "#schemaversion 3.0.0\n"
 "root:\n"
-"  "YAML_KEY_class": Dev\n";
+"  " YAML_KEY_class ": Dev\n";
 
 const char *top33=
 "#\n"
-"#include "INC_V31"\n"
+"#include " INC_V31 "\n"
 "#schemaversion 3.0.0\n"
 "root:\n"
-"  "YAML_KEY_class": Dev\n";
+"  " YAML_KEY_class ": Dev\n";
 
 
 
@@ -62,27 +62,27 @@ const char *topyaml =
 "#\n"
 "#schemaversion 3.0.0\n"
 "#once main\n"
-"#include "INC"\n"
+"#include " INC "\n"
 "#\n"
 "\n"
 "root:\n"
-"  "YAML_KEY_class": Dev\n"
-"  "YAML_KEY_children":\n"
+"  " YAML_KEY_class ": Dev\n"
+"  " YAML_KEY_children ":\n"
 "    overridename:\n"
-"      "YAML_KEY_MERGE": *anchor\n"
+"      " YAML_KEY_MERGE ": *anchor\n"
 ;
 
 const char *incyaml =
 "#\n"
 "#schemaversion 3.0.0\n"
 "#once include\n"
-"#include "TOP"\n"
+"#include " TOP "\n"
 "#\n"
 "\n"
 "leaf: &anchor\n"
-"  "YAML_KEY_at":\n"
-"    "YAML_KEY_nelms": 5\n"
-"  "YAML_KEY_class":\n"          // Ordered list of class hierarchy
+"  " YAML_KEY_at ":\n"
+"    " YAML_KEY_nelms ": 5\n"
+"  " YAML_KEY_class ":\n"          // Ordered list of class hierarchy
 "    - MyField1\n"    
 "    - MyField2\n"
 "    - Field\n"
@@ -95,9 +95,9 @@ const char *noincincyaml =
 "#\n"
 "\n"
 "leaf:   &anchor\n"
-"  "YAML_KEY_at":\n"
-"    "YAML_KEY_nelms": 5\n"
-"  "YAML_KEY_class":\n"          // Ordered list of class hierarchy
+"  " YAML_KEY_at ":\n"
+"    " YAML_KEY_nelms ": 5\n"
+"  " YAML_KEY_class ":\n"          // Ordered list of class hierarchy
 "    - MyField\n"    
 "    - Field\n"
 ;

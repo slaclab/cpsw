@@ -152,21 +152,24 @@ CConstDblEntryAdapt::CConstDblEntryAdapt(Key &k, Path p, shared_ptr<const CIntEn
 {
 }
 
+unsigned
+CConstIntEntryAdapt::getVal(AsyncIO aio, uint8_t  *buf, unsigned nelms, unsigned elsz, SlicedPathIterator *it)
+{
+unsigned rval = getVal(buf, nelms, elsz, it);
+	// always synchronous -- there is no communication going on
+	aio->callback( 0 );
+	return rval;
+}
 
 unsigned
-CConstIntEntryAdapt::getVal(uint8_t  *buf, unsigned nelms, unsigned elsz, IndexRange *r)
+CConstIntEntryAdapt::getVal(uint8_t  *buf, unsigned nelms, unsigned elsz, SlicedPathIterator *it)
 {
-SlicedPathIterator it( p_, r );
-unsigned nelmsOnPath = it.getNelmsLeft();
 ByteOrder hostEndian = hostByteOrder();
 
 shared_ptr<const CConstIntEntryImpl> ie = static_pointer_cast<const CConstIntEntryImpl>( ie_ );
 uint64_t val = ie->getInt();
 
-	if ( nelms >= nelmsOnPath )
-		nelms = nelmsOnPath;
-	else
-		throw InvalidArgError("Invalid Argument: buffer too small");
+	nelms = checkNelms( nelms, it );
 	
 	uint8_t *valp = reinterpret_cast<uint8_t*>( &val );
 
@@ -185,19 +188,23 @@ uint64_t val = ie->getInt();
 }
 
 unsigned
+CConstDblEntryAdapt::getVal(AsyncIO aio, double   *buf, unsigned nelms, IndexRange *r)
+{
+unsigned rval = getVal(buf, nelms, r);
+	aio->callback( 0 );
+	return rval;
+}
+
+unsigned
 CConstDblEntryAdapt::getVal(double   *buf, unsigned nelms, IndexRange *r)
 {
 SlicedPathIterator it( p_, r );
-unsigned nelmsOnPath = it.getNelmsLeft();
 
 shared_ptr<const CConstIntEntryImpl> ie = static_pointer_cast<const CConstIntEntryImpl>( ie_ );
 
 double doubleVal = ie->getDouble();
 
-	if ( nelms >= nelmsOnPath )
-		nelms = nelmsOnPath;
-	else
-		throw InvalidArgError("Invalid Argument: buffer too small");
+	nelms = checkNelms( nelms, &it );
 
 	for ( unsigned n = 0; n < nelms; n++ ) {
 		buf[n] = doubleVal;

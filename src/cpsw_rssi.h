@@ -15,6 +15,7 @@
 #include <cpsw_rssi_timer.h>
 #include <cpsw_error.h>
 #include <cpsw_thread.h>
+#include <cpsw_compat.h>
 
 #include <stdint.h>
 
@@ -22,10 +23,7 @@
 
 #include <vector>
 
-#include <boost/weak_ptr.hpp>
-#include <boost/atomic.hpp>
-using boost::weak_ptr;
-using boost::atomic;
+using cpsw::atomic;
 
 #define RSSI_DEBUG 0 // level
 
@@ -571,7 +569,8 @@ protected:
 		unsigned skippedNULs_;
 		unsigned numSegsAckedByPeer_;
 		unsigned numSegsGivenToUser_;
-		unsigned busyFlagsCounted_;
+		unsigned busyFlagsCountedRx_;
+		unsigned busyFlagsCountedTx_;
 		unsigned busyDeassertRex_;
 	} stats_;
 

@@ -12,17 +12,14 @@
 
 #include <streambuf>
 #include <istream>
+#include <vector>
 #include <list>
+#include <string>
 
+#include <cpsw_compat.h>
 #include <cpsw_error.h>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/unordered_set.hpp>
-
 using std::streambuf;
-
-using boost::shared_ptr;
-using boost::unordered_set;
 
 // class to multiplex/concatenate multiple
 // istreams into a single streambuf.
@@ -30,18 +27,30 @@ using boost::unordered_set;
 // (into the internal buffer) the individual streams
 // are not 'slurped' into a huge buffer space.
 
+
 class StreamMuxBuf : public std::streambuf {
 public:
 	typedef shared_ptr<std::istream> Stream;
 private:
+	struct                      StreamEl {
+		Stream       stream;
+		std::string  name;
+		unsigned     headerLines;
+
+		StreamEl(Stream, const std::string*, unsigned);
+	};
 	typedef char                Char;
-	typedef std::list<Stream>   StreamsContainer;
+	typedef std::list<StreamEl> StreamsContainer;
 
 	StreamsContainer            streams_;
 	StreamsContainer::iterator  current_;
-	Char                       *buf_;
+	std::vector<Char>           buf_;
 	unsigned                    bufsz_;
 	bool                        done_;
+	unsigned                    nlSoFar_;
+	unsigned                    otherScopeLines_;
+
+	static int                  nlCount(const Char *, const Char *);
 
 	// no copying
 	StreamMuxBuf(const StreamMuxBuf &);
@@ -60,7 +69,14 @@ public:
 
 	// throws: StreamDoneError   - if all pushed streams have already been consumed
 	//         FailedStreamError - if the passed stream has the 'fail' bit set
-	virtual void pushbuf(Stream s);
+	virtual void pushbuf(Stream s, const std::string *name, unsigned headerLines);
+
+	// get the number of lines processed that are *not* in the
+	// current file (to be subtracted from the yaml parser line number)
+	virtual unsigned  getOtherScopeLines();
+
+	// get the name of the current file
+	virtual const char *getFileName();
 
 	// for testing; dump concatenated streams to cout
 	virtual void dump();
@@ -72,17 +88,17 @@ public:
 
 class YamlPreprocessor {
 private:
-	typedef unordered_set<std::string>  Map;
-	StreamMuxBuf::Stream                main_;
-	std::string                         mainName_;
-	StreamMuxBuf                       *mux_;
-	Map                                 tags_;
-	std::string                         path_;
-	bool                                versionSet_;
-	int                                 major_;
-	int                                 minor_;
-	int                                 revision_;
-	bool                                verbose_;
+	typedef cpsw::unordered_set<std::string>  Map;
+	StreamMuxBuf::Stream                      main_;
+	std::string                               mainName_;
+	StreamMuxBuf                             *mux_;
+	Map                                       tags_;
+	std::string                               path_;
+	bool                                      versionSet_;
+	int                                       major_;
+	int                                       minor_;
+	int                                       revision_;
+	bool                                      verbose_;
 
 	// no copying
 	YamlPreprocessor(const YamlPreprocessor &);

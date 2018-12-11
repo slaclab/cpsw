@@ -14,15 +14,12 @@
 #include <cpsw_shared_obj.h>
 #include <cpsw_mutex.h>
 
-#include <boost/weak_ptr.hpp>
-#include <boost/make_shared.hpp>
 
 #include <cpsw_yaml.h>
 
 #include <typeinfo>
 
-using boost::weak_ptr;
-using boost::make_shared;
+using cpsw::weak_ptr;
 
 class   Visitor;
 
@@ -42,7 +39,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		static const int CONFIG_PRIO_OFF      = 0;
 		static const int DFLT_CONFIG_PRIO     = CONFIG_PRIO_OFF;
 		static const int DFLT_CONFIG_PRIO_DEV = 1; // on for containers
-		static const double DFLT_POLL_SECS    = -1.0;
+		static double    DFLT_POLL_SECS()     { return -1.0; }
 
 		class                              CUniqueHandle;
 		typedef shared_ptr<CUniqueHandle>   UniqueHandle;
@@ -77,7 +74,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 				n_ = n;
 			}
 
-			~CUniqueListHead();
+			~CUniqueListHead() throw();
 		};
 
 		mutable Cacheable       cacheable_;

@@ -23,13 +23,11 @@
 #include <cpsw_yaml.h>
 #include <cpsw_debug.h>
 
-#include <boost/make_shared.hpp>
 
 #include <socks/libSocks.h>
 #include <rssi_bridge/rpcMapService.h>
 
-using boost::make_shared;
-using boost::dynamic_pointer_cast;
+using cpsw::dynamic_pointer_cast;
 
 #define PSBLDR_DEBUG 0
 
@@ -64,6 +62,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		int                        DepackThreadPriority_;
 		int                        hasSRPMux_;
 		unsigned                   SRPMuxVirtualChannel_;
+		unsigned                   SRPMuxOutQueueDepth_;
 		int                        SRPMuxThreadPriority_;
 		bool                       hasTDestMux_;
 		unsigned                   TDestMuxTDEST_;
@@ -98,6 +97,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			DepackLdFragWinSize_    = 0;
 			DepackThreadPriority_   = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			hasSRPMux_              = -1;
+			SRPMuxOutQueueDepth_    = 0;
 			SRPMuxVirtualChannel_   = 0;
 			SRPMuxThreadPriority_   = IProtoStackBuilder::DFLT_THREAD_PRIORITY;
 			hasTDestMux_            = false;
@@ -179,7 +179,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual uint64_t        getSRPTimeoutUS()
 		{
 			if ( 0 == SRPTimeoutUS_ )
-				return hasRssiAndUdp() ? 500000 : 10000;
+				return hasRssiAndUdp() ? 500000 : (getTcpPort() > 0 ? 4000000 : 10000);
 			return SRPTimeoutUS_;
 		}
 
@@ -232,6 +232,8 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual bool            hasSRPDynTimeout()
 		{
+			if ( hasRssi() || getTcpPort() > 0 )
+				return false;
 			if ( SRPDynTimeout_ < 0 )
 				return ! hasTDestMux() && ! hasRssiAndUdp();
 			return SRPDynTimeout_ ? true : false;
@@ -470,7 +472,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual void            setSRPMuxVirtualChannel(unsigned v)
 		{
-			if ( v > 255 )
+			if ( v > 127 )
 				throw InvalidArgError("Requested SRP Mux Virtual Channel out of range");
 			useSRPMux( true );
 			SRPMuxVirtualChannel_ = v;
@@ -479,6 +481,19 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual unsigned        getSRPMuxVirtualChannel()
 		{
 			return SRPMuxVirtualChannel_;
+		}
+
+		virtual void            setSRPMuxOutQueueDepth(unsigned v)
+		{
+			SRPMuxOutQueueDepth_ = v;
+			useSRPMux( true );
+		}
+
+		virtual unsigned        getSRPMuxOutQueueDepth()
+		{
+			if ( 0 == SRPMuxOutQueueDepth_ )
+				return 50;
+			return SRPMuxOutQueueDepth_;
 		}
 
 		virtual void            setSRPMuxThreadPriority(int prio)
@@ -542,7 +557,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		{
 			// output queue important with async SRP
 			if ( 0 == TDestMuxOutQueueDepth_ )
-				return hasSRP() ? 20 : 50;
+				return 50;
 			return TDestMuxOutQueueDepth_;
 		}
 
@@ -556,7 +571,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		{
 			// input queue important with async SRP
 			if ( 0 == TDestMuxInpQueueDepth_ )
-				return hasSRP() ? 20 : 50;
+				return 50;
 			return TDestMuxInpQueueDepth_;
 		}
 
@@ -578,7 +593,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		virtual ProtoStackBuilder clone()
 		{
-			return make_shared<CProtoStackBuilder>( *this );
+			return cpsw::make_shared<CProtoStackBuilder>( *this );
 		}
 
 		virtual ProtoPort build( std::vector<ProtoPort>& );
@@ -678,7 +693,7 @@ WriteMode                  writeMode;
 		const YAML::PNode &nn( node.lookup(YAML_KEY_depack) );
 		if ( !!nn && nn.IsMap() )
 		{
-		DepackProtoVersion proto_vers;
+		DepackProtoVersion proto_vers = DEPACKETIZER_V0; // silence rhel g++ warning about un-initialized use (??)
 			bldr->useDepack( true );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				bldr->setDepackOutQueueDepth( u );
@@ -701,6 +716,8 @@ WriteMode                  writeMode;
 			bldr->useSRPMux( true );
 			if ( readNode(nn, YAML_KEY_virtualChannel, &u) )
 				bldr->setSRPMuxVirtualChannel( u );
+			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
+				bldr->setSRPMuxOutQueueDepth( u );
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 				bldr->setSRPMuxThreadPriority( i );
 			if ( readNode(nn, YAML_KEY_instantiate, &b) )
@@ -744,7 +761,7 @@ IProtoStackBuilder::create(YamlState &node)
 shared_ptr<CProtoStackBuilder>
 CProtoStackBuilder::create()
 {
-	return make_shared<CProtoStackBuilder>();
+	return cpsw::make_shared<CProtoStackBuilder>();
 }
 
 ProtoStackBuilder
@@ -1110,7 +1127,10 @@ if ( cpsw_psbldr_debug > 0 ) {
 			srpMuxMod   = CShObj::create< ProtoModSRPMux >( bldr->getSRPVersion(), bldr->getSRPMuxThreadPriority() );
 			rval->addAtPort( srpMuxMod );
 		}
-		rval = srpMuxMod->createPort( bldr->getSRPMuxVirtualChannel() );
+		// reserve enough queue depth - must potentially hold replies to synchronous retries
+		// until the synchronous reader comes along for the next time!
+		unsigned retryCount = bldr->getSRPRetryCount() & 0xffff; // undocumented hack to test byte-resolution access
+		rval = srpMuxMod->createPort( bldr->getSRPMuxVirtualChannel(), 2 * (retryCount + 1) );
 #ifdef PSBLDR_DEBUG
 if ( cpsw_psbldr_debug > 0 ) {
 	fprintf(stderr, "  creating SRP mux port\n");

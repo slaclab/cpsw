@@ -52,12 +52,12 @@ BufChain bc  = *bcp;
 
 INetIODev::ProtocolVersion CSRPPort::getProtoVersion()
 {
-	return boost::static_pointer_cast<ProtoModSRPMux::element_type>( getProtoMod() )->getProtoVersion();
+	return cpsw::static_pointer_cast<ProtoModSRPMux::element_type>( getProtoMod() )->getProtoVersion();
 }
 
-SRPPort CProtoModSRPMux::newPort(int dest)
+SRPPort CProtoModSRPMux::newPort(int dest, unsigned queueDepth)
 {
-	return CShObj::create<SRPPort>( getSelfAs<ProtoModSRPMux>(), dest );
+	return CShObj::create<SRPPort>( getSelfAs<ProtoModSRPMux>(), dest, queueDepth );
 }
 
 int CProtoModSRPMux::extractDest(BufChain bc)
@@ -111,6 +111,7 @@ YAML::Node parms;
 	CByteMuxPort<CProtoModSRPMux>::dumpYaml( parms );
 
 	writeNode(parms, YAML_KEY_virtualChannel, getDest());
+	writeNode(parms, YAML_KEY_outQueueDepth,  queueDepth_);
 
 	writeNode(node, YAML_KEY_SRPMux, parms);
 }

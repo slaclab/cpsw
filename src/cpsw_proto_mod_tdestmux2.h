@@ -10,17 +10,17 @@
 #ifndef CPSW_PROTO_MOD_TDEST_MUX_2_H
 #define CPSW_PROTO_MOD_TDEST_MUX_2_H
 
+#include <cpsw_compat.h>
 #include <cpsw_proto_mod_bytemux.h>
 #include <cpsw_event.h>
-#include <boost/atomic.hpp>
 #include <cpsw_proto_depack.h>
 #include <cpsw_thread.h>
 #include <vector>
 #include <stdio.h>
 
-using boost::atomic;
-using boost::memory_order_acquire;
-using boost::memory_order_release;
+using cpsw::atomic;
+using cpsw::memory_order_acquire;
+using cpsw::memory_order_release;
 
 class CProtoModTDestMux2;
 typedef shared_ptr<CProtoModTDestMux2>  ProtoModTDestMux2;

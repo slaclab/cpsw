@@ -10,6 +10,8 @@
 
 #include <cpsw_proto_mod.h>
 
+#undef PROTO_MOD_DEBUG
+
 void
 ProtoPortMatchParams::MatchParam::dump()
 {
@@ -18,8 +20,8 @@ ProtoPortMatchParams::MatchParam::dump()
 
 IPortImpl::IPortImpl()
 {
-	spinlock_.store ( false, boost::memory_order_release );
-    openCount_.store( 0,     boost::memory_order_release);
+	spinlock_.store ( false, cpsw::memory_order_release );
+    openCount_.store( 0,     cpsw::memory_order_release);
 }
 
 int
@@ -41,7 +43,7 @@ IPortImpl::match(ProtoPortMatchParams *cmp)
 int
 IPortImpl::isOpen() const
 {
-	return openCount_.load( boost::memory_order_acquire );
+	return openCount_.load( cpsw::memory_order_acquire );
 }
 
 // Here is some cool smart-pointer wizardry:
@@ -170,13 +172,17 @@ IPortImpl::open()
 {
 ProtoDoor rval( ProtoDoor(this, CloseManager()) );
 
-	while ( spinlock_.exchange( true, boost::memory_order_acquire ) )
+	while ( spinlock_.exchange( true, cpsw::memory_order_acquire ) )
 		/* spin */;
 
-	if ( 0 == openCount_.fetch_add( 1, boost::memory_order_acq_rel ) )
+	if ( 0 == openCount_.fetch_add( 1, cpsw::memory_order_acq_rel ) ) {
 		forcedSelfReference_ = getSelfAsProtoPort();
+#ifdef PROTO_MOD_DEBUG
+		fprintf(stderr, "First Open %s\n", forcedSelfReference_->getProtoMod()->getName());
+#endif
+	}
 
-	spinlock_.store( false, boost::memory_order_release );
+	spinlock_.store( false, cpsw::memory_order_release );
 
 	return rval;
 }
@@ -199,13 +205,16 @@ CloseManager::operator()(IPortImpl *impl)
 // sure we hold on to it until we're done!
 ProtoPort holdOnToAReference = impl->forcedSelfReference_;
 
-	while ( impl->spinlock_.exchange( true, boost::memory_order_acquire ) )
+	while ( impl->spinlock_.exchange( true, cpsw::memory_order_acquire ) )
 		/* spin */;
-	if ( 1 == impl->openCount_.fetch_sub( 1, boost::memory_order_acq_rel ) ) {
+	if ( 1 == impl->openCount_.fetch_sub( 1, cpsw::memory_order_acq_rel ) ) {
+#ifdef PROTO_MOD_DEBUG
+		fprintf(stderr, "Last Close %s\n", holdOnToAReference->getProtoMod()->getName());
+#endif
 		impl->forcedSelfReference_.reset();
 	}
 
-	impl->spinlock_.store( false, boost::memory_order_release );
+	impl->spinlock_.store( false, cpsw::memory_order_release );
 
 	// drain what might be there -- but stop if someone else opens...
 	while ( impl->tryPop() && ! impl->isOpen() )

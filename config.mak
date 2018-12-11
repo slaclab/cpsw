@@ -129,5 +129,10 @@ WITH_PYCPSW_default=$(if $(py_DIR),$(FOUND_BOOST_PY),NO)
 py_DIR_default=/afs/slac/g/lcls/package/python/python2.7.9/$(TARCH)
 pyinc_DIR_default=$(addsuffix /include/python2.7/,$(py_DIR))
 
+# Whether to use C++11 or boost (note that boost is still used internally
+# by CPSW but enabling C++11 will remove dependency of *applications* on
+# boost.
+USE_CXX11_default=NO
+
 # Define an install location
 INSTALL_DIR=$(TOPDIR)

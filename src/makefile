@@ -10,13 +10,14 @@
 CPSW_DIR=.
 
 include $(CPSW_DIR)/defs.mak
+include $(CPSW_DIR)/std.mak
 
 POSTBUILD_SUBDIRS+=libTstAux
 POSTBUILD_SUBDIRS+=rssi_bridge
 POSTBUILD_SUBDIRS+=test
 
-HEADERS = cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h
-DOCS = doc/README.yamlDefinition doc/README.yamlDefinition.html doc/README.configData.html doc/INSTALL.html
+HEADERS        += cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h $(SHPTR_DIR_USE_CXX11)cpsw_shared_ptr.h
+DOCS           += doc/README.yamlDefinition.md doc/README.yamlDefinition.html doc/README.configData.html doc/INSTALL.html doc/README.html
 
 GENERATED_SRCS += git_version_string.h
 GENERATED_SRCS += $(DOCS)
@@ -25,6 +26,7 @@ VPATH+=:$(SRCDIR)/socks/
 VPATH+=:$(SRCDIR)/rssi_bridge/
 
 cpsw_SRCS = cpsw_entry.cc cpsw_hub.cc cpsw_path.cc
+cpsw_SRCS+= cpsw_api_builder.cc
 cpsw_SRCS+= cpsw_entry_adapt.cc
 cpsw_SRCS+= cpsw_stream_adapt.cc
 cpsw_SRCS+= cpsw_sval.cc
@@ -36,6 +38,7 @@ cpsw_SRCS+= cpsw_null_dev.cc
 cpsw_SRCS+= cpsw_netio_dev.cc
 cpsw_SRCS+= cpsw_comm_addr.cc
 cpsw_SRCS+= cpsw_srp_addr.cc
+cpsw_SRCS+= cpsw_srp_transactions.cc
 cpsw_SRCS+= cpsw_buf.cc
 cpsw_SRCS+= cpsw_bufq.cc
 cpsw_SRCS+= cpsw_event.cc
@@ -61,6 +64,7 @@ cpsw_SRCS+= cpsw_yaml.cc
 cpsw_SRCS+= cpsw_preproc.cc
 cpsw_SRCS+= cpsw_version.cc
 cpsw_SRCS+= cpsw_debug.cc
+cpsw_SRCS+= cpsw_async_io.cc
 cpsw_SRCS+= cpsw_crc32_le.cc
 cpsw_SRCS+= libSocksConnect.c
 cpsw_SRCS+= libSocksNegotiate4.c
@@ -86,6 +90,7 @@ DEP_HEADERS += cpsw_null_dev.h
 DEP_HEADERS += cpsw_mmio_dev.h
 DEP_HEADERS += cpsw_netio_dev.h
 DEP_HEADERS += cpsw_srp_addr.h
+DEP_HEADERS += cpsw_srp_transactions.h
 DEP_HEADERS += cpsw_obj_cnt.h
 DEP_HEADERS += cpsw_path.h
 DEP_HEADERS += cpsw_sock.h
@@ -110,7 +115,8 @@ DEP_HEADERS += cpsw_mutex.h
 DEP_HEADERS += cpsw_command.h
 DEP_HEADERS += cpsw_yaml.h
 DEP_HEADERS += cpsw_preproc.h
-DEP_HEADERS += cpsw_debug.h>
+DEP_HEADERS += cpsw_debug.h
+DEP_HEADERS += cpsw_async_io.h
 DEP_HEADERS += libSocks.h
 DEP_HEADERS += libSocksUtil.h
 
@@ -144,8 +150,8 @@ PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML)
 
 include $(CPSW_DIR)/rules.mak
 
-doc/README.yamlDefinition:doc/README.yamlDefinition.in
+doc/README.yamlDefinition.md:doc/README.yamlDefinition.in
 	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
 
-%.html: %
+%.html: %.md
 	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@

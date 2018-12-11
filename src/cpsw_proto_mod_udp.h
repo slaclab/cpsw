@@ -14,16 +14,14 @@
 #include <cpsw_proto_mod.h>
 #include <cpsw_thread.h>
 #include <cpsw_sock.h>
+#include <cpsw_compat.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
 #include <vector>
 
-#include <boost/atomic.hpp>
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
-using boost::atomic;
+using cpsw::atomic;
 
 class CProtoModUdp;
 typedef shared_ptr<CProtoModUdp> ProtoModUdp;
@@ -87,8 +85,8 @@ protected:
 			CUdpRxHandlerThread(const char *name, int threadPriority, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
 			CUdpRxHandlerThread(CUdpRxHandlerThread &orig, struct sockaddr_in *dest, struct sockaddr_in *me, CProtoModUdp *owner);
 
-			virtual uint64_t getNumOctets() { return nOctets_.load( boost::memory_order_relaxed ); }
-			virtual uint64_t getNumDgrams() { return nDgrams_.load( boost::memory_order_relaxed ); }
+			virtual uint64_t getNumOctets() { return nOctets_.load( cpsw::memory_order_relaxed ); }
+			virtual uint64_t getNumDgrams() { return nDgrams_.load( cpsw::memory_order_relaxed ); }
 
 			virtual ~CUdpRxHandlerThread() { threadStop(); }
 	};
@@ -142,8 +140,8 @@ public:
 		return new CProtoModUdp( *this, k );
 	}
 
-	virtual uint64_t getNumTxOctets() { return nTxOctets_.load( boost::memory_order_relaxed ); }
-	virtual uint64_t getNumTxDgrams() { return nTxDgrams_.load( boost::memory_order_relaxed ); }
+	virtual uint64_t getNumTxOctets() { return nTxOctets_.load( cpsw::memory_order_relaxed ); }
+	virtual uint64_t getNumTxDgrams() { return nTxDgrams_.load( cpsw::memory_order_relaxed ); }
 	virtual uint64_t getNumRxOctets();
 	virtual uint64_t getNumRxDgrams();
 	virtual void modStartup();

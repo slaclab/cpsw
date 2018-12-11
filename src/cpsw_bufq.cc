@@ -7,6 +7,7 @@
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
+#include <cpsw_compat.h>
 #include <cpsw_error.h>
 #include <cpsw_buf.h>
 #include <cpsw_event.h>
@@ -15,13 +16,10 @@
 #include <errno.h>
 
 #include <boost/lockfree/queue.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/atomic.hpp>
 #include <semaphore.h>
 
-using boost::make_shared;
 using boost::lockfree::queue;
-using boost::atomic;
+using cpsw::atomic;
 
 typedef queue< IBufChain *, boost::lockfree::fixed_sized< true > > CBufQueueBase;
 
@@ -265,7 +263,7 @@ CBufQueue::CBufQueue(size_type n)
 
 BufQueue IBufQueue::create(unsigned n)
 {
-	return make_shared<CBufQueue>(n);
+	return cpsw::make_shared<CBufQueue>(n);
 }
 
 CBufQueue::~CBufQueue()
@@ -328,6 +326,7 @@ bool CBufQueue::push(BufChain b, bool wait, const CTimeout *abs_timeout)
 	// (*owner) has been reset
 
 	if ( bounded_push( b.get() ) ) {
+
 		rd_sync_->putSlot();
 		return true;
 	} else {

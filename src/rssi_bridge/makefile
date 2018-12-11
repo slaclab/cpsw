@@ -10,6 +10,7 @@
 CPSW_DIR=..
 
 include $(CPSW_DIR)/defs.mak
+include $(CPSW_DIR)/std.mak
 
 INCLUDE_DIRS += $(SRCDIR)/../libTstAux
 

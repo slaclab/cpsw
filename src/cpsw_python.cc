@@ -7,21 +7,27 @@
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
+// This silences the 'auto_ptr deprecated' warnings.
+// See https://github.com/boostorg/python/issues/176
+#define BOOST_NO_AUTO_PTR
+
 #include <cpsw_api_user.h>
+#include <cpsw_path.h>
 #include <cpsw_yaml.h>
 #include <yaml-cpp/yaml.h>
 #include <cpsw_rssi.h>
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
 #include <boost/python/list.hpp>
-#include <boost/weak_ptr.hpp>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <vector>
 
+using cpsw::static_pointer_cast;
+
 using namespace boost::python;
-using boost::weak_ptr;
+using cpsw::weak_ptr;
 
 namespace cpsw_python {
 
@@ -163,16 +169,24 @@ public:
 	register_exception_translator<clazz>( tr_##clazz );
 };
 
+static uint64_t wrap_Path_loadConfigFromYamlFile(Path p, const char *yamlFile,  const char *yaml_dir = 0)
+{
+GILUnlocker allowThreadingWhileWaiting;
+	return p->loadConfigFromYamlFile( yamlFile, yaml_dir );
+}
+
 static uint64_t wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir = 0)
 {
-YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
+GILUnlocker allowThreadingWhileWaiting;
+YAML::Node  conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
 	return p->loadConfigFromYaml( conf );
 }
 
 static uint64_t wrap_Path_dumpConfigToYamlFile(Path p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0)
 {
-uint64_t   rval;
-YAML::Node conf;
+GILUnlocker allowThreadingWhileWaiting;
+uint64_t    rval;
+YAML::Node  conf;
 
 	if ( templFilename ) {
 		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
@@ -191,7 +205,8 @@ std::fstream strm( filename, std::fstream::out );
 
 static std::string wrap_Path_dumpConfigToYamlString(Path p, const char *templFilename = 0, const char *yaml_dir = 0)
 {
-YAML::Node conf;
+GILUnlocker allowThreadingWhileWaiting;
+YAML::Node  conf;
 
 	if ( templFilename ) {
 		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
@@ -246,6 +261,20 @@ IEnum::iterator ite = enm->end();
 	return l;
 }
 
+// It is OK to release the GIL while holding
+// a reference to the Py_buffer.
+//
+// I tested with python2.7.12 and python3.5 --
+// when trying to resize a buffer (from python)
+// which has an exported view this will be
+// rejected:
+//
+// (numpy.array, python2.7)
+// ValueError: cannot resize an array that references or is referenced
+// by another array in this way.
+//
+// (bytearray, python3.5)
+// BufferError: Existing exports of data: object cannot be re-sized
 class ViewGuard {
 private:
 	Py_buffer *theview_;
@@ -314,66 +343,202 @@ IndexRange rng(from, to);
 	throw InvalidArgError("Unable to convert python argument");
 }
 
+class CGetValWrapperContext {
+private:
+	typedef enum { NONE, STRING, SIGNED, UNSIGNED, DOUBLE } ValType;
+
+	Val_Base              val_;
+	ValType               type_;
+	unsigned              nelms_;
+	std::vector<CString>  stringBuf_;
+	std::vector<uint64_t> v64_;
+	std::vector<double>   d64_;
+	IndexRange            range_;
+
+public:
+
+	virtual void prepare(Val_Base val, int from, int to)
+	{
+		val_   = val;
+		nelms_ = val_->getNelms();
+		range_ = IndexRange( from, to );
+
+		if ( from >= 0 || to >= 0 ) {
+			// index range may reduce nelms
+			SlicedPathIterator it( val_->getPath(), &range_ );
+			nelms_ = it.getNelmsLeft();
+		}
+	}
+
+	virtual boost::python::object complete(CPSWError *err)
+	{
+		if ( err ) {
+			std::cerr << "CGetValWrapper -- exception in callback: " << err->getInfo() << "\n";
+			return boost::python::object( );
+		}
+		if ( STRING == type_ ) {
+			if ( 1 == nelms_ ) {
+				return boost::python::object( *stringBuf_[0] );
+			}
+
+			boost::python::list l;
+			for ( unsigned i = 0; i<nelms_; i++ ) {
+				l.append( *stringBuf_[i] );
+			}
+			return l;
+		} else if ( DOUBLE == type_ ) {
+			if ( 1 == nelms_ ) {
+				return boost::python::object( d64_[0] );
+			}
+
+			boost::python::list l;
+			for ( unsigned i = 0; i<nelms_; i++ ) {
+				l.append( d64_[i] );
+			}
+			return l;
+		} else {
+			if ( 1 == nelms_ ) {
+				if ( SIGNED == type_ ) {
+					int64_t ival = (int64_t)v64_[0];
+					return boost::python::object( ival );
+				} else {
+					return boost::python::object( v64_[0] );
+				}
+			}
+
+			boost::python::list l;
+			if ( SIGNED == type_ ) {
+				for ( unsigned i = 0; i<nelms_; i++ ) {
+					int64_t ival = (int64_t)v64_[i];
+					l.append( ival );
+				}
+			} else {
+				for ( unsigned i = 0; i<nelms_; i++ ) {
+					l.append( v64_[i] );
+				}
+			}
+			return l;
+		}
+	}
+
+
+	virtual unsigned issueGetVal(ScalVal_RO val, int from, int to, bool forceNumeric, AsyncIO aio)
+	{
+	GILUnlocker allowThreadingWhileWaiting;
+
+		prepare( val, from , to );
+
+		if ( ! forceNumeric && val->getEnum() ) {
+			type_ = STRING;
+		} else {
+			type_ = val->isSigned() ? SIGNED : UNSIGNED;
+		}
+
+		if ( STRING == type_ ) {
+			// must not use 'reserve' which doesn't construct invalid shared pointers!
+			stringBuf_ = std::vector<CString>( nelms_, CString() );
+
+			if ( aio ) {
+				return val->getVal( aio, &stringBuf_[0], nelms_, &range_ );
+			} else {
+				return val->getVal( &stringBuf_[0], nelms_, &range_ );
+			}
+		} else {
+			v64_.reserve( nelms_ );
+
+			if ( aio ) {
+				return val->getVal( aio, &v64_[0], nelms_, &range_ );
+			} else {
+				return val->getVal( &v64_[0], nelms_, &range_ );
+			}
+		}
+	}
+
+	virtual unsigned issueGetVal(DoubleVal_RO val, int from, int to, AsyncIO aio)
+	{
+	GILUnlocker allowThreadingWhileWaiting;
+
+		prepare( val, from , to );
+		type_ = DOUBLE;
+		d64_.reserve( nelms_ );
+
+		if ( aio ) {
+			return val->getVal( aio, &d64_[0], nelms_, &range_ );
+		} else {
+			return val->getVal( &d64_[0], nelms_, &range_ );
+		}
+	}
+
+	CGetValWrapperContext()
+	: type_ ( NONE ),
+	  nelms_( 0    ),
+	  range_( -1, -1 )
+	{
+	}
+
+		~CGetValWrapperContext()
+	{
+	}
+};
+
+class IPyAsyncIO {
+public:
+	virtual void py_callback(boost::python::object) = 0;
+
+	~IPyAsyncIO()
+	{
+	}
+};
+
+class CAsyncGetValWrapperContext : public CGetValWrapperContext, public IAsyncIO, public IPyAsyncIO {
+private:
+	PyObject *self_;
+
+public:
+	CAsyncGetValWrapperContext(PyObject *self)
+	: self_( self )
+	{
+	}
+
+	virtual void
+	py_callback(boost::python::object arg)
+	{
+		call_method<void>(self_, "callback", arg );
+	}
+
+	virtual void callback(CPSWError *err)
+	{
+		PyGILState_STATE state_ = PyGILState_Ensure();
+		/* Call into Python */
+
+		py_callback( complete( err ) );
+
+		PyGILState_Release( state_ );
+
+	}
+
+	~CAsyncGetValWrapperContext()
+	{
+	}
+};
+
+typedef shared_ptr<CAsyncGetValWrapperContext> AsyncGetValWrapperContext;
+
+static boost::python::object wrap_ScalVal_RO_getValAsync(ScalVal_RO val, AsyncGetValWrapperContext ctxt, int from, int to, bool forceNumeric)
+{
+	unsigned rval = ctxt->issueGetVal( val, from, to, forceNumeric, ctxt );
+
+	return boost::python::object( rval );
+}
 
 
 static boost::python::object wrap_ScalVal_RO_getVal(ScalVal_RO val, int from, int to, bool forceNumeric)
 {
-Enum       enm   = val->getEnum();
-unsigned   nelms = val->getNelms();
-unsigned   got;
-IndexRange rng(from, to);
+	CGetValWrapperContext ctxt;
 
-	if ( enm && ! forceNumeric ) {
+	ctxt.issueGetVal( val, from, to, forceNumeric, AsyncIO() );
 
-	// must not use 'reserve' which doesn't construct invalid shared pointers!
-	std::vector<CString>  str(nelms, CString());
-
-		{
-		GILUnlocker allowThreadingWhileWaiting;
-		got = val->getVal( &str[0], nelms, &rng );
-		}
-		if ( 1 == got ) {
-			return boost::python::object( *str[0] );
-		}
-
-		boost::python::list l;
-		for ( unsigned i = 0; i<got; i++ ) {
-			l.append( *str[i] );
-		}
-		return l;
-
-	} else {
-
-	std::vector<uint64_t> v64;
-
-		v64.reserve(nelms);
-
-		{
-		GILUnlocker allowThreadingWhileWaiting;
-		got = val->getVal( &v64[0], nelms, &rng );
-		}
-		if ( 1 == got ) {
-			if ( val->isSigned() ) {
-				int64_t ival = (int64_t)v64[0];
-				return boost::python::object( ival );
-			} else {
-				return boost::python::object( v64[0] );
-			}
-		}
-
-		boost::python::list l;
-		if ( val->isSigned() ) {
-			for ( unsigned i = 0; i<got; i++ ) {
-				int64_t ival = (int64_t)v64[i];
-				l.append( ival );
-			}
-		} else {
-			for ( unsigned i = 0; i<got; i++ ) {
-				l.append( v64[i] );
-			}
-		}
-		return l;
-	}
+	return ctxt.complete( 0 );
 }
 
 static unsigned wrap_ScalVal_setVal(ScalVal val, object &o, int from, int to)
@@ -441,7 +606,6 @@ bool enumScalar = false;
 
 	if ( ! PySequence_Check( op ) ) {
 		// a single string (attempt to set enum) is also a sequence
-		GILUnlocker allowThreadingWhileWaiting;
 		// boost::python::extract() is not very useful here
 		// since it does a range check (and produces a mysterious
 		// segfault [g++-5.4/python3.5] if the number if out of
@@ -458,7 +622,10 @@ bool enumScalar = false;
 		} else {
         	num64 = PyLong_AsUnsignedLongLongMask( op );
 		}
-		return val->setVal( num64, &rng );
+		{
+			GILUnlocker allowThreadingWhileWaiting;
+			return val->setVal( num64, &rng );
+		}
 	}
 
 	unsigned nelms = enumScalar ? 1 : len(o);
@@ -527,7 +694,6 @@ Py_buffer view;
 
 	if ( timeoutUs >= 0 )
 		timeout.set( (uint64_t)timeoutUs );
-
 
 	{
 	// hopefully it's OK to release the GIL while operating on the buffer view...
@@ -693,29 +859,27 @@ StreamMgr theMgr  = StreamMgr( new CStreamMgr( path ) );
 	return theMgr;
 }
 
+static void wrap_Command_execute(Command command)
+{
+GILUnlocker allowThreadingWhileWaiting;
+	command->execute();
+}
+
+static boost::python::object wrap_DoubleVal_RO_getValAsync(DoubleVal_RO val, AsyncGetValWrapperContext ctxt, int from, int to)
+{
+unsigned rval = ctxt->issueGetVal( val, from, to, ctxt );
+
+	return boost::python::object( rval );
+}
+
+
 static boost::python::object wrap_DoubleVal_RO_getVal(DoubleVal_RO val, int from, int to)
 {
-unsigned   nelms = val->getNelms();
-unsigned   got;
-IndexRange rng(from, to);
+	CGetValWrapperContext ctxt;
 
-	std::vector<double> v64;
+	ctxt.issueGetVal( val, from, to, AsyncIO() );
 
-	v64.reserve(nelms);
-
-	{
-	GILUnlocker allowThreadingWhileWaiting;
-	got = val->getVal( &v64[0], nelms, &rng );
-	}
-	if ( 1 == got ) {
-		return boost::python::object( v64[0] );
-	}
-
-	boost::python::list l;
-	for ( unsigned i = 0; i<got; i++ ) {
-		l.append( v64[i] );
-	}
-	return l;
+	return ctxt.complete( 0 );
 }
 
 static unsigned wrap_DoubleVal_setVal(DoubleVal val, object &o, int from, int to)
@@ -747,6 +911,12 @@ IndexRange rng(from, to);
 
 // wrap IPathVisitor to call back into python (assuming the visitor
 // is implemented there, of course)
+//
+// Since shared_ptr<WrapPathVisitor> is a base class (of the wrapped class)
+// the python refcound of 'self' is automatically taken care of :-)
+//
+// There is no need to acquire the GIL since we didn't release it in
+// the first place (IPath::explore)
 class WrapPathVisitor : public IPathVisitor {
 private:
 	PyObject *self_;
@@ -772,27 +942,26 @@ public:
 	}
 };
 
-class WrapYamlFixup : public IYamlFixup {
+class WrapYamlFixup : public IYamlFixup, wrapper<IYamlFixup> {
 private:
 PyObject *self_;
 
 public:
+
 	WrapYamlFixup(PyObject *self)
 	: self_(self)
 	{
-		printf("Creating a FIXUP\n");
 	}
 
-
-	virtual void operator()(YAML::Node &nod)
+	virtual void operator()(YAML::Node &root, YAML::Node &top)
 	{
-		printf("Calling FIXUP\n");
-		call_method<void>(self_, "fixup", nod);
+		call_method<void>(self_, "__call__", root, top);
 	}
 
 	virtual ~WrapYamlFixup()
 	{
 	}
+
 };
 
 static Path
@@ -838,9 +1007,9 @@ BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadYamlStream_ol,
                                  wrap_Path_loadYamlStream,
                                  1, 4 )
 
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS( IPath_loadConfigFromYamlFile_ol,
-                                 loadConfigFromYamlFile,
-                                 1, 2 )
+BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadConfigFromYamlFile_ol,
+                                 wrap_Path_loadConfigFromYamlFile,
+                                 2, 3 )
 
 BOOST_PYTHON_FUNCTION_OVERLOADS( wrap_Path_loadConfigFromYamlString_ol,
                                  wrap_Path_loadConfigFromYamlString,
@@ -859,6 +1028,8 @@ BOOST_PYTHON_FUNCTION_OVERLOADS( setCPSWVerbosity_ol,
 
 BOOST_PYTHON_MODULE(pycpsw)
 {
+	PyEval_InitThreads();
+
 	register_ptr_to_python<Child                          >();
 	register_ptr_to_python<Children                       >();
 	register_ptr_to_python<Hub                            >();
@@ -917,7 +1088,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Return the description string (if any) of this Entry."
 		)
-		.def("getPollSecs", &IEntry::getPollSecs,
+		.def("getPollSecs",    &IEntry::getPollSecs,
 			( arg("self") ),
 			"\n"
 			"Return the suggested polling interval for this Entry."
@@ -1053,7 +1224,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"A 'NotFoundError' is thrown if the target of the operation does not exist."
 		)
-		.def("__add__",   &IPath::findByName,
+		.def("__add__",      &IPath::findByName,
 			( arg("self"), arg( "pathString" ) ),
 			"\n"
 			"Shortcut for 'findByName'"
@@ -1069,7 +1240,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"Test if this Path is empty returning 'True'/'False'"
 		)
-		.def(YAML_KEY_size,         &IPath::size,
+		.def(YAML_KEY_size,  &IPath::size,
 			( arg("self") ),
 			"\n"
 			"Return the depth of this Path, i.e., how many '/' separated\n"
@@ -1133,7 +1304,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"Note: 'append()' modifies the original path whereas 'concat' returns\n"
 			"      a new copy."
 		)
-		.def("intersect",    &IPath::concat,
+		.def("intersect",    &IPath::intersect,
 			( arg("self"), arg("path") ),
 			"\n"
 			"Return a new Path which covers the intersection of this path and 'path'\n"
@@ -1142,7 +1313,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"an empty path if there are no common elements or if the depth of the\n"
 			"paths differs"
 		)
-		.def("isIntersecting",&IPath::concat,
+		.def("isIntersecting",&IPath::isIntersecting,
 			( arg("self"), arg("path") ),
 			"\n"
 			"A slightly more efficient version of 'intersect'\n"
@@ -1188,8 +1359,8 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"\n"
 			"See 'PathVisitor' for more information."
 		)
-		.def("loadConfigFromYamlFile", &IPath::loadConfigFromYamlFile,
-			IPath_loadConfigFromYamlFile_ol(
+		.def("loadConfigFromYamlFile", wrap_Path_loadConfigFromYamlFile,
+			wrap_Path_loadConfigFromYamlFile_ol(
 			args("self", "configYamlFilename", "yamlIncDirname"),
 			"\n"
 			"Load a configuration file in YAML format and write out into the hardware.\n"
@@ -1283,7 +1454,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 		.staticmethod("loadYaml")
 	;
 
-	class_<IPathVisitor, WrapPathVisitor, boost::noncopyable, boost::shared_ptr<WrapPathVisitor> >
+	class_<IPathVisitor, WrapPathVisitor, boost::noncopyable, shared_ptr<WrapPathVisitor> >
 	WrapPathVisitorClazz(
 		"PathVisitor",
 		"\n"
@@ -1317,7 +1488,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 		"\n"
 	);
 
-	class_<IYamlFixup, WrapYamlFixup, boost::noncopyable, boost::shared_ptr<WrapYamlFixup> >
+	class_<IYamlFixup, WrapYamlFixup, boost::noncopyable, shared_ptr<WrapYamlFixup> >
 	WrapYamlFixupClazz(
 		"YamlFixup",
 		"\n"
@@ -1329,11 +1500,13 @@ BOOST_PYTHON_MODULE(pycpsw)
 		"      in order to use this. Such bindings are NOT part\n"
 		"      of CPSW!\n"
         "\n"
-		"      void fixup(YAML::Node &)\n"
+		"      void operator()(YAML::Node &root, YAML::Node &top)\n"
 		"\n"
+		"      In python you must implement __call__(self, root, top)\n"
 	);
 
 	WrapYamlFixupClazz
+	.def("__call__", pure_virtual( &IYamlFixup::operator() ))
 	.def(
 		"findByName", &IYamlFixup::findByName,
 		( arg("node"), arg("path"), arg("sep") = '/' ),
@@ -1422,6 +1595,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"      not support this interface."
 		)
 		.staticmethod(			"create")
+	;
+
+	// Asynchronous IO interface
+	class_<IPyAsyncIO, CAsyncGetValWrapperContext, boost::noncopyable, AsyncGetValWrapperContext > ("AsyncIO")
 	;
 
 	// wrap 'IScalVal_Base' interface
@@ -1521,6 +1698,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"underlying hardware are mapped back to strings which are returned by 'getVal()'.\n"
 			"The optional 'forceNumeric' argument, when set to 'True', suppresses this\n"
 			"conversion and fetches the raw numerical values."
+		)
+		.def("getValAsync",             wrap_ScalVal_RO_getValAsync,
+			( arg("self"), arg("AsyncIO"), arg("fromIdx") = -1, arg("toIdx") = -1, arg("forceNumeric") = false ),
+			"Provide an asynchronous callback which will be executed once data arrive"
 		)
 		.def(			"getVal",       wrap_ScalVal_RO_getVal_into,
 			( arg(			"self"), arg("bufObject"), arg("fromIdx") = -1, arg("toIdx") = -1),
@@ -1655,6 +1836,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 			"If both 'fromIdx' and 'toIdx' are negative then all elements are included.\n"
 			"A negative 'toIdx' is equivalent to 'toIdx' == 'fromIdx' and results in only\n"
 			"the single element at 'fromIdx' to be read.\n"
+		)
+		.def("getValAsync",             wrap_DoubleVal_RO_getValAsync,
+			( arg("self"), arg("AsyncIO"), arg("fromIdx") = -1, arg("toIdx") = -1 ),
+			"Provide an asynchronous callback which will be executed once data arrive"
 		)
 		.def(			"create",       &IDoubleVal_RO::create,
 			( arg("path") ),
@@ -1814,7 +1999,7 @@ BOOST_PYTHON_MODULE(pycpsw)
 	);
 
 	Command_Clazz
-		.def("execute",      &ICommand::execute,
+		.def("execute",      wrap_Command_execute,
 			"\n"
 			"Execute the command implemented by the endpoint addressed by the\n"
 			"path which was created when instantiating the Command interface."
@@ -1861,6 +2046,10 @@ BOOST_PYTHON_MODULE(pycpsw)
 	ExceptionTranslatorInstallDerived(MissingOnceTagError,          CPSWError);
 	ExceptionTranslatorInstallDerived(MissingIncludeFileNameError,  CPSWError);
 	ExceptionTranslatorInstallDerived(NoYAMLSupportError,           CPSWError);
+	ExceptionTranslatorInstallDerived(NoError,                      CPSWError);
+	ExceptionTranslatorInstallDerived(MultipleInstantiationError,   CPSWError);
+	ExceptionTranslatorInstallDerived(BadSchemaVersionError,        CPSWError);
+	ExceptionTranslatorInstallDerived(TimeoutError,                 CPSWError);
 
 }
 

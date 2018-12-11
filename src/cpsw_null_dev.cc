@@ -45,7 +45,7 @@ void CNullDevImpl::addAtAddress(Field child)
 {
 IAddress::AKey k = getAKey();
 
-	add( make_shared<CNullAddressImpl>(k), child );
+	add( cpsw::make_shared<CNullAddressImpl>(k), child );
 }
 
 void CNullDevImpl::addAtAddress(Field child, unsigned nelms)
@@ -77,6 +77,9 @@ printf("off %lu, dbytes %lu, size %lu\n", args->off_, args->nbytes_, owner->getS
 printf("NullDev read from off %lli to %p:", args->off_, args->dst_);
 for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->dst_[ii]); printf("\n");
 #endif
+
+	if ( args->aio_ )
+		args->aio_->callback( 0 );
 
 	return toget;
 }

@@ -16,6 +16,8 @@
 #include <string>
 #include <getopt.h>
 #include <yaml-cpp/yaml.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 class TestFailed {
 public:
@@ -30,42 +32,42 @@ public:
 static const char *yamlFmt=
 "#schemaversion 3.0.0\n"
 "  root:\n"
-"    "YAML_KEY_class":   MemDev\n"
-"    "YAML_KEY_size":      1024\n"
-"    "YAML_KEY_children":\n"
+"    " YAML_KEY_class ":   MemDev\n"
+"    " YAML_KEY_size ":      1024\n"
+"    " YAML_KEY_children ":\n"
 "      mmio:\n"
-"        "YAML_KEY_class":   MMIODev\n"
-"        "YAML_KEY_size":      1024\n"
-"        "YAML_KEY_at":\n"
-"          "YAML_KEY_nelms": 1\n"
-"        "YAML_KEY_children":\n"
+"        " YAML_KEY_class ":   MMIODev\n"
+"        " YAML_KEY_size ":      1024\n"
+"        " YAML_KEY_at ":\n"
+"          " YAML_KEY_nelms ": 1\n"
+"        " YAML_KEY_children ":\n"
 "          val1:\n"
-"            "YAML_KEY_class":    IntField\n"
-"            "YAML_KEY_sizeBits": 32\n"
-"            "YAML_KEY_at":\n"
-"              "YAML_KEY_offset": 0\n"
-"              "YAML_KEY_nelms":  8\n"
+"            " YAML_KEY_class ":    IntField\n"
+"            " YAML_KEY_sizeBits ": 32\n"
+"            " YAML_KEY_at ":\n"
+"              " YAML_KEY_offset ": 0\n"
+"              " YAML_KEY_nelms ":  8\n"
 "          val2:\n"
-"            "YAML_KEY_class":       IntField\n"
-"            "YAML_KEY_sizeBits":    32\n"
-"            "YAML_KEY_instantiate": %s\n"
-"            "YAML_KEY_at":\n"
-"              "YAML_KEY_offset": 0x100\n"
-"              "YAML_KEY_nelms":  8\n"
+"            " YAML_KEY_class ":       IntField\n"
+"            " YAML_KEY_sizeBits ":    32\n"
+"            " YAML_KEY_instantiate ": %s\n"
+"            " YAML_KEY_at ":\n"
+"              " YAML_KEY_offset ": 0x100\n"
+"              " YAML_KEY_nelms ":  8\n"
 "          val3:\n"
-"            "YAML_KEY_class":       IntField\n"
-"            "YAML_KEY_sizeBits":    32\n"
-"            "YAML_KEY_encoding":    IEEE_754\n"
-"            "YAML_KEY_at":\n"
-"              "YAML_KEY_offset": 0x200\n"
-"              "YAML_KEY_nelms":  8\n"
+"            " YAML_KEY_class ":       IntField\n"
+"            " YAML_KEY_sizeBits ":    32\n"
+"            " YAML_KEY_encoding ":    IEEE_754\n"
+"            " YAML_KEY_at ":\n"
+"              " YAML_KEY_offset ": 0x200\n"
+"              " YAML_KEY_nelms ":  8\n"
 "          val3i:\n"
-"            "YAML_KEY_class":       IntField\n"
-"            "YAML_KEY_sizeBits":    32\n"
-"            "YAML_KEY_instantiate": %s\n"
-"            "YAML_KEY_at":\n"
-"              "YAML_KEY_offset": 0x200\n"
-"              "YAML_KEY_nelms":  8\n"
+"            " YAML_KEY_class ":       IntField\n"
+"            " YAML_KEY_sizeBits ":    32\n"
+"            " YAML_KEY_instantiate ": %s\n"
+"            " YAML_KEY_at ":\n"
+"              " YAML_KEY_offset ": 0x200\n"
+"              " YAML_KEY_nelms ":  8\n"
 ;
 
 int main(int argc, char **argv)
@@ -93,7 +95,7 @@ try {
 		Path top = IPath::loadYamlStream( yaml );
 		Hub    h = top->origin();
 
-		ConstMemDevImpl mem = boost::dynamic_pointer_cast<ConstMemDevImpl::element_type>( h );
+		ConstMemDevImpl mem = cpsw::dynamic_pointer_cast<ConstMemDevImpl::element_type>( h );
 
 		bufp = mem->getBufp();
 
@@ -130,7 +132,7 @@ try {
 		} else {
 			uint64_t got;
 			if ( 16 != (got = top->loadConfigFromYaml( cnfg )) ) {
-				printf("got %ld\n", got);
+				printf("got %" PRId64 "\n", got);
 				throw TestFailed("Unexpected number of config values loaded");
 			}
 		}
@@ -164,7 +166,7 @@ try {
 
 			put = top->dumpConfigToYaml( cnfg );
 			if ( ! ( (0 == pass && 32 == put) || (1 == pass && 16 == put)) ) {
-				printf("Put %ld (pass %d)\n", put, pass);
+				printf("Put %" PRId64 " (pass %d)\n", put, pass);
 				throw TestFailed("Unexpected number of config elements dumped");
 			}
 		}
@@ -175,14 +177,14 @@ std::cout << e.c_str() << "\n";
 }
 		if ( 1 == pass ) {
 			// 'val2' should not be present
-			YAML::const_iterator it( cnfg[0]["mmio"].begin() );
-			YAML::const_iterator ite( cnfg[0]["mmio"].end() );
+			YAML::const_iterator it( YAML::NodeFind(cnfg,0)["mmio"].begin() );
+			YAML::const_iterator ite( YAML::NodeFind(cnfg,0)["mmio"].end() );
 			bool v1Found = false;
 			bool v2Found = false;
 			while ( it != ite ) {
-				if ( (*it)["val1"] )
+				if ( YAML::NodeFind( *it, "val1") )
 					v1Found = true;
-				else if ( (*it)["val2"] )
+				else if ( YAML::NodeFind( *it, "val2") )
 					v2Found = true;
 				++it;
 			}

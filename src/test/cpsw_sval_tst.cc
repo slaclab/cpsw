@@ -18,6 +18,7 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <iostream>
+#include <math.h>
 
 extern void _setHostByteOrder(ByteOrder);
 
@@ -32,6 +33,31 @@ extern void _setHostByteOrder(ByteOrder);
 class TestFailed {
 public: const char *info;
 	TestFailed(const char *info):info(info){}
+};
+
+class AioTester : public IAsyncIO {
+volatile bool done_;
+public:
+	AioTester()
+	: done_(false)
+	{
+	}
+
+	virtual void callback(CPSWError *status)
+	{
+		if ( status )
+			throw TestFailed(status->getInfo().c_str());
+		done_ = true;
+	}
+
+	virtual void wait()
+	{
+		while ( ! done_ ) {
+			sleep(1);
+			printf("still Sleeping\n");
+		}
+		done_ = false;
+	}
 };
 
 int64_t rrr()
@@ -56,7 +82,7 @@ void swp(uint8_t* b, unsigned sz, ByteOrder nat)
 template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL got, EL exp, int elsz, uint8_t *buf, int wlen, int writeback)
 {
 	swp( (uint8_t*)&got, sizeof(got), nat);
-	printf("Mismatch (width %li, swap len %i, mem: %sE, host: %s, %ssigned, %s-writeback) @%i, got 0x%04"PRIx64", exp 0x%04"PRIx64"\n",
+	printf("Mismatch (width %li, swap len %i, mem: %sE, host: %s, %ssigned, %s-writeback) @%i, got 0x%04" PRIx64 ", exp 0x%04" PRIx64 "\n",
 			(long int)sizeof(EL),
 			wlen,
 			LE == mem ? "L":"B",
@@ -65,7 +91,7 @@ template <typename EL> void perr(ByteOrder mem, ByteOrder nat, bool s, int i, EL
 			writeback ? "post" : "pre",
 			i, (uint64_t)got, (uint64_t)exp);
 	for ( int j=0; j<elsz; j++ )
-		printf("m[%i]: %01"PRIx8" ", j, buf[i*STRIDE+j]);
+		printf("m[%i]: %01" PRIx8 " ", j, buf[i*STRIDE+j]);
 	printf("\n");
 }
 
@@ -81,7 +107,7 @@ template <typename EL> void tst(uint8_t *buf, unsigned bufsz, ScalVal_RO val, By
 
 	int64_t r;
 
-	ScalVal val_w = boost::dynamic_pointer_cast<ScalVal::element_type, ScalVal_RO::element_type>(val);
+	ScalVal val_w = cpsw::dynamic_pointer_cast<ScalVal::element_type, ScalVal_RO::element_type>(val);
 
 	for ( bo = 0; bo < 2; bo++ ) {
 
@@ -119,7 +145,7 @@ template <typename EL> void tst(uint8_t *buf, unsigned bufsz, ScalVal_RO val, By
 			int jinc = LE == mbo ? +1 : -1;
 			int jend = LE == mbo ? val->getSize() : -1;
 			int jbeg = LE == mbo ?  0 : val->getSize()-1;
-//printf("val[%i]: 0x%"PRIx64"\n", i, v);
+//printf("val[%i]: 0x%" PRIx64 "\n", i, v);
 
 			for ( j=jbeg; j != jend; j+=jinc ) {
 				buf[i*STRIDE + j] = v;
@@ -173,8 +199,6 @@ template <typename EL> void tst(uint8_t *buf, unsigned bufsz, ScalVal_RO val, By
 	_setHostByteOrder( native );
 }
 
-using boost::dynamic_pointer_cast;
-
 typedef shared_ptr<const MemDev::element_type> ConstMemDev;
 
 int
@@ -222,7 +246,7 @@ while ( --run > 0 ) {
 	if ( use_yaml ) {
 		root = IPath::loadYamlFile(use_yaml, "root")->origin();
 
-		cmm = dynamic_pointer_cast<ConstMemDev::element_type>( root );
+		cmm = cpsw::dynamic_pointer_cast<ConstMemDev::element_type>( root );
 
 		if ( ! cmm ) {
 			throw TestFailed("MemDev not found after loading YAML");
@@ -244,7 +268,7 @@ while ( --run > 0 ) {
 			/* test cloning entire hierarchy */
 			EntryImpl ei = CShObj::clone( mm->getSelf() );
 			root = ei->isHub();
-			cmm  = dynamic_pointer_cast<ConstMemDev::element_type>( root );
+			cmm  = cpsw::dynamic_pointer_cast<ConstMemDev::element_type>( root );
 			mmio_le.reset();
 			mmio_be.reset();
 			mm.reset();
@@ -379,7 +403,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 	v_le->getVal( &vl, 1 );
 	vle = (int64_t)(int16_t)vs;
 	if ( vl != vle ) {
-		printf("Readback of written value FAILED (%s) got %"PRIx64" -- expected %"PRIx64"\n", v_le->getName(), vl, vle);
+		printf("Readback of written value FAILED (%s) got %" PRIx64 " -- expected %" PRIx64 "\n", v_le->getName(), vl, vle);
 		throw TestFailed("Readback failed");
 	}
 
@@ -392,7 +416,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 	v_be->getVal( &vl, 1 );
 	vle = (int64_t)(int16_t)vs;
 	if ( vl != vle ) {
-		printf("Readback of written value FAILED (%s) got %"PRIx64" -- expected %"PRIx64"\n", v_le->getName(), vl, vle);
+		printf("Readback of written value FAILED (%s) got %" PRIx64 " -- expected %" PRIx64 "\n", v_le->getName(), vl, vle);
 		throw TestFailed("Readback failed");
 	}
 
@@ -475,7 +499,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 	std::cout << "2D-TEST\n";
 	{
 
-	ConstMemDevImpl memDev = boost::dynamic_pointer_cast<ConstMemDevImpl::element_type>( root );
+	ConstMemDevImpl memDev = cpsw::dynamic_pointer_cast<ConstMemDevImpl::element_type>( root );
 		if ( ! memDev )
 			throw TestFailed("Memory Device not found");
 		uint8_t *bufp=memDev->getBufp();
@@ -520,7 +544,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 			for ( unsigned i=0; i < nelms; i++ ) {
 				if ( dat[i] != i ) {
 					char buf[200];
-					snprintf(buf,sizeof(buf),"2-D Array readback mismatch (i=%d) -- got %"PRId64"", i, dat[i]);
+					snprintf(buf,sizeof(buf),"2-D Array readback mismatch (i=%d) -- got %" PRId64 "", i, dat[i]);
 					throw TestFailed(buf);
 				}
 			}
@@ -551,7 +575,7 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 					}
 					if ( ~v != vv ) {
 						char buf[200];
-						snprintf(buf,sizeof(buf),"2-D Array write-check mismatch (v=%"PRId64") -- got 0x%"PRIx64", expected 0x%"PRIx64, v, vv, ~v);
+						snprintf(buf,sizeof(buf),"2-D Array write-check mismatch (v=%" PRId64 ") -- got 0x%" PRIx64 ", expected 0x%" PRIx64 , v, vv, ~v);
 						throw TestFailed(buf);
 					}
 					v++;
@@ -593,14 +617,20 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 			sprintf(nam, "mmio/le/i16-0-s-0");
 			d_arr = IDoubleVal::create( root->findByName( nam ) );
 
-			got = d_arr->getVal(dbl, nelms);
+			memset(dbl, 0, sizeof(dbl));
 
+			shared_ptr<AioTester> wai = cpsw::make_shared<AioTester>();
+
+			got = d_arr->getVal(wai, dbl, nelms);
 			if ( got != nelms )
 				throw TestFailed("double readback -- got less elements than expected");
+			wai->wait();
 
 			for ( int i=0; i<(int)nelms; i++ ) {
-				if ( fabs( dbl[i] - (double)(i-4)) > .000001 )
+				if ( fabs( dbl[i] - (double)(i-4)) > .000001 ) {
+					printf("dbl[%d]: %g - expected %d\n", i, dbl[i], i-4);
 					throw TestFailed("unsigned <-> double mismatch");
+				}
 			}
 	}
 

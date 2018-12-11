@@ -3,7 +3,7 @@
 ## Copyright Notice
 This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
 file found in the top-level directory of this distribution and
-[at](https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html).
+[here](https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html).
 
 No part of CPSW, including this file, may be copied, modified, propagated, or
 distributed except according to the terms contained in the LICENSE.txt file.
@@ -30,7 +30,7 @@ want to proceed with a vanilla build)
 
  - `src/defs.mak`:
      generic definitions; should NOT be modified; lives in the CPSW
-     source directory (included by derived libraries and applications). 
+     source directory (included by derived libraries and applications).
 
  - `config.mak`:
      site-specific settings of certain variables that affect the build
@@ -59,7 +59,7 @@ This file may be edited to define
 
  1. the desired set of target architectures
  2. the name and location of the compiler toolchain for each
-        target architecture 
+        target architecture
  3. the location of the dependent 'boost' and 'yaml-cpp' libraries.
  4. whether to build a static and/or dynamic CPSW library
  5. the installation location
@@ -123,7 +123,7 @@ tried:
 This means that when building for architecture `bar`, `FOO` expands
 to the value of `FOO_bar` if such a variable is defined (non-empty).
 If `$(FOO_bar)` is empty then `FOO` evaluates to the value of
-`FOO_default`. 
+`FOO_default`.
 
 This scheme allows for precise control over the value `FOO` should
 have when building for a specific architecture.
@@ -149,7 +149,7 @@ to the first non-empty value of
   4. `stem_DIR_default/include`
 
 It is possible to add your own variables and stems to `ARCHSPECIFIC_VARS`
-and `ARCHSPECIFIC_LIBVARS`, respectively. You should do so in your 
+and `ARCHSPECIFIC_LIBVARS`, respectively. You should do so in your
 `makefile` *before* including `defs.mak`.
 
 ### 2.2 Compiler Toolchain
@@ -191,6 +191,18 @@ this is not desired then an absolute path prefix may simply be added
 to `CROSS_<archname>`.
 
         CROSS_linuxRT_x86_64=/path/to/tools/x86_64-linux-
+
+#### 2.2.1 C++11 Support
+CPSW can be built with a C++-11 compiler. This has the advantage of
+removing the dependency on `boost` for _applications_. I.e., CPSW
+itself still requires some features provided by `boost` but these
+are not exported to the API. The variables
+
+        USE_CXX11_default
+        USE_CXX11_<architecture>
+
+can be set to `YES` or `NO`, respectively in order to enable or
+disable the use of C++-11.
 
 ### 2.3 Dependent 'boost' and 'yaml-cpp' Packages
 
@@ -251,7 +263,7 @@ Analogous variables for python (headers) are employed:
         $(py_DIR_<architecture>)/include
         $(py_DIR_default)/include
 
-are searched in that order. The default name for the `boost_python` 
+are searched in that order. The default name for the `boost_python`
 library (without pre- and suffix) is `boost_python`. If you need
 to change this name (e.g., on ubuntu the respective library for
 python3.4 is called `boost_python-py34`) then you can modify
@@ -325,7 +337,7 @@ For building the CPSW package it is sufficient to execute
 
         make
 
-and optionally 
+and optionally
 
         make install
 

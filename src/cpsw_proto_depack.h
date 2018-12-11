@@ -11,12 +11,12 @@
 #define CPSW_PROTO_DEPACK_H
 
 #include <cpsw_error.h>
+#include <cpsw_compat.h>
 
-#include <boost/atomic.hpp>
 #include <pthread.h>
 
-using boost::atomic;
-using boost::memory_order_relaxed;
+using cpsw::atomic;
+using cpsw::memory_order_relaxed;
 
 typedef unsigned FrameID;
 typedef unsigned FragID;

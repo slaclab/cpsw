@@ -10,6 +10,7 @@
 #include <cpsw_api_user.h>
 #include <cpsw_api_builder.h>
 #include <stdio.h>
+#include <getopt.h>
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 

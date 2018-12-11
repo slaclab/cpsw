@@ -15,6 +15,7 @@
 #include <cpsw_entry_adapt.h>
 #include <cpsw_sval.h>
 #include <cpsw_address.h>
+#include <cpsw_async_io.h>
 
 #include <string>
 
@@ -491,11 +492,11 @@ IIntEntryAdapt::nelmsFromIdx(IndexRange *r)
 		if ( f >= 0 || t >= 0 ) {
 			CompositePathIterator it( p_ );
 			if ( f < 0 )
-				f = it->idxf_; 
+				f = it->idxf_;
 			else
 				f = it->idxf_ + f;
 			if ( t < 0 )
-				t = it->idxt_; 
+				t = it->idxt_;
 			else
 				t = it->idxf_ + t;
 			t = t - f + 1;
@@ -534,8 +535,8 @@ public:
 			signByte = dbytes - 1 - signByte;
 		}
 	}
-	
-	   
+
+  
 	void work(uint8_t *obufp, uint8_t *ibufp)
 	{
 		int j           = signByte;
@@ -677,217 +678,462 @@ CDoubleVal_WOAdapt::dbl2int(uint64_t *dst, double *src, unsigned nelms)
 	}
 }
 
-unsigned IIntEntryAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, IndexRange *range)
-{
-SlicedPathIterator it( p_, range );
+typedef shared_ptr<IIntEntryAdapt> IntEntryAdapt;
 
-Address          cl           = it->c_p_;
-uint64_t         off          = 0;
-unsigned         sbytes       = getSize(); // byte-size including lsb shift
-unsigned         nbytes       = (getSizeBits() + 7)/8;  // byte-size w/o lsb shift
-unsigned         dbytes       = elsz;
-int              lsb          = getLsBit();
-ByteOrder        hostEndian   = hostByteOrder();
-ByteOrder        targetEndian = cl->getByteOrder();
-unsigned         ibuf_nchars;
-unsigned         nelmsOnPath  = it.getNelmsLeft();
+class CGetValContext : public CAsyncIOCompletion {
+protected:
+	static const unsigned ALLOC_BRK = 512;
 
-	if ( NATIVE == targetEndian ) {
-		targetEndian = hostEndian;
+	IntEntryAdapt   adapter_;
+
+private:
+	typedef union { uint8_t c; uint64_t u; } BufEl;
+	BufEl           tmpBuf_[(ALLOC_BRK + sizeof(BufEl) - 1)/sizeof(BufEl)];
+	uint8_t        *tmpBufAlloc_;
+	unsigned        tmpBufSz_;
+
+protected:
+
+	CGetValContext(IntEntryAdapt adapter, AsyncIO aio = AsyncIO())
+	: CAsyncIOCompletion( aio ),
+	  adapter_ ( adapter ),
+	  tmpBufSz_( 0       )
+	{
 	}
+
+	uint8_t *mkbuf(unsigned buf_bytes)
+	{
+	uint8_t *rval;
+		if ( buf_bytes <= ALLOC_BRK ) {
+			// use internal buffer
+			rval   = &tmpBuf_[0].c;
+		} else if ( buf_bytes <= tmpBufSz_ ) {
+			// use existing buffer
+			rval   = tmpBufAlloc_;
+		} else {
+			if ( tmpBufSz_ )
+				delete [] tmpBufAlloc_;
+			tmpBufSz_    = buf_bytes;
+			tmpBufAlloc_ = new uint8_t[tmpBufSz_];
+			rval         = tmpBufAlloc_;
+		}
+		return rval;
+	}
+
+	virtual void doComplete() = 0;
+
+	virtual void complete()
+	{
+		// reset the adapter shared pointer before
+		// the user callback is executed by the transaction
+		// manager; helps synchronizing with shutdown since
+		// otherwise the transaction manager may still hold
+		// a shared ref. and if the user thread is scheduled
+		// first then the user doesn't hold the *last* ref.
+		doComplete();
+		adapter_.reset();
+	}
+
+public:
+	virtual ~CGetValContext()
+	{
+		if ( tmpBufSz_ )
+			delete [] tmpBufAlloc_;
+	}
+
+};
+
+class CGetIntValContext : public CGetValContext {
+private:
+	unsigned        dbytes_;
+	ByteOrder       targetEndian_;
+	unsigned        nelms_;
+
+	uint8_t        *obufp_;
+	uint8_t        *ibufp_;
+
+public:
+	CGetIntValContext(IntEntryAdapt adapter, uint8_t *buf, unsigned nelms, unsigned dbytes, ByteOrder targetEndian, AsyncIO aio = AsyncIO())
+	: CGetValContext( adapter, aio )
+	{
+	unsigned  sbytes     = adapter->getSize();
+	ByteOrder hostEndian = hostByteOrder();
+
+		dbytes_       = dbytes;
+		targetEndian_ = NATIVE == targetEndian ? hostEndian : targetEndian;
+		nelms_        = nelms;
+		obufp_        = buf;
+
+		if ( sbytes > dbytes_ ) {
+			ibufp_ = mkbuf( sbytes * nelms_ );
+		} else {
+			ibufp_ = buf;
+		}
+
+		if ( dbytes_ > sbytes ) {
+			// obuf and ibuf overlap;
+			if ( BE == hostEndian ) {
+				// work top down
+				ibufp_ += (dbytes_-sbytes) * nelms_;
+			}
+		}
+	}
+
+	void getReadParms(CReadArgs *ra)
+	{
+		ra->dst_       = ibufp_;
+		ra->nbytes_    = adapter_->getSize();
+	}
+
+	void doComplete()
+	{
+	int         lsb          = adapter_->getLsBit();
+	unsigned    sizeBits     = adapter_->getSizeBits();
+	bool        sign_extend  = sizeBits < 8*dbytes_;
+	bool        truncate     = sizeBits > 8*dbytes_;
+	unsigned    wlen         = adapter_->getWordSwap();
+	ByteOrder   hostEndian   = hostByteOrder();
+	// byte-size including lsb shift
+	unsigned    sbytes       = adapter_->getSize();
+	// byte-size w/o lsb shift
+	unsigned    nbytes       = (sizeBits + 7)/8;
+
+
+		if (   targetEndian_ != hostEndian
+				|| lsb                != 0
+				|| sign_extend
+				|| truncate
+				|| wlen               >  0 ) {
+
+			// transformation necessary
+			SignExtender signExtend( adapter_->isSigned(), sizeBits, dbytes_ );
+			Swapper      byteSwap( sbytes,    1 );
+			Swapper      wordSwap( nbytes, wlen );
+			BitShifter   bits    ( sbytes, lsb  );
+
+			int ioff = (BE == hostEndian ? sbytes - dbytes_ : 0 );
+			int noff = (BE == hostEndian ? sbytes - nbytes  : 0 );
+			int ooff;
+			int iidx, oidx, n, iinc, oinc;
+			if ( ioff < 0 ) {
+				ooff = -ioff;
+				ioff = 0;
+			} else {
+				ooff = 0;
+			}
+
+			if ( BE == hostEndian ) {
+				// top down
+				oidx = 0;
+				iidx = 0;
+				iinc = +sbytes;
+				oinc = +dbytes_;
+			} else {
+				// bottom up
+				oidx = (nelms_-1)*dbytes_;
+				iidx = (nelms_-1)*sbytes;
+				iinc = -sbytes;
+				oinc = -dbytes_;
+			}
+			for ( n = nelms_-1; n >= 0; n--, oidx += oinc, iidx += iinc ) {
+
+				if ( targetEndian_ != hostEndian ) {
+					byteSwap.work( ibufp_ + iidx );
+				}
+
+				if ( lsb != 0 ) {
+					bits.shiftRight( ibufp_ + iidx );
+				}
+
+				if ( wlen  > 0 ) {
+					//printf("pre-wswap (nbytes %i, iidx %i): ", nbytes, iidx);
+					//for(j=0;j<sbytes;j++)
+					//	printf("%02x ", ibufp_[iidx+j]);
+					//printf("\n");
+					wordSwap.work(ibufp_ + iidx + noff);
+					//printf("pst-wswap: ");
+					//for(j=0;j<sbytes;j++)
+					//	printf("%02x ", ibufp_[iidx+j]);
+					//printf("\n");
+				}
+
+				//printf("TRUNC oidx %i, ooff %i,  iidx %i, ioff %i, dbytes %i, sbytes %i\n", oidx, ooff, iidx, ioff, dbytes, sbytes);
+				//for ( int j=0; j <sbytes; j++ ) printf("ibuf[%i] 0x%02x ", j, ibufp_[iidx+ioff+j]);  printf("\n");
+				memmove( obufp_ + oidx + ooff, ibufp_ + iidx + ioff, dbytes_ >= sbytes ? sbytes : dbytes_ );
+				//for ( int j=0; j <sbytes; j++ ) printf("obuf[%i] 0x%02x ", j, obufp_[oidx+ooff+j]);  printf("\n");
+
+				// sign-extend
+				if ( sign_extend ) {
+					signExtend.work(obufp_+oidx, obufp_+oidx);
+				}
+			}
+		}
+	}
+
+};
+
+
+unsigned IIntEntryAdapt::checkNelms(unsigned nelms, SlicedPathIterator *it)
+{
+unsigned nelmsOnPath  = (*it).getNelmsLeft();
 
 	if ( nelms >= nelmsOnPath ) {
 		nelms = nelmsOnPath;
 	} else {
 		throw InvalidArgError("Invalid Argument: buffer too small");
 	}
+	return nelms;
+}
 
-	if ( sbytes > dbytes )
-		ibuf_nchars = sbytes * nelms;
-	else
-		ibuf_nchars = 0;
+unsigned IIntEntryAdapt::getVal(AsyncIO aio, uint8_t *buf, unsigned nelms, unsigned elsz, SlicedPathIterator *it)
+{
+Address            cl           = (*it)->c_p_;
+ByteOrder          targetEndian = cl->getByteOrder();
 
-	TMP_BUF_DECL(uint8_t, ibuf, ibuf_nchars );
-
-	uint8_t *ibufp = ibuf_nchars ? ibuf.getBufp() : buf;
-	uint8_t *obufp = buf;
-
-	if ( dbytes > sbytes ) {
-		// obuf and ibuf overlap;
-		if ( BE == hostEndian ) {
-			// work top down
-			ibufp += (dbytes-sbytes) * nelms;
-		}
-	}
+	nelms = checkNelms(nelms, it);
 
 	CReadArgs args;
 
+	shared_ptr<CGetIntValContext> ctxt = cpsw::make_shared<CGetIntValContext> (
+	                                             getSelfAs<IntEntryAdapt>(),
+	                                             buf,
+                                                 nelms,
+                                                 elsz,
+                                                 targetEndian,
+                                                 aio );
 	args.cacheable_ = ie_->getCacheable();
-	args.dst_       = ibufp;
-	args.nbytes_    = sbytes;
-	args.off_       = off;
-	
-	cl->read( &it, &args );
+	args.off_       = 0;
+	args.aio_       = ctxt;
 
-	bool sign_extend = getSizeBits() < 8*dbytes;
-	bool truncate    = getSizeBits() > 8*dbytes;
+	ctxt->getReadParms( &args );
 
-	unsigned wlen    = getWordSwap();
+	cl->read( it, &args );
 
-	if (   targetEndian != hostEndian
-		|| lsb                != 0
-	    || sign_extend
-		|| truncate
-		|| wlen               >  0 ) {
-
-		// transformation necessary
-		SignExtender signExtend( isSigned(), getSizeBits(), dbytes );
-		Swapper      byteSwap( sbytes,    1 );
-		Swapper      wordSwap( nbytes, wlen );
-		BitShifter   bits    ( sbytes, lsb  );
-
-		int ioff = (BE == hostEndian ? sbytes - dbytes : 0 );
-		int noff = (BE == hostEndian ? sbytes - nbytes : 0 );
-		int ooff;
-		int iidx, oidx, n, iinc, oinc;
-		if ( ioff < 0 ) {
-			ooff = -ioff;
-			ioff = 0;
-		} else {
-			ooff = 0;
-		}
-
-		if ( BE == hostEndian ) {
-			// top down	
-			oidx = 0;
-			iidx = 0;
-			iinc = +sbytes;
-			oinc = +dbytes;
-		} else {
-			// bottom up
-			oidx = (nelms-1)*dbytes;
-			iidx = (nelms-1)*sbytes;
-			iinc = -sbytes;
-			oinc = -dbytes;
-		}
-		for ( n = nelms-1; n >= 0; n--, oidx += oinc, iidx += iinc ) {
-
-			if ( targetEndian != hostEndian ) {
-				byteSwap.work( ibufp + iidx );
-			}
-
-			if ( lsb != 0 ) {
-				bits.shiftRight( ibufp + iidx );
-			}
-
-			if ( wlen  > 0 ) {
-//printf("pre-wswap (nbytes %i, iidx %i): ", nbytes, iidx);
-//for(j=0;j<sbytes;j++)
-//	printf("%02x ", ibufp[iidx+j]);
-//printf("\n");
-				wordSwap.work(ibufp + iidx + noff);
-//printf("pst-wswap: ");
-//for(j=0;j<sbytes;j++)
-//	printf("%02x ", ibufp[iidx+j]);
-//printf("\n");
-			}
-
-//printf("TRUNC oidx %i, ooff %i,  iidx %i, ioff %i, dbytes %i, sbytes %i\n", oidx, ooff, iidx, ioff, dbytes, sbytes);
-//for ( int j=0; j <sbytes; j++ ) printf("ibuf[%i] 0x%02x ", j, ibufp[iidx+ioff+j]);  printf("\n");
-			memmove( obufp + oidx + ooff, ibufp + iidx + ioff, dbytes >= sbytes ? sbytes : dbytes );
-//for ( int j=0; j <sbytes; j++ ) printf("obuf[%i] 0x%02x ", j, obufp[oidx+ooff+j]);  printf("\n");
-
-			// sign-extend
-			if ( sign_extend ) {
-				signExtend.work(obufp+oidx, obufp+oidx);
-			}
-		}
-	}
 	return nelms;
+}
+
+unsigned IIntEntryAdapt::getVal(uint8_t *buf, unsigned nelms, unsigned elsz, SlicedPathIterator *it)
+{
+Address            cl           = (*it)->c_p_;
+ByteOrder          targetEndian = cl->getByteOrder();
+
+	nelms = checkNelms( nelms, it );
+
+	CReadArgs args;
+
+	CGetIntValContext ctxt( getSelfAs<IntEntryAdapt>(), buf, nelms, elsz, targetEndian );
+
+	args.cacheable_ = ie_->getCacheable();
+	args.off_       = 0;
+	ctxt.getReadParms( &args );
+
+	cl->read( it, &args );
+
+	ctxt.callback( 0 );
+	return nelms;
+
+}
+
+class CGetStringValContext : public CGetValContext {
+private:
+	uint8_t       *buf_;
+	unsigned       nelms_;
+	unsigned       elsz_;
+	CString       *strs_;
+
+public:
+	CGetStringValContext(IntEntryAdapt handle, CString *strs, unsigned nelms, AsyncIO stack = AsyncIO())
+	: CGetValContext( handle, stack ),
+	  nelms_   ( nelms                           ),
+	  elsz_    ( sizeof(uint64_t)                ),
+	  strs_    ( strs                            )
+	{
+	unsigned sz = sizeof(*buf_) * nelms_;
+	unsigned elsz;
+		if ( ! adapter_->getEnum() && (elsz = (adapter_->getSizeBits() + 7) / 8) > sizeof(uint64_t) ) {
+			elsz_ = elsz;
+		}
+		sz  *= elsz_;
+		buf_ = mkbuf( sz );
+	}
+
+	uint8_t *getTmpBuf()
+	{
+		return buf_;
+	}
+
+	unsigned getElsz()
+	{
+		return elsz_;
+	}
+
+	void doComplete()
+	{
+	Enum     enm = adapter_->getEnum();
+	unsigned i;
+
+		if ( enm || elsz_ <= sizeof(uint64_t) ) {
+			if ( enm ) {
+				for ( i=0; i < nelms_; i++ ) {
+					IEnum::Item item = enm->map( reinterpret_cast<uint64_t*>( buf_ )[i] );
+					strs_[i] = item.first;
+				}
+			} else {
+				char strbuf[100];
+				const char *fmt;
+				strbuf[sizeof(strbuf)-1] = 0;
+/*
+				if ( 16 == adapter_->getConfigBase() ) {
+					fmt = "%" PRIx64;
+				} else
+*/
+				{
+					fmt = adapter_->isSigned() ? "%" PRIi64 : "%" PRIu64;
+				}
+				for ( i=0; i < nelms_; i++ ) {
+					::snprintf(strbuf, sizeof(strbuf) - 1, fmt, reinterpret_cast<uint64_t*>( buf_ )[i]);
+					strs_[i] = cpsw::make_shared<string>( strbuf );
+				}
+			}
+		} else {
+			uint8_t *bufp = buf_;
+			for ( i=0; i < nelms_; i++ ) {
+				char strbuf[10];
+				std::string s("0x");
+				int         j;
+				if ( LE == hostByteOrder() ) {
+					for ( j = elsz_ - 1; j >= 0; j-- ) {
+						::snprintf(strbuf, sizeof(strbuf), "%02x", bufp[j]);
+						s.append( strbuf );
+					}
+				} else {
+					for ( j = 0; j < (int)elsz_; j++ ) {
+						snprintf(strbuf, sizeof(strbuf), "%02x", bufp[j]);
+						s.append( strbuf );
+					}
+				}
+				strs_[i] = cpsw::make_shared<string>( s );
+
+				bufp += elsz_;
+			}
+		}
+		while ( i < nelms_ )
+			strs_[i].reset();
+	}
+};
+
+unsigned CScalVal_ROAdapt::getVal(AsyncIO aio, CString *strs, unsigned nelms, IndexRange *range)
+{
+SlicedPathIterator it(p_, range);
+unsigned           rval;
+
+	nelms = checkNelms(nelms, &it);
+
+	shared_ptr<CGetStringValContext> ctxt = cpsw::make_shared<CGetStringValContext>( getSelfAs<IntEntryAdapt>(), strs, nelms, aio);
+
+	uint8_t *tmpBuf = ctxt->getTmpBuf();
+
+	rval = getVal( ctxt, tmpBuf, nelms, ctxt->getElsz(), &it );
+
+	return rval;
 }
 
 unsigned CScalVal_ROAdapt::getVal(CString *strs, unsigned nelms, IndexRange *range)
 {
-unsigned         got,i,elsz;
-Enum             enm = getEnum();
+SlicedPathIterator it(p_, range);
+unsigned           rval;
 
-	if ( enm ||  (elsz = getSizeBits()) <= sizeof(uint64_t)*8 ) {
-		TMP_BUF_DECL(uint64_t, buf, nelms);
+	nelms = checkNelms(nelms, &it);
 
-		got = getVal(buf.getBufp(), nelms, range);
+	CGetStringValContext ctxt( getSelfAs<IntEntryAdapt>(), strs, nelms );
 
-		if ( enm ) {
-			for ( i=0; i < got; i++ ) {
-				IEnum::Item item = enm->map(buf[i]);
-				strs[i] = item.first;
-			}
-		} else {
-			char strbuf[100];
-			const char *fmt = isSigned() ? "%" PRIi64 : "%" PRIu64;
-			strbuf[sizeof(strbuf)-1] = 0;
-			for ( i=0; i < got; i++ ) {
-				snprintf(strbuf, sizeof(strbuf) - 1, fmt, buf[i]);
-				strs[i] = make_shared<string>( strbuf );
-			}
-		}
-	} else {
-		elsz          = (elsz + 7)/8;
+	uint8_t *tmpBuf = ctxt.getTmpBuf();
 
-		TMP_BUF_DECL(uint8_t, buf, nelms * elsz);
+	rval = getVal( tmpBuf, nelms, ctxt.getElsz(), &it );
 
-		char     strbuf[10];
+	ctxt.callback( 0 );
 
-        uint8_t *bufp = buf.getBufp();
+	return rval;
+}
 
-		got = getVal(bufp, nelms, elsz, range);
+class CGetDoubleValContext : public CGetValContext {
+private:
+	// we can't easily obtain a shared pointer for the  DoubleVal_ROAdapter
+	// (CShObj is a virtual base). However, CGetValContext already
+	// holds a handle to a base class so we are save with a normal pointer here...
+	CDoubleVal_ROAdapt *adapter_;
+	double             *buf_;
+	unsigned            nelms_;
 
-		for ( i=0; i<got; i++ ) {
-			std::string s("0x");
-			int         j;
-			if ( LE == hostByteOrder() ) {
-				for ( j = elsz - 1; j >= 0; j-- ) {
-					snprintf(strbuf, sizeof(strbuf), "%02x", bufp[j]);
-					s.append( strbuf );
-				}
-			} else {
-				for ( j = 0; j < (int)elsz; j++ ) {
-					snprintf(strbuf, sizeof(strbuf), "%02x", bufp[j]);
-					s.append( strbuf );
-				}
-			}
-			strs[i] = make_shared<string>( s );
-
-			bufp += elsz;
-		}
+public:
+	CGetDoubleValContext(IntEntryAdapt handle, CDoubleVal_ROAdapt *adapter, double *buf, unsigned nelms, AsyncIO stack = AsyncIO())
+	: CGetValContext( handle, stack ),
+	  adapter_ ( adapter ),
+	  buf_     ( buf     ),
+	  nelms_   ( nelms   )
+	{
 	}
 
-	while ( i < nelms )
-		strs[i].reset();
+	void doComplete()
+	{
+	int i;
 
-	return got;
+		if ( IScalVal_Base::IEEE_754 == adapter_->getEncoding() ) {
+			if ( 64 != adapter_->getSizeBits() ) {
+				for ( i=(nelms_ - 1); i>=0; i-- ) {
+					float f;
+					::memcpy( &f, reinterpret_cast<float*>(buf_) + i, sizeof(f) );
+					buf_[i] = (double)f;
+				}
+			}
+		} else {
+			// FIXME -- this is a violation of the alias rule -- we might
+			//          have to allocate an intermediate buffer...
+			adapter_->int2dbl( buf_, reinterpret_cast<uint64_t*>(buf_), nelms_ );
+		}
+
+		adapter_->dbl2dbl( buf_, nelms_ );
+	}
+};
+
+unsigned CDoubleVal_ROAdapt::getVal(AsyncIO aio, double *buf, unsigned nelms, IndexRange *range)
+{
+SlicedPathIterator it(p_, range);
+
+unsigned rval;
+
+	nelms = checkNelms(nelms, &it);
+
+shared_ptr<CGetDoubleValContext> ctxt = cpsw::make_shared<CGetDoubleValContext>( getSelfAs<IntEntryAdapt>(), this, buf, nelms, aio );
+
+	if ( IScalVal_Base::IEEE_754 == getEncoding() && 64 != getSizeBits() ) {
+		float *fBuf = reinterpret_cast<float*>(buf);
+		rval = IIntEntryAdapt::getVal<float>( ctxt, fBuf, nelms, &it );
+	} else {
+		rval = IIntEntryAdapt::getVal<double>( ctxt, buf, nelms, &it );
+	}
+
+	return rval;
 }
 
 unsigned CDoubleVal_ROAdapt::getVal(double *buf, unsigned nelms, IndexRange *range)
 {
+SlicedPathIterator it(p_, range);
+
 unsigned rval;
 
-	if ( IScalVal_Base::IEEE_754 == getEncoding() ) {
-		if ( 64 == getSizeBits() ) {
-			rval = IIntEntryAdapt::getVal<double>( buf, nelms, range );
-		} else {
-			TMP_BUF_DECL(float, tmpBuf, nelms );
-			rval = IIntEntryAdapt::getVal<float>( tmpBuf.getBufp(), nelms, range );
-			for ( unsigned i=0; i<nelms; i++ ) {
-				buf[i] = (double)tmpBuf[i];
-			}
-		}
+	nelms = checkNelms(nelms, &it);
+
+	CGetDoubleValContext ctxt( getSelfAs<IntEntryAdapt>(), this, buf, nelms );
+
+	if ( IScalVal_Base::IEEE_754 == getEncoding() && 64 != getSizeBits() ) {
+		float *fBuf = reinterpret_cast<float*>(buf);
+		rval = IIntEntryAdapt::getVal<float>( fBuf, nelms, &it );
 	} else {
-		TMP_BUF_DECL(uint64_t, tmpBuf, nelms );
-		rval = IIntEntryAdapt::getVal<uint64_t>( tmpBuf.getBufp(), nelms, range );
-		int2dbl( buf, tmpBuf.getBufp(), nelms );
+		rval = IIntEntryAdapt::getVal<double>( buf, nelms, &it );
 	}
 
-	dbl2dbl( buf, nelms );
+	ctxt.callback( 0 );
 
 	return rval;
 }
@@ -917,16 +1163,12 @@ ByteOrder        hostEndian= hostByteOrder();
 ByteOrder        targetEndian = cl->getByteOrder();
 uint8_t          msk1     = 0x00;
 uint8_t          mskn     = 0x00;
-unsigned         nelmsOnPath = it.getNelmsLeft();
 
 	if ( NATIVE == targetEndian ) {
 		targetEndian = hostEndian;
 	}
 
-	if ( nelms >= nelmsOnPath )
-		nelms = nelmsOnPath;
-	else
-		throw InvalidArgError("not enough values supplied");
+	nelms = checkNelms( nelms, &it );
 
 	bool sign_extend = sizeBits > 8*sbytes;
 	bool truncate    = sizeBits < 8*sbytes;
@@ -966,7 +1208,7 @@ unsigned         nelmsOnPath = it.getNelmsLeft();
 		}
 
 		if ( BE == hostEndian ) {
-			// top down	
+			// top down
 			oidx = 0;
 			iidx = 0;
 			iinc = +sbytes;
@@ -1040,7 +1282,7 @@ prib("byte-swapped", obufp + oidx);
 	args.nbytes_    = dbytes;
 	args.msk1_      = msk1;
 	args.mskn_      = mskn;
-	
+
 	cl->write( &it, &args );
 
 	return nelms;
@@ -1058,7 +1300,7 @@ Enum             enm = getEnum();
 			buf[i] = item.second;
 		}
 	} else {
-		const char *fmt = isSigned() ? "%"SCNi64 : "%"SCNu64;
+		const char *fmt = isSigned() ? "%" SCNi64 : "%" SCNu64;
 		for ( i=0; i<nelms; i++ ) {
 			if ( 1 != sscanf(strs[i], fmt, &buf[i]) ) {
 				throw ConversionError("CScalVal_RO::setVal -- unable to scan string into number");
@@ -1174,10 +1416,10 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p, YAML::Node &node) const
 
 		if ( (isFloat = (IScalVal_Base::IEEE_754 == getEncoding())) ) {
 			DoubleVal_RO val( IDoubleVal_RO::create( p ) );
-			got = val->getVal( & valBuf[0].d, nelms );
+			got = val->getVal( & valBuf[0].d, nelms, 0 );
 		} else {
 			ScalVal_RO val( IScalVal_RO::create( p ) );
-			got = val->getVal( & valBuf[0].u, nelms );
+			got = val->getVal( & valBuf[0].u, nelms, 0 );
 		}
 
 		if ( nelms != got ) {
@@ -1194,12 +1436,12 @@ CIntEntryImpl::dumpMyConfigToYaml(Path p, YAML::Node &node) const
 
 		// base 10 settings
 		int field_width = 0;
-		const char *fmt = isSigned() ? "%*"PRId64 : "%*"PRIu64;
+		const char *fmt = isSigned() ? "%*" PRId64 : "%*" PRIu64;
 
 		if ( 16 == getConfigBase() ) {
 			// base 16 settings
 			field_width = (getSizeBits() + 3) / 4; // one hex char per nibble
-			fmt         = "0x%0*"PRIx64;
+			fmt         = "0x%0*" PRIx64;
 		}
 
 		if ( i ) {
@@ -1270,7 +1512,7 @@ unsigned nelms, i;
 
 	unsigned nelmsFromPath = p->getNelms();
 
-	// A scalar means we will write all elements to same value 
+	// A scalar means we will write all elements to same value
 	if ( nelms < nelmsFromPath  && !n.IsScalar() ) {
 		std::string str("CIntEntryImpl::loadMyConfigFromYaml --  elements in YAML node(");
                     str += p->toString();
@@ -1317,17 +1559,17 @@ unsigned nelms, i;
 		TMP_BUF_DECL(VU, valBuf, nelms );
 		if ( isFloat ) {
 			for ( i=0; i<nelms; i++ ) {
-				valBuf[i].d = n[i].as<double>();
+				valBuf[i].d = YAML::NodeFind(n, i).as<double>();
 			}
 		} else if ( enum_ ) {
 			for ( i=0; i<nelms; i++ ) {
-				const std::string &nam = n[i].as<std::string>();
+				const std::string &nam = YAML::NodeFind(n,i).as<std::string>();
 				try {
 					valBuf[i].u = enum_->map( nam.c_str() ).second;
 				} catch (ConversionError &e) {
 					// try to fall-back on numerical
 					try {
-						valBuf[i].u = n[i].as<uint64_t>();
+						valBuf[i].u = YAML::NodeFind(n,i).as<uint64_t>();
 					} catch (YAML::TypedBadConversion<unsigned long>) {
 						throw e; // throw original error
 					}
@@ -1335,7 +1577,7 @@ unsigned nelms, i;
 			}
 		} else {
 			for ( i=0; i<nelms; i++ ) {
-				valBuf[i].u = n[i].as<uint64_t>();
+				valBuf[i].u = YAML::NodeFind(n,i).as<uint64_t>();
 			}
 		}
 		if ( isFloat ) {

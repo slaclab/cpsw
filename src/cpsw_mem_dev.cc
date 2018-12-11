@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 #include <cpsw_yaml.h>
 
@@ -19,41 +21,72 @@
 
 CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size, uint8_t *ext_buf)
 : CDevImpl(k, name, size),
-  buf_( ext_buf ? ext_buf : new uint8_t[size] ),
-  isExt_ ( ext_buf ? true : false )
+  buf_    ( ext_buf ? ext_buf : 0  ),
+  isExt_  ( ext_buf ? true : false )
 {
+	if ( ! buf_ && size ) {
+		buf_ = (uint8_t*)mmap( 0, getSize(), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0 );
+
+		if ( MAP_FAILED == buf_ ) {
+			throw InternalError("CMemDevImpl - Unable to map anonymous buffer", errno);
+		}
+	}
 }
 
 CMemDevImpl::CMemDevImpl(Key &key, YamlState &node)
-: CDevImpl(key, node),
-  buf_( new uint8_t[size_] ),
-  isExt_( false )
+: CDevImpl( key, node ),
+  buf_    ( 0         ),
+  isExt_  ( false     )
 {
+int flg = MAP_PRIVATE | MAP_ANONYMOUS;
+int fd  = -1;
+int err;
 	if ( 0 == size_ ) {
 		throw InvalidArgError("'size' zero or unset");
+	}
+	if ( readNode( node, YAML_KEY_fileName, &fileName_ ) ) {
+        if ( (fd = open( fileName_.c_str(), O_RDWR )) < 0 ) {
+			throw InternalError( std::string("CMemDevImpl - Unable to open") + fileName_, errno );
+		}
+		flg = MAP_SHARED;
+	}
+	buf_ = (uint8_t*)mmap( 0, getSize(), PROT_READ | PROT_WRITE, flg, fd, 0 );
+    err  = errno;
+	if ( fd >= 0 ) {
+		close( fd );
+	}
+	if ( MAP_FAILED == buf_ ) {
+		throw InternalError("CMemDevImpl - Unable to map anonymous buffer", err);
 	}
 }
 
 
 CMemDevImpl::CMemDevImpl(const CMemDevImpl &orig, Key &k)
-: CDevImpl(orig, k),
-  buf_( new uint8_t[orig.getSize()] ),
-  isExt_( false )
+: CDevImpl( orig,     k ),
+  buf_    ( orig.buf_   ),
+  isExt_  ( orig.isExt_ )
 {
-	memcpy( buf_, orig.buf_, orig.getSize() );
+	if ( ! orig.isExt_ ) {
+		buf_ = (uint8_t*)mmap( 0, getSize(), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0 );
+		if ( MAP_FAILED == buf_ ) {
+			throw InternalError( "CMemDevImpl - Unable to map anonymous buffer", errno );
+		}
+		memcpy( buf_, orig.buf_, orig.getSize() );
+	}
 }
 
 CMemDevImpl::~CMemDevImpl()
 {
 	if ( ! isExt_ )
-		delete [] buf_;
+		munmap( buf_, size_ );
+	/* let a shared mapping live on */
 }
 
 void CMemDevImpl::addAtAddress(Field child)
 {
 IAddress::AKey k = getAKey();
 
-	add( make_shared<CMemAddressImpl>(k), child );
+	add( cpsw::make_shared<CMemAddressImpl>(k), child );
 }
 
 void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
@@ -61,6 +94,14 @@ void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
 	if ( 1 != nelms )
 		throw ConfigurationError("CMemDevImpl::addAtAddress -- can only have exactly 1 child");
 	addAtAddress( child );
+}
+
+void CMemDevImpl::dumpYamlPart(YAML::Node &node) const
+{
+	CDevImpl::dumpYamlPart( node );
+	if ( fileName_.size() != 0 ) {
+		writeNode( node, YAML_KEY_fileName, fileName_ );
+	}
 }
 
 CMemAddressImpl::CMemAddressImpl(AKey k)
@@ -88,6 +129,8 @@ printf("off %lu, dbytes %lu, size %lu\n", args->off_, args->nbytes_, owner->getS
 printf("MemDev read from off %lli to %p:", args->off_, args->dst_);
 for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->dst_[ii]); printf("\n");
 #endif
+	if ( args->aio_ )
+		args->aio_->callback( 0 );
 	return toget;
 }
 

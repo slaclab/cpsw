@@ -30,6 +30,7 @@
 #define YAML_KEY_encoding  "encoding"
 #define YAML_KEY_entry  "entry"
 #define YAML_KEY_enums  "enums"
+#define YAML_KEY_fileName "fileName"
 #define YAML_KEY_instantiate  "instantiate"
 #define YAML_KEY_ipAddr  "ipAddr"
 #define YAML_KEY_isSigned  "isSigned"

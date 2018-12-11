@@ -1,3 +1,50 @@
+asyncSRP
+    FIX: There was a subtle change in the implementation of YAML
+        maps in yaml-cpp v0.6.2: When a non-existing key is looked
+        up with
+
+            YAML::Node operator[](const Key &k);
+
+        then an 'invisible' new entry is added to the map.
+        We can iterate through the new map and won't see this new
+        entry (unless it was explicitly created e.g., by an
+        assignment:  'map[key] = value;'.
+
+        This behaviour was already the same in 0.5.3. What has
+        **changed** however, is that under 0.6.3 this lookup
+        operation **breaks** existing iterators, i.e,
+
+           YAML::const_iterator my_itr( map.begin() );
+           YAML::const_iterator my_end( map.begin() );
+
+           if ( ! map[nonexisting_key] ) {
+               // lookup of non-existing key broke iterators
+               // under 0.6.2 -- it used to work fine under
+               // 0.5.3...
+               while ( my_itr != my_end ) {
+                   // !!!MAY SEGFAULT HERE!!!
+               }
+           }
+
+        In order to perform a lookup which does not modify the
+        map we must use ('const' attribute overload of operator)
+
+           const YAML::Node operator[](const Key *k) const;
+
+        which is IMHO very confusing and error-prone. Unfortunately
+        the API lacks a 'find' member analogous to std::map's...
+
+    Feature: Provide file/line info when loading YAML fails due
+        to parser errors.
+
+    Feature: When performing an RMW operation over SRP that spans
+        multiple words then read back (up to a max.) multiple
+        words in a single read operation.
+
+    Feature: Support C++11; reduce dependency on boost if C++11
+        is used. Boost is still used internally but not visible
+        from the API.
+
     Feature: Support SRP 'posted' writes. This is now the default.
         However, the write mode can be set from YAML. Future API
         additions could override the default for each individual
@@ -53,9 +100,15 @@
         the remote peer (which has the YAML) to decide which ports
         to actually use.
 
+    Merge:  FIX for depacketizer V2 (SOF bit sometimes not cleared
+            in non-first fragments).
+
+    Merge:  depacketizer V2 support (from master)
+
     Merge:  Set default for SRP retryCount to 0 if transport is RSSI
             or TCP
 
+    Merge:
     CFreeList now supports allocate_shared() (single allocation
     from free-list)
 
@@ -114,13 +167,6 @@ R3.7.branch
 
     Bugfix: protocol stack builder always used depacketizer if no SRP
 
-    Feature: Added support for fragmentation (packetizer) of outgoing
-            traffic.
-
-    Protocol Stack: changed semantics of 'processOutput/processInput'.
-            these can now 'edit' buffer chains in a more flexible
-            manner.
-
 	Pycpsw: release GIL while blocking to read/write a stream.
             (hopefull it is OK and python doesn't alter the
             buffer state; the code we're executing with the GIL
@@ -128,11 +174,26 @@ R3.7.branch
 
     Feature: block all signals in newly created threads.
 
-R3.7.branch
-
     Bugfix: (jira ESLCOMMON-178) when loading an IntField config from
             YAML and the IntField has an enum menu then providing numerical
             values in the config file didn't work.
+
+
+    Changed IYamlFixup; the callback now gets two nodes
+    passed in. The root node of the CPSW hierarchy and
+    the top node (which might be outside of the root)
+
+    Also: the python method name was changed from 'fixup'
+    to '__call__' (to match c== operator()).
+
+R3.7.branch
+
+    Feature: Added support for fragmentation (packetizer) of outgoing
+            traffic.
+
+    Protocol Stack: changed semantics of 'processOutput/processInput'.
+            these can now 'edit' buffer chains in a more flexible
+            manner.
 
     Feature: added 'emitNode' to yaml_cpp wrapper. Convert
     node hierarchy to string (which can be written to a file).

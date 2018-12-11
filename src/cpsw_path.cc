@@ -19,8 +19,8 @@
 
 #undef PATH_DEBUG
 
-using boost::dynamic_pointer_cast;
-using boost::static_pointer_cast;
+using cpsw::dynamic_pointer_cast;
+using cpsw::static_pointer_cast;
 using std::cout;
 
 typedef shared_ptr<const DevImpl::element_type> ConstDevImpl;
@@ -339,7 +339,7 @@ CPathImpl::const_iterator a_e( end()      );
 CPathImpl::const_iterator b  ( _toConstPathImpl(p)->begin() );
 CPathImpl::const_iterator b_e( _toConstPathImpl(p)->end()   );
 
-PathImpl rval( make_shared<CPathImpl>( originAsDevImpl() ) );
+PathImpl rval( cpsw::make_shared<CPathImpl>( originAsDevImpl() ) );
 
 
 	while ( a != a_e ) {
@@ -425,18 +425,18 @@ std::string rval;
 
 Path IPath::create()
 {
-	return Path( make_shared<CPathImpl>() );
+	return Path( cpsw::make_shared<CPathImpl>() );
 }
 
 Path IPath::create(const char *key)
 {
-	return Path( make_shared<CPathImpl>() )->findByName( key );
+	return Path( cpsw::make_shared<CPathImpl>() )->findByName( key );
 }
 
 
 Path IPath::create(Hub h)
 {
-	return Path( make_shared<CPathImpl>( h ) );
+	return Path( cpsw::make_shared<CPathImpl>( h ) );
 }
 
 
@@ -459,8 +459,8 @@ Path CPathImpl::findByName(const char *s) const
 {
 Address      found;
 ConstDevImpl h;
-Path         rval = make_shared<CPathImpl>( *this );
-CPathImpl    *p    = _toPathImpl( rval );
+Path         rval = cpsw::make_shared<CPathImpl>( *this );
+CPathImpl    *p   = _toPathImpl( rval );
 const char  *sl;
 
 shared_ptr<const EntryImpl::element_type> tailp;
@@ -583,7 +583,7 @@ ConstDevImpl CPathImpl::parentAsDevImpl() const
 CPathImpl::const_reverse_iterator it = rend();
 	++it; // rend points after last el
 	++it; // if empty this points at the NULL marker element
-	return hasParent( it ) ? boost::static_pointer_cast<const CDevImpl, CEntryImpl>(it->c_p_->getEntryImpl()) : NULLDEVIMPL;
+	return hasParent( it ) ? cpsw::static_pointer_cast<const CDevImpl, CEntryImpl>(it->c_p_->getEntryImpl()) : NULLDEVIMPL;
 }
 
 Hub CPathImpl::parent() const
@@ -630,7 +630,7 @@ Path CPathImpl::clone() const
 
 PathImpl CPathImpl::cloneAsPathImpl() const
 {
-	return make_shared<CPathImpl>( *this );
+	return cpsw::make_shared<CPathImpl>( *this );
 }
 
 Path CPathImpl::concat(ConstPath p) const

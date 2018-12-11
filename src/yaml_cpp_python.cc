@@ -15,11 +15,23 @@
 // high-level details such as ip-address and the like...
 //
 
+// This silences the 'auto_ptr deprecated' warnings.
+// See https://github.com/boostorg/python/issues/176
+#define BOOST_NO_AUTO_PTR
+
 #include <boost/python.hpp>
 #include <yaml-cpp/yaml.h>
 
 using namespace boost::python;
 using YAML::Node;
+
+template <typename Key>
+static const YAML::Node
+yamlNodeFind(const YAML::Node &n, const Key &k)
+{
+	// non-const operator[] inserts into YAML map!
+	return static_cast<const YAML::Node>(n)[k];
+}
 
 static void setNodeNode(Node &lhs, const Node &rhs)
 {
@@ -36,19 +48,19 @@ static void pushBackNode(Node &lhs, const Node &rhs)
 	lhs.push_back( rhs );
 }
 
-static Node getitemStr(Node &self, const std::string & key)
+static Node getitemStr(const Node &self, const std::string & key)
 {
-	return self[key];
+	return yamlNodeFind(self, key);
 }
 
-static Node getitemInt(Node &self, int key)
+static Node getitemInt(const Node &self, int key)
 {
-	return self[key];
+	return yamlNodeFind(self, key);
 }
 
-static Node getitemNode(Node &self, const Node &key)
+static Node getitemNode(const Node &self, const Node &key)
 {
-	return self[key];
+	return yamlNodeFind(self, key);
 }
 
 

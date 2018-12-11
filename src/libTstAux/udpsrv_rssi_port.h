@@ -10,17 +10,17 @@
 #ifndef RSSI_PORT_H
 #define RSSI_PORT_H
 
+#include <cpsw_compat.h>
 #include <udpsrv_util.h>
 #include <cpsw_rssi.h>
 #include <udpsrv_stream_state_monitor.h>
-#include <boost/atomic.hpp>
 
 class CRssiPort;
 typedef shared_ptr<CRssiPort> RssiPort;
 
 class ConnHandler : public IEventHandler {
 private:
-	boost::atomic<bool> isConnected_;
+	cpsw::atomic<bool> isConnected_;
 
 public:
 	ConnHandler()
@@ -100,6 +100,11 @@ public:
 	virtual IEventSource *getReadEventSource()
 	{
 		return outQ_->getReadEventSource();
+	}
+
+	virtual IEventSource *getWriteEventSource()
+	{
+		return outQ_->getWriteEventSource();
 	}
 
 	static RssiPort create(bool isServer)

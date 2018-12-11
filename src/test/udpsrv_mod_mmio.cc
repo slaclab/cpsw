@@ -8,6 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #define  __STDC_FORMAT_MACROS
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -20,8 +21,8 @@
 #include <udpsrv_regdefs.h>
 
 struct udpsrv_mmio_range : udpsrv_range {
-	uint8_t            *map;
-	udpsrv_mmio_range(const char *name, uint64_t start, uint64_t size, uint8_t *map);
+	volatile uint32_t  *map;
+	udpsrv_mmio_range(const char *name, uint64_t start, uint64_t size, volatile uint32_t *map);
 };
 
 struct udpsrv_range *
@@ -45,7 +46,21 @@ mmio_rd(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, in
 udpsrv_mmio_range *mr = reinterpret_cast<udpsrv_mmio_range*>(r);
 	if ( debug )
 		range_io_debug( r, 1, off, nbytes );
-	memcpy(data, mr->map + off, nbytes);
+	if ( (nbytes & (sizeof(mr->map[0]) - 1)) ) {
+		fprintf(stderr, "mmio_rd: misaligned length\n");
+	}
+	if ( (off & (sizeof(mr->map[0]) - 1)) ) {
+		fprintf(stderr, "mmio_rd: misaligned offset\n");
+	}
+	off >>= 2; /* log2 sizeof(mr->map[0]) */
+	while ( nbytes > 0 ) {
+		/* SLAC Axi/Axi-Lite bridge doesn't support bursts */
+		uint32_t wrd = *(mr->map + off);
+		memcpy(data, &wrd, sizeof(wrd));
+		off++;
+		data   += sizeof(wrd);
+		nbytes -= sizeof(wrd);
+	}
 	return 0;
 }
 
@@ -55,7 +70,22 @@ mmio_wr(struct udpsrv_range *r, uint8_t *data, uint32_t nbytes, uint64_t off, in
 udpsrv_mmio_range *mr = reinterpret_cast<udpsrv_mmio_range*>(r);
 	if ( debug )
 		range_io_debug( r, 0, off, nbytes );
-	memcpy(mr->map + off, data, nbytes);
+	if ( (nbytes & (sizeof(mr->map[0]) - 1)) ) {
+		fprintf(stderr, "mmio_wr: misaligned length\n");
+	}
+	off >>= 2; /* log2 sizeof(mr->map[0]) */
+	if ( (off & (sizeof(mr->map[0]) - 1)) ) {
+		fprintf(stderr, "mmio_wr: misaligned offset\n");
+	}
+	while ( nbytes > 0 ) {
+		/* SLAC Axi/Axi-Lite bridge doesn't support bursts */
+		uint32_t wrd;
+		memcpy( &wrd, data, sizeof(wrd) );
+		*(mr->map + off) = wrd;
+		off ++;
+		data   += sizeof(wrd);
+		nbytes -= sizeof(wrd);
+	}
 	return 0;
 }
 
@@ -75,7 +105,7 @@ char        buf[256];
 		return -1;
 	}
 
-	if ( 1 != sscanf(comma + 1, "%"SCNi64, &start) ) {
+	if ( 1 != sscanf(comma + 1, "%" SCNi64, &start) ) {
 		fprintf(stderr,"register_io_range_1 -- unable to scan base address\n");
 		return -1;
 	}
@@ -109,13 +139,13 @@ int           mmap_flags = 0;
 		}
 
 		// UIO device
-		if ( 1 != fscanf(f, "%"SCNi64, &mapsz) ) {
+		if ( 1 != fscanf(f, "%" SCNi64, &mapsz) ) {
 			fprintf(stderr,"register_io_range: Unable to scan map size\n");
 			goto bail;
 		}
 
 		if ( (r = udpsrv_check_range( map_start, mapsz )) ) {
-			fprintf(stderr,"%s: [%"PRIx64":%"PRIx64" overlaps existing range [%"PRIx64":%"PRIx64"]\n",
+			fprintf(stderr,"%s: [%" PRIx64 ":%" PRIx64 " overlaps existing range [%" PRIx64 ":%" PRIx64 "]\n",
 				sysfs_name,
 				map_start,
 				mapsz,
@@ -170,7 +200,7 @@ int           mmap_flags = 0;
 
 	close(fd); fd = -1;
 
-	new udpsrv_mmio_range( strdup(buf), map_start, mapsz, static_cast<uint8_t*>(bas) );
+	new udpsrv_mmio_range( strdup(buf), map_start, mapsz, static_cast<volatile uint32_t*>(bas) );
 
 	rval = 0;
 
@@ -182,7 +212,7 @@ bail:
 	return rval;	
 }
 
-udpsrv_mmio_range::udpsrv_mmio_range(const char *name, uint64_t start, uint64_t size, uint8_t *map)
+udpsrv_mmio_range::udpsrv_mmio_range(const char *name, uint64_t start, uint64_t size, volatile uint32_t *map)
 :udpsrv_range(name, start, size, mmio_rd, mmio_wr, 0),
  map( map )
 {

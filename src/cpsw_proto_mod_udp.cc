@@ -17,6 +17,7 @@
 
 #include <errno.h>
 #include <sys/select.h>
+#include <sys/uio.h>
 
 #include <stdio.h>
 
@@ -71,8 +72,8 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 			sleep(10);
 			continue;
 		}
-		nDgrams_.fetch_add(1,   boost::memory_order_relaxed);
-		nOctets_.fetch_add(got, boost::memory_order_relaxed);
+		nDgrams_.fetch_add(1,   cpsw::memory_order_relaxed);
+		nOctets_.fetch_add(got, cpsw::memory_order_relaxed);
 
 		if ( got > 0 ) {
 			BufChain bufch = IBufChain::create();
@@ -319,13 +320,13 @@ void CProtoModUdp::dumpInfo(FILE *f)
 
 	fprintf(f,"CProtoModUdp:\n");
 	fprintf(f,"  Peer port : %15u\n",    getDestPort());
-	fprintf(f,"  RX Threads: %15lu\n",   rxHandlers_.size());
+	fprintf(f,"  RX Threads: %15lu\n",   (unsigned long)rxHandlers_.size());
 	fprintf(f,"  ThreadPrio: %15d\n",    threadPriority_);
 	fprintf(f,"  Has Poller:               %c\n", poller_ ? 'Y' : 'N');
-	fprintf(f,"  #TX Octets: %15"PRIu64"\n", getNumTxOctets());
-	fprintf(f,"  #TX DGRAMs: %15"PRIu64"\n", getNumTxDgrams());
-	fprintf(f,"  #RX Octets: %15"PRIu64"\n", getNumRxOctets());
-	fprintf(f,"  #RX DGRAMs: %15"PRIu64"\n", getNumRxDgrams());
+	fprintf(f,"  #TX Octets: %15" PRIu64 "\n", getNumTxOctets());
+	fprintf(f,"  #TX DGRAMs: %15" PRIu64 "\n", getNumTxDgrams());
+	fprintf(f,"  #RX Octets: %15" PRIu64 "\n", getNumRxOctets());
+	fprintf(f,"  #RX DGRAMs: %15" PRIu64  "\n", getNumRxDgrams());
 }
 
 bool CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)
@@ -343,8 +344,8 @@ unsigned       nios;
 	// If they were to fragment a large frame they have to push each
 	// fragment individually.
 
-	nTxDgrams_.fetch_add( 1, boost::memory_order_relaxed );
-	nTxOctets_.fetch_add( bc->getSize(), boost::memory_order_relaxed );
+	nTxDgrams_.fetch_add( 1, cpsw::memory_order_relaxed );
+	nTxOctets_.fetch_add( bc->getSize(), cpsw::memory_order_relaxed );
 
 	for (nios=0, b=bc->getHead(); nios<bc->getLen(); nios++, b=b->getNext()) {
 		iov[nios].iov_base = b->getPayload();

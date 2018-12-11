@@ -19,8 +19,7 @@
 
 #undef HUB_DEBUG
 
-using boost::static_pointer_cast;
-using boost::make_shared;
+using cpsw::static_pointer_cast;
 
 static ByteOrder hbo()
 {
@@ -37,7 +36,7 @@ void _setHostByteOrder(ByteOrder o) { _hostByteOrder = o; }
 CAddressImpl::CAddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
 :owner_(owner), child_( static_cast<CEntryImpl*>(NULL) ), nelms_(nelms), byteOrder_(byteOrder)
 {
-	openCount_.store(0, boost::memory_order_release);
+	openCount_.store(0, cpsw::memory_order_release);
 
 	if ( UNKNOWN == byteOrder )
 		this->byteOrder_ = hostByteOrder();
@@ -121,12 +120,12 @@ Address c;
 	}
 
 	/* return 'our' count */
-	return openCount_.fetch_add(1, boost::memory_order_acq_rel );
+	return openCount_.fetch_add(1, cpsw::memory_order_acq_rel );
 }
 
 int  CAddressImpl::close(CompositePathIterator *node)
 {
-int rval = openCount_.fetch_sub(1, boost::memory_order_acq_rel );
+int rval = openCount_.fetch_sub(1, cpsw::memory_order_acq_rel );
 
 	/* make sure parent is closed */
 	++(*node);
@@ -410,7 +409,7 @@ Dev       meAsDev( getSelfAs<DevImpl>() );
 
 Children CDevImpl::getChildren() const
 {
-Children rval( make_shared<Children::element_type>( children_.size() ) );
+Children rval( cpsw::make_shared<Children::element_type>( children_.size() ) );
 int      i;
 
 MyChildren::iterator it;

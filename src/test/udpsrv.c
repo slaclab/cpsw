@@ -891,8 +891,9 @@ printf("JAM cleared\n");
 			break;
 		}
 #ifdef DEBUG
-		if ( debug )
+		if ( debug ) {
 			printf("fragger sent %d[%d] @ TDEST 0x%02x!\n", fram, frag, sa->txCtx[ctx].tdest);
+		}
 #endif
 
 		if ( ++frag >= sa->txCtx[ctx].n_frags ) {
@@ -1235,6 +1236,13 @@ int i,c;
 			// frame numbers - which we don't want to mess up...
 			continue;
 		}
+
+#ifdef DEBUG
+		if ( debug > 2 ) {
+			printf("Sending stream %d bytes to TDEST %d\n", size, tdest);
+		}
+#endif
+
 		if ( tdest == strm_args[i].srp_tdest ) {
 			fprintf(stderr,"ERROR: cannot post to stream on TDEST %d -- already used by SRP\n", tdest);
 			exit(1);

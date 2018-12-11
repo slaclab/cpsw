@@ -12,9 +12,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <cpsw_compat.h>
 
 class CSockSd;
 typedef shared_ptr<CSockSd> SockSd;
@@ -23,8 +21,19 @@ struct LibSocksProxy;
 
 class CSockSd {
 private:
+	// Wrapper class to get a default constructor
+	struct SA : public sockaddr_in {
+	public:
+		SA();
+		SA( const struct sockaddr_in &);
+	};
+
 	int                  sd_;
 	int                  type_;
+	SA                   me_;
+	SA                  *dest_;
+	bool                 nblk_;
+	bool                 isConn_;
 	const LibSocksProxy *proxy_;
 
 	CSockSd & operator=(const CSockSd &orig);
@@ -48,6 +57,8 @@ public:
 	virtual int getSd() const { return sd_; }
 
 	virtual void init(struct sockaddr_in *dst, struct sockaddr_in *me, bool nonBlocking);
+
+	virtual void reconnect();
 
 	virtual int getMTU();
 };

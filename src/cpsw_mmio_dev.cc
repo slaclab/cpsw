@@ -12,8 +12,9 @@
 #include <inttypes.h>
 
 #include <cpsw_yaml.h>
+#include <cpsw_async_io.h>
 
-#undef  MMIODEV_DEBUG
+//#define MMIODEV_DEBUG
 
 CMMIOAddressImpl::CMMIOAddressImpl(
 			AKey      key,
@@ -31,7 +32,7 @@ CMMIOAddressImpl::CMMIOAddressImpl(
 
 void CMMIOAddressImpl::dump(FILE *f) const
 {
-	CAddressImpl::dump( f ); fprintf(f, "+0x%"PRIx64" (stride %"PRId64")", offset_, stride_);
+	CAddressImpl::dump( f ); fprintf(f, "+0x%" PRIx64 " (stride %" PRId64 ")", offset_, stride_);
 }
 
 uint64_t CMMIOAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
@@ -58,6 +59,17 @@ CReadArgs  nargs = *args;
 	}
 
 	nargs.off_ += this->offset_ + (*node)->idxf_ * getStride();
+
+	/* If we break the read into multiple operations and this is an asynchronous operation
+	 * then we must only notify our caller whan all the operations are complete.
+	 * We use the 'AsyncIOParallelCompletion' to hold the original aio; when the last
+	 * shared pointer to the parallel context goes out of scope (= when all the
+	 * parallel read operations are complete) then we can conveniently execute
+	 * the original callback from the parallel context's destructor.
+	 */
+	if ( to > (*node)->idxf_ && nargs.aio_ ) {
+		nargs.aio_ = IAsyncIOParallelCompletion::create( nargs.aio_ );
+	}
 
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		SlicedPathIterator it( *node, range_p );
@@ -94,12 +106,21 @@ CWriteArgs nargs = *args;
 		nargs.nbytes_ *= (*node)->idxt_ - (*node)->idxf_ + 1;
 		to             = (*node)->idxf_;
 		range_p        = &singleElement;
+#ifdef MMIODEV_DEBUG
+		printf("MMIO write; collapsing range\n");
+#endif
 	} else {
 		to             = (*node)->idxt_;
 		range_p        = 0;
+#ifdef MMIODEV_DEBUG
+		printf("MMIO write; NOT collapsing range\n");
+#endif
 	}
 	nargs.off_ += this->offset_ + (*node)->idxf_ * getStride();
 
+#ifdef MMIODEV_DEBUG
+	printf("MMIO write; iterating from %d -> %d\n", (*node)->idxf_, to);
+#endif
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		SlicedPathIterator it( *node, range_p );
 		rval += CAddressImpl::write(&it, &nargs);
@@ -134,7 +155,7 @@ void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, ui
 {
 	IAddress::AKey k = getAKey();
 	add(
-			make_shared<CMMIOAddressImpl>(k, offset, nelms, stride, byteOrder),
+			cpsw::make_shared<CMMIOAddressImpl>(k, offset, nelms, stride, byteOrder),
 			child
 	   );
 }

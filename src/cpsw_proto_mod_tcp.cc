@@ -17,6 +17,7 @@
 
 #include <errno.h>
 #include <sys/select.h>
+#include <sys/uio.h>
 
 #include <stdio.h>
 
@@ -90,7 +91,7 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 		len = ntohl(len);
 
 #ifdef TCP_DEBUG
-		printf("TCP RX -- got length: %"PRId32"\n", len);
+		printf("TCP RX -- got length: %" PRId32 "\n", len);
 #endif
 
 		siz = len;
@@ -109,8 +110,8 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 			
 		xfer("readv()", ::readv, sd_, iov, idx, len);
 
-		nDgrams_.fetch_add(1,   boost::memory_order_relaxed);
-		nOctets_.fetch_add(len, boost::memory_order_relaxed);
+		nDgrams_.fetch_add(1,   cpsw::memory_order_relaxed);
+		nOctets_.fetch_add(len, cpsw::memory_order_relaxed);
 
 		BufChain bufch = IBufChain::create();
 
@@ -268,10 +269,10 @@ void CProtoModTcp::dumpInfo(FILE *f)
 	fprintf(f,"CProtoModTcp:\n");
 	fprintf(f,"  Peer port : %15u\n",    getDestPort());
 	fprintf(f,"  ThreadPrio: %15d\n",    rxHandler_->getPrio());
-	fprintf(f,"  #TX Octets: %15"PRIu64"\n", getNumTxOctets());
-	fprintf(f,"  #TX DGRAMs: %15"PRIu64"\n", getNumTxDgrams());
-	fprintf(f,"  #RX Octets: %15"PRIu64"\n", getNumRxOctets());
-	fprintf(f,"  #RX DGRAMs: %15"PRIu64"\n", getNumRxDgrams());
+	fprintf(f,"  #TX Octets: %15" PRIu64 "\n", getNumTxOctets());
+	fprintf(f,"  #TX DGRAMs: %15" PRIu64 "\n", getNumTxDgrams());
+	fprintf(f,"  #RX Octets: %15" PRIu64 "\n", getNumRxOctets());
+	fprintf(f,"  #RX DGRAMs: %15" PRIu64 "\n", getNumRxDgrams());
 }
 
 bool CProtoModTcp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)
@@ -303,15 +304,20 @@ unsigned       nios;
 
 	}
 
-	nTxDgrams_.fetch_add( 1, boost::memory_order_relaxed );
-	nTxOctets_.fetch_add( bc->getSize(), boost::memory_order_relaxed );
+	nTxDgrams_.fetch_add( 1, cpsw::memory_order_relaxed );
+	nTxOctets_.fetch_add( bc->getSize(), cpsw::memory_order_relaxed );
 
 	for ( nios=0, b=bc->getHead(); b; nios++, b=b->getNext() ) {
 		iov[nios].iov_base = b->getPayload();
 		iov[nios].iov_len  = b->getSize();
 	}
 
+	{
+	CMtx::lg GUARD( &txMtx_ );
+
 	xfer( "writev()", ::writev, sd_.getSd(), iov, nios, len );
+
+	}
 
 #ifdef TCP_DEBUG
 	printf("TCP doPush -- wrote %ld\n", bc->getSize());

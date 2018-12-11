@@ -12,6 +12,7 @@
 #include <vector>
 #include <string>
 #include <dlfcn.h>
+#include <getopt.h>
 
 #define USE_FOR_TESTPROGRAM_ONLY
 #include <cpsw_myCommand.h>

@@ -14,14 +14,13 @@
 #include <cpsw_proto_mod.h>
 #include <cpsw_thread.h>
 #include <cpsw_sock.h>
+#include <cpsw_mutex.h>
+#include <cpsw_compat.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include <boost/atomic.hpp>
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
-using boost::atomic;
+using cpsw::atomic;
 
 class CProtoModTcp;
 typedef shared_ptr<CProtoModTcp> ProtoModTcp;
@@ -53,8 +52,8 @@ protected:
 			CRxHandlerThread(const char *name, int threadPriority, int sd, CProtoModTcp *owner);
 			CRxHandlerThread(CRxHandlerThread &orig, int sd, CProtoModTcp *owner);
 
-			virtual uint64_t getNumOctets() { return nOctets_.load( boost::memory_order_relaxed ); }
-			virtual uint64_t getNumDgrams() { return nDgrams_.load( boost::memory_order_relaxed ); }
+			virtual uint64_t getNumOctets() { return nOctets_.load( cpsw::memory_order_relaxed ); }
+			virtual uint64_t getNumDgrams() { return nDgrams_.load( cpsw::memory_order_relaxed ); }
 
 			virtual ~CRxHandlerThread() { threadStop(); }
 	};
@@ -65,6 +64,8 @@ private:
 	CSockSd            sd_;
 	atomic<uint64_t>   nTxOctets_;
 	atomic<uint64_t>   nTxDgrams_;
+	CMtx               txMtx_;
+
 protected:
 	CRxHandlerThread  *rxHandler_;
 
@@ -115,8 +116,8 @@ public:
 
 	virtual unsigned getMTU();
 
-	virtual uint64_t getNumTxOctets() { return nTxOctets_.load( boost::memory_order_relaxed ); }
-	virtual uint64_t getNumTxDgrams() { return nTxDgrams_.load( boost::memory_order_relaxed ); }
+	virtual uint64_t getNumTxOctets() { return nTxOctets_.load( cpsw::memory_order_relaxed ); }
+	virtual uint64_t getNumTxDgrams() { return nTxDgrams_.load( cpsw::memory_order_relaxed ); }
 	virtual uint64_t getNumRxOctets();
 	virtual uint64_t getNumRxDgrams();
 	virtual void modStartup();

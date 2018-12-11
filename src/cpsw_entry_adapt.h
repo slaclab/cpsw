@@ -15,8 +15,6 @@
 #include <cpsw_address.h>
 #include <cpsw_path.h>
 
-using boost::dynamic_pointer_cast;
-
 class IEntryAdapt;
 typedef shared_ptr<IEntryAdapt> EntryAdapt;
 
@@ -94,7 +92,7 @@ template <typename INTERF> INTERF IEntryAdapt::check_interface(Path p)
 
 	EntryAdapt adapter( ei->createAdapter( key, p, typeid(typename INTERF::element_type) ) );
 	INTERF     rval;
-	if ( adapter && (rval = dynamic_pointer_cast<typename INTERF::element_type>( adapter )) ) {
+	if ( adapter && (rval = cpsw::dynamic_pointer_cast<typename INTERF::element_type>( adapter )) ) {
 		CEntryImpl::UniqueHandle uniq;
 
 		if ( singleInterfaceOnly() ) {
@@ -119,7 +117,7 @@ template <typename ADAPT, typename IMPL> ADAPT IEntryAdapt::check_interface(Path
 		throw InvalidArgError("Empty Path");
 
 	Address a = CompositePathIterator( p )->c_p_;
-	shared_ptr<const typename IMPL::element_type> e = dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
+	shared_ptr<const typename IMPL::element_type> e = cpsw::dynamic_pointer_cast<const typename IMPL::element_type, CEntryImpl>( a->getEntryImpl() );
 	if ( e ) {
 		CEntryImpl::UniqueHandle uniq;
 

@@ -160,7 +160,7 @@ uint32_t ncmd;
 		case AXI_SPI_EEPROM_CMD_OFF       :
 #ifdef DEBUG
 			if ( debug )
-				printf("AXIPROM: set cmd: 0x%08"PRIx32"\n", *data);
+				printf("AXIPROM: set cmd: 0x%08" PRIx32 "\n", *data);
 #endif
 			memcpy( &ncmd, data, sizeof(ncmd));
 			switch ( ncmd ) {
@@ -233,12 +233,12 @@ uint32_t ncmd;
 			memcpy(datareg, data, nbytes);
 			break;
 		default:
-			fprintf(stderr,"AXIPROM: Unrecognized offset 0x%08"PRIx64"\n", off);
+			fprintf(stderr,"AXIPROM: Unrecognized offset 0x%08" PRIx64 "\n", off);
 			return -1;
 	}
 	return 0;
 fault:
-	fprintf(stderr,"AXIPROM: Unable to handle write command 0x%08"PRIx32"\n", *data);
+	fprintf(stderr,"AXIPROM: Unable to handle write command 0x%08" PRIx32 "\n", *data);
 	return -1;
 }
 

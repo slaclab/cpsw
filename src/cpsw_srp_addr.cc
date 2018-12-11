@@ -1,17 +1,18 @@
- //@C Copyright Notice
- //@C ================
- //@C This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
- //@C file found in the top-level directory of this distribution and at
- //@C https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
- //@C
- //@C No part of CPSW, including this file, may be copied, modified, propagated, or
- //@C distributed except according to the terms contained in the LICENSE.txt file.
+//@C Copyright Notice
+//@C ================
+//@C This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
+//@C file found in the top-level directory of this distribution and at
+//@C https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+//@C
+//@C No part of CPSW, including this file, may be copied, modified, propagated, or
+//@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #define __STDC_FORMAT_MACROS
 
 #include <inttypes.h>
 
 #include <cpsw_srp_addr.h>
+#include <cpsw_srp_transactions.h>
 
 #include <cpsw_proto_mod_srpmux.h>
 
@@ -19,9 +20,7 @@
 
 #include <cpsw_yaml.h>
 
-using boost::dynamic_pointer_cast;
-
-typedef uint32_t SRPWord;
+using cpsw::dynamic_pointer_cast;
 
 //#define SRPADDR_DEBUG 0
 //#define TIMEOUT_DEBUG
@@ -32,6 +31,13 @@ typedef uint32_t SRPWord;
 // the board stops responding and must be rebooted!
 // UPDATE: writes officially only support 4kB max.
 #define MAXTXWORDS 1024
+
+// If multiple words need to be read back for an RMW operation
+// then -- instead of reading the first and second words separately
+// we can collapse into a single read operation.
+#define RMW_COLLAPSE_EXTRA_WORDS 7
+
+#define SRPWRDALGNMSK ((sizeof(SRPWord) - 1))
 
 static bool hasRssi(ProtoPort stack)
 {
@@ -47,24 +53,67 @@ ProtoPortMatchParams cmp;
 	return cmp.requestedMatches() == cmp.findMatches( stack );
 }
 
+CSRPAsyncHandler::CSRPAsyncHandler(AsyncIOTransactionManager xactMgr, CSRPAddressImpl *srp)
+: CRunnable("SRP Async Handler"),
+  xactMgr_ ( xactMgr           ),
+  srp_     ( srp               )
+{
+}
+
+bool
+CSRPAsyncHandler::threadStop(void **join_p)
+{
+bool rval = CRunnable::threadStop(join_p);
+	door_.reset();
+	return rval;
+}
+
+void
+CSRPAsyncHandler::threadStart(ProtoDoor door)
+{
+	door_ = door;
+	CRunnable::threadStart();
+}
+
+void *
+CSRPAsyncHandler::threadBody()
+{
+	while ( 1 ) {
+		BufChain rchn = door_->pop( 0, true );
+
+		++stats_;
+
+		uint32_t tid_bits = srp_->extractTid( rchn );
+
+		xactMgr_->complete( rchn, tid_bits );
+	}
+	return 0;
+}
+
 
 CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort stack)
-:CCommAddressImpl(key, stack),
- protoVersion_(bldr->getSRPVersion()),
- usrTimeout_(bldr->getSRPTimeoutUS()),
- dynTimeout_(usrTimeout_),
- useDynTimeout_(bldr->hasSRPDynTimeout()),
- retryCnt_(bldr->getSRPRetryCount() & 0xffff), // undocumented hack to test byte-resolution access
- nRetries_(0),
- nWrites_(0),
- nReads_(0),
- vc_(bldr->getSRPMuxVirtualChannel()),
- tid_(0),
- byteResolution_( bldr->getSRPVersion() >= IProtoStackBuilder::SRP_UDP_V3 && bldr->getSRPRetryCount() > 65535 ),
- maxWordsRx_( 0 ),
- maxWordsTx_( 0 ),
- defaultWriteMode_( bldr->getSRPDefaultWriteMode() ),
- mutex_( CMtx::AttrRecursive(), "SRPADDR" )
+: CCommAddressImpl( key, stack                                                                     ),
+  protoVersion_   ( bldr->getSRPVersion()                                                          ),
+  usrTimeout_     ( bldr->getSRPTimeoutUS()                                                        ),
+  dynTimeout_     ( usrTimeout_                                                                    ),
+  useDynTimeout_  ( bldr->hasSRPDynTimeout()                                                       ),
+  retryCnt_       ( bldr->getSRPRetryCount() & 0xffff /* undocumented hack to test byte-resolution access */ ),
+  nRetries_       ( 0                                                                              ),
+  nWrites_        ( 0                                                                              ),
+  nReads_         ( 0                                                                              ),
+  vc_             ( bldr->getSRPMuxVirtualChannel()                                                ),
+  needsSwap_      ( (protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ? LE : BE) == hostByteOrder() ),
+  needsPldSwap_   (  protoVersion_ == IProtoStackBuilder::SRP_UDP_V1                               ),
+  tid_            ( 0                                                                              ),
+  byteResolution_ (    bldr->getSRPVersion() >= IProtoStackBuilder::SRP_UDP_V3
+                    && bldr->getSRPRetryCount() > 65535                                            ),
+  maxWordsRx_     ( 0                                                                              ),
+  maxWordsTx_     ( 0                                                                              ),
+  defaultWriteMode_( bldr->getSRPDefaultWriteMode()
+                   ),
+  asyncXactMgr_   ( IAsyncIOTransactionManager::create( usrTimeout_.getUs() )                      ),
+  asyncIOHandler_ ( asyncXactMgr_, this                                                            ),
+  mutex_          ( CMtx::AttrRecursive(), "SRPADDR"                                               )
 {
 ProtoModSRPMux       srpMuxMod( dynamic_pointer_cast<ProtoModSRPMux::element_type>( stack->getProtoMod() ) );
 int                  nbits;
@@ -80,9 +129,12 @@ int                  nbits;
 	if ( ! srpMuxMod )
 		throw InternalError("No SRP Mux? Found");
 
+
 	tidLsb_ = 1 << srpMuxMod->getTidLsb();
 	nbits   = srpMuxMod->getTidNumBits();
 	tidMsk_ = (nbits > 31 ? 0xffffffff : ( (1<<nbits) - 1 ) ) << srpMuxMod->getTidLsb();
+
+	asyncIOPort_ = srpMuxMod->createPort( vc_ | 0x80, bldr->getSRPMuxOutQueueDepth() );
 }
 
 void
@@ -94,7 +146,7 @@ ProtoPort            stack = getProtoStack();
 	CCommAddressImpl::startProtoStack();
 
 	// there seems to be a bug in either the depacketizer or SRP:
-	// weird things happen if fragment payload is not 8-byte 
+	// weird things happen if fragment payload is not 8-byte
 	// aligned
 	mtu_        = (mtu_ / 8) * 8;
 
@@ -117,7 +169,7 @@ ProtoPort            stack = getProtoStack();
 	}
 
 #ifdef SRPADDR_DEBUG
-	printf("SRP: MTU is %d; maxwords %d, TX: %d, RX: %d\n", mtu_, maxwords, maxWordsRx_, maxWordsTx_);
+	fprintf(stderr, "SRP: MTU is %d; maxwords %d, TX: %d, RX: %d\n", mtu_, maxwords, maxWordsRx_, maxWordsTx_);
 #endif
 }
 
@@ -182,13 +234,12 @@ struct timespec now;
 	if ( attempt > 0 ) {
 		CTimeout xx(now);
 		xx -= CTimeout(*then);
-		printf("%s -- retry (attempt %d) took %"PRId64"us\n", pre, attempt, xx.getUs());
+		fprintf(stderr, "%s -- retry (attempt %d) took %" PRId64 "us\n", pre, attempt, xx.getUs());
 	}
 	*then = now;
 }
 #endif
 
-#define CMD_READ  0x00000000
 #define CMD_WRITE 0x40000000
 
 #define CMD_READ_V3         0x000
@@ -197,125 +248,69 @@ struct timespec now;
 
 #define PROTO_VERS_3     3
 
-typedef struct srp_iovec {
-	void  *iov_base;
-	size_t iov_len;
-} IOVec;
+static CFreeList<CSRPAsyncReadTransaction, CAsyncIOTransaction> srpReadTransactionPool;
+
+uint32_t
+CSRPAddressImpl::extractTid(BufChain rchn) const
+{
+uint32_t msgTid;
+
+unsigned tidOff = getProtoVersion() == IProtoStackBuilder::SRP_UDP_V2 ? 0 : 4;
+
+	if ( 0 == rchn->extract( &msgTid, tidOff, sizeof(msgTid) ) ) {
+		throw InternalError("No TID found in SRP message\n");
+	}
+	if ( needsHdrSwap() ) {
+		swp32( &msgTid );
+	}
+	return toTid( msgTid );
+}
+
+uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes, AsyncIO aio) const
+{
+SRPAsyncReadTransaction xact = srpReadTransactionPool.alloc();
+
+	xact->reset( this, dst, off, sbytes );
+
+	// post this transaction to the manager
+	asyncXactMgr_->post( xact, xact->getTid(), aio );
+
+	// If we are open then the async door must also be open
+	xact->post( asyncIOHandler_.getDoor(), mtu_ );
+
+	return 0;
+}
 
 uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
 {
-SRPWord  bufh[5];
-unsigned hwrds;
-uint8_t  buft[sizeof(SRPWord)];
-SRPWord  xbuf[5];
-SRPWord  header;
-SRPWord  status;
-unsigned i;
-int      j, put;
-unsigned headbytes = (byteResolution_ ? 0 : (off & (sizeof(SRPWord)-1)) );
-unsigned tailbytes = 0;
-int      totbytes;
-IOVec    iov[5];
-int      got;
-int      nWords;
-int      expected = 0;
-int      tidoffwrd;
-uint32_t tid = getTid();
 #ifdef SRPADDR_DEBUG
-struct timespec retry_then = {0};
+struct timespec retry_then;
 #endif
 
-	// V1 sends payload in network byte order. We want to transform to restore
-	// the standard AXI layout which is little-endian
-	bool doSwapV1 = (IProtoStackBuilder::SRP_UDP_V1 == protoVersion_);
-	// header info needs to be swapped to host byte order since we interpret it
-	bool doSwap   =	( ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ? LE : BE ) == hostByteOrder() );
-
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP readBlk_unlocked off %"PRIx64"; sbytes %d, swapV1 %d, swap %d protoVersion %d\n", off, sbytes, doSwapV1, doSwap, protoVersion_);
+	fprintf(stderr, "SRP readBlk_unlocked off %" PRIx64 "; sbytes %d, protoVersion %d\n", off, sbytes, protoVersion_);
 #endif
 
 	if ( sbytes == 0 )
 		return 0;
 
-	totbytes = headbytes + sbytes;
+	CSRPReadTransaction xact( this, dst, off, sbytes );
 
-	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
-
-	put = expected = 0;
-	if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
-		xbuf[put++] = vc_ << 24;
-		expected += 1;
-	}
-	if ( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 ) {
-		xbuf[put++] = tid;
-		xbuf[put++] = (off >> 2) & 0x3fffffff;
-		xbuf[put++] = nWords   - 1;
-		xbuf[put++] = 0;
-		expected += 3;
-		hwrds       = 2;
-		tidoffwrd   = 0;
-	} else {
-		xbuf[put++] = CMD_READ_V3 | PROTO_VERS_3;
-		xbuf[put++] = tid;
-		xbuf[put++] =   byteResolution_ ? off       : off & ~3ULL;
-		xbuf[put++] = off >> 32;
-		xbuf[put++] = ( byteResolution_ ? totbytes : (nWords << 2) ) - 1;
-		expected += 6;
-		hwrds       = 5;
-		tidoffwrd   = 1;
-	}
-
-	// V2,V3 uses LE, V1 network (aka BE) layout
-	if ( doSwap ) {
-		for ( j=0; j<put; j++ ) {
-			swp32( &xbuf[j] );
-		}
-	}
-
-	i = 0;
-	if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
-		iov[i].iov_base = &header;
-		iov[i].iov_len  = sizeof( header );
-		i++;
-	}
-	iov[i].iov_base = bufh;
-	iov[i].iov_len  = hwrds*sizeof(SRPWord) + headbytes;
-	i++;
-
-	iov[i].iov_base = dst;
-	iov[i].iov_len  = sbytes;
-	i++;
-
-	if ( totbytes & (sizeof(SRPWord)-1) ) {
-		tailbytes       = sizeof(SRPWord) - (totbytes & (sizeof(SRPWord)-1));
-		// padding if not word-aligned
-		iov[i].iov_base = buft;
-		iov[i].iov_len  = tailbytes;
-		i++;
-	}
-
-	iov[i].iov_base = &status;
-	iov[i].iov_len  = sizeof(SRPWord);
-	i++;
-
-	unsigned iovlen  = i;
 	unsigned attempt = 0;
 
 	do {
-		BufChain xchn = IBufChain::create();
+		uint32_t tidBits;
 		BufChain rchn;
 
-		xchn->insert( xbuf, 0, sizeof(xbuf[0])*put, mtu_ );
+		xact.post( door_, mtu_ );
 
 		struct timespec then, now;
 		if ( clock_gettime(CLOCK_REALTIME, &then) ) {
 			throw IOError("clock_gettime(then) failed", errno);
 		}
 
-		door_->push( xchn, 0, IProtoPort::REL_TIMEOUT );
-
 		do {
+
 			rchn = door_->pop( dynTimeout_.getp(), IProtoPort::REL_TIMEOUT );
 			if ( ! rchn ) {
 #ifdef SRPADDR_DEBUG
@@ -328,104 +323,14 @@ struct timespec retry_then = {0};
 				throw IOError("clock_gettime(now) failed", errno);
 			}
 
-			got = rchn->getSize();
+			tidBits = extractTid( rchn );
 
-			unsigned bufoff = 0;
-
-			for ( i=0; i<iovlen; i++ ) {
-				rchn->extract(iov[i].iov_base, bufoff, iov[i].iov_len);
-				bufoff += iov[i].iov_len;
-			}
-
-#ifdef SRPADDR_DEBUG
-			printf("got %i bytes, off 0x%"PRIx64", sbytes %i, nWords %i\n", got, off, sbytes, nWords  );
-			printf("got %i bytes\n", got);
-			for (i=0; i<hwrds; i++ )
-				printf("header[%i]: %x\n", i, bufh[i]);
-			for ( i=0; i<headbytes; i++ ) {
-				printf("headbyte[%i]: %x\n", i, ((uint8_t*)&bufh[hwrds])[i]);
-			}
-
-#if SRPADDR_DEBUG > 1
-			for ( i=0; (unsigned)i<sbytes; i++ ) {
-				printf("chr[%i]: %x %c\n", i, dst[i], dst[i]);
-			}
-#endif
-
-			for ( i=0; i < tailbytes; i++ ) {
-				printf("tailbyte[%i]: %x\n", i, buft[i]);
-			}
-#endif
-			if ( doSwap ) {
-				swp32( &bufh[tidoffwrd] );
-			}
-		} while ( (bufh[tidoffwrd] & tidMsk_) != tid );
+		} while ( ! tidMatch( tidBits , xact.getTid() ) );
 
 		if ( useDynTimeout_ )
 			dynTimeout_.update( &now, &then );
 
-		if ( got != (int)sizeof(bufh[0])*(nWords + expected) ) {
-			if ( got < (int)sizeof(bufh[0])*expected ) {
-				printf("got %i, nw %i, exp %i\n", got, nWords, expected);
-				throw IOError("Received message (read response) truncated");
-			} else {
-				rchn->extract( &status, got - sizeof(status), sizeof(status) );
-				if ( doSwap )
-					swp32( &status );
-				throw BadStatusError("SRP Read terminated with bad status", status);
-			}
-		}
-
-		if ( doSwapV1 ) {
-			// switch payload back to LE
-			uint8_t  tmp[sizeof(SRPWord)];
-			unsigned hoff = 0;
-			if ( headbytes ) {
-				hoff += sizeof(SRPWord) - headbytes;
-				memcpy(tmp, &bufh[2], headbytes);
-				if ( hoff > sbytes ) {
-					// special case where a single word covers bufh, dst and buft
-					memcpy(tmp+headbytes,        dst , sbytes);
-					// note: since headbytes < 4 -> hoff < 4
-					//       and since sbytes < hoff -> sbytes < 4 -> sbytes == sbytes % 4
-					//       then we have: headbytes = off % 4
-					//                     totbytes  = off % 4 + sbytes  and totbytes % 4 == (off + sbytes) % 4 == headbytes + sbytes
-					//                     tailbytes =  4 - (totbytes % 4)
-					//       and thus: headbytes + tailbytes + sbytes  == 4
-					memcpy(tmp+headbytes+sbytes, buft, tailbytes);
-				} else {
-					memcpy(tmp+headbytes, dst, hoff);
-				}
-#ifdef SRPADDR_DEBUG
-				for (i=0; i< sizeof(SRPWord); i++) printf("headbytes tmp[%i]: %x\n", i, tmp[i]);
-#endif
-				swpw( tmp );
-				memcpy(dst, tmp+headbytes, hoff);
-			}
-			int jend =(((int)(sbytes - hoff)) & ~(sizeof(SRPWord)-1));
-			for ( j = 0; j < jend; j+=sizeof(SRPWord) ) {
-				swpw( dst + hoff + j );
-			}
-			if ( tailbytes && (hoff <= sbytes) ) { // cover the special case mentioned above
-				memcpy(tmp, dst + hoff + j, sizeof(SRPWord) - tailbytes);
-				memcpy(tmp + sizeof(SRPWord) - tailbytes, buft, tailbytes);
-#ifdef SRPADDR_DEBUG
-				for (i=0; i< sizeof(SRPWord); i++) printf("tailbytes tmp[%i]: %"PRIx8"\n", i, tmp[i]);
-#endif
-				swpw( tmp );
-				memcpy(dst + hoff + j, tmp, sizeof(SRPWord) - tailbytes);
-			}
-#ifdef SRPADDR_DEBUG
-			for ( i=0; i< sbytes; i++ ) printf("swapped dst[%i]: %x\n", i, dst[i]);
-#endif
-		}
-		if ( doSwap ) {
-			swp32( &status );
-			swp32( &header );
-		}
-		if ( status ) {
-			throw BadStatusError("reading SRP", status);
-		}
+		xact.complete( rchn );
 
 		return sbytes;
 
@@ -441,11 +346,47 @@ retry:
 
 	throw IOError("No response -- timeout");
 }
-	
+
+
+int
+CSRPAddressImpl::open (CompositePathIterator *node)
+{
+CMtx::lg guard( & doorMtx_ );
+
+int rval = CAddressImpl::open( node );
+
+	if ( 0 == rval ) {
+		door_        = getProtoStack()->open();
+		// open a second VC for asynchronous communication
+		asyncIOHandler_.threadStart( asyncIOPort_->open() );
+#ifdef SRPADDR_DEBUG
+		fprintf(stderr, "SRP Open\n");
+#endif
+	}
+
+	return rval;
+}
+
+int
+CSRPAddressImpl::close(CompositePathIterator *node)
+{
+CMtx::lg guard( &doorMtx_ );
+
+int rval = CAddressImpl::close( node );
+	if ( 1 == rval ) {
+#ifdef SRPADDR_DEBUG
+		fprintf(stderr, "SRP Close\n");
+#endif
+		door_.reset();
+		asyncIOHandler_.threadStop();
+	}
+	return rval;
+}
+
 uint64_t CSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 uint64_t rval            = 0;
-unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
+unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & SRPWRDALGNMSK) );
 uint64_t off             = args->off_;
 uint8_t *dst             = args->dst_;
 unsigned sbytes          = args->nbytes_;
@@ -459,19 +400,33 @@ unsigned nWords;
 	totbytes = headbytes + sbytes;
 	nWords   = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
-	CMtx::lg GUARD( &mutex_ );
-
-	while ( nWords > maxWordsRx_ ) {
-		int nbytes = maxWordsRx_*4 - headbytes;
-		rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);	
-		nWords -= maxWordsRx_;
-		sbytes -= nbytes;	
-		dst    += nbytes;
-		off    += nbytes;
-		headbytes = 0;
+	if ( args->aio_ ) {
+		args->aio_ =  IAsyncIOParallelCompletion::create( args->aio_ );
 	}
 
-	rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes);
+	{
+	CMtx::lg GUARD( &mutex_ );
+
+		while ( nWords > maxWordsRx_ ) {
+			int nbytes = maxWordsRx_*4 - headbytes;
+			if ( args->aio_ ) {
+				rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes, args->aio_);
+			} else {
+				rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);
+			}
+			nWords -= maxWordsRx_;
+			sbytes -= nbytes;
+			dst    += nbytes;
+			off    += nbytes;
+			headbytes = 0;
+		}
+
+		if ( args->aio_ ) {
+			rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes, args->aio_);
+		} else {
+			rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes);
+		}
+	}
 
 	nReads_++;
 
@@ -519,18 +474,15 @@ int      j;
 uint64_t CSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
 SRPWord  xbuf[5];
-SRPWord  status;
-SRPWord  header;
 SRPWord  zero = 0;
 SRPWord  pad  = 0;
-uint8_t  first_word[sizeof(SRPWord)];
+uint8_t  first_words[sizeof(SRPWord)*(1+RMW_COLLAPSE_EXTRA_WORDS)];
 uint8_t  last_word[sizeof(SRPWord)];
 int      j, put;
 unsigned i;
-unsigned headbytes       = ( byteResolution_ ? 0 : (off & (sizeof(SRPWord)-1)) );
+unsigned headbytes       = ( byteResolution_ ? 0 : (off & SRPWRDALGNMSK) );
 unsigned totbytes;
 IOVec    iov[5];
-int      got;
 int      nWords;
 uint32_t tid;
 int      iov_pld = -1;
@@ -538,7 +490,6 @@ int      iov_pld = -1;
 struct timespec retry_then = {0}; // initialize to avoid compiler warning
 #endif
 int      expected;
-int      tidoff;
 int      firstlen = 0, lastlen = 0; // silence compiler warning about un-initialized use
 int      posted   = (    POSTED        == defaultWriteMode_
                       && protoVersion_ >= IProtoStackBuilder::SRP_UDP_V3 );
@@ -547,82 +498,99 @@ int      posted   = (    POSTED        == defaultWriteMode_
 		return 0;
 
 	// these look similar but are different...
-	bool doSwapV1 =  (protoVersion_ == IProtoStackBuilder::SRP_UDP_V1);
-	bool doSwap   = ((protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ? LE : BE) == hostByteOrder() );
+	bool doSwapV1 = needsPayloadSwap();
+	bool doSwap   = needsHdrSwap();
 
-	totbytes = headbytes + dbytes;
+	totbytes      = headbytes + dbytes;
 
-	nWords = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
+	nWords        = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP writeBlk_unlocked off %"PRIx64"; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i, msk1 0x%02x, mskn 0x%02x\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords, msk1, mskn);
+	fprintf(stderr, "SRP writeBlk_unlocked off %" PRIx64 "; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i, msk1 0x%02x, mskn 0x%02x\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords, msk1, mskn);
 #endif
 
 
-	bool merge_first = headbytes      || msk1;
-	bool merge_last  = ( ! byteResolution_ && (totbytes & (sizeof(SRPWord)-1)) ) || mskn;
+	bool merge_first            = headbytes || msk1;
+	bool merge_last             = ( ! byteResolution_ && (totbytes & SRPWRDALGNMSK) ) || mskn;
+	bool lastbyte_in_firstwords = false;
 
 	if ( (merge_first || merge_last) && cacheable < IField::WB_CACHEABLE ) {
 		throw IOError("Cannot merge bits/bytes to non-cacheable area");
 	}
 
-	int toput = dbytes;
+	AsyncIO                 aio;
+	AsyncIOCompletionWaiter wai;
+
+	// Note on merging of posted writes:
+	// We want/need to maintain the order of transactions as issued by
+	// the user. This means that if we have a write transaction which
+	// requires RMW then we have to wait until the readback values
+	// come in until we can issue the write -- or any further transactions.
+	// Most notably, we *cannot* postpone issueing the write transaction
+	// until the read results come back because other transactions could
+	// then be scheduled meanwhile.
+	// All of this boils down to asynchronous readbacks only being (slightly)
+	// beneficial if we need two readback operations (which can then be
+	// sent 'in parallel').
+
+	if ( merge_first && merge_last ) {
+		if ( dbytes == 1 ) {
+			// first and last byte overlap
+			msk1       |= mskn;
+			merge_last  = false;
+		} else if ( totbytes <= sizeof(first_words) ) {
+			// first and last byte still in first word but do not overlap
+            lastbyte_in_firstwords = true;
+			merge_last             = false;
+		} else {
+			// must merge both; can issue asynchronous reads.
+			//
+			// Since we must synchronize posting the write operation
+			// with
+			wai = IAsyncIOCompletionWaiter::create();
+			aio = IAsyncIOParallelCompletion::create( wai );
+		}
+	}
+
+	int toput       = dbytes;
+	int first_byte  = headbytes;
+	int last_byte   = 0; // keep compiler happy
+	int remaining   = 0; // keep compiler happy
 
 	if ( merge_first ) {
-		if ( merge_last && dbytes == 1 ) {
-			// first and last byte overlap
-			msk1 |= mskn;
-			merge_last = false;
-		}
-
-		int first_byte = headbytes;
-		int remaining;
 
 		CReadArgs rargs;
 		rargs.cacheable_  = cacheable;
-		rargs.dst_        = first_word;
+		rargs.dst_        = first_words;
 
-		bool lastbyte_in_firstword =  ( merge_last && totbytes <= (int)sizeof(SRPWord) );
 
 		if ( byteResolution_ ) {
-			if ( lastbyte_in_firstword ) {
-				rargs.nbytes_ = totbytes; //lastbyte_in_firstword implies totbytes <= sizeof(SRPWord)
+			if ( lastbyte_in_firstwords ) {
+				rargs.nbytes_ = totbytes; //lastbyte_in_firstwords implies totbytes <= sizeof(first_words)
 			} else {
 				rargs.nbytes_ = 1;
 			}
 			rargs.off_    = off;
+			firstlen      = rargs.nbytes_;
 		} else {
-			rargs.nbytes_ = sizeof(first_word);
-			rargs.off_    = off & ~3ULL;
+			rargs.nbytes_ = lastbyte_in_firstwords ? (totbytes + sizeof(SRPWord) - 1) & ~SRPWRDALGNMSK : sizeof(SRPWord);
+			rargs.off_    = off & ~(unsigned long long)SRPWRDALGNMSK;
 		}
 		remaining = (totbytes <= rargs.nbytes_ ? totbytes : rargs.nbytes_) - first_byte - 1;
 
-		firstlen  = rargs.nbytes_;
+		firstlen   = rargs.nbytes_;
+		if ( firstlen > static_cast<int>( sizeof(SRPWord) ) ) {
+			// clip in case we collapse a 1st + last read into a single operation
+			firstlen = sizeof(SRPWord);
+		}
+
+		rargs.aio_ = aio;
 
 		read(node, &rargs);
-
-		first_word[ first_byte  ] = (first_word[ first_byte ] & msk1) | (src[0] & ~msk1);
-
-		toput--;
-
-		if ( lastbyte_in_firstword ) {
-			// totbytes must be <= sizeof(SRPWord) and > 0 (since last==first was handled above)
-			int last_byte = (totbytes-1);
-			first_word[ last_byte  ] = (first_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
-			remaining--;
-			toput--;
-			merge_last = false;
-		}
-
-		if ( remaining > 0 ) {
-			memcpy( first_word + first_byte + 1, src + 1, remaining );
-			toput -= remaining;
-		}
 	}
 	if ( merge_last ) {
 
 		CReadArgs rargs;
-		int       last_byte;
 
 		rargs.cacheable_ = cacheable;
 		rargs.dst_       = last_word;
@@ -633,21 +601,67 @@ int      posted   = (    POSTED        == defaultWriteMode_
 			last_byte        = 0;
 		} else {
 			rargs.nbytes_    = sizeof(last_word);
-			rargs.off_       = (off + dbytes - 1) & ~3ULL;
-			last_byte        = (totbytes-1) & (sizeof(SRPWord)-1);
+			rargs.off_       = (off + dbytes - 1) & ~ (unsigned long long)SRPWRDALGNMSK;
+			last_byte        = (totbytes-1)       & SRPWRDALGNMSK;
 		}
 
 		lastlen = rargs.nbytes_;
 
+        // must make sure not to hold
+        // any ref. to the parallel completion waiter
+        // (it won't complete until destroyed!)
+        rargs.aio_.swap(aio);
+
 		read(node, &rargs);
 
-		last_word[ last_byte  ] = (last_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
+	}
+
+	if ( wai ) {
+		// block until readbacks come in
+		wai->wait();
+	}
+
+	if ( merge_first ) {
+
+		first_words[ first_byte  ] = (first_words[ first_byte ] & msk1) | (src[0] & ~msk1);
+
+		toput--;
+
+		if ( lastbyte_in_firstwords ) {
+			// totbytes must be <= sizeof(first_words) and > 0 (since last==first was handled above)
+
+			if ( totbytes > sizeof(SRPWord) ) {
+				// read multiple words to get the first+last in a single operation
+				memcpy( last_word, first_words + ( (totbytes - 1) & ~SRPWRDALGNMSK ), sizeof(last_word) );
+                merge_last = true;
+				last_byte  = (totbytes - 1) & SRPWRDALGNMSK;
+				lastlen    = (byteResolution_ ? last_byte + 1 : sizeof(last_word));
+			} else {
+				last_byte = (totbytes-1);
+				first_words[ last_byte  ] = (first_words[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
+				remaining--;
+				toput--;
+			}
+		}
+
+		if ( remaining > 0 ) {
+			memcpy( first_words + first_byte + 1, src + 1, remaining );
+			toput -= remaining;
+		}
+	}
+
+	if ( merge_last ) {
+
 		toput--;
 
 		if ( last_byte > 0 ) {
 			memcpy(last_word, &src[dbytes-1-last_byte], last_byte);
 			toput -= last_byte;
 		}
+#ifdef SRPADDR_DEBUG
+		fprintf(stderr,"merge_last: last_byte %d, lastlen %d, toput %d, firstlen %d, byteres %d\n", last_byte, lastlen, toput, firstlen, byteResolution_);
+#endif
+		last_word[ last_byte  ] = (last_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
 	}
 
 	put = 0;
@@ -655,22 +669,19 @@ int      posted   = (    POSTED        == defaultWriteMode_
 
 	if ( protoVersion_ < IProtoStackBuilder::SRP_UDP_V3 ) {
 		expected    = 3;
-		tidoff      = 0;
 		if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
 			xbuf[put++] = vc_ << 24;
 			expected++;
-			tidoff  = 4;
 		}
 		xbuf[put++] = tid;
 		xbuf[put++] = ((off >> 2) & 0x3fffffff) | CMD_WRITE;
 	} else {
 		xbuf[put++] = (posted ? CMD_POSTED_WRITE_V3 : CMD_WRITE_V3) | PROTO_VERS_3;
 		xbuf[put++] = tid;
-		xbuf[put++] = ( byteResolution_ ? off : (off & ~3ULL) );
+		xbuf[put++] = ( byteResolution_ ? off : (off & ~(uint64_t)SRPWRDALGNMSK) );
 		xbuf[put++] = off >> 32;
 		xbuf[put++] = ( byteResolution_ ? totbytes : nWords << 2 ) - 1;
 		expected    = 6;
-		tidoff      = 4;
 	}
 
 	if ( doSwap ) {
@@ -689,8 +700,8 @@ int      posted   = (    POSTED        == defaultWriteMode_
 	if ( merge_first ) {
 		iov[i].iov_len  = firstlen;
 		if ( doSwapV1 )
-			swpw( first_word );
-		iov[i].iov_base = first_word;
+			swpw( first_words );
+		iov[i].iov_base = first_words;
 		i++;
 	}
 
@@ -722,18 +733,18 @@ int      posted   = (    POSTED        == defaultWriteMode_
 		iov[i].iov_base = &zero;
 		iov[i].iov_len  = sizeof(SRPWord);
 		i++;
-	} else if ( byteResolution_ && (totbytes & 3) ) {
+	} else if ( byteResolution_ && (totbytes & SRPWRDALGNMSK) ) {
 		iov[i].iov_base = &pad;
-		iov[i].iov_len  = sizeof(SRPWord) - (totbytes & 3);
+		iov[i].iov_len  = sizeof(SRPWord) - (totbytes & SRPWRDALGNMSK);
 		i++;
 	}
 
 	unsigned attempt = 0;
-	uint32_t got_tid;
 	unsigned iovlen  = i;
 
-	do {
+	CSRPWriteTransaction xact( this, nWords, expected );
 
+	do {
 		BufChain xchn = assembleXBuf(iov, iovlen, iov_pld, toput);
 
 		BufChain rchn;
@@ -760,44 +771,13 @@ int      posted   = (    POSTED        == defaultWriteMode_
 				throw IOError("clock_gettime(now) failed", errno);
 			}
 
-			got = rchn->getSize();
-
-			rchn->extract( &got_tid, tidoff, sizeof(SRPWord) );
-			if ( doSwap ) {
-				swp32( &got_tid );
-			}
-
-		} while ( tid != (got_tid & tidMsk_) );
+		} while ( ! tidMatch( extractTid( rchn ), tid ) );
 
 		if ( useDynTimeout_ )
 			dynTimeout_.update( &now, &then );
 
-		if ( got != (int)sizeof(SRPWord)*(nWords + expected) ) {
-			if ( got < (int)sizeof(SRPWord)*expected ) {
-				printf("got %i, nw %i, exp %i\n", got, nWords, expected);
-				throw IOError("Received message (write response) truncated");
-			} else {
-				rchn->extract( &status, got - sizeof(status), sizeof(status) );
-				if ( doSwap )
-					swp32( &status );
-				throw BadStatusError("SRP Write terminated with bad status", status);
-			}
-		}
+		xact.complete( rchn );
 
-		if ( protoVersion_ == IProtoStackBuilder::SRP_UDP_V1 ) {
-			rchn->extract( &header, 0, sizeof(header) );
-			if ( LE == hostByteOrder() ) {
-				swp32( &header );
-			}
-		} else {
-			header = 0;
-		}
-		rchn->extract( &status, got - sizeof(SRPWord), sizeof(SRPWord) );
-		if ( doSwap ) {
-			swp32( &status );
-		}
-		if ( status )
-			throw BadStatusError("writing SRP", status);
 		return dbytes;
 retry:
 		if ( useDynTimeout_ )
@@ -814,7 +794,7 @@ retry:
 uint64_t CSRPAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
 {
 uint64_t rval            = 0;
-unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & (sizeof(SRPWord)-1)) );
+unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & SRPWRDALGNMSK) );
 unsigned dbytes          = args->nbytes_;
 uint64_t off             = args->off_;
 uint8_t *src             = args->src_;
@@ -836,9 +816,9 @@ unsigned nWords;
 #endif
 	while ( nWords > maxWordsTx_ ) {
 		int nbytes = maxWordsTx_*4 - headbytes;
-		rval += writeBlk_unlocked(node, args->cacheable_, src, off, nbytes, msk1, 0);	
+		rval += writeBlk_unlocked(node, args->cacheable_, src, off, nbytes, msk1, 0);
 		nWords -= maxWordsTx_;
-		dbytes -= nbytes;	
+		dbytes -= nbytes;
 		src    += nbytes;
 		off    += nbytes;
 		headbytes = 0;
@@ -858,18 +838,19 @@ void CSRPAddressImpl::dump(FILE *f) const
 	fprintf(f,"SRP Info:\n");
 	fprintf(f,"  Protocol Version  : %8u\n",   protoVersion_);
 	fprintf(f,"  Default Write Mode: %s\n",   SYNCHRONOUS == defaultWriteMode_ ? "Synchronous" : "Posted");
-	fprintf(f,"  Timeout (user)    : %8"PRIu64"us\n", usrTimeout_.getUs());
-	fprintf(f,"  Timeout %s : %8"PRIu64"us\n", useDynTimeout_ ? "(dynamic)" : "(capped) ", dynTimeout_.get().getUs());
+	fprintf(f,"  Timeout (user)    : %8" PRIu64 "us\n", usrTimeout_.getUs());
+	fprintf(f,"  Timeout %s : %8" PRIu64 "us\n", useDynTimeout_ ? "(dynamic)" : "(capped) ", dynTimeout_.get().getUs());
 	if ( useDynTimeout_ )
 	{
-	fprintf(f,"  max Roundtrip time: %8"PRIu64"us\n", dynTimeout_.getMaxRndTrip().getUs());
-	fprintf(f,"  avg Roundtrip time: %8"PRIu64"us\n", dynTimeout_.getAvgRndTrip().getUs());
+	fprintf(f,"  max Roundtrip time: %8" PRIu64 "us\n", dynTimeout_.getMaxRndTrip().getUs());
+	fprintf(f,"  avg Roundtrip time: %8" PRIu64 "us\n", dynTimeout_.getAvgRndTrip().getUs());
 	}
 	fprintf(f,"  Retry Limit       : %8u\n",   retryCnt_);
 	fprintf(f,"  # of retried ops  : %8u\n",   nRetries_);
 	fprintf(f,"  # of writes (OK)  : %8u\n",   nWrites_);
 	fprintf(f,"  # of reads  (OK)  : %8u\n",   nReads_);
 	fprintf(f,"  Virtual Channel   : %8u\n",   vc_);
+	fprintf(f,"  Async Messages    : %8u\n",   asyncIOHandler_.getMsgCount());
 	CCommAddressImpl::dump(f);
 }
 
@@ -910,7 +891,7 @@ void DynTimeout::reset(const CTimeout &iniv)
 	avgRndTrip_ = iniv.getUs() << (AVG_SHFT - MARG_SHFT);
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	printf("dynTimeout reset to %"PRId64"\n", dynTimeout_.getUs());
+	fprintf(stderr, "dynTimeout reset to %" PRId64 "\n", dynTimeout_.getUs());
 #endif
 }
 
@@ -922,7 +903,7 @@ void DynTimeout::relax()
 
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	printf("RETRY (timeout %"PRId64")\n", dynTimeout_.getUs());
+	fprintf(stderr, "RETRY (timeout %" PRId64 ")\n", dynTimeout_.getUs());
 #endif
 }
 
@@ -932,7 +913,7 @@ CTimeout diff(*now);
 int64_t  diffus;
 
 	diff -= CTimeout( *then );
-	
+
 	if ( maxRndTrip_ < diff )
 		maxRndTrip_ = diff;
 
@@ -940,7 +921,7 @@ int64_t  diffus;
 
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	printf("dynTimeout update to %"PRId64" (rnd %"PRId64" -- diff %"PRId64", avg %"PRId64" = 128*%"PRId64")\n",
+	fprintf(stderr, "dynTimeout update to %" PRId64 " (rnd %" PRId64 " -- diff %" PRId64 ", avg %" PRId64 " = 128*%" PRId64 ")\n",
 		dynTimeout_.getUs(),
 		diff.getUs(),
 		diffus,

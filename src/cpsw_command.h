@@ -16,8 +16,8 @@
 
 #include <cpsw_yaml.h>
 
-using boost::static_pointer_cast;
-using boost::weak_ptr;
+using cpsw::static_pointer_cast;
+using cpsw::weak_ptr;
 
 class CCommandImpl;
 typedef shared_ptr<CCommandImpl> CommandImpl;

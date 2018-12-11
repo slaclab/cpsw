@@ -29,7 +29,7 @@ protected:
 	{
 	}
 
-	SRPPort newPort(int dest);
+	SRPPort newPort(int dest, unsigned queueDepth);
 
 public:
 
@@ -39,9 +39,9 @@ public:
 	{
 	}
 
-	SRPPort createPort(int dest)
+	SRPPort createPort(int dest, unsigned queueDepth)
 	{
-		return addPort(dest, newPort(dest));
+		return addPort(dest, newPort(dest, queueDepth));
 	}
 
 	// range of bits in TID that the downstream user may occupy
@@ -78,6 +78,9 @@ public:
 };
 
 class CSRPPort : public CByteMuxPort<CProtoModSRPMux> {
+private:
+	unsigned queueDepth_;
+
 protected:
 	CSRPPort(const CSRPPort &orig, Key k)
 	: CByteMuxPort<CProtoModSRPMux>(orig, k)
@@ -89,8 +92,9 @@ protected:
 	virtual int iMatch(ProtoPortMatchParams *cmp);
 
 public:
-	CSRPPort(Key &k, ProtoModSRPMux owner, int dest)
-	: CByteMuxPort<CProtoModSRPMux>(k, owner, dest, 1) // queue depth 1 is enough for synchronous operations
+	CSRPPort(Key &k, ProtoModSRPMux owner, int dest, unsigned queueDepth)
+	: CByteMuxPort<CProtoModSRPMux>(k, owner, dest, queueDepth),
+	  queueDepth_(queueDepth)
 	{
 	}
 

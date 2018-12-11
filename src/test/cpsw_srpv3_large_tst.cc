@@ -14,12 +14,45 @@
 #include <udpsrv_regdefs.h>
 
 #include <cpsw_obj_cnt.h>
+#include <cpsw_mutex.h>
+#include <cpsw_condvar.h>
 
 class TestFailed {};
 
 typedef uint16_t TYPE;
 
-static void check(ScalVal arr, TYPE patt)
+class CAIO;
+typedef shared_ptr<CAIO> AIO;
+
+class CAIO : public CMtx, public CCond, public IAsyncIO {
+private:
+	bool done_;
+public:
+	CAIO()
+	: done_(false)
+	{
+	}
+
+	virtual void callback(CPSWError *err)
+	{
+		if ( err ) {
+			fprintf(stderr,"AIO callback with error: %s\n", err->getInfo().c_str());
+			throw TestFailed();
+		}
+		done_ = true;
+		pthread_cond_signal( CCond::getp() );
+	}
+
+	virtual void wait()
+	{
+	CMtx::lg guard( this );
+		while ( ! done_ ) {
+			pthread_cond_wait( CCond::getp(), CMtx::getp() );
+		}
+	}
+};
+
+static void check(ScalVal arr, TYPE patt, bool async)
 {
 unsigned    nelms = arr->getNelms();
 TYPE        buf[nelms];
@@ -35,7 +68,13 @@ unsigned    i;
 		
 		memset(buf, ~patt, nelms*sizeof(buf[0]));
 
-		arr->getVal(buf, nelms);
+		if ( async ) {
+			AIO aio = AIO( new CAIO() );
+			arr->getVal( aio, buf, nelms );
+			aio->wait();
+		} else {
+			arr->getVal(buf, nelms);
+		}
 
 		if ( patt ) {
 			for ( i=0; i<nelms; i++ ) {
@@ -54,7 +93,7 @@ unsigned    i;
 failed:
 	fprintf(stderr,"Readback ");
 	if ( patt ) {
-		fprintf(stderr,"of pattern 0x%04"PRIx16" ", patt);
+		fprintf(stderr,"of pattern 0x%04" PRIx16 " ", patt);
 	}
 	fprintf(stderr,"failed @i %d\n", i);
 	throw TestFailed();
@@ -119,6 +158,7 @@ IProtoStackBuilder::SRPProtoVersion pvers;
 	{
 	NetIODev root;
 	try {
+		{
 		        root   = INetIODev::create("netio", ip_addr);
 		MMIODev mmio   = IMMIODev::create ("mmio",  MEM_SIZE);
 		MMIODev srvm   = IMMIODev::create ("srvm",  REG_ARR_SZ, LE);
@@ -142,6 +182,7 @@ IProtoStackBuilder::SRPProtoVersion pvers;
 		}
 	
 		root->addAtAddress( mmio, pbldr );
+		}
 
 		ScalVal arr = IScalVal::create( root->findByName("mmio/srvm/data") );
 		if ( arr->getNelms() != nelms ) {
@@ -149,8 +190,11 @@ IProtoStackBuilder::SRPProtoVersion pvers;
 			throw TestFailed();
 		}
 
-		check(arr, 0xdead);
-		check(arr,      0);
+		check(arr, 0xdead, false);
+		check(arr,      0, false);
+		check(arr, 0xdead, true );
+		check(arr,      0, true );
+
 		
 	} catch ( CPSWError e ) {
 		fprintf(stderr,"CPSW Error caught: %s\n", e.getInfo().c_str());

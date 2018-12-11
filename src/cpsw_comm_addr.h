@@ -21,7 +21,6 @@ protected:
 	ProtoDoor      door_;
 	unsigned       mtu_;
 
-private:
 	CMtx           doorMtx_;
 
 public:

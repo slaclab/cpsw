@@ -18,34 +18,91 @@
 #include <stdio.h>
 #include <socks/libSocks.h>
 
-void
-CSockSd::reset(void)
+CSockSd::SA::SA()
 {
-const LibSocksProxy *orig;
+	sin_family      = AF_INET;
+	sin_addr.s_addr = INADDR_ANY;
+	sin_port        = htons( 0 );
+}
+
+CSockSd::SA::SA( const struct sockaddr_in &orig )
+{
+	sin_family = orig.sin_family;
+    sin_addr   = orig.sin_addr;
+    sin_port   = orig.sin_port;
+}
+
+
+void
+CSockSd::reset()
+{
+const LibSocksProxy *origProxy;
+SA                  *origDest;
+
 	/* This also can be used by the copy-constructor as it creates a
 	 * new socket
 	 */
+
 	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
 		throw InternalError("Unable to create socket");
 	}
-	if ( (orig = proxy_) ) {
-		proxy_  = new LibSocksProxy( *orig );
+
+	if ( (origDest = dest_ ) ) {
+		dest_   = new SA( *origDest );
+	}
+
+	if ( (origProxy = proxy_) ) {
+		proxy_  = new LibSocksProxy( *origProxy );
+	}
+
+	if ( isConn_ ) {
+		init( dest_, NULL, nblk_ );
+	}
+
+}
+
+CSockSd::CSockSd(const CSockSd &orig)
+: sd_    ( -1           ),
+  type_  ( orig.type_   ),
+  me_    ( orig.me_     ),
+  dest_  ( orig.dest_   ),
+  nblk_  ( orig.nblk_   ),
+  isConn_( orig.isConn_ ),
+  proxy_ ( orig.proxy_  )
+{
+	reset();
+}
+
+void CSockSd::reconnect()
+{
+	close( sd_ );
+	if ( ( sd_ = ::socket( AF_INET, type_, 0 ) ) < 0 ) {
+		throw InternalError("Unable to create socket");
+	}
+	if ( isConn_ ) {
+		init( dest_, NULL, nblk_ );
 	}
 }
 
 CSockSd::CSockSd(int type, const LibSocksProxy *proxy)
-: sd_   ( -1    ),
-  type_ ( type  ),
-  proxy_( proxy )
+: sd_    ( -1    ),
+  type_  ( type  ),
+  dest_  ( NULL  ),
+  nblk_  ( false ),
+  isConn_( false ),
+  proxy_ ( proxy )
 {
 	reset();
 }
 
 
 CSockSd::CSockSd(int type, const char *proxyDesc)
-: sd_   ( -1    ),
-  type_ ( type  ),
-  proxy_( 0     )
+: sd_    ( -1    ),
+  type_  ( type  ),
+  dest_  ( NULL  ),
+  nblk_  ( false ),
+  isConn_( false ),
+  proxy_ ( 0     )
 {
 LibSocksProxy proxy;
 
@@ -60,23 +117,14 @@ LibSocksProxy proxy;
 	reset();
 }
 
-
-CSockSd::CSockSd(const CSockSd &orig)
-: sd_   ( -1          ),
-  type_ ( orig.type_  ),
-  proxy_( orig.proxy_ )
-{
-	reset();
-}
-
-void CSockSd::getMyAddr(struct sockaddr_in *addr_p)
+void
+CSockSd::getMyAddr(struct sockaddr_in *addr_p)
 {
 	socklen_t l = sizeof(*addr_p);
 	if ( getsockname( getSd(), (struct sockaddr*)addr_p, &l ) ) {
 		throw IOError("getsockname() ", errno);
 	}
 }
-
 
 int
 CSockSd::getMTU()
@@ -91,18 +139,13 @@ socklen_t sl = sizeof(mtu);
 
 void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk)
 {
-int                optval;
-struct sockaddr_in me;
+	int    optval;
 
-	if ( NULL == me_p ) {
-		me.sin_family      = AF_INET;
-		me.sin_addr.s_addr = INADDR_ANY;
-		me.sin_port        = htons( 0 );
-
-		me_p = &me;
+	if ( me_p ) {
+		me_ = *me_p;
 	}
 
-	if ( nblk ) {
+	if ( (nblk_ = nblk) ) {
 		if ( ::fcntl( sd_, F_SETFL, O_NONBLOCK ) ) {
 			throw IOError("fcntl(O_NONBLOCK) ", errno);
 		}
@@ -113,23 +156,36 @@ struct sockaddr_in me;
 		throw IOError("setsockopt(SO_REUSEADDR) ", errno);
 	}
 
+#ifdef USE_TCP_NODELAY
 	optval = 1;
 	if ( SOCK_STREAM == type_ ) {
 		if ( ::setsockopt( sd_,  IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval) ) ) {
 			throw IOError("setsockopt(TCP_NODELAY) ", errno);
 		}
 	}
+#endif
 
-	if ( ::bind( sd_, (struct sockaddr*)me_p, sizeof(*me_p)) ) {
+	if ( ::bind( sd_, (struct sockaddr*)&me_, sizeof(me_)) ) {
 		throw IOError("bind failed ", errno);
 	}
 
 	// connect - filters any traffic from other destinations/fpgas in the kernel
 	if ( dest ) {
+		struct sockaddr_in *tmp = dest_;
+
+		dest_ = new SA(*dest);
+		// they may pass in dest_ which must not be deleted until now
+		if ( tmp )
+			delete tmp;
+	}
+
+	if ( dest_ ) {
 		const LibSocksProxy *proxy = ( SOCK_STREAM == type_ ? proxy_ : 0 );
-		if ( libSocksConnect( sd_, (struct sockaddr*)dest, sizeof(*dest), proxy ) )
+		if ( libSocksConnect( sd_, (struct sockaddr*)dest_, sizeof(*dest_), proxy ) )
 			throw IOError("connect failed ", errno);
 	}
+
+	isConn_ = true;
 }
 
 CSockSd::~CSockSd()
@@ -138,4 +194,6 @@ CSockSd::~CSockSd()
 		delete proxy_;
 	}
 	close( sd_ );
+	if ( dest_ )
+		delete dest_;
 }

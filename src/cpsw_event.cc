@@ -10,42 +10,15 @@
 #include <cpsw_shared_obj.h>
 #include <cpsw_event.h>
 #include <cpsw_mutex.h>
+#include <cpsw_condvar.h>
 #include <vector>
 
 #include <pthread.h>
 #include <errno.h>
 
-#include <boost/make_shared.hpp>
-#include <boost/weak_ptr.hpp>
 
 using std::vector;
-using boost::make_shared;
-using boost::weak_ptr;
-
-class CondInitFailed   {};
-class CondWaitFailed   {};
-class CondSignalFailed {};
-
-class CCond {
-private:
-	pthread_cond_t cond_;
-
-	CCond(const CCond&);
-	CCond & operator=(const CCond&);
-public:
-	CCond()
-	{
-		if ( pthread_cond_init( &cond_, NULL ) )
-			throw CondInitFailed();
-	}
-
-	~CCond()
-	{
-		pthread_cond_destroy( &cond_ );
-	}
-
-	pthread_cond_t *getp() { return &cond_; }
-};
+using cpsw::weak_ptr;
 
 class CEventSet : public IEventSet, public CShObj {
 protected:
@@ -159,9 +132,12 @@ public:
 	virtual Binding *getEvent(bool wait, const CTimeout *abs_timeout)
 	{
 	int         st;
-	Binding  *rval = 0;
+	Binding   *rval     = 0;
+	CPSWError *theError = 0;
 
-	CMtx::lg guard( &mutx_ );
+		mutx_.l();
+
+		pthread_cleanup_push( CCond::pthread_mutex_unlock_wrapper, (void*)mutx_.getp() );
 
 		if ( wait && abs_timeout ) {
 			if ( abs_timeout->isNone() ) {
@@ -171,26 +147,41 @@ public:
 			}
 		}
 
-		while ( ! (rval = pollAll()) ) {
+		try {
+			while ( ! (rval = pollAll()) ) {
 
-			if ( wait ) {
-				if ( abs_timeout ) {
-					st = pthread_cond_timedwait( cnd_.getp(), mutx_.getp(), &abs_timeout->tv_ );
+				if ( wait ) {
+					if ( abs_timeout ) {
+						st = pthread_cond_timedwait( cnd_.getp(), mutx_.getp(), &abs_timeout->tv_ );
+					} else {
+						st = pthread_cond_wait( cnd_.getp(), mutx_.getp() );
+					}
+
+					if ( st ) {
+						if ( ETIMEDOUT == st )
+							break; // rval is NULL
+
+						throw CondWaitFailed();
+					}
+
 				} else {
-					st = pthread_cond_wait( cnd_.getp(), mutx_.getp() );
+					break; // rval is NULL
 				}
-
-				if ( st ) {
-					if ( ETIMEDOUT == st )
-						return NULL;
-
-					throw CondWaitFailed();
-				}
-
-			} else {
-				return NULL;
 			}
+		} catch ( CPSWError &err ) {
+			// it is not possible to preserve the precise type
+			// of the error (unless we put down a full list of catch clauses :-().
+			// We must preserve across pthread_cleanup_pop :-(
+			theError = new CPSWError( err );
+		}
 
+		pthread_cleanup_pop( 1 ); // unlocks mutx_
+
+		if ( theError ) {
+			// Assume this is rare...
+			CPSWError aCopy( *theError );
+			delete theError;
+			throw aCopy;
 		}
 
 		return rval;
@@ -244,7 +235,7 @@ public:
 			throw InternalError("clock_gettime failed");
 	}
 
-	virtual ~CEventSet();
+	virtual ~CEventSet() throw();
 
 	static EventSetImpl create();
 };
@@ -353,7 +344,7 @@ CMtx::lg guard( &mutx_ );
 	return true;
 }
 
-CEventSet::~CEventSet()
+CEventSet::~CEventSet() throw()
 {
 	// DONT remove event sources; the set must be empty since
 	// every active source holds a reference to this event set

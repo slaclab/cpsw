@@ -41,7 +41,7 @@ int err;
 	}
 }
 
-CRunnable::Attr::~Attr()
+CRunnable::Attr::~Attr() throw()
 {
 int err;
 	if ( (err = pthread_attr_destroy( &a_ )) ) {
@@ -57,7 +57,7 @@ private:
 	SigMask &operator=(const SigMask &);
 public:
 	SigMask();
-	~SigMask();
+	~SigMask() throw();
 };
 
 void * CRunnable::wrapper(void *arg)
@@ -212,7 +212,7 @@ sigset_t all;
 	}
 }
 
-CRunnable::SigMask::~SigMask()
+CRunnable::SigMask::~SigMask() throw()
 {
 int err;
 	if ( (err = pthread_sigmask( SIG_SETMASK, &orig_, NULL )) ) {

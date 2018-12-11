@@ -11,6 +11,7 @@
 #define CPSW_MEM_TST_DEV_H
 
 #include <cpsw_hub.h>
+#include <string.h>
 
 class CMemDevImpl;
 typedef shared_ptr<CMemDevImpl>            MemDevImpl;
@@ -36,8 +37,10 @@ class CMemAddressImpl : public CAddressImpl {
 
 class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	private:
-		uint8_t * buf_;
-		bool      isExt_;
+		uint8_t    *buf_;
+		bool        isExt_;
+        std::string fileName_;
+
 	protected:
 		CMemDevImpl(const CMemDevImpl &orig, Key &k);
 
@@ -48,6 +51,8 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 
 		static  const char *_getClassName()       { return "MemDev";        }
 		virtual const char * getClassName() const { return _getClassName(); }
+
+		virtual void dumpYamlPart(YAML::Node &node) const;
 
 		virtual void addAtAddress(Field child);
 
