@@ -121,6 +121,7 @@ DEP_HEADERS += libSocks.h
 DEP_HEADERS += libSocksUtil.h
 DEP_HEADERS += cpsw_swig_python.h
 DEP_HEADERS += cpsw_python.h
+DEP_HEADERS += cpsw_cython.h
 
 STATIC_LIBRARIES_YES+=cpsw
 SHARED_LIBRARIES_YES+=cpsw
@@ -131,13 +132,20 @@ cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 cpsw_ypp_SRCS        += cpsw_ypp.cc cpsw_preproc.cc
 
 # Python wrapper; only built if WITH_PYCPSW is set to YES (can be target specific)
-pycpsw_so_SRCS      = cpsw_boost_python.cc cpsw_python.cc
-pycpsw_so_LIBS      = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
-pycpsw_so_CPPFLAGS  = $(addprefix -I,$(pyinc_DIR))
-pycpsw_so_CXXFLAGS  = -fno-strict-aliasing
+pycpsw_so_SRCS_BOOST  = cpsw_boost_python.cc cpsw_python.cc
+pycpsw_so_SRCS_CYTHON = cpsw_python.cc pycpsw.cpp cpsw_cython.cc
+pycpsw_so_LIBS_BOOST  = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
+pycpsw_so_LIBS_CYTHON = $(CPSW_LIBS)
+pycpsw_so_CPPFLAGS    = $(addprefix -I,$(pyinc_DIR)) -I.
+pycpsw_so_CXXFLAGS    = -fno-strict-aliasing
 
-PYCPSW_YES          = pycpsw.so
-PYCPSW              = $(PYCPSW_$(WITH_PYCPSW))
+pycpsw_so_SRCS        = $(pycpsw_so_SRCS_$(WITH_PYCPSW))
+pycpsw_so_LIBS        = $(pycpsw_so_LIBS_$(WITH_PYCPSW))
+
+PYCPSW_BOOST          = pycpsw.so
+PYCPSW_CYTHON         = pycpsw.so
+PYCPSW_SWIG           = _pycpsw.so
+PYCPSW                = $(PYCPSW_$(WITH_PYCPSW))
 
 yaml_cpp_so_SRCS    = yaml_cpp_python.cc
 yaml_cpp_so_LIBS    = $(BOOST_PYTHON_LIB) $(filter yaml-cpp%,$(CPSW_LIBS))
@@ -153,12 +161,15 @@ _pycpsw_so_LIBS    += $(CPSW_LIBS)
 PYYAML_YES          = yaml_cpp.so
 PYYAML              = $(PYYAML_$(WITH_PYCPSW))
 
-PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML) _pycpsw.so
+PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML)
 
 include $(CPSW_DIR)/rules.mak
 
 pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_swig_python.h
 	swig -python -c++ -builtin -o $@ $<
+
+pycpsw.cpp: pycpsw.pyx pycpsw.pxd cpsw_api_user.h
+	cython --cplus $< -o $@
 
 doc/README.yamlDefinition:doc/README.yamlDefinition.in
 	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@

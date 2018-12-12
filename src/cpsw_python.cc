@@ -373,4 +373,93 @@ PyUniqueObj::PyUniqueObj( PyListObj &o )
 {
 }
 
+void
+handleException()
+{
+	try {
+		throw;
+	}
+	catch ( InternalError &e ) {
+		PyErr_SetString( pCpswPyExc_InternalError, e.what() );
+	}
+	catch ( IOError &e ) {
+		PyErr_SetString( pCpswPyExc_IOError, e.what() );
+	}
+	catch ( ErrnoError &e ) {
+		PyErr_SetString( pCpswPyExc_ErrnoError, e.what() );
+	}
+	catch ( DuplicateNameError &e ) {
+		PyErr_SetString( pCpswPyExc_DuplicateNameError, e.what() );
+	}
+	catch ( NotDevError &e ) {
+		PyErr_SetString( pCpswPyExc_NotDevError, e.what() );
+	}
+	catch ( NotFoundError &e ) {
+		PyErr_SetString( pCpswPyExc_NotFoundError, e.what() );
+	}
+	catch ( InvalidPathError &e ) {
+		PyErr_SetString( pCpswPyExc_InvalidPathError, e.what() );
+	}
+	catch ( InvalidIdentError &e ) {
+		PyErr_SetString( pCpswPyExc_InvalidIdentError, e.what() );
+	}
+	catch ( InvalidArgError &e ) {
+		PyErr_SetString( pCpswPyExc_InvalidArgError, e.what() );
+	}
+	catch ( AddressAlreadyAttachedError &e ) {
+		PyErr_SetString( pCpswPyExc_AddressAlreadyAttachedError, e.what() );
+	}
+	catch ( ConfigurationError &e ) {
+		PyErr_SetString( pCpswPyExc_ConfigurationError, e.what() );
+	}
+	catch ( AddrOutOfRangeError &e ) {
+		PyErr_SetString( pCpswPyExc_AddrOutOfRangeError, e.what() );
+	}
+	catch ( ConversionError &e ) {
+		PyErr_SetString( pCpswPyExc_ConversionError, e.what() );
+	}
+	catch ( InterfaceNotImplementedError &e ) {
+		PyErr_SetString( pCpswPyExc_InterfaceNotImplementedError, e.what() );
+	}
+	catch ( BadStatusError &e ) {
+		PyErr_SetString( pCpswPyExc_BadStatusError, e.what() );
+	}
+	catch ( IntrError &e ) {
+		PyErr_SetString( pCpswPyExc_IntrError, e.what() );
+	}
+	catch ( StreamDoneError &e ) {
+		PyErr_SetString( pCpswPyExc_StreamDoneError, e.what() );
+	}
+	catch ( FailedStreamError &e ) {
+		PyErr_SetString( pCpswPyExc_FailedStreamError, e.what() );
+	}
+	catch ( MissingOnceTagError &e ) {
+		PyErr_SetString( pCpswPyExc_MissingOnceTagError, e.what() );
+	}
+	catch ( MissingIncludeFileNameError &e ) {
+		PyErr_SetString( pCpswPyExc_MissingIncludeFileNameError, e.what() );
+	}
+	catch ( NoYAMLSupportError &e ) {
+		PyErr_SetString( pCpswPyExc_NoYAMLSupportError, e.what() );
+	}
+	catch ( NoError &e ) {
+		PyErr_SetString( pCpswPyExc_NoError, e.what() );
+	}
+	catch ( MultipleInstantiationError &e ) {
+		PyErr_SetString( pCpswPyExc_MultipleInstantiationError, e.what() );
+	}
+	catch ( BadSchemaVersionError &e ) {
+		PyErr_SetString( pCpswPyExc_BadSchemaVersionError, e.what() );
+	}
+	catch ( TimeoutError &e ) {
+		PyErr_SetString( pCpswPyExc_TimeoutError, e.what() );
+	}
+	catch ( CPSWError &e ) {
+		PyErr_SetString( pCpswPyExc_CPSWError, e.what() );
+	}
+	catch ( std::exception &e ) {
+		PyErr_SetString( PyExc_RuntimeError, e.what() );
+	}
+}
+
 };

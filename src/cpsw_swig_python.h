@@ -14,9 +14,6 @@
 #include <Python.h>
 
 namespace cpsw_python {
-	// To be used from a 'catch' block
-	void handleException();
-
 	template <typename, typename> class CGetValWrapperContextTmpl;
 	class PyUniqueObj;
 	class PyListObj;

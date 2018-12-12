@@ -19,7 +19,39 @@
 #include <vector>
 #include <iostream>
 
+extern "C" {
+	extern PyObject *pCpswPyExc_InternalError;
+	extern PyObject *pCpswPyExc_IOError;
+	extern PyObject *pCpswPyExc_ErrnoError;
+	extern PyObject *pCpswPyExc_DuplicateNameError;
+	extern PyObject *pCpswPyExc_NotDevError;
+	extern PyObject *pCpswPyExc_NotFoundError;
+	extern PyObject *pCpswPyExc_InvalidPathError;
+	extern PyObject *pCpswPyExc_InvalidIdentError;
+	extern PyObject *pCpswPyExc_InvalidArgError;
+	extern PyObject *pCpswPyExc_AddressAlreadyAttachedError;
+	extern PyObject *pCpswPyExc_ConfigurationError;
+	extern PyObject *pCpswPyExc_AddrOutOfRangeError;
+	extern PyObject *pCpswPyExc_ConversionError;
+	extern PyObject *pCpswPyExc_InterfaceNotImplementedError;
+	extern PyObject *pCpswPyExc_BadStatusError;
+	extern PyObject *pCpswPyExc_IntrError;
+	extern PyObject *pCpswPyExc_StreamDoneError;
+	extern PyObject *pCpswPyExc_FailedStreamError;
+	extern PyObject *pCpswPyExc_MissingOnceTagError;
+	extern PyObject *pCpswPyExc_MissingIncludeFileNameError;
+	extern PyObject *pCpswPyExc_NoYAMLSupportError;
+	extern PyObject *pCpswPyExc_NoError;
+	extern PyObject *pCpswPyExc_MultipleInstantiationError;
+	extern PyObject *pCpswPyExc_BadSchemaVersionError;
+	extern PyObject *pCpswPyExc_TimeoutError;
+	extern PyObject *pCpswPyExc_CPSWError;
+};
+
 namespace cpsw_python {
+
+	// To be used from a 'catch' block
+	void handleException();
 
 class GILUnlocker {
 private:
