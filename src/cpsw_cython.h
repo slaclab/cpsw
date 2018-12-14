@@ -15,6 +15,23 @@
 
 namespace cpsw_python {
 
+	typedef const IEntry CIEntry;
+	typedef const IChild CIChild;
+	typedef const IHub   CIHub;
+	typedef const IPath  CIPath;
+
+	typedef Entry               cc_Entry;
+	typedef Child               cc_Child;
+	typedef Children            cc_Children;
+	typedef shared_ptr<CIHub>   cc_Hub;
+	typedef Path                cc_Path;
+	typedef ConstPath           cc_ConstPath;
+	typedef CIEntry            *CIEntryp;
+	typedef CIChild            *CIChildp;
+	typedef CIHub              *CIHubp;
+	typedef CIPath             *CIPathp;
+	typedef IPath              *IPathp;
+
 	class CPyBase {
 	private:
 		PyObject *me_;

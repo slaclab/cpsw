@@ -81,7 +81,7 @@ cdef cppclass CPathVisitor(IPathVisitor):
 
 cdef cppclass CYamlFixup(IYamlFixup):
   void call(self, Node &root, Node &top):
-    self.
+    pass #FIXME
 
 cdef public class PathVisitor[type CpswPyWrapT_PathVisitor, object CpswPyWrapO_PathVisitor]:
 
@@ -136,7 +136,10 @@ cdef class Path(NoInit):
     return Child.make( self.cptr.get().tail() )
 
   cpdef toString(self):
-    return self.cptr.get().toString()
+    return self.cptr.get().toString().decode('UTF-8','strict')
+
+  def __repr__(self):
+    return self.toString()
 
 #FIXME
 #  cpdef dump(self, FILE *f):

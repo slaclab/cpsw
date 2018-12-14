@@ -18,17 +18,17 @@ from libc.stdint    cimport *
 from libc.stdio     cimport *
 
 cdef extern from "cpsw_api_user.h" namespace "YAML":
-  cdef cppclass Node:
-    pass
+  cdef cppclass Node
 
-cdef extern from "cpsw_python.h" namespace "cpsw_python":
-  cdef void handleException()
-
-cdef extern from "sph.h":
+cdef extern from "cpsw_api_user.h":
   cdef cppclass IEntry
   cdef cppclass IChild
   cdef cppclass IHub
   cdef cppclass IPath
+
+cdef extern from "cpsw_python.h" namespace "cpsw_python":
+  cdef void handleException()
+
   ctypedef const IEntry CIEntry
   ctypedef const IChild CIChild
   ctypedef const IHub   CIHub   

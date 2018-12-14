@@ -165,8 +165,12 @@ PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML)
 
 include $(CPSW_DIR)/rules.mak
 
+# Note that -builtin led to the cyclic-GC losing
+# cycles that point to swig-wrapped objects.
+# No problem without -builting
+
 pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_swig_python.h
-	swig -python -c++ -builtin -o $@ $<
+	swig -python -c++ -o $@ $<
 
 pycpsw.cpp: pycpsw.pyx pycpsw.pxd cpsw_api_user.h
 	cython --cplus $< -o $@
