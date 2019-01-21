@@ -1,3 +1,5 @@
+    Bugfix: Ipath::parent() implementation was wrong; caused segfault.
+
     Bugfix: cpsw_bufq.cc: If multiple threads sleep in
             CEventBufSync::getSlot() some may never wake up!
 
