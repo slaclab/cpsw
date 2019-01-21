@@ -1,4 +1,11 @@
 asyncSRP
+
+    Bugfix: Ipath::parent() implementation was wrong; caused segfault.
+    (merged from R3.5.branch)
+
+    Bugfix: cpsw_bufq.cc: If multiple threads sleep in
+            CEventBufSync::getSlot() some may never wake up!
+
     FIX: There was a subtle change in the implementation of YAML
         maps in yaml-cpp v0.6.2: When a non-existing key is looked
         up with

@@ -580,8 +580,7 @@ cout<<"starting at: "<<tailp->getName() << "\n";
 
 ConstDevImpl CPathImpl::parentAsDevImpl() const
 {
-CPathImpl::const_reverse_iterator it = rend();
-	++it; // rend points after last el
+CPathImpl::const_reverse_iterator it = rbegin();
 	++it; // if empty this points at the NULL marker element
 	return hasParent( it ) ? cpsw::static_pointer_cast<const CDevImpl, CEntryImpl>(it->c_p_->getEntryImpl()) : NULLDEVIMPL;
 }

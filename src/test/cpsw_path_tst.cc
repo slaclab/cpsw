@@ -391,6 +391,28 @@ Hub     r  = use_yaml ? build_yaml() : build();
 		pb = r->findByName("outer/inner[0-2]/leaf1[1-3]");
 		pa = r->findByName("outer/inner[1-3]/leaf1[0-2]");
 
+		{
+		Path pu = pa->clone();
+		fprintf(stderr,"Checking parent of %s\n", pu->toString().c_str());
+		if ( strcmp( pu->parent()->getName(), "inner" ) ) {
+			fprintf(stderr,"Checking parent of %s FAILED\n", pu->toString().c_str());
+			throw TestFailed();
+		}
+		pu->up();
+		fprintf(stderr,"Checking parent of %s\n", pu->toString().c_str());
+		if ( strcmp( pu->parent()->getName(), "outer" ) ) {
+			fprintf(stderr,"Checking parent of %s FAILED\n", pu->toString().c_str());
+			throw TestFailed();
+		}
+		pu->up();
+		fprintf(stderr,"Checking parent of %s\n", pu->toString().c_str());
+		if ( pu->parent() ) {
+			// we are at the root
+			throw TestFailed();
+		}
+
+		}
+
 		if ( ! (pi = pa->intersect(pb)) || pi->getNelms() != 8 ) {
 			throw TestFailed();
 		}
