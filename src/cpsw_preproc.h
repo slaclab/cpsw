@@ -14,6 +14,7 @@
 #include <istream>
 #include <vector>
 #include <list>
+#include <string>
 
 #include <cpsw_compat.h>
 #include <cpsw_error.h>
@@ -26,18 +27,30 @@ using std::streambuf;
 // (into the internal buffer) the individual streams
 // are not 'slurped' into a huge buffer space.
 
+
 class StreamMuxBuf : public std::streambuf {
 public:
 	typedef shared_ptr<std::istream> Stream;
 private:
+	struct                      StreamEl {
+		Stream       stream;
+		std::string  name;
+		unsigned     headerLines;
+
+		StreamEl(Stream, const std::string*, unsigned);
+	};
 	typedef char                Char;
-	typedef std::list<Stream>   StreamsContainer;
+	typedef std::list<StreamEl> StreamsContainer;
 
 	StreamsContainer            streams_;
 	StreamsContainer::iterator  current_;
 	std::vector<Char>           buf_;
 	unsigned                    bufsz_;
 	bool                        done_;
+	unsigned                    nlSoFar_;
+	unsigned                    otherScopeLines_;
+
+	static int                  nlCount(const Char *, const Char *);
 
 	// no copying
 	StreamMuxBuf(const StreamMuxBuf &);
@@ -56,7 +69,14 @@ public:
 
 	// throws: StreamDoneError   - if all pushed streams have already been consumed
 	//         FailedStreamError - if the passed stream has the 'fail' bit set
-	virtual void pushbuf(Stream s);
+	virtual void pushbuf(Stream s, const std::string *name, unsigned headerLines);
+
+	// get the number of lines processed that are *not* in the
+	// current file (to be subtracted from the yaml parser line number)
+	virtual unsigned  getOtherScopeLines();
+
+	// get the name of the current file
+	virtual const char *getFileName();
 
 	// for testing; dump concatenated streams to cout
 	virtual void dump();

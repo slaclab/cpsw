@@ -17,7 +17,7 @@ POSTBUILD_SUBDIRS+=rssi_bridge
 POSTBUILD_SUBDIRS+=test
 
 HEADERS        += cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h $(SHPTR_DIR_USE_CXX11)cpsw_shared_ptr.h
-DOCS           += doc/README.yamlDefinition doc/README.yamlDefinition.html doc/README.configData.html doc/INSTALL.html
+DOCS           += doc/README.yamlDefinition.md doc/README.yamlDefinition.html doc/README.configData.html doc/INSTALL.html doc/README.html
 
 GENERATED_SRCS += git_version_string.h
 GENERATED_SRCS += $(DOCS)
@@ -175,8 +175,8 @@ pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_swig_python.h
 pycpsw.cpp: pycpsw.pyx pycpsw.pxd cpsw_api_user.h
 	cython --cplus $< -o $@
 
-doc/README.yamlDefinition:doc/README.yamlDefinition.in
+doc/README.yamlDefinition.md:doc/README.yamlDefinition.in
 	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
 
-%.html: %
+%.html: %.md
 	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@

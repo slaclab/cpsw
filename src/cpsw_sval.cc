@@ -1559,17 +1559,17 @@ unsigned nelms, i;
 		TMP_BUF_DECL(VU, valBuf, nelms );
 		if ( isFloat ) {
 			for ( i=0; i<nelms; i++ ) {
-				valBuf[i].d = n[i].as<double>();
+				valBuf[i].d = YAML::NodeFind(n, i).as<double>();
 			}
 		} else if ( enum_ ) {
 			for ( i=0; i<nelms; i++ ) {
-				const std::string &nam = n[i].as<std::string>();
+				const std::string &nam = YAML::NodeFind(n,i).as<std::string>();
 				try {
 					valBuf[i].u = enum_->map( nam.c_str() ).second;
 				} catch (ConversionError &e) {
 					// try to fall-back on numerical
 					try {
-						valBuf[i].u = n[i].as<uint64_t>();
+						valBuf[i].u = YAML::NodeFind(n,i).as<uint64_t>();
 					} catch (YAML::TypedBadConversion<unsigned long>) {
 						throw e; // throw original error
 					}
@@ -1577,7 +1577,7 @@ unsigned nelms, i;
 			}
 		} else {
 			for ( i=0; i<nelms; i++ ) {
-				valBuf[i].u = n[i].as<uint64_t>();
+				valBuf[i].u = YAML::NodeFind(n,i).as<uint64_t>();
 			}
 		}
 		if ( isFloat ) {
