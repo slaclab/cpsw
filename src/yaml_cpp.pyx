@@ -1,9 +1,17 @@
-from    libcpp.string cimport *
-from    libcpp        cimport bool
-cimport yaml_cpp
+ #@C Copyright Notice
+ #@C ================
+ #@C This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
+ #@C file found in the top-level directory of this distribution and at
+ #@C https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+ #@C
+ #@C No part of CPSW, including this file, may be copied, modified, propagated, or
+ #@C distributed except according to the terms contained in the LICENSE.txt file.
+
+from    libcpp.string   cimport *
+from    libcpp          cimport bool
 from    cython.operator cimport dereference  as deref, preincrement as incr
 
-from    enum          import Enum
+from    enum            import Enum
 
 ctypedef long long longlong;
 
@@ -26,7 +34,7 @@ class NodeType(Enum):
   Map       = nodeTypeMap()
 
 cdef class Node:
-  cdef c_Node           c_node
+  cdef c_Node         c_node
   cdef const_iterator c_it
 
   def __cinit__(self, s = None):
