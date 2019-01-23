@@ -1,6 +1,7 @@
 from    libcpp.string cimport *
 from    libcpp        cimport bool
 cimport yaml_cpp
+from    cython.operator cimport dereference  as deref, preincrement as incr
 
 from    enum          import Enum
 
@@ -24,8 +25,11 @@ class NodeType(Enum):
   Sequence  = nodeTypeSequence()
   Map       = nodeTypeMap()
 
+secret__ = object()
+
 cdef class PyNode:
-  cdef Node c_node
+  cdef Node           c_node
+  cdef const_iterator c_it
 
   def __cinit__(self, s = None):
     if None == s:
@@ -55,15 +59,19 @@ cdef class PyNode:
   def Type(self):
     return NodeType( self.c_node.Type() )
 
-  def remove(self, rhs):
-    cdef PyNode pn
-    cdef string bstr
-    if isinstance(rhs, PyNode):
-      pn = rhs
-      return self.c_node.remove( pn.c_node )
-    elif isinstance(rhs, str):
-      bstr = rhs.encode('UTF-8') 
-      return self.c_node.remove( bstr )
+  def remove(self, key):
+    cdef PyNode   knod
+    cdef string   kstr
+    cdef longlong kint
+    if isinstance(key, PyNode):
+      knod = key
+      return self.c_node.remove( knod.c_node )
+    elif isinstance(key, str):
+      kstr = key.encode('UTF-8') 
+      return self.c_node.remove( kstr )
+    elif isinstance(key, int):
+      kint = key
+      return self.c_node.remove( kint )
     else:
       raise TypeError('yaml_cpp::Node::remove not supported for argument type')
 
@@ -86,25 +94,13 @@ cdef class PyNode:
     return self.c_node.as[string]().decode('UTF-8')
 
   def __repr__(self):
-    return self.c_node.as[string]().decode('UTF-8')
+    if isinstance(self, PyNode) and self.IsScalar():
+      return self.c_node.as[string]().decode('UTF-8')
+    else:
+      return object.__repr__(self)
 
   def __bool__(self):
     return boolNode( self.c_node )
-
-  cdef PyNode getNode(PyNode self, PyNode key):
-    cdef PyNode rval = PyNode()
-    rval.c_node = yamlNodeFind[Node](self.c_node, key.c_node)
-    return rval
-
-  cdef PyNode getStr(PyNode self, string key):
-    cdef PyNode rval = PyNode()
-    rval.c_node = yamlNodeFind[string](self.c_node, key)
-    return rval
-
-  cdef PyNode getInt(PyNode self, longlong key):
-    cdef PyNode rval = PyNode()
-    rval.c_node = yamlNodeFind[longlong](self.c_node, key)
-    return rval
 
   def __getitem__(self, key):
     cdef PyNode   knod
@@ -114,7 +110,6 @@ cdef class PyNode:
     if isinstance(key, PyNode):
       knod = key
       rval.c_node = yamlNodeFind[Node](self.c_node, knod.c_node)
-      return self.getNode( key )
     elif isinstance(key, str):
       kstr = key.encode('UTF-8')
       rval.c_node = yamlNodeFind[string](self.c_node, kstr)
@@ -162,6 +157,26 @@ cdef class PyNode:
         raise TypeError("yaml_cpp::Node::__setitem__ unsupported value type")
     else:
       raise TypeError("yaml_cpp::Node::__setitem__ unsupported key type")
+
+  def __iter__(self):
+    self.c_it = self.c_node.begin()
+    return self
+
+  def __next__(self):
+    if self.c_it == self.c_node.end():
+      raise StopIteration()
+    if deref(self.c_it).IsDefined():
+      x = PyNode()
+      x.c_node = <Node> deref( self.c_it )
+      rval = x
+    else:
+      k = PyNode()
+      v = PyNode()
+      k.c_node = deref( self.c_it ).first
+      v.c_node = deref( self.c_it ).second
+      rval = (k, v)
+    incr( self.c_it );
+    return rval
 
   @staticmethod
   def LoadFile(string filename):
