@@ -92,7 +92,7 @@ cdef cppclass CPathVisitor(IPathVisitor):
 
 cdef cppclass CYamlFixup(IYamlFixup):
   void call(self, c_Node &c_root, c_Node &c_top):
-    root = Node() 
+    root = Node()
     top  = Node()
     root.c_node = c_root
     top.c_node  = c_top
@@ -219,9 +219,56 @@ cdef class Path(NoInit):
       raise TypeError("expected a PathVisitor argument")
     return self.cptr.get().explore( &visitor.cc_PathVisitor )
 
-#FIXME
-#  dumpConfigToYaml/loadConfigFromYaml/loadConfigFromYamlFile    
-#  operates on cptr
+  cpdef loadConfigFromYamlFile(self, configYamlFileName, yamlIncDirName = None):
+    cdef const char *cfnam
+    cdef const char *cdnam = NULL
+    fnam  = configYamlFileName.encode('UTF-8')
+    cfnam = fnam
+    dnam  = None
+    if None != yamlIncDirName:
+      dnam  = yamlIncDirName.encode('UTF-8')
+      cdnam = dnam
+    return wrap_Path_loadConfigFromYamlFile(self.ptr, cfnam, cdnam)
+
+  cpdef loadConfigFromYamlString(self, configYamlString, yamlIncDirName = None):
+    cdef const char *ccfgstr
+    cdef const char *cdnam = NULL
+    cfgstr  = configYamlString.encode('UTF-8')
+    ccfgstr = cfgstr
+    dnam  = None
+    if None != yamlIncDirName:
+      dnam  = yamlIncDirName.encode('UTF-8')
+      cdnam = dnam
+    return wrap_Path_loadConfigFromYamlString(self.ptr, ccfgstr, cdnam)
+
+  cpdef dumpConfigToYamlFile(self, fileName, templFileName = None, yamlIncDirName = None):
+    cdef const char *cfnam = NULL
+    cdef const char *ctnam = NULL
+    cdef const char *cydir = NULL
+    fnam  = fileName.encode("UTF-8")
+    cfnam = fnam
+    tnam  = None
+    bydir = None
+    if None != templFileName:
+      tnam  = templFileName.encode("UTF-8")
+      ctnam = tnam
+    if None != yamlIncDirName:
+      bydir = yamlIncDirName.encode("UTF-8")
+      cydir = bydir
+    return wrap_Path_dumpConfigToYamlFile(self.ptr, cfnam, ctnam, cydir)
+
+  cpdef dumpConfigToYamlString(self, templFileName = None, yamlIncDirName = None):
+    cdef const char *ctnam = NULL
+    cdef const char *cydir = NULL
+    tnam  = None
+    bydir = None
+    if None != templFileName:
+      tnam  = templFileName.encode("UTF-8")
+      ctnam = tnam
+    if None != yamlIncDirName:
+      bydir = yamlIncDirName.encode("UTF-8")
+      cydir = bydir
+    return wrap_Path_dumpConfigToYamlString(self.ptr, ctnam, cydir)
 
   @staticmethod
   def create(arg = None):
@@ -239,29 +286,48 @@ cdef class Path(NoInit):
       raise TypeError("Expected a Hub object here")
 
   @staticmethod
-  def loadYamlFile(str name, str root="root", str yamlDir = None, YamlFixup fixup = None):
+  def loadYamlFile(str yamlFileName, str rootName="root", str yamlIncDirName = None, YamlFixup yamlFixup = None):
     cdef const char *cname = NULL
     cdef const char *croot = NULL
-    cdef const char *cyDir = NULL
+    cdef const char *cydir = NULL
     cdef IYamlFixup *cfixp = NULL;
-    bname = name.encode("UTF-8")
+    bname = yamlFileName.encode("UTF-8")
     cname = bname
-    broot = root.encode("UTF-8")
+    broot = rootName.encode("UTF-8")
     croot = broot
-    if None != yamlDir:
-      byDir = yamlDir.encode("UTF-8")
-      cyDir = byDir
+    bydir = None
+    if None != yamlIncDirName:
+      bydir = yamlIncDirName.encode("UTF-8")
+      cydir = bydir
 
-    if None != fixup:
-      cfixp = &fixup.cc_YamlFixup
+    if None != yamlFixup:
+      cfixp = &yamlFixup.cc_YamlFixup
 
-    return Path.make( IPath.loadYamlFile( cname, croot, cyDir, cfixp ) )
+    return Path.make( IPath.loadYamlFile( cname, croot, cydir, cfixp ) )
+
+  @staticmethod
+  def loadYaml(str yamlString, str rootName="root", yamlIncDirName = None, YamlFixup yamlFixup = None):
+    cdef string cyamlString = yamlString.encode("UTF-8")
+    cdef const char *croot  = NULL
+    cdef const char *cydir  = NULL
+    cdef IYamlFixup *cfixp  = NULL;
+    broot = rootName.encode("UTF-8")
+    croot = broot
+    bydir = None
+    if None != yamlIncDirName:
+      bydir = yamlIncDirName.encode("UTF-8")
+      cydir = bydir
+
+    if None != yamlFixup:
+      cfixp = &yamlFixup.cc_YamlFixup
+
+    return Path.make( wrap_Path_loadYamlStream( cyamlString, croot, cydir, cfixp ) )
 
   @staticmethod
   cdef make(cc_Path cp):
     po      = Path(priv__)
     po.ptr  = cp
-    po.cptr = static_pointer_cast[CIPath, IPath]( cp ) 
+    po.cptr = static_pointer_cast[CIPath, IPath]( cp )
     return po
 
   @staticmethod
