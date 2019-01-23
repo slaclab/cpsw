@@ -45,6 +45,12 @@ cdef extern from "cpsw_python.h" namespace "cpsw_python":
   ctypedef IPath              *IPathp
 
 cdef extern from "cpsw_api_user.h":
+  cdef cppclass iterator "Children::element_type::const_iterator":
+    iterator &operator++()          except+;    
+    cc_Child operator*()            except+;    
+    bool     operator!=(iterator &) except+;
+
+cdef extern from "cpsw_api_user.h":
 
   cdef cppclass IYamlFixup:
     @staticmethod

@@ -7,7 +7,9 @@
  #@C No part of CPSW, including this file, may be copied, modified, propagated, or
  #@C distributed except according to the terms contained in the LICENSE.txt file.
 
-from    libcpp.cast   cimport *
+from    libcpp.cast     cimport *
+from    cython.operator cimport preincrement, dereference
+from    libc.stdio      cimport fopen, fclose, FILE
 
 cdef extern from "<memory>" namespace "std":
   cdef shared_ptr[T] static_pointer_cast[T,U](shared_ptr[U])
@@ -28,10 +30,10 @@ cdef class Entry(NoInit):
   cdef cc_Entry ptr
 
   cpdef getName(self):
-    return self.ptr.get().getName()
+    return self.ptr.get().getName().decode('UTF-8','strict')
 
   cpdef getSize(self):
-    return self.ptr.get().getName()
+    return self.ptr.get().getSize()
 
   cpdef getDescription(self):
     return self.ptr.get().getDescription()
@@ -64,7 +66,15 @@ cdef class Hub(Entry):
   cpdef getChild(self, name):
     return Child.make( dynamic_pointer_cast[CIHub, CIEntry](self.ptr).get().getChild( name ) )
 
-  # FIXME getChildren
+  cpdef getChildren(self):
+    cdef cc_Children children = dynamic_pointer_cast[CIHub, CIEntry](self.ptr).get().getChildren()
+    cdef iterator          it = children.get().begin()
+    cdef iterator         ite = children.get().end()
+    rval = []
+    while it != ite:
+      rval.append( Child.make( dereference( it ) ) )
+      preincrement( it )
+    return rval
 
   @staticmethod
   cdef make(cc_Hub cp):
@@ -155,12 +165,22 @@ cdef class Path(NoInit):
   def __repr__(self):
     return self.toString()
 
-#FIXME
-#  cpdef dump(self, FILE *f):
-#    self.cptr.get().dump( f )
+  cpdef dump(self, str fnam = None):
+    cdef string cfnam
+    cdef FILE *f
 
-  cpdef dump(self):
-    self.cptr.get().dump( stdout )
+    if None == fnam:
+      f = stdout
+    else:
+      cfnam = fnam.encode('UTF-8')
+      f     = fopen( cfnam.c_str(), "w+" );
+      if f == NULL:
+        raise RuntimeError("Unable to open file: " + fnam);
+    try:
+      self.cptr.get().dump( f )
+    finally:
+      if f != stdout:
+        fclose( f )
 
   cpdef verifyAtTail(self, Path path):
     # modifies 'this' path if it is empty
@@ -218,7 +238,6 @@ cdef class Path(NoInit):
     else:
       raise TypeError("Expected a Hub object here")
 
-  #FIXME add fixup arg
   @staticmethod
   def loadYamlFile(str name, str root="root", str yamlDir = None, YamlFixup fixup = None):
     cdef const char *cname = NULL
