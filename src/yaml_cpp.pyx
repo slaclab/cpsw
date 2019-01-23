@@ -15,6 +15,11 @@ from    enum            import Enum
 
 ctypedef long long longlong;
 
+cdef extern from "yaml_cpp_util.h":
+  cdef const c_Node yamlNodeFind[K](c_Node &n, const K &k) except+;
+  cdef void yamlNodeSet[K,V](c_Node &n, const K &k, V &v) except+;
+  cdef bool boolNode(c_Node &) except+;
+  cdef string c_emitNode "emitNode"(const c_Node &) except+;
 cdef int nodeTypeUndefined():
   return Undefined
 cdef int nodeTypeNull():
@@ -34,8 +39,8 @@ class NodeType(Enum):
   Map       = nodeTypeMap()
 
 cdef class Node:
-  cdef c_Node         c_node
-  cdef const_iterator c_it
+#  cdef c_Node         c_node
+#  cdef const_iterator c_it
 
   def __cinit__(self, s = None):
     if None == s:

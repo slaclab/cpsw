@@ -14,6 +14,7 @@ cdef extern from "<memory>" namespace "std":
   cdef shared_ptr[T] dynamic_pointer_cast[T,U](shared_ptr[U])
 
 cimport pycpsw
+from    yaml_cpp cimport c_Node, Node
 
 priv__ = object()
 
@@ -80,8 +81,21 @@ cdef cppclass CPathVisitor(IPathVisitor):
     self.visitPost( Path.makeConst( p ) )
 
 cdef cppclass CYamlFixup(IYamlFixup):
-  void call(self, Node &root, Node &top):
-    pass #FIXME
+  void call(self, c_Node &c_root, c_Node &c_top):
+    root = Node() 
+    top  = Node()
+    root.c_node = c_root
+    top.c_node  = c_top
+    self.call( root, top )
+
+cdef public class YamlFixup[type CpswPyWrapT_YamlFixup, object CpswPyWrapO_YamlFixup]:
+  cdef CYamlFixup cc_YamlFixup
+
+  def __cinit__(self):
+    self.cc_YamlFixup = CYamlFixup( <PyObject*>self )
+
+  def __call__(self, root, top):
+    self.call(root, top)
 
 cdef public class PathVisitor[type CpswPyWrapT_PathVisitor, object CpswPyWrapO_PathVisitor]:
 
@@ -144,6 +158,10 @@ cdef class Path(NoInit):
 #FIXME
 #  cpdef dump(self, FILE *f):
 #    self.cptr.get().dump( f )
+
+  cpdef dump(self):
+    self.cptr.get().dump( stdout )
+
   cpdef verifyAtTail(self, Path path):
     # modifies 'this' path if it is empty
     if not self.ptr:
@@ -202,10 +220,11 @@ cdef class Path(NoInit):
 
   #FIXME add fixup arg
   @staticmethod
-  def loadYamlFile(str name, str root="root", str yamlDir = None):
+  def loadYamlFile(str name, str root="root", str yamlDir = None, YamlFixup fixup = None):
     cdef const char *cname = NULL
     cdef const char *croot = NULL
     cdef const char *cyDir = NULL
+    cdef IYamlFixup *cfixp = NULL;
     bname = name.encode("UTF-8")
     cname = bname
     broot = root.encode("UTF-8")
@@ -214,7 +233,10 @@ cdef class Path(NoInit):
       byDir = yamlDir.encode("UTF-8")
       cyDir = byDir
 
-    return Path.make( IPath.loadYamlFile( cname, croot, cyDir, NULL ) )
+    if None != fixup:
+      cfixp = &fixup.cc_YamlFixup
+
+    return Path.make( IPath.loadYamlFile( cname, croot, cyDir, cfixp ) )
 
   @staticmethod
   cdef make(cc_Path cp):

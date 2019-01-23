@@ -56,8 +56,8 @@ cdef extern from "yaml-cpp/yaml.h" namespace "YAML::iterator::":
     c_Node first;
     c_Node second;
  
-cdef extern from "yaml_cpp_util.h":
-  cdef const c_Node yamlNodeFind[K](c_Node &n, const K &k) except+;
-  cdef void yamlNodeSet[K,V](c_Node &n, const K &k, V &v) except+;
-  cdef bool boolNode(c_Node &) except+;
-  cdef string c_emitNode "emitNode"(const c_Node &) except+;
+cdef class Node:
+  cdef c_Node         c_node
+  cdef const_iterator c_it
+
+

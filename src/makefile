@@ -178,7 +178,7 @@ include $(CPSW_DIR)/rules.mak
 pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_swig_python.h
 	swig -python -c++ -o $@ $<
 
-pycpsw.cc: pycpsw.pyx pycpsw.pxd cpsw_api_user.h
+pycpsw.cc: pycpsw.pyx pycpsw.pxd yaml_cpp.pxd cpsw_api_user.h
 	cython --cplus $< -o $@
 
 pyyaml_cpp.cc: yaml_cpp.pyx yaml_cpp.pxd

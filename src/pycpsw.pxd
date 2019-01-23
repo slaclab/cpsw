@@ -17,8 +17,7 @@ from libcpp.string  cimport *
 from libc.stdint    cimport *
 from libc.stdio     cimport *
 
-cdef extern from "cpsw_api_user.h" namespace "YAML":
-  cdef cppclass Node
+from yaml_cpp       cimport c_Node
 
 cdef extern from "cpsw_api_user.h":
   cdef cppclass IEntry
@@ -49,7 +48,7 @@ cdef extern from "cpsw_api_user.h":
 
   cdef cppclass IYamlFixup:
     @staticmethod
-    Node findByName(Node &src, const char *path, char sep)
+    c_Node findByName(c_Node &src, const char *path, char sep)
 
   cdef cppclass IPathVisitor:
     pass
@@ -92,9 +91,9 @@ cdef extern from "cpsw_api_user.h":
     unsigned    getTailFrom() except+handleException
     unsigned    getTailTo() except+handleException
     void        explore(IPathVisitor *) except+handleException
-    uint64_t    dumpConfigToYaml(Node &) except+handleException
-    uint64_t    loadConfigFromYaml(Node &) except+handleException
-    uint64_t    loadConfigFromYamlFile(Node &) except+handleException
+    uint64_t    dumpConfigToYaml(c_Node &) except+handleException
+    uint64_t    loadConfigFromYaml(c_Node &) except+handleException
+    uint64_t    loadConfigFromYamlFile(c_Node &) except+handleException
 
 #	# Overloading doesn't seem to work properly :-(
     @staticmethod
