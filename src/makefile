@@ -133,7 +133,7 @@ cpsw_ypp_SRCS        += cpsw_ypp.cc cpsw_preproc.cc
 
 # Python wrapper; only built if WITH_PYCPSW is set to YES (can be target specific)
 pycpsw_so_SRCS_BOOST  = cpsw_boost_python.cc cpsw_python.cc
-pycpsw_so_SRCS_CYTHON = cpsw_python.cc pycpsw.cpp cpsw_cython.cc
+pycpsw_so_SRCS_CYTHON = cpsw_python.cc pycpsw.cc cpsw_cython.cc
 pycpsw_so_LIBS_BOOST  = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
 pycpsw_so_LIBS_CYTHON = $(CPSW_LIBS)
 pycpsw_so_CPPFLAGS    = $(addprefix -I,$(pyinc_DIR)) -I.
@@ -147,10 +147,15 @@ PYCPSW_CYTHON         = pycpsw.so
 PYCPSW_SWIG           = _pycpsw.so
 PYCPSW                = $(PYCPSW_$(WITH_PYCPSW))
 
-yaml_cpp_so_SRCS    = yaml_cpp_python.cc
-yaml_cpp_so_LIBS    = $(BOOST_PYTHON_LIB) $(filter yaml-cpp%,$(CPSW_LIBS))
-yaml_cpp_so_CPPFLAGS= $(addprefix -I,$(pyinc_DIR))
-yaml_cpp_so_CXXFLAGS= -fno-strict-aliasing
+yaml_cpp_so_SRCS      = $(yaml_cpp_so_SRCS_$(WITH_PYCPSW))
+yaml_cpp_so_LIBS      = $(yaml_cpp_so_LIBS_$(WITH_PYCPSW))
+
+yaml_cpp_so_SRCS_BOOST= yaml_cpp_python.cc
+yaml_cpp_so_SRCS_CYTHON= pyyaml_cpp.cc
+yaml_cpp_so_LIBS_BOOST= $(BOOST_PYTHON_LIB) $(filter yaml-cpp%,$(CPSW_LIBS))
+yaml_cpp_so_LIBS_CYTHON= $(filter yaml-cpp%,$(CPSW_LIBS))
+yaml_cpp_so_CPPFLAGS  = $(addprefix -I,$(pyinc_DIR))
+yaml_cpp_so_CXXFLAGS  = -fno-strict-aliasing
 
 _pycpsw_so_SRCS    += pycpsw_wrap.cc
 _pycpsw_so_SRCS    += cpsw_swig_python.cc
@@ -158,7 +163,8 @@ _pycpsw_so_SRCS    += cpsw_python.cc
 _pycpsw_so_CPPFLAGS+= $(addprefix -I,$(pyinc_DIR))
 _pycpsw_so_LIBS    += $(CPSW_LIBS)
 
-PYYAML_YES          = yaml_cpp.so
+PYYAML_BOOST        = yaml_cpp.so
+PYYAML_CYTHON       = yaml_cpp.so
 PYYAML              = $(PYYAML_$(WITH_PYCPSW))
 
 PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML)
@@ -172,7 +178,10 @@ include $(CPSW_DIR)/rules.mak
 pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_swig_python.h
 	swig -python -c++ -o $@ $<
 
-pycpsw.cpp: pycpsw.pyx pycpsw.pxd cpsw_api_user.h
+pycpsw.cc: pycpsw.pyx pycpsw.pxd cpsw_api_user.h
+	cython --cplus $< -o $@
+
+pyyaml_cpp.cc: yaml_cpp.pyx yaml_cpp.pxd
 	cython --cplus $< -o $@
 
 doc/README.yamlDefinition.md:doc/README.yamlDefinition.in

@@ -22,16 +22,10 @@
 #include <boost/python.hpp>
 #include <yaml-cpp/yaml.h>
 
+#include <yaml_cpp_util.h>
+
 using namespace boost::python;
 using YAML::Node;
-
-template <typename Key>
-static const YAML::Node
-yamlNodeFind(const YAML::Node &n, const Key &k)
-{
-	// non-const operator[] inserts into YAML map!
-	return static_cast<const YAML::Node>(n)[k];
-}
 
 static void setNodeNode(Node &lhs, const Node &rhs)
 {
@@ -53,7 +47,7 @@ static Node getitemStr(const Node &self, const std::string & key)
 	return yamlNodeFind(self, key);
 }
 
-static Node getitemInt(const Node &self, int key)
+static Node getitemInt(const Node &self, long long key)
 {
 	return yamlNodeFind(self, key);
 }
@@ -79,36 +73,28 @@ static void setitemNode(Node &self, Node &key, Node &val)
 	self[key] = val;
 }
 
-static void setitemInt(Node &self, int key, Node &val)
+static void setitemInt(Node &self, long long key, Node &val)
 {
 	self[key] = val;
 }
 
 
-static void setitemStr(Node &self, Node &key, std::string &val)
+static void setitemStr(Node &self, std::string &key, Node &val)
 {
 	self[key] = val;
 }
 
-static const std::string asStr(const Node &self)
+static void setitemStrStr(Node &self, std::string &key, std::string &val)
+{
+	self[key] = val;
+}
+
+
+static std::string asStr(const Node &self)
 {
 	return self.as<std::string>();
 }
 
-static bool boolNode(Node &self)
-{
-	return !! self;
-}
-
-
-static std::string emitNode(const YAML::Node &n)
-{
-YAML::Emitter e;
-
-	e << n;
-
-	return std::string( e.c_str() );
-}
 
 BOOST_PYTHON_MODULE(yaml_cpp)
 {
@@ -133,9 +119,10 @@ BOOST_PYTHON_MODULE(yaml_cpp)
 	.def("__getitem__",      getitemStr)
 	.def("__getitem__",      getitemInt)
 	.def("__getitem__",      getitemNode)
-	.def("__setitem__",      setitemNode)
-	.def("__setitem__",      setitemInt)
-	.def("__setitem__",      setitemStr)
+	.def("__setitem__",      yamlNodeSet<Node,Node>)
+	.def("__setitem__",      yamlNodeSet<long long, Node>)
+	.def("__setitem__",      yamlNodeSet<string, Node>)
+	.def("__setitem__",      yamlNodeSet<string, string>)
 	.def("__bool__",         boolNode)
 	.def("LoadFile",         &YAML::LoadFile)
 	.staticmethod("LoadFile")
