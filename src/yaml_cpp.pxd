@@ -15,9 +15,9 @@ cdef extern from "yaml-cpp/yaml.h" namespace "YAML":
     value_type &operator*()  const;
     bool operator==(const_iterator &) const;
  
-  cdef cppclass Node:
-    Node(const string&)             except+;
-    Node()                          except+;
+  cdef cppclass c_Node "YAML::Node":
+    c_Node(const string&)             except+;
+    c_Node()                          except+;
     bool IsDefined()                const;
     bool IsNull()                   const;
     bool IsScalar()                 const;
@@ -25,30 +25,30 @@ cdef extern from "yaml-cpp/yaml.h" namespace "YAML":
     bool IsMap()                    const;
     value Type()          const;
     const string &Scalar()          except+;
-    bool remove(const Node&)        except+;
+    bool remove(const c_Node&)        except+;
     bool remove(const string&)      except+;
     bool remove(long long)          except+;
-    Node &operator=(const Node &)   except+;
-    Node &operator=(const string &) except+;
-    Node &operator=(long long)      except+;
-    void push_back(const Node &)    except+;
+    c_Node &operator=(const c_Node &)   except+;
+    c_Node &operator=(const string &) except+;
+    c_Node &operator=(long long)      except+;
+    void push_back(const c_Node &)    except+;
     string as[string]()             except+;
     bool operator!()                const;
-    Node operator[](const Node&)    except+;
-    Node operator[](const string&)  except+;
-    Node operator[](long long)      except+;
+    c_Node operator[](const c_Node&)    except+;
+    c_Node operator[](const string&)  except+;
+    c_Node operator[](long long)      except+;
     const_iterator begin()          const;
     const_iterator end()            const;
 
-  cdef Node LoadFile(const string&) except+;
+  cdef c_Node LoadFile(const string&) except+;
 
 cdef extern from "yaml-cpp/yaml.h" namespace "YAML::iterator::":
-  cdef cppclass value_type (Node):
-    Node first;
-    Node second;
+  cdef cppclass value_type (c_Node):
+    c_Node first;
+    c_Node second;
  
 cdef extern from "yaml_cpp_util.h":
-  cdef const Node yamlNodeFind[K](Node &n, const K &k) except+;
-  cdef void yamlNodeSet[K,V](Node &n, const K &k, V &v) except+;
-  cdef bool boolNode(Node &) except+;
-  cdef string c_emitNode "emitNode"(const Node &) except+;
+  cdef const c_Node yamlNodeFind[K](c_Node &n, const K &k) except+;
+  cdef void yamlNodeSet[K,V](c_Node &n, const K &k, V &v) except+;
+  cdef bool boolNode(c_Node &) except+;
+  cdef string c_emitNode "emitNode"(const c_Node &) except+;

@@ -25,18 +25,16 @@ class NodeType(Enum):
   Sequence  = nodeTypeSequence()
   Map       = nodeTypeMap()
 
-secret__ = object()
-
-cdef class PyNode:
-  cdef Node           c_node
+cdef class Node:
+  cdef c_Node           c_node
   cdef const_iterator c_it
 
   def __cinit__(self, s = None):
     if None == s:
-      self.c_node = Node()
+      self.c_node = c_Node()
     else:
       bstr = s.encode('UTF-8') 
-      self.c_node = Node( bstr )
+      self.c_node = c_Node( bstr )
 
   def IsDefined(self):
     return self.c_node.IsDefined()
@@ -60,10 +58,10 @@ cdef class PyNode:
     return NodeType( self.c_node.Type() )
 
   def remove(self, key):
-    cdef PyNode   knod
+    cdef Node   knod
     cdef string   kstr
     cdef longlong kint
-    if isinstance(key, PyNode):
+    if isinstance(key, Node):
       knod = key
       return self.c_node.remove( knod.c_node )
     elif isinstance(key, str):
@@ -73,28 +71,28 @@ cdef class PyNode:
       kint = key
       return self.c_node.remove( kint )
     else:
-      raise TypeError('yaml_cpp::Node::remove not supported for argument type')
+      raise TypeError('yaml_cpp::c_Node::remove not supported for argument type')
 
   def set(self, rhs):
-    cdef PyNode pn
+    cdef Node pn
     cdef string bstr
-    if isinstance(rhs, PyNode):
+    if isinstance(rhs, Node):
       pn = rhs
       self.c_node = pn.c_node
     elif isinstance(rhs, str):
       bstr = rhs.encode('UTF-8') 
       self.c_node = bstr
     else:
-      raise TypeError('yaml_cpp::Node::set not supported for argument type')
+      raise TypeError('yaml_cpp::c_Node::set not supported for argument type')
 
-  def push_back(self, PyNode rhs):
+  def push_back(self, Node rhs):
     self.c_node.push_back( rhs.c_node )
 
   def getAs(self):
     return self.c_node.as[string]().decode('UTF-8')
 
   def __repr__(self):
-    if isinstance(self, PyNode) and self.IsScalar():
+    if isinstance(self, Node) and self.IsScalar():
       return self.c_node.as[string]().decode('UTF-8')
     else:
       return object.__repr__(self)
@@ -103,13 +101,13 @@ cdef class PyNode:
     return boolNode( self.c_node )
 
   def __getitem__(self, key):
-    cdef PyNode   knod
+    cdef Node   knod
     cdef string   kstr
     cdef longlong kint
-    cdef PyNode rval = PyNode()
-    if isinstance(key, PyNode):
+    cdef Node rval = Node()
+    if isinstance(key, Node):
       knod = key
-      rval.c_node = yamlNodeFind[Node](self.c_node, knod.c_node)
+      rval.c_node = yamlNodeFind[c_Node](self.c_node, knod.c_node)
     elif isinstance(key, str):
       kstr = key.encode('UTF-8')
       rval.c_node = yamlNodeFind[string](self.c_node, kstr)
@@ -117,11 +115,11 @@ cdef class PyNode:
       kint = key
       rval.c_node = yamlNodeFind[longlong](self.c_node, kint)
     else:
-      raise TypeError("yaml_cpp::Node::__getitem__ unsupported key type")
+      raise TypeError("yaml_cpp::c_Node::__getitem__ unsupported key type")
     return rval
 
   def __setitem__(self, key, val):
-    cdef PyNode   knod, vnod
+    cdef Node   knod, vnod
     cdef string   kstr, vstr
     cdef longlong kint
 
@@ -130,33 +128,33 @@ cdef class PyNode:
       if isinstance(val, str):
         vstr = val.encode('UTF-8')
         yamlNodeSet[string, string](self.c_node, kstr, vstr)
-      elif isinstance(val, PyNode):
+      elif isinstance(val, Node):
         vnod = val
-        yamlNodeSet[string, Node  ](self.c_node, kstr, vnod.c_node)
+        yamlNodeSet[string, c_Node  ](self.c_node, kstr, vnod.c_node)
       else:
-        raise TypeError("yaml_cpp::Node::__setitem__ unsupported value type")
+        raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
     elif isinstance(key, int):
       kint = key
       if isinstance(val, str):
         vstr = val.encode('UTF-8')
         yamlNodeSet[longlong, string](self.c_node, kint, vstr)
-      elif isinstance(val, PyNode):
+      elif isinstance(val, Node):
         vnod = val
-        yamlNodeSet[longlong, Node  ](self.c_node, kint, vnod.c_node)
+        yamlNodeSet[longlong, c_Node  ](self.c_node, kint, vnod.c_node)
       else:
-        raise TypeError("yaml_cpp::Node::__setitem__ unsupported value type")
-    elif isinstance(key, PyNode):
+        raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
+    elif isinstance(key, Node):
       knod = key
       if isinstance(val, str):
         vstr = val.encode('UTF-8')
-        yamlNodeSet[Node, string](self.c_node, knod.c_node, vstr)
-      elif isinstance(val, PyNode):
+        yamlNodeSet[c_Node, string](self.c_node, knod.c_node, vstr)
+      elif isinstance(val, Node):
         vnod = val
-        yamlNodeSet[Node, Node  ](self.c_node, knod.c_node, vnod.c_node)
+        yamlNodeSet[c_Node, c_Node  ](self.c_node, knod.c_node, vnod.c_node)
       else:
-        raise TypeError("yaml_cpp::Node::__setitem__ unsupported value type")
+        raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
     else:
-      raise TypeError("yaml_cpp::Node::__setitem__ unsupported key type")
+      raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported key type")
 
   def __iter__(self):
     self.c_it = self.c_node.begin()
@@ -166,12 +164,12 @@ cdef class PyNode:
     if self.c_it == self.c_node.end():
       raise StopIteration()
     if deref(self.c_it).IsDefined():
-      x = PyNode()
-      x.c_node = <Node> deref( self.c_it )
+      x = Node()
+      x.c_node = <c_Node> deref( self.c_it )
       rval = x
     else:
-      k = PyNode()
-      v = PyNode()
+      k = Node()
+      v = Node()
       k.c_node = deref( self.c_it ).first
       v.c_node = deref( self.c_it ).second
       rval = (k, v)
@@ -180,9 +178,9 @@ cdef class PyNode:
 
   @staticmethod
   def LoadFile(string filename):
-    cdef PyNode rval = PyNode()
+    cdef Node rval = Node()
     rval.c_node = LoadFile( filename )
     return rval
 
-def emitNode(PyNode node):
+def emitNode(Node node):
   return c_emitNode( node.c_node )
