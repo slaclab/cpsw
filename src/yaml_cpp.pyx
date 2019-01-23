@@ -2,7 +2,27 @@ from    libcpp.string cimport *
 from    libcpp        cimport bool
 cimport yaml_cpp
 
+from    enum          import Enum
+
 ctypedef long long longlong;
+
+cdef int nodeTypeUndefined():
+  return Undefined
+cdef int nodeTypeNull():
+  return Null
+cdef int nodeTypeScalar():
+  return Scalar
+cdef int nodeTypeSequence():
+  return Sequence
+cdef int nodeTypeMap():
+  return Map
+
+class NodeType(Enum):
+  Undefined = nodeTypeUndefined()
+  Null      = nodeTypeNull()
+  Scalar    = nodeTypeScalar()
+  Sequence  = nodeTypeSequence()
+  Map       = nodeTypeMap()
 
 cdef class PyNode:
   cdef Node c_node
@@ -31,6 +51,9 @@ cdef class PyNode:
 
   def Scalar(self):
     return self.c_node.Scalar().decode('UTF-8')
+
+  def Type(self):
+    return NodeType( self.c_node.Type() )
 
   def remove(self, rhs):
     cdef PyNode pn

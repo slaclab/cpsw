@@ -1,7 +1,16 @@
 from libcpp.string cimport *
 from libcpp        cimport bool
 
+cdef extern from "yaml-cpp/yaml.h" namespace "YAML::NodeType":
+  cdef enum value:
+    Undefined
+    Null
+    Scalar
+    Sequence
+    Map
+ 
 cdef extern from "yaml-cpp/yaml.h" namespace "YAML":
+ 
   cdef cppclass Node:
     Node(const string&)             except+;
     Node()                          except+;
@@ -10,6 +19,7 @@ cdef extern from "yaml-cpp/yaml.h" namespace "YAML":
     bool IsScalar()                 const;
     bool IsSequence()               const;
     bool IsMap()                    const;
+    value Type()          const;
     const string &Scalar()          except+;
     bool remove(const Node&)        except+;
     bool remove(const string&)      except+;
@@ -22,6 +32,7 @@ cdef extern from "yaml-cpp/yaml.h" namespace "YAML":
     Node operator[](const Node&)    except+;
     Node operator[](const string&)  except+;
     Node operator[](long long)      except+;
+
   cdef Node LoadFile(const string&) except+;
 
 cdef extern from "yaml_cpp_util.h":

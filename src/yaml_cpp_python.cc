@@ -141,8 +141,8 @@ BOOST_PYTHON_MODULE(yaml_cpp)
 	.value("Undefined", YAML::NodeType::Undefined)
 	.value("Null",      YAML::NodeType::Null)
 	.value("Scalar",    YAML::NodeType::Scalar)
-	.value("Map",       YAML::NodeType::Map)
 	.value("Sequence",  YAML::NodeType::Sequence)
+	.value("Map",       YAML::NodeType::Map)
 	;
 
 	def("emitNode", emitNode);
