@@ -25,13 +25,18 @@ cdef extern from "cpsw_api_user.h":
   cdef cppclass IHub
   cdef cppclass IPath
   cdef cppclass IVal_Base
+  cdef cppclass IScalVal_Base
+  cdef cppclass IEnum
 
 
-ctypedef const IEntry        CIEntry
-ctypedef const IChild        CIChild
-ctypedef const IHub          CIHub
-ctypedef const IPath         CIPath
-ctypedef const IVal_Base     CIVal_Base
+ctypedef const IEntry            CIEntry
+ctypedef const IChild            CIChild
+ctypedef const IHub              CIHub
+ctypedef const IPath             CIPath
+ctypedef const IVal_Base         CIVal_Base
+ctypedef const IScalVal_Base     CIScalVal_Base
+ctypedef const IEnum             CIEnum
+ctypedef const string            CString
 
 ctypedef shared_ptr[CIEntry]                 cc_ConstEntry
 ctypedef shared_ptr[IEntry]                  cc_Entry
@@ -44,14 +49,23 @@ ctypedef shared_ptr[IPath  ]                 cc_Path
 ctypedef shared_ptr[CIPath ]                 cc_ConstPath
 ctypedef shared_ptr[IVal_Base]               cc_Val_Base
 ctypedef shared_ptr[CIVal_Base]              cc_ConstVal_Base
+ctypedef shared_ptr[IScalVal_Base]           cc_ScalVal_Base
+ctypedef shared_ptr[CIScalVal_Base]          cc_ConstScalVal_Base
+ctypedef shared_ptr[IEnum]                   cc_Enum
+ctypedef shared_ptr[CIEnum]                  cc_ConstEnum
+ctypedef shared_ptr[CString]                 cc_ConstString
 
-ctypedef CIEntry            *CIEntryp
-ctypedef CIChild            *CIChildp
-ctypedef CIHub              *CIHubp
-ctypedef CIPath             *CIPathp
-ctypedef IPath              *IPathp
-ctypedef IVal_Base          *IVal_Basep
-ctypedef CIVal_Base         *CIVal_Basep
+ctypedef CIEntry                *CIEntryp
+ctypedef CIChild                *CIChildp
+ctypedef CIHub                  *CIHubp
+ctypedef CIPath                 *CIPathp
+ctypedef IPath                  *IPathp
+ctypedef IVal_Base              *IVal_Basep
+ctypedef CIVal_Base             *CIVal_Basep
+ctypedef IScalVal_Base          *IScalVal_Basep
+ctypedef CIScalVal_Base         *CIScalVal_Basep
+ctypedef IEnum                  *IEnump
+ctypedef CIEnum                 *CIEnump
 
 
 cdef extern from "cpsw_python.h" namespace "cpsw_python":
@@ -66,10 +80,21 @@ cdef extern from "cpsw_python.h" namespace "cpsw_python":
 
 
 cdef extern from "cpsw_api_user.h":
-  cdef cppclass iterator "Children::element_type::const_iterator":
-    iterator     &operator++()          except+;
+  cdef cppclass   iterator "Children::element_type::const_iterator":
+    iterator     &operator++()           except+;
     cc_ConstChild operator*()            except+;
     bool          operator!=(iterator &) except+;
+
+cdef extern from "cpsw_api_user.h" namespace "IEnum":
+  cdef struct EnumItem     "IEnum::Item":
+    cc_ConstString first
+    uint64_t       second
+
+  cdef cppclass EnumIterator "IEnum::iterator":
+    bool operator!=(const EnumIterator &)
+    EnumIterator &operator++()
+    EnumItem      operator*()
+    
 
 cdef extern from "cpsw_api_user.h" namespace "IVal_Base":
   enum Encoding:
@@ -151,6 +176,19 @@ cdef extern from "cpsw_api_user.h":
 
     @staticmethod
     cc_Val_Base create(cc_Path path)            except+handleException
+
+  cdef cppclass IEnum:
+    EnumIterator begin()                        except+handleException
+    EnumIterator end()                          except+handleException
+    unsigned     getNelms()                     except+handleException
+
+  cdef cppclass IScalVal_Base(IVal_Base):
+    uint64_t     getSizeBits()                  except+handleException
+    bool         isSigned()                     except+handleException
+    cc_Enum      getEnum()                      except+handleException
+
+    @staticmethod
+    cc_ScalVal_Base create(cc_Path path)        except+handleException
 
 
 cdef extern from "cpsw_cython.h" namespace "cpsw_python":

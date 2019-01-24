@@ -105,15 +105,58 @@ cdef class Val_Base(Entry):
     return ConvertEncoding.do_encode( enc ).decode('UTF-8', 'strict')
 
   @staticmethod
-  cdef make(cc_Val_Base cp):
-    po      = Val_Base(priv__)
-    po.cptr = static_pointer_cast[CIEntry, IVal_Base]( cp )
-    po.ptr  = cp
+  def create(Path p):
+    cdef cc_Val_Base obj = IVal_Base.create( p.ptr )
+    po     = Val_Base(priv__)
+    po.cptr = static_pointer_cast[CIEntry,  IVal_Base]( obj )
+    po.ptr  = static_pointer_cast[IVal_Base,IVal_Base]( obj )
     return po
+
+cdef class Enum(NoInit):
+  cdef cc_Enum ptr
+
+  cpdef getItems(self):
+    cdef EnumIterator it  = self.ptr.get().begin()
+    cdef EnumIterator ite = self.ptr.get().end()
+    cdef cc_ConstString cc_str
+    rval = []
+    while it != ite:
+      cc_str = dereference( it ).first
+      nam = cc_str.get().c_str().decode('UTF-8', 'strict')
+      num = dereference( it ).second
+      tup = ( nam, num )
+      rval.append( tup )
+      preincrement( it )
+    return rval
+
+  cpdef getNelms(self):
+    return self.ptr.get().getNelms()
+
+cdef class ScalVal_Base(Val_Base):
+
+  cpdef getSizeBits(self):
+    return dynamic_pointer_cast[CIScalVal_Base, CIEntry](self.cptr).get().getSizeBits()
+
+  cpdef isSigned(self):
+    return dynamic_pointer_cast[CIScalVal_Base, CIEntry](self.cptr).get().isSigned()
+
+  cpdef getEnum(self):
+    cdef cc_Enum cenums = dynamic_pointer_cast[CIScalVal_Base, CIEntry](self.cptr).get().getEnum()
+
+    enums = Enum(priv__)
+    enums.ptr = cenums
+    return enums
+    
 
   @staticmethod
   def create(Path p):
-    return Val_Base.make( IVal_Base.create( p.ptr ) )
+    cdef cc_ScalVal_Base obj = IScalVal_Base.create( p.ptr )
+    po     = ScalVal_Base(priv__)
+    po.cptr = static_pointer_cast[CIEntry,  IScalVal_Base]( obj )
+    po.ptr  = static_pointer_cast[IVal_Base,IScalVal_Base]( obj )
+    return po
+
+
 
 cdef cppclass CPathVisitor(IPathVisitor):
 
