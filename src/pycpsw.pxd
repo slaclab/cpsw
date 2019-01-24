@@ -30,6 +30,7 @@ cdef extern from "cpsw_api_user.h":
   cdef cppclass IAsyncIO
   cdef cppclass IScalVal_RO
   cdef cppclass IScalVal
+  cdef cppclass IStream
 
 
 ctypedef const IEntry            CIEntry
@@ -60,21 +61,7 @@ ctypedef shared_ptr[CString]                 cc_ConstString
 ctypedef shared_ptr[IAsyncIO]                cc_AsyncIO
 ctypedef shared_ptr[IScalVal_RO]             cc_ScalVal_RO
 ctypedef shared_ptr[IScalVal]                cc_ScalVal
-
-ctypedef CIEntry                *CIEntryp
-ctypedef CIChild                *CIChildp
-ctypedef CIHub                  *CIHubp
-ctypedef CIPath                 *CIPathp
-ctypedef IPath                  *IPathp
-ctypedef IVal_Base              *IVal_Basep
-ctypedef CIVal_Base             *CIVal_Basep
-ctypedef IScalVal_Base          *IScalVal_Basep
-ctypedef CIScalVal_Base         *CIScalVal_Basep
-ctypedef IEnum                  *IEnump
-ctypedef CIEnum                 *CIEnump
-ctypedef IScalVal_RO            *IScalVal_ROp
-ctypedef IScalVal               *IScalValp
-
+ctypedef shared_ptr[IStream]                 cc_Stream
 
 cdef extern from "cpsw_python.h" namespace "cpsw_python":
   cdef void handleException()
@@ -85,8 +72,10 @@ cdef extern from "cpsw_python.h" namespace "cpsw_python":
   cdef string   wrap_Path_dumpConfigToYamlString(cc_Path, const char *, const char *)              except+handleException
 
   cdef cc_Path  wrap_Path_loadYamlStream(const string &, const char *, const char *, IYamlFixup *) except+handleException
-  cdef unsigned IScalVal_RO_getVal(IScalVal_RO *, PyObject *, int , int )
+  cdef unsigned IScalVal_RO_getVal(IScalVal_RO *, PyObject *, int , int )                          except+handleException
 
+  cdef int64_t  IStream_read (IStream *, PyObject *, int64_t, uint64_t)                            except+handleException
+  cdef int64_t  IStream_write(IStream *, PyObject *, int64_t timeoutUs)                            except+handleException
 
 cdef extern from "cpsw_api_user.h":
   cdef cppclass   iterator "Children::element_type::const_iterator":
@@ -210,6 +199,9 @@ cdef extern from "cpsw_api_user.h":
     @staticmethod
     cc_ScalVal create(cc_Path path)             except+handleException
 
+  cdef cppclass IStream(IVal_Base):
+    @staticmethod
+    cc_Stream  create(cc_Path path)             except+handleException
 
 cdef extern from "cpsw_cython.h" namespace "cpsw_python":
   cdef cppclass CPathVisitor:

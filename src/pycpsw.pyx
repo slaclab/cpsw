@@ -61,7 +61,7 @@ cdef class Child(Entry):
 
   @staticmethod
   cdef make(cc_ConstChild cp):
-    po     = Child(priv__)
+    po      = Child(priv__)
     po.cptr = static_pointer_cast[CIEntry, CIChild]( cp )
     return po
 
@@ -85,7 +85,7 @@ cdef class Hub(Entry):
 
   @staticmethod
   cdef make(cc_ConstHub cp):
-    po     = Hub(priv__)
+    po      = Hub(priv__)
     po.cptr = static_pointer_cast[CIEntry, CIHub]( cp )
     return po
 
@@ -109,7 +109,7 @@ cdef class Val_Base(Entry):
   @staticmethod
   def create(Path p):
     cdef cc_Val_Base obj = IVal_Base.create( p.ptr )
-    po     = Val_Base(priv__)
+    po      = Val_Base(priv__)
     po.cptr = static_pointer_cast[CIEntry,  IVal_Base]( obj )
     po.ptr  = static_pointer_cast[IVal_Base,IVal_Base]( obj )
     return po
@@ -153,7 +153,7 @@ cdef class ScalVal_Base(Val_Base):
   @staticmethod
   def create(Path p):
     cdef cc_ScalVal_Base obj = IScalVal_Base.create( p.ptr )
-    po     = ScalVal_Base(priv__)
+    po      = ScalVal_Base(priv__)
     po.cptr = static_pointer_cast[CIEntry,  IScalVal_Base]( obj )
     po.ptr  = static_pointer_cast[IVal_Base,IScalVal_Base]( obj )
     return po
@@ -212,9 +212,44 @@ cdef class ScalVal(ScalVal_RO):
   @staticmethod
   def create(Path p):
     cdef cc_ScalVal obj = IScalVal.create( p.ptr )
-    po     = ScalVal(priv__)
+    po      = ScalVal(priv__)
     po.cptr = static_pointer_cast[CIEntry,  IScalVal]( obj )
     po.ptr  = static_pointer_cast[IVal_Base,IScalVal]( obj )
+    return po
+
+cdef class Stream(ScalVal_Base):
+  cdef cc_Stream sptr
+
+  def read(self, bufObject, timeoutUs = -1, offset = 0):
+    if not self.sptr: 
+      raise FailedStreamError("Stream can only be read from the block of a 'with' statement!");
+    return IStream_read( self.sptr.get(), <PyObject*>bufObject, timeoutUs, offset )
+
+  def write(self, bufObject, timeoutUs = 0):
+    if not self.sptr: 
+      raise FailedStreamError("Stream can only be written from the block of a 'with' statement!");
+    return IStream_write( self.sptr.get(), <PyObject*>bufObject, timeoutUs )
+
+  def __enter__(self):
+    self.sptr = IStream.create( self.ptr.get().getPath() )
+    return self
+
+  def __exit__(self, exceptionType, exceptionValue, traceback):
+    self.sptr.reset() # close
+    return False;     # re-raise exception
+
+  @staticmethod
+  def create(Path p):
+    # Just try to create the stream and immediately close it
+    cdef cc_Stream   sobj = IStream.create( p.ptr )
+    cdef cc_Val_Base vobj
+
+    # Close the stream; only open during 'with' statement
+    sobj.reset()
+    vobj    = IVal_Base.create( p.ptr )
+    po      = Stream(priv__)
+    po.cptr = static_pointer_cast[CIEntry,  IVal_Base]( vobj )
+    po.ptr  = static_pointer_cast[IVal_Base,IVal_Base]( vobj )
     return po
 
 
