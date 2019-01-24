@@ -24,26 +24,38 @@ cdef extern from "cpsw_api_user.h":
   cdef cppclass IChild
   cdef cppclass IHub
   cdef cppclass IPath
+  cdef cppclass IVal_Base
+
+
+ctypedef const IEntry        CIEntry
+ctypedef const IChild        CIChild
+ctypedef const IHub          CIHub
+ctypedef const IPath         CIPath
+ctypedef const IVal_Base     CIVal_Base
+
+ctypedef shared_ptr[CIEntry]                 cc_ConstEntry
+ctypedef shared_ptr[IEntry]                  cc_Entry
+ctypedef shared_ptr[CIChild]                 cc_ConstChild
+ctypedef shared_ptr[IChild]                  cc_Child
+ctypedef shared_ptr[ vector[cc_ConstChild] ] cc_ConstChildren
+ctypedef shared_ptr[CIHub]                   cc_ConstHub
+ctypedef shared_ptr[IHub]                    cc_Hub
+ctypedef shared_ptr[IPath  ]                 cc_Path
+ctypedef shared_ptr[CIPath ]                 cc_ConstPath
+ctypedef shared_ptr[IVal_Base]               cc_Val_Base
+ctypedef shared_ptr[CIVal_Base]              cc_ConstVal_Base
+
+ctypedef CIEntry            *CIEntryp
+ctypedef CIChild            *CIChildp
+ctypedef CIHub              *CIHubp
+ctypedef CIPath             *CIPathp
+ctypedef IPath              *IPathp
+ctypedef IVal_Base          *IVal_Basep
+ctypedef CIVal_Base         *CIVal_Basep
+
 
 cdef extern from "cpsw_python.h" namespace "cpsw_python":
   cdef void handleException()
-
-  ctypedef const IEntry CIEntry
-  ctypedef const IChild CIChild
-  ctypedef const IHub   CIHub
-  ctypedef const IPath  CIPath
-  ctypedef shared_ptr[CIEntry] cc_Entry
-  ctypedef shared_ptr[CIChild] cc_Child
-  ctypedef shared_ptr[ vector[cc_Child] ] cc_Children
-  ctypedef shared_ptr[CIHub]   cc_Hub
-  ctypedef shared_ptr[IPath  ] cc_Path
-  ctypedef shared_ptr[CIPath ] cc_ConstPath
-  ctypedef CIEntry            *CIEntryp
-  ctypedef CIChild            *CIChildp
-  ctypedef CIHub              *CIHubp
-  ctypedef CIPath             *CIPathp
-  ctypedef IPath              *IPathp
-
   cdef uint64_t wrap_Path_loadConfigFromYamlFile  (cc_Path, const char *,  const char *)           except+handleException
   cdef uint64_t wrap_Path_loadConfigFromYamlString(cc_Path, const char *,  const char *)           except+handleException
 
@@ -52,11 +64,17 @@ cdef extern from "cpsw_python.h" namespace "cpsw_python":
 
   cdef cc_Path  wrap_Path_loadYamlStream(const string &, const char *, const char *, IYamlFixup *) except+handleException
 
+
 cdef extern from "cpsw_api_user.h":
   cdef cppclass iterator "Children::element_type::const_iterator":
-    iterator &operator++()          except+;
-    cc_Child operator*()            except+;
-    bool     operator!=(iterator &) except+;
+    iterator     &operator++()          except+;
+    cc_ConstChild operator*()            except+;
+    bool          operator!=(iterator &) except+;
+
+cdef extern from "cpsw_api_user.h" namespace "IVal_Base":
+  enum Encoding:
+    pass
+  ctypedef Encoding ValEncoding "IVal_Base::Encoding"
 
 cdef extern from "cpsw_api_user.h":
 
@@ -72,42 +90,42 @@ cdef extern from "cpsw_api_user.h":
     uint64_t    getSize()        except+handleException
     const char *getDescription() except+handleException
     double      getPollSecs()    except+handleException
-    cc_Hub      isHub()          except+handleException
+    cc_ConstHub      isHub()          except+handleException
 
   cdef cppclass IChild(IEntry):
-    cc_Hub      getOwner()       except+handleException
+    cc_ConstHub getOwner()       except+handleException
     unsigned    getNelms()       except+handleException
 
   cdef cppclass IHub(IEntry):
-    cc_Path     findByName(const char*)  except+handleException
-    cc_Child    getChild(const char *)   except+handleException
-    cc_Children getChildren()            except+handleException
+    cc_Path          findByName(const char*)  except+handleException
+    cc_ConstChild    getChild(const char *)   except+handleException
+    cc_ConstChildren getChildren()            except+handleException
 
   cdef cppclass IPath:
-    cc_Path     findByName(const char *)         except+handleException
-    cc_Child    up()                             except+handleException
-    bool        empty()                          except+handleException
-    int         size()                           except+handleException
-    void        clear()                          except+handleException
-    void        clear(cc_Hub)                    except+handleException
-    cc_Hub      origin()                         except+handleException
-    cc_Hub      parent()                         except+handleException
-    cc_Child    tail()                           except+handleException
-    string      toString()                       except+handleException
-    void        dump(FILE*)                      except+handleException
-    bool        verifyAtTail(cc_Path)            except+handleException
-    void        append(cc_Path)                  except+handleException
-    cc_Path     concat(cc_Path)                  except+handleException
-    cc_Path     clone()                          except+handleException
-    cc_Path     intersect(cc_Path)               except+handleException
-    bool        isIntersecting(cc_Path)          except+handleException
-    unsigned    getNelms()                       except+handleException
-    unsigned    getTailFrom()                    except+handleException
-    unsigned    getTailTo()                      except+handleException
-    void        explore(IPathVisitor *)          except+handleException
-    uint64_t    dumpConfigToYaml(c_Node &)       except+handleException
-    uint64_t    loadConfigFromYaml(c_Node &)     except+handleException
-    uint64_t    loadConfigFromYamlFile(c_Node &) except+handleException
+    cc_Path       findByName(const char *)         except+handleException
+    cc_ConstChild up()                             except+handleException
+    bool          empty()                          except+handleException
+    int           size()                           except+handleException
+    void          clear()                          except+handleException
+    void          clear(cc_Hub)                    except+handleException
+    cc_ConstHub   origin()                         except+handleException
+    cc_ConstHub   parent()                         except+handleException
+    cc_ConstChild tail()                           except+handleException
+    string        toString()                       except+handleException
+    void          dump(FILE*)                      except+handleException
+    bool          verifyAtTail(cc_Path)            except+handleException
+    void          append(cc_Path)                  except+handleException
+    cc_Path       concat(cc_Path)                  except+handleException
+    cc_Path       clone()                          except+handleException
+    cc_Path       intersect(cc_Path)               except+handleException
+    bool          isIntersecting(cc_Path)          except+handleException
+    unsigned      getNelms()                       except+handleException
+    unsigned      getTailFrom()                    except+handleException
+    unsigned      getTailTo()                      except+handleException
+    void          explore(IPathVisitor *)          except+handleException
+    uint64_t      dumpConfigToYaml(c_Node &)       except+handleException
+    uint64_t      loadConfigFromYaml(c_Node &)     except+handleException
+    uint64_t      loadConfigFromYamlFile(c_Node &) except+handleException
 
 #	# Overloading doesn't seem to work properly :-(
     @staticmethod
@@ -124,6 +142,16 @@ cdef extern from "cpsw_api_user.h":
 
     @staticmethod
     cc_Path     loadYamlStream(const char *, const char *, const char *, IYamlFixup*) except+handleException
+
+  cdef cppclass IVal_Base(IEntry):
+    unsigned     getNelms()                     except+handleException
+    cc_Path      getPath()                      except+handleException
+    cc_ConstPath getConstPath()                 except+handleException
+    ValEncoding  getEncoding()                  except+handleException
+
+    @staticmethod
+    cc_Val_Base create(cc_Path path)            except+handleException
+
 
 cdef extern from "cpsw_cython.h" namespace "cpsw_python":
   cdef cppclass CPathVisitor:

@@ -481,7 +481,7 @@ public:
 	 * The Path used to instantiate a Val may address an array
 	 * of values. This method returns the number of array elements.
 	 */
-	virtual unsigned getNelms()               = 0;
+	virtual unsigned getNelms()         const = 0;
 
 	/*!
 	 * Return a copy of the Path which was used to create this Val.

@@ -18,56 +18,61 @@ cdef extern from "<memory>" namespace "std":
 cimport pycpsw
 from    yaml_cpp cimport c_Node, Node
 
+cdef extern from "cpsw_yaml.h" namespace "YAML":
+  cdef cppclass ConvertEncoding "YAML::convert<IVal_Base::Encoding>":
+    @staticmethod
+    string do_encode(const ValEncoding &)
+
 priv__ = object()
 
 cdef class NoInit:
-  def __cinit__(self, secret):
-    if secret != priv__:
+  def __cinit__(self, *args):
+    if args[0] != priv__:
       raise ValueError("Cannot instantiate objects of this type directly")
 
 cdef class Entry(NoInit):
 
-  cdef cc_Entry ptr
+  cdef cc_ConstEntry cptr
 
   cpdef getName(self):
-    return self.ptr.get().getName().decode('UTF-8','strict')
+    return self.cptr.get().getName().decode('UTF-8','strict')
 
   cpdef getSize(self):
-    return self.ptr.get().getSize()
+    return self.cptr.get().getSize()
 
   cpdef getDescription(self):
-    return self.ptr.get().getDescription()
+    return self.cptr.get().getDescription()
 
   cpdef getPollSecs(self):
-    return self.ptr.get().getPollSecs()
+    return self.cptr.get().getPollSecs()
 
   cpdef isHub(self):
-    return Hub.make(self.ptr.get().isHub())
+    return Hub.make(self.cptr.get().isHub())
 
 cdef class Child(Entry):
 
   cpdef getOwner(self):
-    return Hub.make( dynamic_pointer_cast[CIChild, CIEntry](self.ptr).get().getOwner() )
+    return Hub.make( dynamic_pointer_cast[CIChild, CIEntry](self.cptr).get().getOwner() )
 
   cpdef getNelms(self):
-    return dynamic_pointer_cast[CIChild, CIEntry](self.ptr).get().getNelms()
+    return dynamic_pointer_cast[CIChild, CIEntry](self.cptr).get().getNelms()
 
   @staticmethod
-  cdef make(cc_Child cp):
+  cdef make(cc_ConstChild cp):
     po     = Child(priv__)
-    po.ptr = static_pointer_cast[CIEntry, CIChild]( cp )
+    po.cptr = static_pointer_cast[CIEntry, CIChild]( cp )
     return po
 
 cdef class Hub(Entry):
 
   cpdef findByName(self, str path):
-    return Path.make( dynamic_pointer_cast[CIHub, CIEntry](self.ptr).get().findByName( path.c_str() ) )
+    return Path.make( dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().findByName( path.c_str() ) )
 
   cpdef getChild(self, name):
-    return Child.make( dynamic_pointer_cast[CIHub, CIEntry](self.ptr).get().getChild( name ) )
+    return Child.make( dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().getChild( name ) )
 
   cpdef getChildren(self):
-    cdef cc_Children children = dynamic_pointer_cast[CIHub, CIEntry](self.ptr).get().getChildren()
+    cdef cc_ConstChildren children = dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().getChildren()
     cdef iterator          it = children.get().begin()
     cdef iterator         ite = children.get().end()
     rval = []
@@ -77,10 +82,38 @@ cdef class Hub(Entry):
     return rval
 
   @staticmethod
-  cdef make(cc_Hub cp):
+  cdef make(cc_ConstHub cp):
     po     = Hub(priv__)
-    po.ptr = static_pointer_cast[CIEntry, CIHub]( cp )
+    po.cptr = static_pointer_cast[CIEntry, CIHub]( cp )
     return po
+
+cdef class Val_Base(Entry):
+
+  cdef cc_Val_Base ptr
+
+  cpdef getNelms(self):
+    return dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getNelms()
+
+  cpdef getPath(self):
+    return Path.make( dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getPath() )
+
+  cpdef getConstPath(self):
+    return Path.makeConst( dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getConstPath() )
+
+  cpdef getEncoding(self):
+    cdef ValEncoding enc = dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getEncoding()
+    return ConvertEncoding.do_encode( enc ).decode('UTF-8', 'strict')
+
+  @staticmethod
+  cdef make(cc_Val_Base cp):
+    po      = Val_Base(priv__)
+    po.cptr = static_pointer_cast[CIEntry, IVal_Base]( cp )
+    po.ptr  = cp
+    return po
+
+  @staticmethod
+  def create(Path p):
+    return Val_Base.make( IVal_Base.create( p.ptr ) )
 
 cdef cppclass CPathVisitor(IPathVisitor):
 
@@ -144,7 +177,7 @@ cdef class Path(NoInit):
     if not self.ptr:
       raise TypeError("Path is CONST")
     if issubclass(type(h), Hub):
-      self.ptr.get().clear( dynamic_pointer_cast[CIHub,CIEntry]( h.ptr ) )
+      self.ptr.get().clear( dynamic_pointer_cast[CIHub,CIEntry]( h.cptr ) )
     elif None == h:
       self.ptr.get().clear()
     else:
@@ -275,7 +308,7 @@ cdef class Path(NoInit):
     cdef const char *cpath
     if issubclass(type(arg), Hub):
       h = <Hub>arg
-      return Path.make( IPath.create1( dynamic_pointer_cast[CIHub, CIEntry](h.ptr) ) )
+      return Path.make( IPath.create1( dynamic_pointer_cast[CIHub, CIEntry](h.cptr) ) )
     elif None == arg:
       return Path.make( IPath.create0() )
     elif issubclass(type(arg), str):
@@ -335,7 +368,6 @@ cdef class Path(NoInit):
     po      = Path(priv__)
     po.cptr  = cp
     return po
-
 
 cdef public class CPSWError(Exception)[type CpswPyExcT_CPSWError, object CpswPyExcO_CPSWError]:
   pass

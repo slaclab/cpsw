@@ -45,7 +45,7 @@ public:
 	virtual Path        getPath()        const { return p_->clone();             }
 	virtual Encoding    getEncoding()    const = 0; // implementation must provide
 	virtual ConstPath   getConstPath()   const { return p_;                      }
-	virtual unsigned    getNelms()             { return p_->getNelms();          }
+	virtual unsigned    getNelms()       const { return p_->getNelms();          }
 	virtual void        dump(FILE *f)    const;
 	virtual void        dump()           const;
 
