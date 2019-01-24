@@ -27,6 +27,8 @@ cdef extern from "cpsw_api_user.h":
   cdef cppclass IVal_Base
   cdef cppclass IScalVal_Base
   cdef cppclass IEnum
+  cdef cppclass IAsyncIO
+  cdef cppclass IScalVal_RO
 
 
 ctypedef const IEntry            CIEntry
@@ -54,6 +56,8 @@ ctypedef shared_ptr[CIScalVal_Base]          cc_ConstScalVal_Base
 ctypedef shared_ptr[IEnum]                   cc_Enum
 ctypedef shared_ptr[CIEnum]                  cc_ConstEnum
 ctypedef shared_ptr[CString]                 cc_ConstString
+ctypedef shared_ptr[IAsyncIO]                cc_AsyncIO
+ctypedef shared_ptr[IScalVal_RO]             cc_ScalVal_RO
 
 ctypedef CIEntry                *CIEntryp
 ctypedef CIChild                *CIChildp
@@ -66,6 +70,7 @@ ctypedef IScalVal_Base          *IScalVal_Basep
 ctypedef CIScalVal_Base         *CIScalVal_Basep
 ctypedef IEnum                  *IEnump
 ctypedef CIEnum                 *CIEnump
+ctypedef IScalVal_RO            *IScalVal_ROp
 
 
 cdef extern from "cpsw_python.h" namespace "cpsw_python":
@@ -77,6 +82,7 @@ cdef extern from "cpsw_python.h" namespace "cpsw_python":
   cdef string   wrap_Path_dumpConfigToYamlString(cc_Path, const char *, const char *)              except+handleException
 
   cdef cc_Path  wrap_Path_loadYamlStream(const string &, const char *, const char *, IYamlFixup *) except+handleException
+  cdef unsigned IScalVal_RO_getVal(IScalVal_RO *, PyObject *, int , int )
 
 
 cdef extern from "cpsw_api_user.h":
@@ -190,12 +196,22 @@ cdef extern from "cpsw_api_user.h":
     @staticmethod
     cc_ScalVal_Base create(cc_Path path)        except+handleException
 
+  cdef cppclass IAsyncIO:
+    pass
+
+  cdef cppclass IScalVal_RO(IScalVal_Base):
+    @staticmethod
+    cc_ScalVal_RO create(cc_Path path);
+
+
 
 cdef extern from "cpsw_cython.h" namespace "cpsw_python":
   cdef cppclass CPathVisitor:
-    CPathVisitor() except+handleException
+    CPathVisitor()            except+handleException
     CPathVisitor(PyObject *o) except+handleException
 
   cdef cppclass CYamlFixup:
-    CYamlFixup() except+handleException
-    CYamlFixup(PyObject *o) except+handleException
+    CYamlFixup()              except+handleException
+    CYamlFixup(PyObject *o)   except+handleException
+
+  cdef PyObject * IScalVal_RO_getVal(IScalVal_RO *, int, int, bool) except+handleException

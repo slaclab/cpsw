@@ -10,6 +10,8 @@
 from    libcpp.cast     cimport *
 from    cython.operator cimport preincrement, dereference
 from    libc.stdio      cimport fopen, fclose, FILE
+from    cpython.buffer  cimport PyObject_CheckBuffer
+from    cpython.ref     cimport Py_XDECREF
 
 cdef extern from "<memory>" namespace "std":
   cdef shared_ptr[T] static_pointer_cast[T,U](shared_ptr[U])
@@ -34,27 +36,27 @@ cdef class Entry(NoInit):
 
   cdef cc_ConstEntry cptr
 
-  cpdef getName(self):
+  def getName(self):
     return self.cptr.get().getName().decode('UTF-8','strict')
 
-  cpdef getSize(self):
+  def getSize(self):
     return self.cptr.get().getSize()
 
-  cpdef getDescription(self):
+  def getDescription(self):
     return self.cptr.get().getDescription()
 
-  cpdef getPollSecs(self):
+  def getPollSecs(self):
     return self.cptr.get().getPollSecs()
 
-  cpdef isHub(self):
+  def isHub(self):
     return Hub.make(self.cptr.get().isHub())
 
 cdef class Child(Entry):
 
-  cpdef getOwner(self):
+  def getOwner(self):
     return Hub.make( dynamic_pointer_cast[CIChild, CIEntry](self.cptr).get().getOwner() )
 
-  cpdef getNelms(self):
+  def getNelms(self):
     return dynamic_pointer_cast[CIChild, CIEntry](self.cptr).get().getNelms()
 
   @staticmethod
@@ -65,13 +67,13 @@ cdef class Child(Entry):
 
 cdef class Hub(Entry):
 
-  cpdef findByName(self, str path):
+  def findByName(self, str path):
     return Path.make( dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().findByName( path.c_str() ) )
 
-  cpdef getChild(self, name):
+  def getChild(self, name):
     return Child.make( dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().getChild( name ) )
 
-  cpdef getChildren(self):
+  def getChildren(self):
     cdef cc_ConstChildren children = dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().getChildren()
     cdef iterator          it = children.get().begin()
     cdef iterator         ite = children.get().end()
@@ -91,16 +93,16 @@ cdef class Val_Base(Entry):
 
   cdef cc_Val_Base ptr
 
-  cpdef getNelms(self):
+  def getNelms(self):
     return dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getNelms()
 
-  cpdef getPath(self):
+  def getPath(self):
     return Path.make( dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getPath() )
 
-  cpdef getConstPath(self):
+  def getConstPath(self):
     return Path.makeConst( dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getConstPath() )
 
-  cpdef getEncoding(self):
+  def getEncoding(self):
     cdef ValEncoding enc = dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getEncoding()
     return ConvertEncoding.do_encode( enc ).decode('UTF-8', 'strict')
 
@@ -115,7 +117,7 @@ cdef class Val_Base(Entry):
 cdef class Enum(NoInit):
   cdef cc_Enum ptr
 
-  cpdef getItems(self):
+  def getItems(self):
     cdef EnumIterator it  = self.ptr.get().begin()
     cdef EnumIterator ite = self.ptr.get().end()
     cdef cc_ConstString cc_str
@@ -129,18 +131,18 @@ cdef class Enum(NoInit):
       preincrement( it )
     return rval
 
-  cpdef getNelms(self):
+  def getNelms(self):
     return self.ptr.get().getNelms()
 
 cdef class ScalVal_Base(Val_Base):
 
-  cpdef getSizeBits(self):
+  def getSizeBits(self):
     return dynamic_pointer_cast[CIScalVal_Base, CIEntry](self.cptr).get().getSizeBits()
 
-  cpdef isSigned(self):
+  def isSigned(self):
     return dynamic_pointer_cast[CIScalVal_Base, CIEntry](self.cptr).get().isSigned()
 
-  cpdef getEnum(self):
+  def getEnum(self):
     cdef cc_Enum cenums = dynamic_pointer_cast[CIScalVal_Base, CIEntry](self.cptr).get().getEnum()
 
     enums = Enum(priv__)
@@ -156,7 +158,57 @@ cdef class ScalVal_Base(Val_Base):
     po.ptr  = static_pointer_cast[IVal_Base,IScalVal_Base]( obj )
     return po
 
+cdef class ScalVal_RO(ScalVal_Base):
 
+  def getVal(self, *args, **kwargs):
+    # [buf], fromIdx = -1, toIdx = -1, forceNumeric = False):
+    cdef int  fromIdx      = -1
+    cdef int  toIdx        = -1
+    cdef bool forceNumeric = False
+    cdef cc_ScalVal_RO c_ptr
+    cdef PyObject *po
+    l = len(args)
+    i = 0
+    if l > 0:
+      if PyObject_CheckBuffer( args[0] ):
+        i = 1
+      if i+0 < l:
+        fromIdx = args[i]
+        if i+1 < l:
+          toIdx   = args[i]
+          if i+2 < l:
+            forceNumeric = args[i]
+
+    if len(kwargs) > 0:
+      if "fromIdx" in kwargs:
+        fromIdx = kwargs["fromIdx"]
+
+      if "toIdx" in kwargs:
+        fromIdx = kwargs["toIdx"]
+
+      if "forceNumeric" in kwargs:
+        forceNumeric = kwargs["forceNumeric"]
+  
+    c_ptr = dynamic_pointer_cast[IScalVal_RO, IVal_Base]( self.ptr )
+
+    if i == 1: # read into buffer
+      return IScalVal_RO_getVal( c_ptr.get(), <PyObject*>args[0], fromIdx, toIdx )
+
+    po   = IScalVal_RO_getVal( c_ptr.get(), fromIdx, toIdx, forceNumeric)
+    rval = <object>po # acquires a ref!
+    Py_XDECREF( po )
+    return rval
+ 
+  def getValAsync(self, aio, fromIdx = -1, toIdx = -1, forceNumeric = False):
+    pass
+
+  @staticmethod
+  def create(Path p):
+    cdef cc_ScalVal_RO obj = IScalVal_RO.create( p.ptr )
+    po     = ScalVal_RO(priv__)
+    po.cptr = static_pointer_cast[CIEntry,  IScalVal_RO]( obj )
+    po.ptr  = static_pointer_cast[IVal_Base,IScalVal_RO]( obj )
+    return po
 
 cdef cppclass CPathVisitor(IPathVisitor):
 
@@ -200,23 +252,23 @@ cdef class Path(NoInit):
   cdef cc_ConstPath cptr
   cdef cc_Path      ptr
 
-  cpdef findByName(self, path):
+  def findByName(self, path):
     bstr = path.encode('UTF-8')
     cdef const char *cpath = bstr;
     return Path.make( self.cptr.get().findByName( cpath ) )
 
-  cpdef up(self):
+  def up(self):
     if not self.ptr:
       raise TypeError("Path is CONST")
     return Child.make( self.ptr.get().up() )
 
-  cpdef empty(self):
+  def empty(self):
     return self.cptr.get().empty()
 
-  cpdef size(self):
+  def size(self):
     return self.cptr.get().size()
 
-  cpdef clear(self, Hub h = None):
+  def clear(self, Hub h = None):
     if not self.ptr:
       raise TypeError("Path is CONST")
     if issubclass(type(h), Hub):
@@ -226,22 +278,22 @@ cdef class Path(NoInit):
     else:
       raise TypeError("Expected a 'Hub' object here")
 
-  cpdef origin(self):
+  def origin(self):
     return Hub.make( self.cptr.get().origin() )
 
-  cpdef parent(self):
+  def parent(self):
     return Hub.make( self.cptr.get().parent() )
 
-  cpdef tail(self):
+  def tail(self):
     return Child.make( self.cptr.get().tail() )
 
-  cpdef toString(self):
+  def toString(self):
     return self.cptr.get().toString().decode('UTF-8','strict')
 
   def __repr__(self):
     return self.toString()
 
-  cpdef dump(self, str fnam = None):
+  def dump(self, str fnam = None):
     cdef string cfnam
     cdef FILE *f
 
@@ -258,44 +310,44 @@ cdef class Path(NoInit):
       if f != stdout:
         fclose( f )
 
-  cpdef verifyAtTail(self, Path path):
+  def verifyAtTail(self, Path path):
     # modifies 'this' path if it is empty
     if not self.ptr:
       raise TypeError("Path is CONST")
     return self.ptr.get().verifyAtTail( path.cptr )
 
-  cpdef void append(self, Path path):
+  def append(self, Path path):
     if not self.ptr:
       raise TypeError("Path is CONST")
     self.ptr.get().append( path.cptr )
 
-  cpdef concat(self, Path path):
+  def concat(self, Path path):
     return Path.make( self.cptr.get().concat( path.cptr ) )
 
-  cpdef clone(self):
+  def clone(self):
     return Path.make( self.cptr.get().clone() )
 
-  cpdef intersect(self, Path path):
+  def intersect(self, Path path):
     return Path.make( self.cptr.get().intersect( path.cptr ) )
 
-  cpdef isIntersecting(self, Path path):
+  def isIntersecting(self, Path path):
     return self.cptr.get().isIntersecting( path.cptr )
 
-  cpdef getNelms(self):
+  def getNelms(self):
     return self.cptr.get().getNelms()
 
-  cpdef getTailFrom(self):
+  def getTailFrom(self):
     return self.cptr.get().getTailFrom()
 
-  cpdef getTailTo(self):
+  def getTailTo(self):
     return self.cptr.get().getTailTo()
 
-  cpdef explore(self, PathVisitor visitor):
+  def explore(self, PathVisitor visitor):
     if not issubclass(type(visitor), PathVisitor):
       raise TypeError("expected a PathVisitor argument")
     return self.cptr.get().explore( &visitor.cc_PathVisitor )
 
-  cpdef loadConfigFromYamlFile(self, configYamlFileName, yamlIncDirName = None):
+  def loadConfigFromYamlFile(self, configYamlFileName, yamlIncDirName = None):
     cdef const char *cfnam
     cdef const char *cdnam = NULL
     fnam  = configYamlFileName.encode('UTF-8')
@@ -306,7 +358,7 @@ cdef class Path(NoInit):
       cdnam = dnam
     return wrap_Path_loadConfigFromYamlFile(self.ptr, cfnam, cdnam)
 
-  cpdef loadConfigFromYamlString(self, configYamlString, yamlIncDirName = None):
+  def loadConfigFromYamlString(self, configYamlString, yamlIncDirName = None):
     cdef const char *ccfgstr
     cdef const char *cdnam = NULL
     cfgstr  = configYamlString.encode('UTF-8')
@@ -317,7 +369,7 @@ cdef class Path(NoInit):
       cdnam = dnam
     return wrap_Path_loadConfigFromYamlString(self.ptr, ccfgstr, cdnam)
 
-  cpdef dumpConfigToYamlFile(self, fileName, templFileName = None, yamlIncDirName = None):
+  def dumpConfigToYamlFile(self, fileName, templFileName = None, yamlIncDirName = None):
     cdef const char *cfnam = NULL
     cdef const char *ctnam = NULL
     cdef const char *cydir = NULL
@@ -333,7 +385,7 @@ cdef class Path(NoInit):
       cydir = bydir
     return wrap_Path_dumpConfigToYamlFile(self.ptr, cfnam, ctnam, cydir)
 
-  cpdef dumpConfigToYamlString(self, templFileName = None, yamlIncDirName = None):
+  def dumpConfigToYamlString(self, templFileName = None, yamlIncDirName = None):
     cdef const char *ctnam = NULL
     cdef const char *cydir = NULL
     tnam  = None

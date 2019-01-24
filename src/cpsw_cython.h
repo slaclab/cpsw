@@ -91,6 +91,9 @@ namespace cpsw_python {
 		virtual void call(PyObject *obj, YAML::Node &root, YAML::Node &top);
 
 	};
+
+	PyObject *
+	IScalVal_RO_getVal(IScalVal_RO *val, int fromIdx, int toIdx, bool forceNumeric);
 };
 
 #include <pycpsw.h>
