@@ -68,28 +68,6 @@ static bool removeStr(Node &self, const std::string &key)
 	return self.remove(key);
 }
 
-static void setitemNode(Node &self, Node &key, Node &val)
-{
-	self[key] = val;
-}
-
-static void setitemInt(Node &self, long long key, Node &val)
-{
-	self[key] = val;
-}
-
-
-static void setitemStr(Node &self, std::string &key, Node &val)
-{
-	self[key] = val;
-}
-
-static void setitemStrStr(Node &self, std::string &key, std::string &val)
-{
-	self[key] = val;
-}
-
-
 static std::string asStr(const Node &self)
 {
 	return self.as<std::string>();
@@ -121,8 +99,8 @@ BOOST_PYTHON_MODULE(yaml_cpp)
 	.def("__getitem__",      getitemNode)
 	.def("__setitem__",      yamlNodeSet<Node,Node>)
 	.def("__setitem__",      yamlNodeSet<long long, Node>)
-	.def("__setitem__",      yamlNodeSet<string, Node>)
-	.def("__setitem__",      yamlNodeSet<string, string>)
+	.def("__setitem__",      yamlNodeSet<std::string, Node>)
+	.def("__setitem__",      yamlNodeSet<std::string, std::string>)
 	.def("__bool__",         boolNode)
 	.def("LoadFile",         &YAML::LoadFile)
 	.staticmethod("LoadFile")

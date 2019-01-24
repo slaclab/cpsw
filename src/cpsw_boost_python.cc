@@ -368,6 +368,11 @@ public:
 		return s()->isHub();
 	}
 
+	virtual unsigned     getNelms()      const
+	{
+		return s()->getNelms();
+	}
+
 	virtual void         dump(FILE *f)   const
 	{
 		return s()->dump( f );
