@@ -15,8 +15,13 @@ CStreamAdapt::CStreamAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
 {
 	if ( p->getNelms() > 1 )
 		throw ConfigurationError("CStreamAdapt -- arrays of streams not supported");
+	open();
 }
 
+CStreamAdapt::~CStreamAdapt()
+{
+	close();
+}
 
 int64_t
 CStreamAdapt::read(uint8_t *buf, uint64_t size, const CTimeout timeout, uint64_t off)

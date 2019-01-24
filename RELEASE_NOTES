@@ -1,4 +1,7 @@
 asyncSRP
+    Internal Modification: call open/close only on the adapters that
+    perform I/O. This makes the python wrapper simpler.
+
     Bugfix: Ipath::parent() implementation was wrong; caused segfault.
     (merged from R3.5.branch)
 

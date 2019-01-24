@@ -173,7 +173,7 @@ class IIntEntryAdapt : public IEntryAdapt, public virtual IScalVal_Base {
 private:
 	int nelms_;
 public:
-	IIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie) : IEntryAdapt(k, p, ie), nelms_(-1) {}
+	IIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
 	virtual bool     isSigned()    const { return asIntEntry()->isSigned();    }
 	virtual int      getLsBit()    const { return asIntEntry()->getLsBit();    }
 	virtual uint64_t getSizeBits() const { return asIntEntry()->getSizeBits(); }
@@ -184,6 +184,8 @@ public:
 	virtual Enum     getEnum()     const { return asIntEntry()->getEnum(); }
 
 	virtual unsigned nelmsFromIdx(IndexRange *r);
+
+	virtual ~IIntEntryAdapt();
 
 protected:
 	virtual shared_ptr<const CIntEntryImpl> asIntEntry() const { return static_pointer_cast<const CIntEntryImpl, const CEntryImpl>(ie_); }

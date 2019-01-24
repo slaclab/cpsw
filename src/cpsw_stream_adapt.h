@@ -24,6 +24,8 @@ public:
 	virtual int64_t write(uint8_t *buf, uint64_t size, const CTimeout timeout);
 
 	virtual Encoding getEncoding() const;
+
+	virtual ~CStreamAdapt();
 };
 
 #endif

@@ -411,6 +411,16 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 	return CEntryImpl::createAdapter(key, p, interfaceType);
 }
 
+IIntEntryAdapt::IIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+: IEntryAdapt(k, p, ie), nelms_(-1)
+{
+	open();
+}
+
+IIntEntryAdapt::~IIntEntryAdapt()
+{
+	close();
+}
 
 IntField IIntField::create(const char *name, uint64_t sizeBits, bool isSigned, int lsBit, Mode mode, unsigned wordSwap)
 {

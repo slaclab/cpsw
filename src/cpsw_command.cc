@@ -73,6 +73,13 @@ CCommandAdapt::CCommandAdapt(Key &k,  Path p, shared_ptr<const CCommandImpl> ie)
 	p = p->clone();
 	p->up();
 	pContext_ = ie->createContext( p );
+
+    open();
+}
+
+CCommandAdapt::~CCommandAdapt()
+{
+	close();
 }
 
 IVal_Base::Encoding

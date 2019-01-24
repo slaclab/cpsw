@@ -30,9 +30,24 @@ IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
 	if ( UNKNOWN == a->getByteOrder() ) {
 		throw ConfigurationError("Configuration Error: byte-order not set");
 	}
+}
 
+void
+IEntryAdapt::open()
+{
+	CompositePathIterator it( p_ );
+	Address  a = it->c_p_;
 	a->open( &it );
 }
+
+void
+IEntryAdapt::close()
+{
+	CompositePathIterator it( p_ );
+	Address  a = it->c_p_;
+	a->close( &it );
+}
+
 
 void
 IEntryAdapt::setUnique(CEntryImpl::UniqueHandle uniqueHandle)
@@ -54,11 +69,6 @@ IEntryAdapt::dump() const
 
 IEntryAdapt::~IEntryAdapt()
 {
-	CompositePathIterator it( p_ );
-
-	Address  a = it->c_p_;
-
-	a->close( &it );
 }
 
 Val_Base

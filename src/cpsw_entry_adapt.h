@@ -26,8 +26,6 @@ protected:
 
 
 protected:
-	IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie);
-
 	// initialize after object is created
     virtual void        postCreateHook() {}
 
@@ -37,17 +35,21 @@ private:
 	virtual void        setUnique(CEntryImpl::UniqueHandle);
 
 public:
+	IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie);
 	virtual const char *getName()        const { return ie_->getName();          }
 	virtual const char *getDescription() const { return ie_->getDescription();   }
 	virtual double      getPollSecs()    const { return ie_->getPollSecs();      }
 	virtual uint64_t    getSize()        const { return ie_->getSize();          }
 	virtual Hub         isHub()          const { return ie_->isHub();            }
 	virtual Path        getPath()        const { return p_->clone();             }
-	virtual Encoding    getEncoding()    const = 0; // implementation must provide
+	virtual Encoding    getEncoding()    const { return NONE;                    }
 	virtual ConstPath   getConstPath()   const { return p_;                      }
 	virtual unsigned    getNelms()       const { return p_->getNelms();          }
 	virtual void        dump(FILE *f)    const;
 	virtual void        dump()           const;
+
+	virtual void        open();
+	virtual void        close();
 
 	virtual            ~IEntryAdapt();
 
