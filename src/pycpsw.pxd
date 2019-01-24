@@ -29,6 +29,7 @@ cdef extern from "cpsw_api_user.h":
   cdef cppclass IEnum
   cdef cppclass IAsyncIO
   cdef cppclass IScalVal_RO
+  cdef cppclass IScalVal
 
 
 ctypedef const IEntry            CIEntry
@@ -58,6 +59,7 @@ ctypedef shared_ptr[CIEnum]                  cc_ConstEnum
 ctypedef shared_ptr[CString]                 cc_ConstString
 ctypedef shared_ptr[IAsyncIO]                cc_AsyncIO
 ctypedef shared_ptr[IScalVal_RO]             cc_ScalVal_RO
+ctypedef shared_ptr[IScalVal]                cc_ScalVal
 
 ctypedef CIEntry                *CIEntryp
 ctypedef CIChild                *CIChildp
@@ -71,6 +73,7 @@ ctypedef CIScalVal_Base         *CIScalVal_Basep
 ctypedef IEnum                  *IEnump
 ctypedef CIEnum                 *CIEnump
 ctypedef IScalVal_RO            *IScalVal_ROp
+ctypedef IScalVal               *IScalValp
 
 
 cdef extern from "cpsw_python.h" namespace "cpsw_python":
@@ -201,8 +204,11 @@ cdef extern from "cpsw_api_user.h":
 
   cdef cppclass IScalVal_RO(IScalVal_Base):
     @staticmethod
-    cc_ScalVal_RO create(cc_Path path);
+    cc_ScalVal_RO create(cc_Path path)          except+handleException
 
+  cdef cppclass IScalVal(IScalVal_RO):
+    @staticmethod
+    cc_ScalVal create(cc_Path path)             except+handleException
 
 
 cdef extern from "cpsw_cython.h" namespace "cpsw_python":
@@ -215,3 +221,4 @@ cdef extern from "cpsw_cython.h" namespace "cpsw_python":
     CYamlFixup(PyObject *o)   except+handleException
 
   cdef PyObject * IScalVal_RO_getVal(IScalVal_RO *, int, int, bool) except+handleException
+  cdef unsigned   IScalVal_setVal(IScalVal *, PyObject *, int, int) except+handleException

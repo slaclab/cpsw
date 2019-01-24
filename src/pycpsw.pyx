@@ -202,13 +202,21 @@ cdef class ScalVal_RO(ScalVal_Base):
   def getValAsync(self, aio, fromIdx = -1, toIdx = -1, forceNumeric = False):
     pass
 
+cdef class ScalVal(ScalVal_RO):
+
+  def setVal(self, values, fromIdx=-1, toIdx=-1):
+    cdef cc_ScalVal c_ptr
+    c_ptr = dynamic_pointer_cast[IScalVal, IVal_Base]( self.ptr )
+    return IScalVal_setVal( c_ptr.get(), <PyObject*>values, fromIdx, toIdx )
+
   @staticmethod
   def create(Path p):
-    cdef cc_ScalVal_RO obj = IScalVal_RO.create( p.ptr )
-    po     = ScalVal_RO(priv__)
-    po.cptr = static_pointer_cast[CIEntry,  IScalVal_RO]( obj )
-    po.ptr  = static_pointer_cast[IVal_Base,IScalVal_RO]( obj )
+    cdef cc_ScalVal obj = IScalVal.create( p.ptr )
+    po     = ScalVal(priv__)
+    po.cptr = static_pointer_cast[CIEntry,  IScalVal]( obj )
+    po.ptr  = static_pointer_cast[IVal_Base,IScalVal]( obj )
     return po
+
 
 cdef cppclass CPathVisitor(IPathVisitor):
 
