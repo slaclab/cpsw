@@ -171,28 +171,28 @@ public:
 };
 
 uint64_t
-wrap_Path_loadConfigFromYamlFile(Path p, const char *yamlFile,  const char *yaml_dir = 0);
+wrap_Path_loadConfigFromYamlFile(ConstPath p, const char *yamlFile,  const char *yaml_dir = 0);
 
 uint64_t
-IPath_loadConfigFromYamlFile(IPath *p, const char *yamlFile,  const char *yaml_dir = 0);
+IPath_loadConfigFromYamlFile(const IPath *p, const char *yamlFile,  const char *yaml_dir = 0);
 
 uint64_t
-wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir = 0);
+wrap_Path_loadConfigFromYamlString(ConstPath p, const char *yaml,  const char *yaml_dir = 0);
 
 uint64_t
-IPath_loadConfigFromYamlString(IPath *p, const char *yaml,  const char *yaml_dir = 0);
+IPath_loadConfigFromYamlString(const IPath *p, const char *yaml,  const char *yaml_dir = 0);
 
 uint64_t
-wrap_Path_dumpConfigToYamlFile(Path p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0);
+wrap_Path_dumpConfigToYamlFile(ConstPath p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0);
 
 uint64_t
-IPath_dumpConfigToYamlFile(IPath *p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0);
+IPath_dumpConfigToYamlFile(const IPath *p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0);
 
 std::string
-wrap_Path_dumpConfigToYamlString(Path p, const char *templFilename = 0, const char *yaml_dir = 0);
+wrap_Path_dumpConfigToYamlString(ConstPath p, const char *templFilename = 0, const char *yaml_dir = 0);
 
 std::string
-IPath_dumpConfigToYamlString(IPath *p, const char *templFilename = 0, const char *yaml_dir = 0);
+IPath_dumpConfigToYamlString(const IPath *p, const char *templFilename = 0, const char *yaml_dir = 0);
 
 Path
 wrap_Path_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0, IYamlFixup *fixup = 0);

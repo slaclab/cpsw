@@ -19,26 +19,26 @@
 namespace cpsw_python {
 
 uint64_t
-wrap_Path_loadConfigFromYamlFile(Path p, const char *yamlFile,  const char *yaml_dir)
+wrap_Path_loadConfigFromYamlFile(ConstPath p, const char *yamlFile,  const char *yaml_dir)
 {
 	return IPath_loadConfigFromYamlFile(p.get(), yamlFile, yaml_dir);
 }
 
 uint64_t
-IPath_loadConfigFromYamlFile(IPath *p, const char *yamlFile,  const char *yaml_dir)
+IPath_loadConfigFromYamlFile(const IPath *p, const char *yamlFile,  const char *yaml_dir)
 {
 GILUnlocker allowThreadingWhileWaiting;
 	return p->loadConfigFromYamlFile( yamlFile, yaml_dir );
 }
 
 uint64_t
-wrap_Path_loadConfigFromYamlString(Path p, const char *yaml,  const char *yaml_dir)
+wrap_Path_loadConfigFromYamlString(ConstPath p, const char *yaml,  const char *yaml_dir)
 {
 	return IPath_loadConfigFromYamlString(p.get(), yaml, yaml_dir);
 }
 
 uint64_t
-IPath_loadConfigFromYamlString(IPath *p, const char *yaml,  const char *yaml_dir)
+IPath_loadConfigFromYamlString(const IPath *p, const char *yaml,  const char *yaml_dir)
 {
 GILUnlocker allowThreadingWhileWaiting;
 YAML::Node  conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
@@ -46,13 +46,13 @@ YAML::Node  conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) 
 }
 
 uint64_t
-wrap_Path_dumpConfigToYamlFile(Path p, const char *filename, const char *templFilename, const char *yaml_dir)
+wrap_Path_dumpConfigToYamlFile(ConstPath p, const char *filename, const char *templFilename, const char *yaml_dir)
 {
 	return IPath_dumpConfigToYamlFile(p.get(), filename, templFilename, yaml_dir);
 }
 
 uint64_t
-IPath_dumpConfigToYamlFile(IPath *p, const char *filename, const char *templFilename, const char *yaml_dir)
+IPath_dumpConfigToYamlFile(const IPath *p, const char *filename, const char *templFilename, const char *yaml_dir)
 {
 GILUnlocker allowThreadingWhileWaiting;
 uint64_t    rval;
@@ -74,13 +74,13 @@ std::fstream strm( filename, std::fstream::out );
 }
 
 std::string
-wrap_Path_dumpConfigToYamlString(Path p, const char *templFilename, const char *yaml_dir)
+wrap_Path_dumpConfigToYamlString(ConstPath p, const char *templFilename, const char *yaml_dir)
 {
 	return	IPath_dumpConfigToYamlString(p.get(), templFilename, yaml_dir);
 }
 
 std::string
-IPath_dumpConfigToYamlString(IPath *p, const char *templFilename, const char *yaml_dir)
+IPath_dumpConfigToYamlString(const IPath *p, const char *templFilename, const char *yaml_dir)
 {
 GILUnlocker allowThreadingWhileWaiting;
 YAML::Node  conf;
