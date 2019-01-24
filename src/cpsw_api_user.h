@@ -527,7 +527,7 @@ public:
 	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
 	 *       not support this interface.
 	 */
-	static Val_Base create(Path path);
+	static Val_Base create(ConstPath path);
 };
 
 /*!
@@ -567,7 +567,7 @@ public:
 	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
 	 *       not support this interface.
 	 */
-	static ScalVal_Base create(Path path);
+	static ScalVal_Base create(ConstPath path);
 };
 
 
@@ -698,7 +698,7 @@ public:
 	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
 	 *       not support this interface.
 	 */
-	static ScalVal_RO create(Path path);
+	static ScalVal_RO create(ConstPath path);
 };
 
 /*!
@@ -732,7 +732,7 @@ public:
 	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
 	 *       not support this interface.
 	 */
-	static ScalVal_WO create(Path path);
+	static ScalVal_WO create(ConstPath path);
 };
 
 /*!
@@ -754,7 +754,7 @@ public:
 	 * NOTE: an InterfaceNotImplemented exception is thrown if the endpoint does
 	 *       not support this interface.
 	 */
-	static ScalVal create(Path path);
+	static ScalVal create(ConstPath path);
 };
 
 // Analogous to ScalVal there could be interfaces to double, enums, strings...
@@ -803,7 +803,7 @@ public:
 	/*!
 	 * Instantiate a 'Stream' interface at the endpoint identified by 'path'
 	 */
-	static Stream create(Path path);
+	static Stream create(ConstPath path);
 };
 
 /*!
@@ -835,7 +835,7 @@ public:
 	/*!
 	 * Instantiate a 'Command' interface at the endpoint identified by 'path'
 	 */
-	static Command create(Path p);
+	static Command create(ConstPath p);
 };
 
 
@@ -856,7 +856,7 @@ public:
 	/*!
 	 * Instantiate a 'DoubleVal_RO' interface at the endpoint identified by 'path'
 	 */
-	static DoubleVal_RO create(Path path);
+	static DoubleVal_RO create(ConstPath path);
 };
 
 /*!
@@ -876,7 +876,7 @@ public:
 	/*!
 	 * Instantiate a 'DoubleVal_WO' interface at the endpoint identified by 'path'
 	 */
-	static DoubleVal_WO create(Path path);
+	static DoubleVal_WO create(ConstPath path);
 };
 
 /*!
@@ -889,7 +889,7 @@ public:
 	/*!
 	 * Instantiate a 'DoubleVal' interface at the endpoint identified by 'path'
 	 */
-	static DoubleVal create(Path path);
+	static DoubleVal create(ConstPath path);
 };
 
 /*!

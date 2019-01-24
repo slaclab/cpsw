@@ -31,6 +31,7 @@ cdef extern from "cpsw_api_user.h":
   cdef cppclass IScalVal_RO
   cdef cppclass IScalVal
   cdef cppclass IStream
+  cdef cppclass IComman
 
 
 ctypedef const IEntry            CIEntry
@@ -62,6 +63,7 @@ ctypedef shared_ptr[IAsyncIO]                cc_AsyncIO
 ctypedef shared_ptr[IScalVal_RO]             cc_ScalVal_RO
 ctypedef shared_ptr[IScalVal]                cc_ScalVal
 ctypedef shared_ptr[IStream]                 cc_Stream
+ctypedef shared_ptr[ICommand]                cc_Command
 
 cdef extern from "cpsw_python.h" namespace "cpsw_python":
   cdef void handleException()
@@ -202,6 +204,12 @@ cdef extern from "cpsw_api_user.h":
   cdef cppclass IStream(IVal_Base):
     @staticmethod
     cc_Stream  create(cc_Path path)             except+handleException
+
+  cdef cppclass ICommand(IEntry):
+    void       execute()                        except+handleException
+    cc_Path    getPath()                        except+handleException
+    @staticmethod
+    cc_Command create(cc_Path path)             except+handleException
 
 cdef extern from "cpsw_cython.h" namespace "cpsw_python":
   cdef cppclass CPathVisitor:

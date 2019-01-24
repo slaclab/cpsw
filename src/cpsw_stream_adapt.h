@@ -17,7 +17,7 @@ typedef shared_ptr<CStreamAdapt> StreamAdapt;
 
 class CStreamAdapt : public IEntryAdapt, public virtual IStream {
 public:
-	CStreamAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie);
+	CStreamAdapt(Key &k, ConstPath p, shared_ptr<const CEntryImpl> ie);
 
 	virtual int64_t read(uint8_t *buf, uint64_t size, const CTimeout timeout, uint64_t off);
 

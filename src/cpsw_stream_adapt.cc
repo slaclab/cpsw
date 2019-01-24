@@ -10,7 +10,7 @@
 #include <cpsw_stream_adapt.h>
 
 
-CStreamAdapt::CStreamAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
+CStreamAdapt::CStreamAdapt(Key &k, ConstPath p, shared_ptr<const CEntryImpl> ie)
 : IEntryAdapt(k, p, ie)
 {
 	if ( p->getNelms() > 1 )
@@ -61,7 +61,7 @@ CStreamAdapt::getEncoding() const
 	return NONE;
 }
 
-Stream IStream::create(Path p)
+Stream IStream::create(ConstPath p)
 {
 	return IEntryAdapt::check_interface<Stream>( p );
 }

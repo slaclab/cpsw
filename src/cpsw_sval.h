@@ -166,14 +166,14 @@ public:
 
 	virtual void postHook( ConstShObj );
 
-	virtual EntryAdapt createAdapter(IEntryAdapterKey &, Path, const std::type_info&) const;
+	virtual EntryAdapt createAdapter(IEntryAdapterKey &, ConstPath, const std::type_info&) const;
 };
 
 class IIntEntryAdapt : public IEntryAdapt, public virtual IScalVal_Base {
 private:
 	int nelms_;
 public:
-	IIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+	IIntEntryAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie);
 	virtual bool     isSigned()    const { return asIntEntry()->isSigned();    }
 	virtual int      getLsBit()    const { return asIntEntry()->getLsBit();    }
 	virtual uint64_t getSizeBits() const { return asIntEntry()->getSizeBits(); }
@@ -229,7 +229,7 @@ protected:
 
 class CScalVal_ROAdapt : public virtual IScalVal_RO, public virtual IIntEntryAdapt {
 public:
-	CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+	CScalVal_ROAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie);
 
 	virtual unsigned getVal(uint64_t *p, unsigned n, IndexRange *r=0)
 	{
@@ -280,7 +280,7 @@ protected:
 
 class CDoubleVal_ROAdapt : public virtual IDoubleVal_RO, public virtual IIntEntryAdapt {
 public:
-	CDoubleVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+	CDoubleVal_ROAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie);
 
 	virtual void     int2dbl(double *dst, uint64_t *src, unsigned n);
 	virtual void     dbl2dbl(double *dst, unsigned n);
@@ -291,7 +291,7 @@ public:
 
 class CScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IIntEntryAdapt {
 public:
-	CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+	CScalVal_WOAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie);
 
 	virtual unsigned setVal(uint64_t    *p, unsigned n, IndexRange *r=0)
 	{
@@ -323,7 +323,7 @@ public:
 
 class CDoubleVal_WOAdapt : public virtual IDoubleVal_WO, public virtual IIntEntryAdapt {
 public:
-	CDoubleVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+	CDoubleVal_WOAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie);
 
 	virtual void     dbl2int(uint64_t *dst, double *src, unsigned n);
 	virtual void     dbl2dbl(double *dst, unsigned n);
@@ -335,12 +335,12 @@ public:
 
 class CScalValAdapt : public virtual CScalVal_ROAdapt, public virtual CScalVal_WOAdapt, public virtual IScalVal {
 public:
-	CScalValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+	CScalValAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie);
 };
 
 class CDoubleValAdapt : public virtual CDoubleVal_ROAdapt, public virtual CDoubleVal_WOAdapt, public virtual IDoubleVal {
 public:
-	CDoubleValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+	CDoubleValAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie);
 };
 
 

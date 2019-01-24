@@ -14,9 +14,10 @@
 
 using cpsw::dynamic_pointer_cast;
 
-IEntryAdapt::IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie)
-	:CShObj(k),
-	 ie_(ie), p_(p->clone())
+IEntryAdapt::IEntryAdapt(Key &k, ConstPath p, shared_ptr<const CEntryImpl> ie)
+: CShObj( k          ),
+  ie_   ( ie         ),
+  p_    ( p->clone() )
 {
 	if ( p->empty() )
 		throw InvalidPathError("<EMPTY>");
@@ -72,7 +73,7 @@ IEntryAdapt::~IEntryAdapt()
 }
 
 Val_Base
-IVal_Base::create(Path p)
+IVal_Base::create(ConstPath p)
 {
 	return IEntryAdapt::check_interface<Val_Base>( p );
 }

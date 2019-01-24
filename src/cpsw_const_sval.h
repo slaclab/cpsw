@@ -54,12 +54,12 @@ public:
 	virtual double   getDouble()      const;
 	virtual uint64_t getInt()         const;
 
-	virtual EntryAdapt createAdapter(IEntryAdapterKey &, Path, const std::type_info&) const;
+	virtual EntryAdapt createAdapter(IEntryAdapterKey &, ConstPath, const std::type_info&) const;
 };
 
 class CConstIntEntryAdapt : public virtual CScalVal_ROAdapt {
 public:
-	CConstIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+	CConstIntEntryAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie);
 
 	virtual unsigned getVal(uint8_t  *, unsigned, unsigned, SlicedPathIterator *it);
 	virtual unsigned getVal(AsyncIO aio, uint8_t  *, unsigned, unsigned, SlicedPathIterator *it);
@@ -67,7 +67,7 @@ public:
 
 class CConstDblEntryAdapt : public virtual CDoubleVal_ROAdapt {
 public:
-	CConstDblEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie);
+	CConstDblEntryAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie);
 
 	virtual unsigned getVal(double   *p, unsigned n, IndexRange *r);
 	virtual unsigned getVal(AsyncIO aio, double   *p, unsigned n, IndexRange *r);

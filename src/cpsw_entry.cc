@@ -323,7 +323,7 @@ CUniqueHandle *nod = uniqueListHead_.getNext();
 }
 
 EntryAdapt
-CEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
+CEntryImpl::createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type_info &interfaceType) const
 {
 	if ( isInterface<Stream>(interfaceType) ) {
 		return _createAdapter<StreamAdapt>(this, p);

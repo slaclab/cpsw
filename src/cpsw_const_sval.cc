@@ -125,7 +125,7 @@ CConstIntEntryImpl::getDouble() const
 
 
 EntryAdapt
-CConstIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path path, const std::type_info &interfaceType) const
+CConstIntEntryImpl::createAdapter(IEntryAdapterKey &key, ConstPath path, const std::type_info &interfaceType) const
 {
 	if ( isInterface<Val_Base>(interfaceType) || isInterface<ScalVal_Base>(interfaceType) ) {
 		return _createAdapter< shared_ptr<IIntEntryAdapt> >( this, path );
@@ -140,13 +140,13 @@ CConstIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path path, const std::t
 	throw InterfaceNotImplementedError("CConstIntEntryImpl does not implement requested interface");
 }
 
-CConstIntEntryAdapt::CConstIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+CConstIntEntryAdapt::CConstIntEntryAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie)
 : IIntEntryAdapt(k, p, ie),
   CScalVal_ROAdapt(k, p, ie)
 {
 }
 
-CConstDblEntryAdapt::CConstDblEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+CConstDblEntryAdapt::CConstDblEntryAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie)
 : IIntEntryAdapt(k, p, ie),
   CDoubleVal_ROAdapt(k, p, ie)
 {

@@ -200,7 +200,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		virtual UniqueHandle getUniqueHandle(IEntryAdapterKey &key, ConstPath p) const;
 
 		// This member is not for general use (therefore the key argument)
-		virtual EntryAdapt createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const;
+		virtual EntryAdapt createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type_info &interfaceType) const;
 
 		virtual void dump(FILE *) const;
 		virtual void dump()       const { dump( ::stdout ); }
@@ -208,7 +208,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 protected:
 		// You can use this template to implement the virtual 'createAdapter' member
 		// The 'helper' argument exists for convenience (template argument deduction)
-		template <typename ADAPT, typename IMPL> EntryAdapt _createAdapter(const IMPL *helper, Path p) const
+		template <typename ADAPT, typename IMPL> EntryAdapt _createAdapter(const IMPL *helper, ConstPath p) const
 		{
 			return CShObj::template create<ADAPT>(p, getSelfAsConst<shared_ptr<const IMPL> >());
 		}

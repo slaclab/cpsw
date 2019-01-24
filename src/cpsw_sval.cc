@@ -366,7 +366,7 @@ CIntEntryImpl::dumpYamlPart(YAML::Node &node) const
 }
 
 EntryAdapt
-CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
+CIntEntryImpl::createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type_info &interfaceType) const
 {
 	if ( isInterface<Val_Base>(interfaceType) || isInterface<ScalVal_Base>(interfaceType) ) {
 		return _createAdapter< shared_ptr<IIntEntryAdapt> >(this, p);
@@ -411,7 +411,7 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info
 	return CEntryImpl::createAdapter(key, p, interfaceType);
 }
 
-IIntEntryAdapt::IIntEntryAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+IIntEntryAdapt::IIntEntryAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie)
 : IEntryAdapt(k, p, ie), nelms_(-1)
 {
 	open();
@@ -427,64 +427,64 @@ IntField IIntField::create(const char *name, uint64_t sizeBits, bool isSigned, i
 	return CShObj::create<IntEntryImpl>(name, sizeBits, isSigned, lsBit, mode, wordSwap);
 }
 
-CScalValAdapt::CScalValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+CScalValAdapt::CScalValAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(k, p, ie), CScalVal_ROAdapt(k, p, ie), CScalVal_WOAdapt(k, p, ie)
 {
 }
 
-CDoubleValAdapt::CDoubleValAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+CDoubleValAdapt::CDoubleValAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(k, p, ie), CDoubleVal_ROAdapt(k, p, ie), CDoubleVal_WOAdapt(k, p, ie)
 {
 }
 
 
-CScalVal_ROAdapt::CScalVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+CScalVal_ROAdapt::CScalVal_ROAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(k, p, ie)
 {
 }
 
-CDoubleVal_ROAdapt::CDoubleVal_ROAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+CDoubleVal_ROAdapt::CDoubleVal_ROAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(k, p, ie)
 {
 }
 
-CScalVal_WOAdapt::CScalVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+CScalVal_WOAdapt::CScalVal_WOAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(k, p, ie)
 {
 }
 
-CDoubleVal_WOAdapt::CDoubleVal_WOAdapt(Key &k, Path p, shared_ptr<const CIntEntryImpl> ie)
+CDoubleVal_WOAdapt::CDoubleVal_WOAdapt(Key &k, ConstPath p, shared_ptr<const CIntEntryImpl> ie)
 	: IIntEntryAdapt(k, p, ie)
 {
 }
 
 
-ScalVal_Base IScalVal_Base::create(Path p)
+ScalVal_Base IScalVal_Base::create(ConstPath p)
 {
 	return IEntryAdapt::check_interface<ScalVal_Base>( p );
 }
 
-DoubleVal_RO IDoubleVal_RO::create(Path p)
+DoubleVal_RO IDoubleVal_RO::create(ConstPath p)
 {
 	return IEntryAdapt::check_interface<DoubleVal_RO>( p );
 }
 
-ScalVal_RO IScalVal_RO::create(Path p)
+ScalVal_RO IScalVal_RO::create(ConstPath p)
 {
 	return IEntryAdapt::check_interface<ScalVal_RO>( p );
 }
 
-ScalVal_WO IScalVal_WO::create(Path p)
+ScalVal_WO IScalVal_WO::create(ConstPath p)
 {
 	return IEntryAdapt::check_interface<ScalVal_WO>( p );
 }
 
-ScalVal IScalVal::create(Path p)
+ScalVal IScalVal::create(ConstPath p)
 {
 	return IEntryAdapt::check_interface<ScalVal>( p );
 }
 
-DoubleVal IDoubleVal::create(Path p)
+DoubleVal IDoubleVal::create(ConstPath p)
 {
 	return IEntryAdapt::check_interface<DoubleVal>( p );
 }

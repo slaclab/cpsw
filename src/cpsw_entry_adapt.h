@@ -35,7 +35,7 @@ private:
 	virtual void        setUnique(CEntryImpl::UniqueHandle);
 
 public:
-	IEntryAdapt(Key &k, Path p, shared_ptr<const CEntryImpl> ie);
+	IEntryAdapt(Key &k, ConstPath p, shared_ptr<const CEntryImpl> ie);
 	virtual const char *getName()        const { return ie_->getName();          }
 	virtual const char *getDescription() const { return ie_->getDescription();   }
 	virtual double      getPollSecs()    const { return ie_->getPollSecs();      }
@@ -64,10 +64,10 @@ public:
 	// static member function. It uses polymorphism to let the implementation create
 	// a suitable 'Adapter' so that there can be multiple implementations of the same
 	// interface (CEntryImpl::createAdapter()).
-	template <typename INTERF> static INTERF check_interface(Path p);
+	template <typename INTERF> static INTERF check_interface(ConstPath p);
 
 	// This is the 'legacy' version of 'check_interface'. Left here during  migration phase
-	template <typename ADAPT, typename IMPL> static ADAPT check_interface(Path p);
+	template <typename ADAPT, typename IMPL> static ADAPT check_interface(ConstPath p);
 };
 
 
@@ -78,11 +78,11 @@ class IEntryAdapterKey
 		IEntryAdapterKey(const IEntryAdapterKey&);
 		IEntryAdapterKey &operator=(const IEntryAdapterKey&);
 
-		template <typename I> friend I IEntryAdapt::check_interface(Path p);
-		template <typename A, typename I> friend A IEntryAdapt::check_interface(Path p);
+		template <typename I> friend I IEntryAdapt::check_interface(ConstPath p);
+		template <typename A, typename I> friend A IEntryAdapt::check_interface(ConstPath p);
 };
 
-template <typename INTERF> INTERF IEntryAdapt::check_interface(Path p)
+template <typename INTERF> INTERF IEntryAdapt::check_interface(ConstPath p)
 {
 	if ( p->empty() )
 		throw InvalidArgError("Empty Path");
@@ -113,7 +113,7 @@ template <typename INTERF> INTERF IEntryAdapt::check_interface(Path p)
 	throw InterfaceNotImplementedError( p->toString() );
 }
 
-template <typename ADAPT, typename IMPL> ADAPT IEntryAdapt::check_interface(Path p)
+template <typename ADAPT, typename IMPL> ADAPT IEntryAdapt::check_interface(ConstPath p)
 {
 	if ( p->empty() )
 		throw InvalidArgError("Empty Path");

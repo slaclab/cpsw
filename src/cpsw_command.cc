@@ -18,7 +18,7 @@
 
 DECLARE_OBJ_COUNTER( CCommandImplContext::sh_ocnt_, "CommandImplContext", 0 )
 
-Command ICommand::create(Path p)
+Command ICommand::create(ConstPath p)
 {
 	return IEntryAdapt::check_interface<Command>( p );
 }
@@ -58,7 +58,7 @@ void CCommandImpl::executeCommand(CommandImplContext ctxt) const
 }
 
 EntryAdapt
-CCommandImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const
+CCommandImpl::createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type_info &interfaceType) const
 {
 	if ( isInterface<Command>( interfaceType ) ) {
         return _createAdapter<CommandAdapt>(this, p);
@@ -67,10 +67,11 @@ CCommandImpl::createAdapter(IEntryAdapterKey &key, Path p, const std::type_info 
 	return CEntryImpl::createAdapter(key, p, interfaceType);
 }
 
-CCommandAdapt::CCommandAdapt(Key &k,  Path p, shared_ptr<const CCommandImpl> ie):
-	IEntryAdapt(k, p, ie)
+CCommandAdapt::CCommandAdapt(Key &k,  ConstPath pc, shared_ptr<const CCommandImpl> ie):
+	IEntryAdapt(k, pc, ie)
 {
-	p = p->clone();
+Path p = pc->clone();
+
 	p->up();
 	pContext_ = ie->createContext( p );
 

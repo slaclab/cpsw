@@ -120,7 +120,7 @@ public:
 		virtual uint64_t dumpMyConfigToYaml(Path, YAML::Node &) const;
 		virtual uint64_t loadMyConfigFromYaml(Path, YAML::Node &) const;
 
-		virtual EntryAdapt createAdapter(IEntryAdapterKey &key, Path p, const std::type_info &interfaceType) const;
+		virtual EntryAdapt createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type_info &interfaceType) const;
 };
 
 class CCommandAdapt;
@@ -131,7 +131,7 @@ private:
 		CommandImplContext pContext_;
 
 public:
-		CCommandAdapt(Key &k, Path p, shared_ptr<const CCommandImpl> ie);
+		CCommandAdapt(Key &k, ConstPath p, shared_ptr<const CCommandImpl> ie);
 
 		virtual Encoding  getEncoding()  const;
 		virtual Path      getPath()      const;

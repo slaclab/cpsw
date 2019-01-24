@@ -106,9 +106,10 @@ cdef class Val_Base(Entry):
     cdef ValEncoding enc = dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getEncoding()
     return ConvertEncoding.do_encode( enc ).decode('UTF-8', 'strict')
 
+  # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
   @staticmethod
   def create(Path p):
-    cdef cc_Val_Base obj = IVal_Base.create( p.ptr )
+    cdef cc_Val_Base obj = IVal_Base.create( p.cptr )
     po      = Val_Base(priv__)
     po.cptr = static_pointer_cast[CIEntry,  IVal_Base]( obj )
     po.ptr  = static_pointer_cast[IVal_Base,IVal_Base]( obj )
@@ -145,14 +146,17 @@ cdef class ScalVal_Base(Val_Base):
   def getEnum(self):
     cdef cc_Enum cenums = dynamic_pointer_cast[CIScalVal_Base, CIEntry](self.cptr).get().getEnum()
 
-    enums = Enum(priv__)
+    if not cenums:
+      return None
+
+    enums     = Enum(priv__)
     enums.ptr = cenums
     return enums
     
-
+  # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
   @staticmethod
   def create(Path p):
-    cdef cc_ScalVal_Base obj = IScalVal_Base.create( p.ptr )
+    cdef cc_ScalVal_Base obj = IScalVal_Base.create( p.cptr )
     po      = ScalVal_Base(priv__)
     po.cptr = static_pointer_cast[CIEntry,  IScalVal_Base]( obj )
     po.ptr  = static_pointer_cast[IVal_Base,IScalVal_Base]( obj )
@@ -200,6 +204,7 @@ cdef class ScalVal_RO(ScalVal_Base):
     return rval
  
   def getValAsync(self, aio, fromIdx = -1, toIdx = -1, forceNumeric = False):
+    # FIXME
     pass
 
 cdef class ScalVal(ScalVal_RO):
@@ -209,9 +214,10 @@ cdef class ScalVal(ScalVal_RO):
     c_ptr = dynamic_pointer_cast[IScalVal, IVal_Base]( self.ptr )
     return IScalVal_setVal( c_ptr.get(), <PyObject*>values, fromIdx, toIdx )
 
+  # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
   @staticmethod
   def create(Path p):
-    cdef cc_ScalVal obj = IScalVal.create( p.ptr )
+    cdef cc_ScalVal obj = IScalVal.create( p.cptr )
     po      = ScalVal(priv__)
     po.cptr = static_pointer_cast[CIEntry,  IScalVal]( obj )
     po.ptr  = static_pointer_cast[IVal_Base,IScalVal]( obj )
@@ -238,20 +244,41 @@ cdef class Stream(ScalVal_Base):
     self.sptr.reset() # close
     return False;     # re-raise exception
 
+  # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
   @staticmethod
   def create(Path p):
     # Just try to create the stream and immediately close it
-    cdef cc_Stream   sobj = IStream.create( p.ptr )
+    cdef cc_Stream   sobj = IStream.create( p.cptr )
     cdef cc_Val_Base vobj
 
     # Close the stream; only open during 'with' statement
     sobj.reset()
-    vobj    = IVal_Base.create( p.ptr )
+    vobj    = IVal_Base.create( p.cptr )
     po      = Stream(priv__)
     po.cptr = static_pointer_cast[CIEntry,  IVal_Base]( vobj )
     po.ptr  = static_pointer_cast[IVal_Base,IVal_Base]( vobj )
     return po
 
+cdef class Command(Entry):
+
+  cdef cc_Command ptr
+
+  def execute(self):
+    self.ptr.get().execute()
+
+  def getPath(self):
+    return Path.make( self.ptr.get().getPath() )
+
+  # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
+  @staticmethod
+  def create(Path p):
+    cdef cc_Command obj = ICommand.create( p.cptr )
+    po      = Command(priv__)
+    po.cptr = static_pointer_cast[CIEntry,  ICommand]( obj )
+    # We can't use the 'const IEntry' pointer because 'execute'
+	# is not a 'const' method...
+    po.ptr  = static_pointer_cast[ICommand ,ICommand]( obj )
+    return po
 
 cdef cppclass CPathVisitor(IPathVisitor):
 
@@ -399,7 +426,7 @@ cdef class Path(NoInit):
     if None != yamlIncDirName:
       dnam  = yamlIncDirName.encode('UTF-8')
       cdnam = dnam
-    return wrap_Path_loadConfigFromYamlFile(self.ptr, cfnam, cdnam)
+    return wrap_Path_loadConfigFromYamlFile(self.cptr, cfnam, cdnam)
 
   def loadConfigFromYamlString(self, configYamlString, yamlIncDirName = None):
     cdef const char *ccfgstr
@@ -410,7 +437,7 @@ cdef class Path(NoInit):
     if None != yamlIncDirName:
       dnam  = yamlIncDirName.encode('UTF-8')
       cdnam = dnam
-    return wrap_Path_loadConfigFromYamlString(self.ptr, ccfgstr, cdnam)
+    return wrap_Path_loadConfigFromYamlString(self.cptr, ccfgstr, cdnam)
 
   def dumpConfigToYamlFile(self, fileName, templFileName = None, yamlIncDirName = None):
     cdef const char *cfnam = NULL
@@ -426,7 +453,7 @@ cdef class Path(NoInit):
     if None != yamlIncDirName:
       bydir = yamlIncDirName.encode("UTF-8")
       cydir = bydir
-    return wrap_Path_dumpConfigToYamlFile(self.ptr, cfnam, ctnam, cydir)
+    return wrap_Path_dumpConfigToYamlFile(self.cptr, cfnam, ctnam, cydir)
 
   def dumpConfigToYamlString(self, templFileName = None, yamlIncDirName = None):
     cdef const char *ctnam = NULL
@@ -439,7 +466,7 @@ cdef class Path(NoInit):
     if None != yamlIncDirName:
       bydir = yamlIncDirName.encode("UTF-8")
       cydir = bydir
-    return wrap_Path_dumpConfigToYamlString(self.ptr, ctnam, cydir)
+    return wrap_Path_dumpConfigToYamlString(self.cptr, ctnam, cydir)
 
   @staticmethod
   def create(arg = None):
