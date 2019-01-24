@@ -164,12 +164,14 @@ cdef class ScalVal_Base(Val_Base):
 
 cdef class ScalVal_RO(ScalVal_Base):
 
+  # Cache a pointer for efficiency reasons (avoid dynamic_cast)
+  cdef cc_ScalVal_RO rptr
+
   def getVal(self, *args, **kwargs):
     # [buf], fromIdx = -1, toIdx = -1, forceNumeric = False):
     cdef int  fromIdx      = -1
     cdef int  toIdx        = -1
     cdef bool forceNumeric = False
-    cdef cc_ScalVal_RO c_ptr
     cdef PyObject *po
     l = len(args)
     i = 0
@@ -193,35 +195,71 @@ cdef class ScalVal_RO(ScalVal_Base):
       if "forceNumeric" in kwargs:
         forceNumeric = kwargs["forceNumeric"]
   
-    c_ptr = dynamic_pointer_cast[IScalVal_RO, IVal_Base]( self.ptr )
-
     if i == 1: # read into buffer
-      return IScalVal_RO_getVal( c_ptr.get(), <PyObject*>args[0], fromIdx, toIdx )
+      return IScalVal_RO_getVal( self.rptr.get(), <PyObject*>args[0], fromIdx, toIdx )
 
-    po   = IScalVal_RO_getVal( c_ptr.get(), fromIdx, toIdx, forceNumeric)
+    po   = IScalVal_RO_getVal( self.rptr.get(), fromIdx, toIdx, forceNumeric)
     rval = <object>po # acquires a ref!
     Py_XDECREF( po )
     return rval
  
-  def getValAsync(self, aio, fromIdx = -1, toIdx = -1, forceNumeric = False):
+  def getValAsync(self, asyncIO, fromIdx = -1, toIdx = -1, forceNumeric = False):
     # FIXME
-    pass
+    raise RuntimeError("NOT IMPLEMENTED YET")
+
+  # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
+  @staticmethod
+  def create(Path p):
+    cdef cc_ScalVal_RO obj = IScalVal_RO.create( p.cptr )
+    po      = ScalVal_RO(priv__)
+    po.cptr = static_pointer_cast[CIEntry,  IScalVal_RO]( obj )
+    po.ptr  = static_pointer_cast[IVal_Base,IScalVal_RO]( obj )
+    po.rptr = obj
+    return po
+
 
 cdef class ScalVal(ScalVal_RO):
 
+  cdef cc_ScalVal wptr
+
   def setVal(self, values, fromIdx=-1, toIdx=-1):
-    cdef cc_ScalVal c_ptr
-    c_ptr = dynamic_pointer_cast[IScalVal, IVal_Base]( self.ptr )
-    return IScalVal_setVal( c_ptr.get(), <PyObject*>values, fromIdx, toIdx )
+    return IScalVal_setVal( self.wptr.get(), <PyObject*>values, fromIdx, toIdx )
 
   # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
   @staticmethod
   def create(Path p):
     cdef cc_ScalVal obj = IScalVal.create( p.cptr )
     po      = ScalVal(priv__)
-    po.cptr = static_pointer_cast[CIEntry,  IScalVal]( obj )
-    po.ptr  = static_pointer_cast[IVal_Base,IScalVal]( obj )
+    po.cptr = static_pointer_cast[CIEntry    , IScalVal]( obj )
+    po.ptr  = static_pointer_cast[IVal_Base  , IScalVal]( obj )
+    po.rptr = static_pointer_cast[IScalVal_RO, IScalVal]( obj )
+    po.wptr = obj
     return po
+
+cdef class DoubleVal_RO(Val_Base):
+
+  cdef cc_DoubleVal_RO rptr
+
+  def getVal(self, fromIdx = -1, toIdx = -1):
+    po   = IDoubleVal_RO_getVal( self.rptr.get(), fromIdx, toIdx )
+    rval = <object>po # acquires a ref!
+    Py_XDECREF( po )
+    return rval
+ 
+  def getValAsync(self, asyncIO, fromIdx = -1, toIdx = -1):
+    #FIXME
+    raise RuntimeError("NOT IMPLEMENTED YET")
+
+  # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
+  @staticmethod
+  def create(Path p):
+    cdef cc_DoubleVal_RO obj = IDoubleVal_RO.create( p.cptr )
+    po      = DoubleVal_RO(priv__)
+    po.cptr = static_pointer_cast[CIEntry,   IDoubleVal_RO]( obj )
+    po.ptr  = static_pointer_cast[IVal_Base, IDoubleVal_RO]( obj )
+    po.rptr = obj
+    return po
+
 
 cdef class Stream(ScalVal_Base):
   cdef cc_Stream sptr
@@ -533,6 +571,16 @@ cdef class Path(NoInit):
     po      = Path(priv__)
     po.cptr  = cp
     return po
+
+def getCPSWVersionString():
+  return c_getCPSWVersionString()
+
+def setCPSWVerbosity(str component = None, int value = 0):
+  cdef const char *cstr = NULL;
+  if None != component:
+    bstr = component.encode('UTF-8')
+    cstr = bstr
+  return c_setCPSWVerbosity( cstr, value )
 
 cdef public class CPSWError(Exception)[type CpswPyExcT_CPSWError, object CpswPyExcO_CPSWError]:
   pass

@@ -31,7 +31,9 @@ cdef extern from "cpsw_api_user.h":
   cdef cppclass IScalVal_RO
   cdef cppclass IScalVal
   cdef cppclass IStream
-  cdef cppclass IComman
+  cdef cppclass ICommand
+  cdef cppclass IDoubleVal_RO
+  cdef cppclass IDoubleVal
 
 
 ctypedef const IEntry            CIEntry
@@ -64,6 +66,8 @@ ctypedef shared_ptr[IScalVal_RO]             cc_ScalVal_RO
 ctypedef shared_ptr[IScalVal]                cc_ScalVal
 ctypedef shared_ptr[IStream]                 cc_Stream
 ctypedef shared_ptr[ICommand]                cc_Command
+ctypedef shared_ptr[IDoubleVal_RO]           cc_DoubleVal_RO
+ctypedef shared_ptr[IDoubleVal]              cc_DoubleVal
 
 cdef extern from "cpsw_python.h" namespace "cpsw_python":
   cdef void handleException()
@@ -78,6 +82,12 @@ cdef extern from "cpsw_python.h" namespace "cpsw_python":
 
   cdef int64_t  IStream_read (IStream *, PyObject *, int64_t, uint64_t)                            except+handleException
   cdef int64_t  IStream_write(IStream *, PyObject *, int64_t timeoutUs)                            except+handleException
+
+  cdef PyObject * IScalVal_RO_getVal(IScalVal_RO *, int, int, bool)                                except+handleException
+  cdef PyObject * IScalVal_RO_getVal(IScalVal_RO *, PyObject *, int, int, bool)                    except+handleException
+  cdef unsigned   IScalVal_setVal(IScalVal *, PyObject *, int, int)                                except+handleException
+  cdef PyObject * IDoubleVal_RO_getVal(IDoubleVal_RO *, int, int)                                  except+handleException
+  cdef unsigned   IDoubleVal_setVal(IDoubleVal *, PyObject *, int, int)                            except+handleException
 
 cdef extern from "cpsw_api_user.h":
   cdef cppclass   iterator "Children::element_type::const_iterator":
@@ -211,6 +221,18 @@ cdef extern from "cpsw_api_user.h":
     @staticmethod
     cc_Command create(cc_Path path)             except+handleException
 
+  cdef cppclass IDoubleVal_RO(IVal_Base):
+    @staticmethod
+    cc_DoubleVal_RO create(cc_Path path)        except+handleException
+
+  cdef cppclass IDoubleVal(IDoubleVal_RO):
+    @staticmethod
+    cc_DoubleVal create(cc_Path path)           except+handleException
+
+  cdef const char *c_getCPSWVersionString "getCPSWVersionString"()              except+handleException
+  cdef int         c_setCPSWVerbosity     "setCPSWVerbosity"(const char *, int) except+handleException
+
+
 cdef extern from "cpsw_cython.h" namespace "cpsw_python":
   cdef cppclass CPathVisitor:
     CPathVisitor()            except+handleException
@@ -220,5 +242,3 @@ cdef extern from "cpsw_cython.h" namespace "cpsw_python":
     CYamlFixup()              except+handleException
     CYamlFixup(PyObject *o)   except+handleException
 
-  cdef PyObject * IScalVal_RO_getVal(IScalVal_RO *, int, int, bool) except+handleException
-  cdef unsigned   IScalVal_setVal(IScalVal *, PyObject *, int, int) except+handleException
