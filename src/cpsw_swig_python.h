@@ -48,9 +48,6 @@ public:
 	virtual ~CAsyncIOWrapper();
 };
 
-PyObject *
-IScalVal_RO_getVal(IScalVal_RO *val, int fromIdx = -1, int toIdx = -1, bool forceNumeric = false);
-
 void cpswSwigRegisterExceptions(PyObject *module);
 
 #endif

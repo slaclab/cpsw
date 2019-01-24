@@ -175,6 +175,16 @@ IndexRange rng(from, to);
 	throw InvalidArgError("Unable to convert python argument");
 }
 
+PyObject *
+IScalVal_RO_getVal(IScalVal_RO *val, int fromIdx, int toIdx, bool forceNumeric)
+{
+	/* Need to hack around in order to get the shared pointer back... */
+	CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> ctxt;
+        ctxt.issueGetVal( val, fromIdx, toIdx, forceNumeric, AsyncIO() );
+	PyUniqueObj o = std::move( ctxt.complete( 0 ) );
+	return o.release();
+}
+
 unsigned
 IScalVal_setVal(IScalVal *val, PyObject *op, int from, int to)
 {
@@ -324,6 +334,41 @@ bool enumScalar = false;
 		}
 	}
 }
+
+static inline double xtractDouble(PyObject *op)
+{
+	if ( ! PyFloat_Check( op ) ) {
+		throw InvalidArgError("float object expected");
+	}
+	return PyFloat_AsDouble( op );
+}
+
+unsigned
+IDoubleVal_setVal(DoubleVal val, PyObject *op, int from, int to)
+{
+IndexRange rng(from, to);
+
+	// if the object is not a python sequence then 'len()' cannot be used.
+	// Thus, we have to handle this case separately...
+
+	if ( ! PySequence_Check( op ) ) {
+		// a single string (attempt to set enum) is also a sequence
+		GILUnlocker allowThreadingWhileWaiting;
+		return val->setVal( xtractDouble( op ), &rng );
+	}
+
+	unsigned nelms = PySequence_Length( op );
+
+	std::vector<double> v64;
+	for ( unsigned i = 0; i < nelms; ++i ) {
+		v64.push_back( xtractDouble( PySequence_GetItem( op, i ) ) );
+	}
+	{
+	GILUnlocker allowThreadingWhileWaiting;
+	return val->setVal( &v64[0], nelms, &rng );
+	}
+}
+
 
 int64_t
 IStream_read(IStream *val, PyObject *op, int64_t timeoutUs, uint64_t offset)

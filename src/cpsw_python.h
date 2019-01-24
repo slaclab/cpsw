@@ -212,8 +212,18 @@ ICommand_execute(ICommand *command);
 unsigned
 IScalVal_RO_getVal(IScalVal_RO *val, PyObject *o, int from = -1, int to = -1);
 
+PyObject *
+IScalVal_RO_getVal(IScalVal_RO *val, int fromIdx = -1, int toIdx = -1, bool forceNumeric = false);
+
 unsigned
 IScalVal_setVal(IScalVal *val, PyObject *op, int from = -1, int to = -1);
+
+unsigned
+IDoubleVal_setVal(DoubleVal val, PyObject *op, int from = -1, int to = -1);
+
+PyObject *
+IDoubleVal_RO_getVal(IDoubleVal_RO *val, int from = -1, int to = -1);
+
 
 int64_t
 IStream_read(IStream *val, PyObject *op, int64_t timeoutUs, uint64_t offset);
@@ -364,7 +374,6 @@ public:
 	{
 	}
 };
-
 
 };
 

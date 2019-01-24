@@ -69,8 +69,6 @@ PyObject * pCpswPyExc_CPSWError = (PyObject *)&CpswPyExcT_CPSWError;
 
 namespace cpsw_python {
 
-typedef CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> CGetValWrapperContext;
-
 bool
 CPathVisitor::visitPre(ConstPath here)
 {
@@ -87,16 +85,6 @@ void
 CYamlFixup::operator()(YAML::Node &root, YAML::Node &top)
 {
 	call( me(), root, top );
-}
-
-PyObject *
-IScalVal_RO_getVal(IScalVal_RO *val, int fromIdx, int toIdx, bool forceNumeric)
-{
-	/* Need to hack around in order to get the shared pointer back... */
-    CGetValWrapperContext ctxt;
-        ctxt.issueGetVal( val, fromIdx, toIdx, forceNumeric, AsyncIO() );
-	PyUniqueObj o = std::move( ctxt.complete( 0 ) );
-	return o.release();
 }
 
 };

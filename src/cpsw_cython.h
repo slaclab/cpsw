@@ -32,6 +32,8 @@ namespace cpsw_python {
 	typedef CIPath             *CIPathp;
 	typedef IPath              *IPathp;
 
+	typedef CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> CGetValWrapperContext;
+
 	class CPyBase {
 	private:
 		PyObject *me_;
@@ -92,8 +94,6 @@ namespace cpsw_python {
 
 	};
 
-	PyObject *
-	IScalVal_RO_getVal(IScalVal_RO *val, int fromIdx, int toIdx, bool forceNumeric);
 };
 
 #include <pycpsw.h>
