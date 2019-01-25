@@ -35,7 +35,7 @@ namespace cpsw_python {
 	typedef CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> CGetValWrapperContext;
 
 	class CPyBase {
-	private:
+	protected:
 		PyObject *me_;
 	public:
 		CPyBase()
@@ -92,6 +92,25 @@ namespace cpsw_python {
 
 		virtual void call(PyObject *obj, YAML::Node &root, YAML::Node &top);
 
+	};
+
+	class CAsyncIO : public IAsyncIO, public CPyBase, public CGetValWrapperContext {
+	public:
+		CAsyncIO(PyObject *pyObj);
+		CAsyncIO();
+
+		virtual void init(PyObject *);
+
+		virtual void callback(CPSWError *status);
+		virtual void callback(PyObject *me, PyObject *status);
+
+		// Each shared_ptr<CAsyncIO> takes out a python reference
+		// which is dropped when the shared_ptr<CAsyncIO> is deleted,
+		// i.e., each shared_ptr control block (of which there could
+		// be multiple ones -- unlike regular use of shared_ptr!)
+		// 'owns' one python reference.
+		// This object is meant to be embedded into a PyObject!
+		virtual shared_ptr<CAsyncIO> makeShared();
 	};
 
 };

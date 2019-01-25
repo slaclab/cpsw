@@ -203,9 +203,9 @@ cdef class ScalVal_RO(ScalVal_Base):
     Py_XDECREF( po )
     return rval
  
-  def getValAsync(self, asyncIO, fromIdx = -1, toIdx = -1, forceNumeric = False):
-    # FIXME
-    raise RuntimeError("NOT IMPLEMENTED YET")
+  def getValAsync(self, AsyncIO asyncIO, int fromIdx = -1, int toIdx = -1, bool forceNumeric = False):
+    cdef cc_AsyncIO aio = asyncIO.c_AsyncIO.makeShared()
+    return asyncIO.c_AsyncIO.issueGetVal( self.rptr.get(), fromIdx, toIdx, forceNumeric, aio );
 
   # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
   @staticmethod
@@ -246,9 +246,9 @@ cdef class DoubleVal_RO(Val_Base):
     Py_XDECREF( po )
     return rval
  
-  def getValAsync(self, asyncIO, fromIdx = -1, toIdx = -1):
-    #FIXME
-    raise RuntimeError("NOT IMPLEMENTED YET")
+  def getValAsync(self, AsyncIO asyncIO, int fromIdx = -1, int toIdx = -1):
+    cdef cc_AsyncIO aio = asyncIO.c_AsyncIO.makeShared()
+    return asyncIO.c_AsyncIO.issueGetVal( self.rptr.get(), fromIdx, toIdx, aio );
 
   # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
   @staticmethod
@@ -334,6 +334,13 @@ cdef cppclass CYamlFixup(IYamlFixup):
     top.c_node  = c_top
     self.call( root, top )
 
+cdef cppclass CAsyncIO(IAsyncIO):
+
+  void callback(self, PyObject *status):
+    pyStatus = <object>status
+    Py_XDECREF( status )
+    self.callback( pyStatus )
+
 cdef public class YamlFixup[type CpswPyWrapT_YamlFixup, object CpswPyWrapO_YamlFixup]:
   cdef CYamlFixup cc_YamlFixup
 
@@ -355,6 +362,13 @@ cdef public class PathVisitor[type CpswPyWrapT_PathVisitor, object CpswPyWrapO_P
 
   cpdef void visitPost(self, path):
     pass
+
+cdef public class AsyncIO[type CpswPyWrapT_AsyncIO, object CpswPyWrapO_AsyncIO]:
+
+  cdef CAsyncIO c_AsyncIO
+
+  def __cinit__(self):
+    self.c_AsyncIO.init( <PyObject*>self )
 
 cdef class Path(NoInit):
   cdef cc_ConstPath cptr

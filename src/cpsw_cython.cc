@@ -87,4 +87,50 @@ CYamlFixup::operator()(YAML::Node &root, YAML::Node &top)
 	call( me(), root, top );
 }
 
+CAsyncIO::CAsyncIO(PyObject *pyObj)
+: CPyBase( pyObj )
+{
+}
+
+CAsyncIO::CAsyncIO()
+{
+}
+
+
+void
+CAsyncIO::callback(CPSWError *status)
+{
+PyGILState_STATE state_ = PyGILState_Ensure();
+
+	/* Call into Python */
+	PyUniqueObj result = complete( status );
+
+	callback( me(), result.release() );
+
+	PyGILState_Release( state_ );
+}
+
+void
+CAsyncIO::init(PyObject *pObj)
+{
+	if ( me_ && pObj != me_ )
+		throw InternalError("CAsyncIO::init() may onlyl be called once!");
+	me_ = pObj;
+}
+
+class CAsyncIODeletor {
+public:
+	void operator()(CAsyncIO *aio)
+	{
+		Py_DECREF( aio->me() );
+	}
+};
+
+shared_ptr<CAsyncIO>
+CAsyncIO::makeShared()
+{
+	Py_INCREF( me() );
+	return shared_ptr<CAsyncIO>( this, CAsyncIODeletor() );
+}
+
 };

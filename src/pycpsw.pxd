@@ -234,11 +234,18 @@ cdef extern from "cpsw_api_user.h":
 
 
 cdef extern from "cpsw_cython.h" namespace "cpsw_python":
-  cdef cppclass CPathVisitor:
+  cdef cppclass CPathVisitor(IPathVisitor):
     CPathVisitor()            except+handleException
     CPathVisitor(PyObject *o) except+handleException
 
-  cdef cppclass CYamlFixup:
+  cdef cppclass CYamlFixup(IYamlFixup):
     CYamlFixup()              except+handleException
     CYamlFixup(PyObject *o)   except+handleException
 
+  cdef cppclass CAsyncIO(IAsyncIO):
+    CAsyncIO(PyObject *o)     except+handleException
+    CAsyncIO()                except+handleException
+    void       init(PyObject*)                                       except+handleException
+    cc_AsyncIO makeShared()                                          except+handleException
+    unsigned   issueGetVal(IScalVal_RO*, int, int, bool, cc_AsyncIO) except+handleException
+    unsigned   issueGetVal(IDoubleVal_RO *, int, int, cc_AsyncIO)    except+handleException
