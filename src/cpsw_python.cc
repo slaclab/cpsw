@@ -343,6 +343,17 @@ static inline double xtractDouble(PyObject *op)
 	return PyFloat_AsDouble( op );
 }
 
+PyObject *
+IDoubleVal_RO_getVal(IDoubleVal_RO *val, int fromIdx, int toIdx)
+{
+	/* Need to hack around in order to get the shared pointer back... */
+	CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> ctxt;
+        ctxt.issueGetVal( val, fromIdx, toIdx, AsyncIO() );
+	PyUniqueObj o = std::move( ctxt.complete( 0 ) );
+	return o.release();
+}
+
+
 unsigned
 IDoubleVal_setVal(DoubleVal val, PyObject *op, int from, int to)
 {
