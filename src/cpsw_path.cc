@@ -580,8 +580,11 @@ cout<<"starting at: "<<tailp->getName() << "\n";
 
 ConstDevImpl CPathImpl::parentAsDevImpl() const
 {
+	if ( empty() )
+		return NULLDEVIMPL;
+
 CPathImpl::const_reverse_iterator it = rbegin();
-	++it; // if empty this points at the NULL marker element
+	++it;
 	return hasParent( it ) ? cpsw::static_pointer_cast<const CDevImpl, CEntryImpl>(it->c_p_->getEntryImpl()) : NULLDEVIMPL;
 }
 
