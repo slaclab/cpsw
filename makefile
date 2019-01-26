@@ -16,7 +16,7 @@ env: env-cpsw.sh
 PYBINPATH=$(addsuffix /bin,$(abspath $(py_DIR)))
 PYLIBPATH=$(addsuffix /lib,$(abspath $(py_DIR)))
 
-env-cpsw.sh:
+env-cpsw.sh: .FORCE
 	$(RM) $@
 	echo 'export $(LDINSTPATH)' > $@
 	echo 'export LD_LIBRARY_PATH=$(PYLIBPATH)$${LD_LIBRARY_PATH:+:$${LD_LIBRARY_PATH}}' >> $@
