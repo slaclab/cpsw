@@ -49,7 +49,7 @@ cdef extern from "yaml-cpp/yaml.h" namespace "YAML":
     const_iterator begin()          const;
     const_iterator end()            const;
 
-  cdef c_Node LoadFile(const string&) except+;
+  cdef c_Node c_LoadFile "YAML::LoadFile"(const string&) except+;
 
 cdef extern from "yaml-cpp/yaml.h" namespace "YAML::iterator::":
   cdef cppclass value_type (c_Node):
