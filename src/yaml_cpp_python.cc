@@ -102,8 +102,6 @@ BOOST_PYTHON_MODULE(yaml_cpp)
 	.def("__setitem__",      yamlNodeSet<std::string, Node>)
 	.def("__setitem__",      yamlNodeSet<std::string, std::string>)
 	.def("__bool__",         boolNode)
-	.def("LoadFile",         &YAML::LoadFile)
-	.staticmethod("LoadFile")
 	;
 
 	class_<YAML::detail::iterator_value, bases<Node> >(
@@ -123,5 +121,6 @@ BOOST_PYTHON_MODULE(yaml_cpp)
 	.value("Map",       YAML::NodeType::Map)
 	;
 
+	def("LoadFile",   &YAML::LoadFile)
 	def("emitNode", emitNode);
 }
