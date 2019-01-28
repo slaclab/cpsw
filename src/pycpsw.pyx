@@ -68,7 +68,9 @@ cdef class Child(Entry):
 cdef class Hub(Entry):
 
   def findByName(self, str path):
-    return Path.make( dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().findByName( path.c_str() ) )
+    bstr = path.encode('UTF-8')
+    cdef const char *cpath = bstr;
+    return Path.make( dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().findByName( cpath ) )
 
   def getChild(self, name):
     return Child.make( dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().getChild( name ) )
@@ -190,7 +192,7 @@ cdef class ScalVal_RO(ScalVal_Base):
         fromIdx = kwargs["fromIdx"]
 
       if "toIdx" in kwargs:
-        fromIdx = kwargs["toIdx"]
+        toIdx   = kwargs["toIdx"]
 
       if "forceNumeric" in kwargs:
         forceNumeric = kwargs["forceNumeric"]
@@ -401,13 +403,22 @@ cdef class Path(NoInit):
       raise TypeError("Expected a 'Hub' object here")
 
   def origin(self):
-    return Hub.make( self.cptr.get().origin() )
+    cdef cc_ConstHub chub = self.cptr.get().origin()
+    if not chub:
+      return None
+    return Hub.make( chub )
 
   def parent(self):
-    return Hub.make( self.cptr.get().parent() )
+    cdef cc_ConstHub chub = self.cptr.get().parent()
+    if not chub:
+      return None
+    return Hub.make( chub )
 
   def tail(self):
-    return Child.make( self.cptr.get().tail() )
+    cdef cc_ConstChild cchild = self.cptr.get().tail()
+    if not cchild:
+      return None
+    return Child.make( cchild )
 
   def toString(self):
     return self.cptr.get().toString().decode('UTF-8','strict')
@@ -450,7 +461,10 @@ cdef class Path(NoInit):
     return Path.make( self.cptr.get().clone() )
 
   def intersect(self, Path path):
-    return Path.make( self.cptr.get().intersect( path.cptr ) )
+    cdef cc_Path cpath = self.cptr.get().intersect( path.cptr )
+    if not cpath:
+      return None
+    return Path.make( cpath )
 
   def isIntersecting(self, Path path):
     return self.cptr.get().isIntersecting( path.cptr )
