@@ -179,10 +179,10 @@ pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_swig_python.h
 	swig -python -c++ -o $@ $<
 
 pycpsw.cc: pycpsw.pyx pycpsw.pxd yaml_cpp.pxd cpsw_api_user.h
-	cython --cplus $(addprefix -I,$(yaml_cppinc_DIR)) $< -o $@
+	cython --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X embedsignature=True $< -o $@
 
 pyyaml_cpp.cc: yaml_cpp.pyx yaml_cpp.pxd
-	cython --cplus $(addprefix -I,$(yaml_cppinc_DIR)) $< -o $@
+	cython --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X embedsignature=True $< -o $@
 
 doc/README.yamlDefinition.md:doc/README.yamlDefinition.in
 	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
