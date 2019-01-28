@@ -305,12 +305,12 @@ void CPathImpl::clear()
 
 bool CPathImpl::hasParent(CPathImpl::const_reverse_iterator &i)
 {
-	return i->c_p_ != NULL;
+	return !! i->c_p_;
 }
 
 bool CPathImpl::hasParent(CPathImpl::reverse_iterator &i)
 {
-	return i->c_p_ != NULL;
+	return !! i->c_p_;
 }
 
 static void appendNum(std::string *s, int i)
@@ -584,6 +584,7 @@ ConstDevImpl CPathImpl::parentAsDevImpl() const
 		return NULLDEVIMPL;
 
 CPathImpl::const_reverse_iterator it = rbegin();
+
 	++it;
 	return hasParent( it ) ? cpsw::static_pointer_cast<const CDevImpl, CEntryImpl>(it->c_p_->getEntryImpl()) : NULLDEVIMPL;
 }
