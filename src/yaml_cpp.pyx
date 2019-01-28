@@ -16,10 +16,12 @@ from    enum            import Enum
 ctypedef long long longlong;
 
 cdef extern from "yaml_cpp_util.h":
-  cdef const c_Node yamlNodeFind[K](c_Node &n, const K &k) except+;
-  cdef void yamlNodeSet[K,V](c_Node &n, const K &k, V &v) except+;
-  cdef bool boolNode(c_Node &) except+;
-  cdef string c_emitNode "emitNode"(const c_Node &) except+;
+  cdef const c_Node yamlNodeFind[K](c_Node &n, const K &k)       except+;
+  cdef void yamlNodeSet[K,V](c_Node &n, const K &k, V &v)        except+;
+  cdef void yamlNodeReset(c_Node *, const c_Node *)              except+;
+  cdef bool boolNode(c_Node &)                                   except+;
+  cdef string c_emitNode "emitNode"(const c_Node &)              except+;
+  cdef int  handleIterator(c_Node *, c_Node *, const_iterator *) except+;
 cdef int nodeTypeUndefined():
   return Undefined
 cdef int nodeTypeNull():
@@ -39,15 +41,12 @@ class NodeType(Enum):
   Map       = nodeTypeMap()
 
 cdef class Node:
-#  cdef c_Node         c_node
-#  cdef const_iterator c_it
 
-  def __cinit__(self, s = None):
-    if None == s:
-      self.c_node = c_Node()
-    else:
-      bstr = s.encode('UTF-8') 
-      self.c_node = c_Node( bstr )
+  def __cinit__(self, str s = None):
+    cdef c_Node snod
+    if None != s:
+      snod = c_Node( s.encode( 'UTF-8' ) )
+      yamlNodeReset( &self.c_node, &snod )
 
   def IsDefined(self):
     return self.c_node.IsDefined()
@@ -78,7 +77,7 @@ cdef class Node:
       knod = key
       return self.c_node.remove( knod.c_node )
     elif isinstance(key, str):
-      kstr = key.encode('UTF-8') 
+      kstr = key.encode('UTF-8')
       return self.c_node.remove( kstr )
     elif isinstance(key, int):
       kint = key
@@ -87,14 +86,14 @@ cdef class Node:
       raise TypeError('yaml_cpp::c_Node::remove not supported for argument type')
 
   def set(self, rhs):
-    cdef Node pn
+    cdef Node   pnod
     cdef string bstr
     if isinstance(rhs, Node):
-      pn = rhs
-      self.c_node = pn.c_node
+      pnod = rhs
+      self.c_node = pnod.c_node
     elif isinstance(rhs, str):
-      bstr = rhs.encode('UTF-8') 
-      self.c_node = bstr
+      bstr = rhs.encode('UTF-8')
+      self.c_node = c_Node( bstr )
     else:
       raise TypeError('yaml_cpp::c_Node::set not supported for argument type')
 
@@ -176,18 +175,14 @@ cdef class Node:
   def __next__(self):
     if self.c_it == self.c_node.end():
       raise StopIteration()
-    if deref(self.c_it).IsDefined():
-      x = Node()
-      x.c_node = <c_Node> deref( self.c_it )
-      rval = x
+    n1 = Node()
+    n2 = Node()
+    if handleIterator( &n1.c_node, &n2.c_node, &self.c_it ) == 1:
+      incr( self.c_it )
+      return n1
     else:
-      k = Node()
-      v = Node()
-      k.c_node = deref( self.c_it ).first
-      v.c_node = deref( self.c_it ).second
-      rval = (k, v)
-    incr( self.c_it );
-    return rval
+      incr( self.c_it )
+      return (n1, n2)
 
 def LoadFile(str filename):
   cdef Node   rval = Node()

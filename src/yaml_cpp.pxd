@@ -27,27 +27,25 @@ cdef extern from "yaml-cpp/yaml.h" namespace "YAML":
   cdef cppclass c_Node "YAML::Node":
     c_Node(const string&)             except+;
     c_Node()                          except+;
-    bool IsDefined()                const;
-    bool IsNull()                   const;
-    bool IsScalar()                 const;
-    bool IsSequence()               const;
-    bool IsMap()                    const;
-    value Type()          const;
-    const string &Scalar()          except+;
+    bool IsDefined()                  except+;
+    bool IsNull()                     except+;
+    bool IsScalar()                   except+;
+    bool IsSequence()                 except+;
+    bool IsMap()                      except+;
+    value Type()                      except+;
+    const string &Scalar()            except+;
     bool remove(const c_Node&)        except+;
-    bool remove(const string&)      except+;
-    bool remove(long long)          except+;
-    c_Node &operator=(const c_Node &)   except+;
-    c_Node &operator=(const string &) except+;
-    c_Node &operator=(long long)      except+;
+    bool remove(const string&)        except+;
+    bool remove(long long)            except+;
+    void reset(const c_Node& rhs = c_Node()) except+;
     void push_back(const c_Node &)    except+;
-    string as[string]()             except+;
-    bool operator!()                const;
-    c_Node operator[](const c_Node&)    except+;
+    string as[string]()               except+;
+    bool operator!()                  except+;
+    c_Node operator[](const c_Node&)  except+;
     c_Node operator[](const string&)  except+;
     c_Node operator[](long long)      except+;
-    const_iterator begin()          const;
-    const_iterator end()            const;
+    const_iterator begin()            except+;
+    const_iterator end()              except+;
 
   cdef c_Node c_LoadFile "YAML::LoadFile"(const string&) except+;
 
