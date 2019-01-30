@@ -355,7 +355,7 @@ IDoubleVal_RO_getVal(IDoubleVal_RO *val, int fromIdx, int toIdx)
 
 
 unsigned
-IDoubleVal_setVal(DoubleVal val, PyObject *op, int from, int to)
+IDoubleVal_setVal(IDoubleVal *val, PyObject *op, int from, int to)
 {
 IndexRange rng(from, to);
 

@@ -219,7 +219,7 @@ unsigned
 IScalVal_setVal(IScalVal *val, PyObject *op, int from = -1, int to = -1);
 
 unsigned
-IDoubleVal_setVal(DoubleVal val, PyObject *op, int from = -1, int to = -1);
+IDoubleVal_setVal(IDoubleVal *val, PyObject *op, int from = -1, int to = -1);
 
 PyObject *
 IDoubleVal_RO_getVal(IDoubleVal_RO *val, int from = -1, int to = -1);
