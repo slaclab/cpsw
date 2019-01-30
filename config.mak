@@ -122,9 +122,13 @@ WITH_SHARED_LIBRARIES_default=YES
 # build python if the 'py_DIR' variable is defined and
 # pointing to an existing 'libboost_python'
 #
+# The python wrapper can be built with boost_python, SWIG or cython.
+# Set WITH_PYCPSW to BOOST, SWIG or CYTHON. Note that the SWIG
+# port is incomplete and does not support asyncronous getVal() ATM.
+#
 FOUND_BOOST_PY=$(if $(boostlib_DIR),$(if $(wildcard $(boostlib_DIR)/libboost_python*),YES,NO),YES)
 
-WITH_PYCPSW_default=$(if $(py_DIR),$(FOUND_BOOST_PY),NO)
+WITH_PYCPSW_default=CYTHON
 
 py_DIR_default=/afs/slac/g/lcls/package/python/python2.7.9/$(TARCH)
 pyinc_DIR_default=$(addsuffix /include/python2.7/,$(py_DIR))

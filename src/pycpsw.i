@@ -209,6 +209,8 @@
     unsigned
     getValAsync(std::shared_ptr<CAsyncIOWrapper> aio)
     {
+        // FIXME
+        throw InternalError("IScalVal_RO::getValAsync not ported to SWIG yet");
         return 0;
     }
     
@@ -224,15 +226,33 @@
     setVal(PyObject *values, int fromIdx = -1, int toIdx = -1);
 };
 
-// FIXME
 %rename("DoubleVal_RO")         IDoubleVal_RO;
 %rename("%s")                   IDoubleVal_RO::~IDoubleVal_RO;
+%rename("%s")                   IDoubleVal_RO::getVal(int fromIdx = -1, int toIdx = -1);
+%rename("%s")                   IDoubleVal_RO::getValAsync(std::shared_ptr<CAsyncIOWrapper>);
+%extend                         IDoubleVal_RO {
+    PyObject *
+    getVal(int fromIdx = -1, int toIdx = -1);
+
+    unsigned
+    getValAsync(std::shared_ptr<CAsyncIOWrapper> aio)
+    {  
+        // FIXME
+        throw InternalError("IDoubleVal_RO::getValAsync not ported to SWIG yet");
+        return 0;
+    }
+};
 
 %ignore                         IDoubleVal_WO;
 
-// FIXME (setVal)
 %rename("DoubleVal")            IDoubleVal;
 %rename("%s")                   IDoubleVal::~IDoubleVal;
+//%rename("%s")                   IDoubleVal::setVal(PyObject *values,int fromIdx = -1, int toIdx = -1);
+//%extend                         IDoubleVal {
+//    unsigned
+//    setVal(PyObject *values, int fromIdx = -1, int toIdx = -1);
+//};
+
 
 %rename("Command")              ICommand;
 %rename("%s")                   ICommand::~ICommand;
