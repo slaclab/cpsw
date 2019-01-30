@@ -1,4 +1,8 @@
 master:
+    The python wrapper is generated with CYTHON by default. Boost is
+    still supported (in case the new cython wrapper makes problems).
+    Experimental support for SWIG is also available. Eventually, however,
+    BOOST and SWIG will be deprecated and phased out.
 
     Internal Modification: call open/close only on the adapters that
     perform I/O. This makes the python wrapper simpler.
