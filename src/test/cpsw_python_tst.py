@@ -6,7 +6,7 @@ class FixupRoot(pycpsw.YamlFixup):
   def __init__(self):
     pycpsw.YamlFixup.__init__(self)
 
-  def call(self, root, top):
+  def __call__(self, root, top):
     for nod in root["children"]:
       if nod[0].Scalar() == "mmio":
         nod[0].set( "MMIO" )

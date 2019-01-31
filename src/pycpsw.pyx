@@ -751,7 +751,7 @@ cdef cppclass CYamlFixup(IYamlFixup):
     top  = Node()
     root.c_node = c_root
     top.c_node  = c_top
-    self.call( root, top )
+    self.__call__( root, top )
 
 cdef cppclass CAsyncIO(IAsyncIO):
 
@@ -784,7 +784,7 @@ NOTE: you need python bindings for the yaml-cpp library
     """
 Executed on the loaded YAML Node hierarchy.
     """
-    self.call(root, top)
+    self.__call__(root, top)
 
   @staticmethod
   def findByName(Node node, Path path, char sep='/'):
