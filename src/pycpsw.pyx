@@ -96,6 +96,8 @@ For array nodes the return value is > 1.
 
   @staticmethod
   cdef make(cc_ConstChild cp):
+    if not cp:
+      return None
     po      = Child(priv__)
     po.cptr = static_pointer_cast[CIEntry, CIChild]( cp )
     return po
@@ -151,6 +153,8 @@ Return a list of all children.
 
   @staticmethod
   cdef make(cc_ConstHub cp):
+    if not cp:
+      return None
     po      = Hub(priv__)
     po.cptr = static_pointer_cast[CIEntry, CIHub]( cp )
     return po
@@ -952,8 +956,6 @@ information.
 Return the Hub at the root of this path (if any -- 'None' otherwise).
     """
     cdef cc_ConstHub chub = self.cptr.get().origin()
-    if not chub:
-      return None
     return Hub.make( chub )
 
   def parent(self):
@@ -961,8 +963,6 @@ Return the Hub at the root of this path (if any -- 'None' otherwise).
 Return the parent Hub (if any -- 'None' otherwise).
     """
     cdef cc_ConstHub chub = self.cptr.get().parent()
-    if not chub:
-      return None
     return Hub.make( chub )
 
   def tail(self):
@@ -970,8 +970,6 @@ Return the parent Hub (if any -- 'None' otherwise).
 Return the child at the end of this Path (if any -- 'None' otherwise).
     """
     cdef cc_ConstChild cchild = self.cptr.get().tail()
-    if not cchild:
-      return None
     return Child.make( cchild )
 
   def toString(self):
@@ -1050,8 +1048,6 @@ an empty path if there are no common elements or if the depth of the
 paths differs.
     """
     cdef cc_Path cpath = self.cptr.get().intersect( path.cptr )
-    if not cpath:
-      return None
     return Path.make( cpath )
 
   def isIntersecting(self, Path path):
@@ -1272,6 +1268,8 @@ RETURNS: Root Path of the device hierarchy.
 
   @staticmethod
   cdef make(cc_Path cp):
+    if not cp:
+      return None
     po      = Path(priv__)
     po.ptr  = cp
     po.cptr = static_pointer_cast[CIPath, IPath]( cp )
@@ -1279,6 +1277,8 @@ RETURNS: Root Path of the device hierarchy.
 
   @staticmethod
   cdef makeConst(cc_ConstPath cp):
+    if not cp:
+      return None
     po      = Path(priv__)
     po.cptr  = cp
     return po
