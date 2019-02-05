@@ -59,7 +59,7 @@ Note: if an array of Entries is present then 'getSize()' returns
     """
 Return the description string (if any) of this Entry.
     """
-    return self.cptr.get().getDescription()
+    return self.cptr.get().getDescription().decode('UTF-8', 'strict')
 
   def getPollSecs(self):
     """
