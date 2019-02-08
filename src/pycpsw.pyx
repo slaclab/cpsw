@@ -848,6 +848,16 @@ if recursion was skipped due to 'visitPre()' returning 'False'.
     pass
 
 cdef public class AsyncIO[type CpswPyWrapT_AsyncIO, object CpswPyWrapO_AsyncIO]:
+  """
+Callback base class for asynchronous 'getVal' operations. Subclass
+must implement a
+
+  callback(self, result, status)
+
+member. This callback is passed the result of the asynchronous
+operation and 'None' if there was an exception caught. In this
+case the exception object is passed as 'status'.
+  """
 
   cdef CAsyncIO c_AsyncIO
 
