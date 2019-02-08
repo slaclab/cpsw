@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import pycpsw
 import yaml_cpp
+import threading
 
 class FixupRoot(pycpsw.YamlFixup):
   def __init__(self):
@@ -11,6 +12,24 @@ class FixupRoot(pycpsw.YamlFixup):
       if nod[0].Scalar() == "mmio":
         nod[0].set( "MMIO" )
         break
+
+class AsyncCB(pycpsw.AsyncIO):
+  def __init__(self):
+    pycpsw.AsyncIO.__init__(self)
+    self._sem = threading.Semaphore(value=0)
+
+  def callback(self, *args):
+    self._res = args[0]
+    if len(args) > 1:
+      self._sta = args[1]
+    else:
+      self._sta = None
+    self._sem.release()
+
+  def getVal(self, sv):
+    sv.getValAsync( self )
+    self._sem.acquire()
+    return self._res
 
 r=pycpsw.Path.loadYamlFile("O.linux-x86_64/cpsw_netio_tst_7.yaml", rootName="root", yamlIncDirName="O.linux-x86_64", yamlFixup=FixupRoot() )
 
@@ -169,17 +188,22 @@ tst2.loadConfigFromYamlString("1111")
 
 sv=pycpsw.ScalVal_RO.create(tst)
 
-y = sv.getVal()
-i = 0
-for x in y:
-  if i < 10 or i > 20:
-    if x != 5555:
-      raise RuntimeError("Test Failed")
-  else:
-    if x != 1111:
-      raise RuntimeError("Test Failed")
-  i = i + 1
-if i != 2048:
-  raise RuntimeError("Test Failed")
+acb = AsyncCB()
+sv.getValAsync(acb)
+
+acb = AsyncCB()
+
+for y in [sv.getVal(), acb.getVal( sv )]:
+  i = 0
+  for x in y:
+    if i < 10 or i > 20:
+      if x != 5555:
+        raise RuntimeError("Test Failed")
+    else:
+      if x != 1111:
+        raise RuntimeError("Test Failed")
+    i = i + 1
+  if i != 2048:
+    raise RuntimeError("Test Failed")
 
 print("TEST PASSED")

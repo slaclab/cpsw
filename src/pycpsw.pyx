@@ -759,10 +759,12 @@ cdef cppclass CYamlFixup(IYamlFixup):
 
 cdef cppclass CAsyncIO(IAsyncIO):
 
-  void callback(self, PyObject *status):
+  void callback(self, PyObject *result, PyObject *status):
     pyStatus = <object>status
     Py_XDECREF( status )
-    self.callback( pyStatus )
+    pyResult = <object>result
+    Py_XDECREF( result )
+    self.callback( pyResult, pyStatus )
 
 cdef public class YamlFixup[type CpswPyWrapT_YamlFixup, object CpswPyWrapO_YamlFixup]:
   """
@@ -1300,7 +1302,12 @@ currently supported facilities.
   return c_setCPSWVerbosity( cstr, level )
 
 cdef public class CPSWError(Exception)[type CpswPyExcT_CPSWError, object CpswPyExcO_CPSWError]:
-  pass
+  def __cinit__(self, str msg):
+    self._msg = msg
+
+  def what(self):
+    return self._msg
+
 cdef public class ErrnoError(CPSWError)[type CpswPyExcT_ErrnoError, object CpswPyExcO_ErrnoError]:
   pass
 cdef public class IOError(ErrnoError)[type CpswPyExcT_IOError, object CpswPyExcO_IOError]:

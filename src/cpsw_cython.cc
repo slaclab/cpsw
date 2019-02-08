@@ -98,15 +98,34 @@ CAsyncIO::CAsyncIO()
 
 
 void
-CAsyncIO::callback(CPSWError *status)
+CAsyncIO::callback(CPSWError *err)
 {
 PyGILState_STATE state_ = PyGILState_Ensure();
+{
+
+PyUniqueObj result;
+PyUniqueObj status;
+
+	if ( err ) {
+		/* Build argument list */
+		PyUniqueObj arg  = PyUnicode_FromString( err->what() );
+		PyUniqueObj args = PyTuple_New(1);
+		if ( ! args || ! arg || PyTuple_SetItem( args.get(), 0, arg.get() ) ) {
+			throw std::runtime_error("CAsyncIO::callback -- unable to create Python object for arguments");
+		}
+		arg.release();
+		/* call constructor; note that PyObject_New() just creates an object
+		 * and maybe sets its type but does not execute the constructor.
+		 */
+		status = PyObject_Call( translateException(err), args.get(), NULL );
+	} else {
+		result = complete( 0 );
+	}
 
 	/* Call into Python */
-	PyUniqueObj result = complete( status );
+	callback( me(), result.release(), status.release() );
 
-	callback( me(), result.release() );
-
+}
 	PyGILState_Release( state_ );
 }
 
@@ -114,7 +133,7 @@ void
 CAsyncIO::init(PyObject *pObj)
 {
 	if ( me_ && pObj != me_ )
-		throw InternalError("CAsyncIO::init() may onlyl be called once!");
+		throw InternalError("CAsyncIO::init() may only be called once!");
 	me_ = pObj;
 }
 
@@ -122,15 +141,23 @@ class CAsyncIODeletor {
 public:
 	void operator()(CAsyncIO *aio)
 	{
+	/* called from CPSW thread; must acquire GIL first */
+	PyGILState_STATE state_ = PyGILState_Ensure();
 		Py_DECREF( aio->me() );
+	PyGILState_Release( state_ );
 	}
 };
 
 shared_ptr<CAsyncIO>
 CAsyncIO::makeShared()
 {
+/* This is called from cython (i.e., with GIL held) */
 	Py_INCREF( me() );
 	return shared_ptr<CAsyncIO>( this, CAsyncIODeletor() );
+}
+
+CAsyncIO::~CAsyncIO()
+{
 }
 
 };

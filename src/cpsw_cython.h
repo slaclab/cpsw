@@ -102,7 +102,7 @@ namespace cpsw_python {
 		virtual void init(PyObject *);
 
 		virtual void callback(CPSWError *status);
-		virtual void callback(PyObject *me, PyObject *status);
+		virtual void callback(PyObject *me, PyObject *result, PyObject *status);
 
 		// Each shared_ptr<CAsyncIO> takes out a python reference
 		// which is dropped when the shared_ptr<CAsyncIO> is deleted,
@@ -111,6 +111,8 @@ namespace cpsw_python {
 		// 'owns' one python reference.
 		// This object is meant to be embedded into a PyObject!
 		virtual shared_ptr<CAsyncIO> makeShared();
+
+		virtual ~CAsyncIO();
 	};
 
 };

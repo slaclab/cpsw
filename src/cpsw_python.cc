@@ -518,4 +518,93 @@ handleException()
 	}
 }
 
+PyObject *
+translateException(CPSWError *err)
+{
+	try {
+		err->throwMe();
+	} 
+	catch ( InternalError &e ) {
+		return pCpswPyExc_InternalError;
+	}
+	catch ( IOError &e ) {
+		return pCpswPyExc_IOError;
+	}
+	catch ( ErrnoError &e ) {
+		return pCpswPyExc_ErrnoError;
+	}
+	catch ( DuplicateNameError &e ) {
+		return pCpswPyExc_DuplicateNameError;
+	}
+	catch ( NotDevError &e ) {
+		return pCpswPyExc_NotDevError;
+	}
+	catch ( NotFoundError &e ) {
+		return pCpswPyExc_NotFoundError;
+	}
+	catch ( InvalidPathError &e ) {
+		return pCpswPyExc_InvalidPathError;
+	}
+	catch ( InvalidIdentError &e ) {
+		return pCpswPyExc_InvalidIdentError;
+	}
+	catch ( InvalidArgError &e ) {
+		return pCpswPyExc_InvalidArgError;
+	}
+	catch ( AddressAlreadyAttachedError &e ) {
+		return pCpswPyExc_AddressAlreadyAttachedError;
+	}
+	catch ( ConfigurationError &e ) {
+		return pCpswPyExc_ConfigurationError;
+	}
+	catch ( AddrOutOfRangeError &e ) {
+		return pCpswPyExc_AddrOutOfRangeError;
+	}
+	catch ( ConversionError &e ) {
+		return pCpswPyExc_ConversionError;
+	}
+	catch ( InterfaceNotImplementedError &e ) {
+		return pCpswPyExc_InterfaceNotImplementedError;
+	}
+	catch ( BadStatusError &e ) {
+		return pCpswPyExc_BadStatusError;
+	}
+	catch ( IntrError &e ) {
+		return pCpswPyExc_IntrError;
+	}
+	catch ( StreamDoneError &e ) {
+		return pCpswPyExc_StreamDoneError;
+	}
+	catch ( FailedStreamError &e ) {
+		return pCpswPyExc_FailedStreamError;
+	}
+	catch ( MissingOnceTagError &e ) {
+		return pCpswPyExc_MissingOnceTagError;
+	}
+	catch ( MissingIncludeFileNameError &e ) {
+		return pCpswPyExc_MissingIncludeFileNameError;
+	}
+	catch ( NoYAMLSupportError &e ) {
+		return pCpswPyExc_NoYAMLSupportError;
+	}
+	catch ( NoError &e ) {
+		return pCpswPyExc_NoError;
+	}
+	catch ( MultipleInstantiationError &e ) {
+		return pCpswPyExc_MultipleInstantiationError;
+	}
+	catch ( BadSchemaVersionError &e ) {
+		return pCpswPyExc_BadSchemaVersionError;
+	}
+	catch ( TimeoutError &e ) {
+		return pCpswPyExc_TimeoutError;
+	}
+	catch ( CPSWError &e ) {
+		return pCpswPyExc_CPSWError;
+	}
+	// should never get here
+	throw std::runtime_error("Internal Error -- uncaught CPSWError");
+}
+
+
 };

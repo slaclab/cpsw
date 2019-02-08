@@ -53,6 +53,8 @@ namespace cpsw_python {
 	// To be used from a 'catch' block
 	void handleException();
 
+    PyObject *translateException(CPSWError *err);
+
 class GILUnlocker {
 private:
 	PyThreadState *_save;
@@ -78,6 +80,10 @@ struct PyObjDestructor {
 static inline PyObject *
 PyObj(PyObject *v)
 {
+	if ( ! v ) {
+		v = Py_None;
+		Py_INCREF( v );
+	}
 	return ( v );
 }
 
@@ -114,6 +120,7 @@ typedef std::unique_ptr<PyObject, PyObjDestructor> B;
 
 public:
 	PyUniqueObj()
+	: B( PyObj( (PyObject*)NULL ) )
 	{}
 
 	PyUniqueObj(PyListObj &o);
@@ -263,7 +270,7 @@ public:
 	virtual T complete(CPSWError *err)
 	{
 		if ( err ) {
-			std::cerr << "CGetValWrapper -- exception in callback: " << err->getInfo() << "\n";
+//		std::cerr << "CGetValWrapper -- exception in callback: " << err->getInfo() << "\n";
 			T rval;
 			return rval;
 		}
