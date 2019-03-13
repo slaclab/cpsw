@@ -1,12 +1,14 @@
 #ifndef CPSW_COMPAT_H
 #define CPSW_COMPAT_H
 
+#include <unistd.h>
+
 #include <cpsw_shared_ptr.h>
 
+#ifdef CPSW_USES_BOOST
 #include <boost/unordered_set.hpp>
 #include <boost/atomic.hpp>
 
-#ifdef CPSW_USES_BOOST
 namespace cpsw {
   using boost::shared_ptr;
   using boost::unordered_set;

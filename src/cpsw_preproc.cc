@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string.h>
 
 StreamMuxBuf::StreamEl::StreamEl(Stream stream, const std::string *name, unsigned hdrLns)
