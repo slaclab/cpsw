@@ -192,7 +192,8 @@ Return a string which describes the encoding if this ScalVal is
 itself e.g., a string. Common encodings include 'ASCII', 'UTF_8
 Custom encodings are also communicated as 'CUSTOM_<integer>'.
 If this Val has no defined encoding then the encoding should be <None>
-(i.e., the object None).
+(i.e., the object None). Note that "NONE" (string) is returned if
+the encoding is explicitly set to "NONE" in the YAML definition.
 
 The encoding may e.g., be used to convert a numerical array into
 a string by python (second argument to the str() constructor).
