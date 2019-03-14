@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <cpsw_yaml.h>
 
@@ -38,25 +39,27 @@ CMemDevImpl::CMemDevImpl(Key &key, YamlState &node)
   buf_    ( 0         ),
   isExt_  ( false     )
 {
-int flg = MAP_PRIVATE | MAP_ANONYMOUS;
-int fd  = -1;
-int err;
+int   flg = MAP_PRIVATE | MAP_ANONYMOUS;
+int   fd  = -1;
+int   err;
+off_t off = 0;
 	if ( 0 == size_ ) {
 		throw InvalidArgError("'size' zero or unset");
 	}
 	if ( readNode( node, YAML_KEY_fileName, &fileName_ ) ) {
         if ( (fd = open( fileName_.c_str(), O_RDWR )) < 0 ) {
-			throw InternalError( std::string("CMemDevImpl - Unable to open") + fileName_, errno );
+			throw ErrnoError( std::string("CMemDevImpl - Unable to open") + fileName_, errno );
 		}
 		flg = MAP_SHARED;
+		(void) readNode( node, YAML_KEY_offset, &off );
 	}
-	buf_ = (uint8_t*)mmap( 0, getSize(), PROT_READ | PROT_WRITE, flg, fd, 0 );
+	buf_ = (uint8_t*)mmap( 0, getSize(), PROT_READ | PROT_WRITE, flg, fd, off );
     err  = errno;
 	if ( fd >= 0 ) {
 		close( fd );
 	}
 	if ( MAP_FAILED == buf_ ) {
-		throw InternalError("CMemDevImpl - Unable to map anonymous buffer", err);
+		throw ErrnoError("CMemDevImpl - Unable to map anonymous buffer", err);
 	}
 }
 
