@@ -128,7 +128,7 @@ BOOST_PYTHON_LIB_default     =boost_python
 WITH_SHARED_LIBRARIES_default=YES
 WITH_STATIC_LIBRARIES_default=NO
 WITH_PYCPSW_default          =$(or $(and $(pyinc_DIR),$(WITH_SHARED_LIBRARIES)),NO)
-WITH_BOOST_default           =NO
+WITH_BOOST_default           =YES
 
 COMMA__:=,
 SPACE__:=

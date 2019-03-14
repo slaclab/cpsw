@@ -15,13 +15,16 @@
 
 #include <errno.h>
 
+#ifndef WITHOUT_BOOST
 #include <boost/lockfree/queue.hpp>
+typedef boost::lockfree::queue< IBufChain *, boost::lockfree::fixed_sized< true > > CBufQueueBase;
+#else
+#include <cpsw_queue.h>
+#endif
+
 #include <semaphore.h>
 
-using boost::lockfree::queue;
 using cpsw::atomic;
-
-typedef queue< IBufChain *, boost::lockfree::fixed_sized< true > > CBufQueueBase;
 
 class IBufSync;
 typedef shared_ptr<IBufSync> BufSync;
