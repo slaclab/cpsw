@@ -200,6 +200,8 @@ The encoding 'IEEE_754' conveys that the ScalVal represents a
 floating-point number.
     """
     cdef ValEncoding enc = dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getEncoding()
+    if not enc:
+      return None
     return ConvertEncoding.do_encode( enc ).decode('UTF-8', 'strict')
 
   # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
