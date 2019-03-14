@@ -11,7 +11,11 @@
 #define CPSW_FREE_LIST_H
 
 #include <cpsw_compat.h>
+#ifndef  WITHOUT_BOOST
 #include <boost/lockfree/stack.hpp>
+#else
+#include <cpsw_freelist_stack.h>
+#endif
 
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
@@ -24,7 +28,9 @@
 
 using cpsw::weak_ptr;
 using cpsw::static_pointer_cast;
+#ifndef  WITHOUT_BOOST
 using boost::lockfree::detail::freelist_stack;
+#endif
 using cpsw::atomic;
 using cpsw::memory_order_relaxed;
 using cpsw::memory_order_release;

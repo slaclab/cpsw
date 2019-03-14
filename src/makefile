@@ -84,6 +84,7 @@ DEP_HEADERS += cpsw_stream_adapt.h
 DEP_HEADERS += cpsw_entry.h
 DEP_HEADERS += cpsw_enum.h
 DEP_HEADERS += cpsw_freelist.h
+DEP_HEADERS += cpsw_freelist_stack.h
 DEP_HEADERS += cpsw_hub.h
 DEP_HEADERS += cpsw_mem_dev.h
 DEP_HEADERS += cpsw_null_dev.h
