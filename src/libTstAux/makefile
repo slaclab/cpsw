@@ -10,7 +10,6 @@
 CPSW_DIR=..
 
 include $(CPSW_DIR)/defs.mak
-include $(CPSW_DIR)/std.mak
 
 DEP_HEADERS += crc32-le-tbl-4.h
 DEP_HEADERS += udpsrv_port.h
