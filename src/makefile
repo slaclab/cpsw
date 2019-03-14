@@ -133,7 +133,8 @@ cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 
 cpsw_ypp_SRCS        += cpsw_ypp.cc cpsw_preproc.cc
 
-# Python wrapper; only built if WITH_PYCPSW is set to YES (can be target specific)
+# Python wrapper; only built if WITH_PYCPSW is set to CYTHON/BOOST/SWIG
+# (can be target specific)
 pycpsw_so_SRCS_BOOST  = cpsw_boost_python.cc cpsw_python.cc
 pycpsw_so_SRCS_CYTHON = cpsw_python.cc pycpsw.cc cpsw_cython.cc
 pycpsw_so_LIBS_BOOST  = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)

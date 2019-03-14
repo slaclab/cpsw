@@ -127,7 +127,7 @@ SHARED_LIBRARIES=$(SHARED_LIBRARIES_$(WITH_SHARED_LIBRARIES))
 BOOST_PYTHON_LIB_default     =boost_python
 WITH_SHARED_LIBRARIES_default=YES
 WITH_STATIC_LIBRARIES_default=NO
-WITH_PYCPSW_default          =$(or $(and $(pyinc_DIR),$(WITH_SHARED_LIBRARIES)),NO)
+WITH_PYCPSW_default          =$(or $(and $(pyinc_DIR),$(WITH_SHARED_LIBRARIES),CYTHON),NO)
 WITH_BOOST_default           =YES
 
 COMMA__:=,

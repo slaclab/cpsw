@@ -128,7 +128,10 @@ WITH_SHARED_LIBRARIES_default=YES
 #
 FOUND_BOOST_PY=$(if $(boostlib_DIR),$(if $(wildcard $(boostlib_DIR)/libboost_python*),YES,NO),YES)
 
-WITH_PYCPSW_default=CYTHON
+#Default defined in 'defs.mak':
+#  use CYTHON if pyinc_DIR is defined and shared libraries
+#  are enabled; otherwise don't build PYCPSW.
+#WITH_PYCPSW_default=$(or $(and $(pyinc_DIR),$(WITH_SHARED_LIBRARIES),CYTHON),NO)
 
 py_DIR_default=/afs/slac/g/lcls/package/python/python2.7.9/$(TARCH)
 pyinc_DIR_default=$(addsuffix /include/python2.7/,$(py_DIR))
@@ -137,6 +140,12 @@ pyinc_DIR_default=$(addsuffix /include/python2.7/,$(py_DIR))
 # by CPSW but enabling C++11 will remove dependency of *applications* on
 # boost.
 USE_CXX11_default=NO
+# When enabling CXX11 then boost can completely be avoided by
+# setting the following variable to NO. A potentially inefficient,
+# trivial replacement for boost::lockfree:stack and boost::lockfree::queue
+# will be used instead.
+# This variable can be set for individual target architectures...
+WITH_BOOST_default=YES
 
 # Define an install location
 INSTALL_DIR=$(TOPDIR)
