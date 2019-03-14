@@ -7,6 +7,9 @@ master:
     Internal Modification: call open/close only on the adapters that
     perform I/O. This makes the python wrapper simpler.
 
+    Feature: cpsw_mem_dev: support 'offset' property when mapping a 
+        file descriptor.
+
     Bugfix: Ipath::parent() implementation was wrong; caused segfault.
     (merged from R3.5.branch)
 

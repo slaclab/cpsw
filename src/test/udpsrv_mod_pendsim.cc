@@ -79,7 +79,7 @@ public:
 			return rval;
 
 		if ( debug ) {
-			printf("readReg: off 0x%"PRIx64" off_ 0x%"PRIx64" nbytes %"PRId32"\n", *off, off_, *nbytes);
+			printf("readReg: off 0x%" PRIx64 " off_ 0x%" PRIx64 " nbytes %" PRId32 "\n", *off, off_, *nbytes);
 		}
 
 		uint32_t val = get();
@@ -107,7 +107,7 @@ public:
 			return rval;
 
 		if ( debug ) {
-			printf("writeReg: off 0x%"PRIx64" off_ 0x%"PRIx64" nbytes %"PRId32"\n", *off, off_, *nbytes);
+			printf("writeReg: off 0x%" PRIx64 " off_ 0x%" PRIx64 " nbytes %" PRId32 "\n", *off, off_, *nbytes);
 		}
 
 		uint32_t oldval = get();

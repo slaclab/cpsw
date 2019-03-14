@@ -10,7 +10,6 @@
 CPSW_DIR=..
 
 include $(CPSW_DIR)/defs.mak
-include $(CPSW_DIR)/std.mak
 
 INCLUDE_DIRS += $(SRCDIR)/../libTstAux
 
@@ -21,7 +20,7 @@ cpswTstAuxlib_DIR=$(SRCDIR)/../libTstAux/O.$(TARCH)/
 udpsrv_SRCS = udpsrv.c
 udpsrv_SRCS+= udpsrv_mod_mem.cc
 udpsrv_SRCS+= udpsrv_mod_axiprom.cc
-#udpsrv_SRCS+= udpsrv_mod_pendsim.cc
+udpsrv_SRCS+= udpsrv_mod_pendsim.cc
 udpsrv_SRCS+= udpsrv_mod_genadc.cc
 udpsrv_SRCS+= udpsrv_mod_mmio.cc
 
