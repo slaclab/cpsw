@@ -79,11 +79,11 @@ namespace YAML {
 	// so that intentions can be made clear:
 	const Node NodeFind(const Node &n, const Node &key);
 
-	// The second template argument is only a dummy
+	// The second 'N' template argument is only a dummy
 	// so that we can define this w/o pulling in
-	// yaml-cpp headers.
-	template <typename Key, typename N=const YAML::Node>
-	N NodeFind(const YAML::Node &n, const Key &key)
+	// yaml-cpp headers (it should always by YAML::Node).
+	template <typename N, typename Key>
+	const N NodeFind(const N &n, const Key &key)
 	{
 		return static_cast<const N>(n)[key];
 	}
