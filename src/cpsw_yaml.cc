@@ -362,7 +362,7 @@ const PNode *otop  = top;
 
 		// no need for 'fixInvalidNode()' since 'merged_node' is only
 		// operated on if it is not 'undefined'.
-		const YAML::Node &merged_node( YAML::NodeFind( *top, YAML_KEY_MERGE) );
+		const YAML::Node &merged_node( YAML::NodeFind<YAML::Node>( *top, YAML_KEY_MERGE) );
 
 		if ( merged_node ) {
 			// try (backtracking) lookup from the node at the mergekey

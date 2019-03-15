@@ -217,8 +217,11 @@ unsigned headerLines = 0;
 		std::string line;
 		std::getline(*current, line );
 		bool onceHasNoTag;
+		// pre c++11 doesn't have to_string :-(
+		char hlbuf[30];
+		snprintf(hlbuf, sizeof(hlbuf), "%d", headerLines);
 
-		mux_->pushbuf( StreamMuxBuf::mkstrm( std::string("##(") + std::to_string(headerLines) + std::string(") ") + line + std::string("\n") ), &name, headerLines );
+		mux_->pushbuf( StreamMuxBuf::mkstrm( std::string("##(") + std::string(hlbuf) + std::string(") ") + line + std::string("\n") ), &name, headerLines );
 
 		headerLines++;
 

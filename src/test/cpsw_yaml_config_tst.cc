@@ -177,14 +177,14 @@ std::cout << e.c_str() << "\n";
 }
 		if ( 1 == pass ) {
 			// 'val2' should not be present
-			YAML::const_iterator it( YAML::NodeFind(cnfg,0)["mmio"].begin() );
-			YAML::const_iterator ite( YAML::NodeFind(cnfg,0)["mmio"].end() );
+			YAML::const_iterator it( YAML::NodeFind<YAML::Node>(cnfg,0)["mmio"].begin() );
+			YAML::const_iterator ite( YAML::NodeFind<YAML::Node>(cnfg,0)["mmio"].end() );
 			bool v1Found = false;
 			bool v2Found = false;
 			while ( it != ite ) {
-				if ( YAML::NodeFind( *it, "val1") )
+				if ( YAML::NodeFind<YAML::Node>( *it, "val1") )
 					v1Found = true;
-				else if ( YAML::NodeFind( *it, "val2") )
+				else if ( YAML::NodeFind<YAML::Node>( *it, "val2") )
 					v2Found = true;
 				++it;
 			}
