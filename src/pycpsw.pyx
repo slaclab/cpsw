@@ -1315,59 +1315,183 @@ currently supported facilities.
   return c_setCPSWVerbosity( cstr, level )
 
 cdef public class CPSWError(Exception)[type CpswPyExcT_CPSWError, object CpswPyExcO_CPSWError]:
-  def __cinit__(self, str msg):
-    self._msg = msg
+
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_CPSWError] foo = make_shared[cc_CPSWError]( cs )
+    self._msg = foo.get().what()
 
   def what(self):
-    return self._msg
+    return self._msg.decode('UTF-8', 'strict')
 
 cdef public class ErrnoError(CPSWError)[type CpswPyExcT_ErrnoError, object CpswPyExcO_ErrnoError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_ErrnoError] foo = make_shared[cc_ErrnoError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class IOError(ErrnoError)[type CpswPyExcT_IOError, object CpswPyExcO_IOError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_IOError] foo = make_shared[cc_IOError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class InternalError(ErrnoError)[type CpswPyExcT_InternalError, object CpswPyExcO_InternalError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_InternalError] foo = make_shared[cc_InternalError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class DuplicateNameError(CPSWError)[type CpswPyExcT_DuplicateNameError, object CpswPyExcO_DuplicateNameError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_DuplicateNameError] foo = make_shared[cc_DuplicateNameError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class NotDevError(CPSWError)[type CpswPyExcT_NotDevError, object CpswPyExcO_NotDevError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_NotDevError] foo = make_shared[cc_NotDevError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class NotFoundError(CPSWError)[type CpswPyExcT_NotFoundError, object CpswPyExcO_NotFoundError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_NotFoundError] foo = make_shared[cc_NotFoundError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class InvalidPathError(CPSWError)[type CpswPyExcT_InvalidPathError, object CpswPyExcO_InvalidPathError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_InvalidPathError] foo = make_shared[cc_InvalidPathError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class InvalidIdentError(CPSWError)[type CpswPyExcT_InvalidIdentError, object CpswPyExcO_InvalidIdentError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_InvalidIdentError] foo = make_shared[cc_InvalidIdentError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class InvalidArgError(CPSWError)[type CpswPyExcT_InvalidArgError, object CpswPyExcO_InvalidArgError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_InvalidArgError] foo = make_shared[cc_InvalidArgError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class AddressAlreadyAttachedError(CPSWError)[type CpswPyExcT_AddressAlreadyAttachedError, object CpswPyExcO_AddressAlreadyAttachedError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_AddressAlreadyAttachedError] foo = make_shared[cc_AddressAlreadyAttachedError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class ConfigurationError(CPSWError)[type CpswPyExcT_ConfigurationError, object CpswPyExcO_ConfigurationError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_ConfigurationError] foo = make_shared[cc_ConfigurationError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class AddrOutOfRangeError(CPSWError)[type CpswPyExcT_AddrOutOfRangeError, object CpswPyExcO_AddrOutOfRangeError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_AddrOutOfRangeError] foo = make_shared[cc_AddrOutOfRangeError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class ConversionError(CPSWError)[type CpswPyExcT_ConversionError, object CpswPyExcO_ConversionError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_ConversionError] foo = make_shared[cc_ConversionError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class InterfaceNotImplementedError(CPSWError)[type CpswPyExcT_InterfaceNotImplementedError, object CpswPyExcO_InterfaceNotImplementedError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_InterfaceNotImplementedError] foo = make_shared[cc_InterfaceNotImplementedError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class BadStatusError(CPSWError)[type CpswPyExcT_BadStatusError, object CpswPyExcO_BadStatusError]:
-  pass
+  def __init__(self, str msg, int status):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_BadStatusError] foo = make_shared[cc_BadStatusError]( cs, status )
+    self._msg = foo.get().what()
+
 cdef public class IntrError(CPSWError)[type CpswPyExcT_IntrError, object CpswPyExcO_IntrError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_IntrError] foo = make_shared[cc_IntrError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class StreamDoneError(CPSWError)[type CpswPyExcT_StreamDoneError, object CpswPyExcO_StreamDoneError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_StreamDoneError] foo = make_shared[cc_StreamDoneError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class FailedStreamError(CPSWError)[type CpswPyExcT_FailedStreamError, object CpswPyExcO_FailedStreamError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_FailedStreamError] foo = make_shared[cc_FailedStreamError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class MissingOnceTagError(CPSWError)[type CpswPyExcT_MissingOnceTagError, object CpswPyExcO_MissingOnceTagError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_MissingOnceTagError] foo = make_shared[cc_MissingOnceTagError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class MissingIncludeFileNameError(CPSWError)[type CpswPyExcT_MissingIncludeFileNameError, object CpswPyExcO_MissingIncludeFileNameError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_MissingIncludeFileNameError] foo = make_shared[cc_MissingIncludeFileNameError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class NoYAMLSupportError(CPSWError)[type CpswPyExcT_NoYAMLSupportError, object CpswPyExcO_NoYAMLSupportError]:
-  pass
+  def __init__(self):
+    cdef shared_ptr[cc_NoYAMLSupportError] foo = make_shared[cc_NoYAMLSupportError]()
+    self._msg = foo.get().what()
+
 cdef public class NoError(CPSWError)[type CpswPyExcT_NoError, object CpswPyExcO_NoError]:
-  pass
+  def __init__(self):
+    cdef shared_ptr[cc_NoError] foo = make_shared[cc_NoError]()
+    self._msg = foo.get().what()
+
 cdef public class MultipleInstantiationError(CPSWError)[type CpswPyExcT_MultipleInstantiationError, object CpswPyExcO_MultipleInstantiationError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_MultipleInstantiationError] foo = make_shared[cc_MultipleInstantiationError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class BadSchemaVersionError(CPSWError)[type CpswPyExcT_BadSchemaVersionError, object CpswPyExcO_BadSchemaVersionError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_BadSchemaVersionError] foo = make_shared[cc_BadSchemaVersionError]( cs )
+    self._msg = foo.get().what()
+
 cdef public class TimeoutError(CPSWError)[type CpswPyExcT_TimeoutError, object CpswPyExcO_TimeoutError]:
-  pass
+  def __init__(self, str msg):
+    bstr = msg.encode('UTF-8')
+    cdef const char *cs = bstr
+    cdef shared_ptr[cc_TimeoutError] foo = make_shared[cc_TimeoutError]( cs )
+    self._msg = foo.get().what()

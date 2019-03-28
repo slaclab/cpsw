@@ -10,7 +10,7 @@
  #@C distributed except according to the terms contained in the LICENSE.txt file.
 
 from cpython.object cimport PyObject
-from libcpp.memory  cimport shared_ptr
+from libcpp.memory  cimport shared_ptr, make_shared
 from libcpp         cimport bool
 from libcpp.vector  cimport *
 from libcpp.string  cimport *
@@ -34,7 +34,6 @@ cdef extern from "cpsw_api_user.h":
   cdef cppclass ICommand
   cdef cppclass IDoubleVal_RO
   cdef cppclass IDoubleVal
-
 
 ctypedef const IEntry            CIEntry
 ctypedef const IChild            CIChild
@@ -110,6 +109,7 @@ cdef extern from "cpsw_api_user.h" namespace "IVal_Base":
   enum Encoding:
     pass
   ctypedef Encoding ValEncoding "IVal_Base::Encoding"
+
 
 cdef extern from "cpsw_api_user.h":
 
@@ -249,3 +249,58 @@ cdef extern from "cpsw_cython.h" namespace "cpsw_python":
     cc_AsyncIO makeShared()                                          except+handleException
     unsigned   issueGetVal(IScalVal_RO*, int, int, bool, cc_AsyncIO) except+handleException
     unsigned   issueGetVal(IDoubleVal_RO *, int, int, cc_AsyncIO)    except+handleException
+
+cdef extern from "cpsw_error.h":
+  cdef cppclass cc_CPSWError "CPSWError":
+    cc_CPSWError(const char*)
+    const char *what()
+  cdef cppclass cc_NoError "NoError"(cc_CPSWError):
+    cc_NoError(const char *)
+  cdef cppclass cc_DuplicateNameError "DuplicateNameError" (cc_CPSWError):
+    cc_DuplicateNameError(const char *)
+  cdef cppclass cc_NotDevError "NotDevError" (cc_CPSWError):
+    cc_NotDevError(const char *)
+  cdef cppclass cc_NotFoundError "NotFoundError" (cc_CPSWError):
+    cc_NotFoundError(const char *)
+  cdef cppclass cc_InvalidPathError "InvalidPathError" (cc_CPSWError):
+    cc_InvalidPathError(const char *)
+  cdef cppclass cc_InvalidIdentError "InvalidIdentError" (cc_CPSWError):
+    cc_InvalidIdentError(const char *)
+  cdef cppclass cc_InvalidArgError "InvalidArgError" (cc_CPSWError):
+    cc_InvalidArgError(const char *)
+  cdef cppclass cc_AddressAlreadyAttachedError "AddressAlreadyAttachedError" (cc_CPSWError):
+    cc_AddressAlreadyAttachedError(const char *)
+  cdef cppclass cc_ConfigurationError "ConfigurationError" (cc_CPSWError):
+    cc_ConfigurationError(const char *)
+  cdef cppclass cc_ErrnoError "ErrnoError" (cc_CPSWError):
+    cc_ErrnoError(const char *)
+  cdef cppclass cc_InternalError "InternalError" (cc_ErrnoError):
+    cc_InternalError(const char *)
+  cdef cppclass cc_AddrOutOfRangeError "AddrOutOfRangeError" (cc_CPSWError):
+    cc_AddrOutOfRangeError(const char *)
+  cdef cppclass cc_ConversionError "ConversionError" (cc_CPSWError):
+    cc_ConversionError(const char *)
+  cdef cppclass cc_InterfaceNotImplementedError "InterfaceNotImplementedError" (cc_CPSWError):
+    cc_InterfaceNotImplementedError(const char *)
+  cdef cppclass cc_IOError "IOError" (cc_ErrnoError):
+    cc_IOError(const char *)
+  cdef cppclass cc_BadStatusError "BadStatusError" (cc_CPSWError):
+    cc_BadStatusError(const char *)
+  cdef cppclass cc_IntrError "IntrError" (cc_CPSWError):
+    cc_IntrError(const char *)
+  cdef cppclass cc_StreamDoneError "StreamDoneError" (cc_CPSWError):
+    cc_StreamDoneError (const char *)
+  cdef cppclass cc_FailedStreamError "FailedStreamError" (cc_CPSWError):
+    cc_FailedStreamError (const char *)
+  cdef cppclass cc_MissingOnceTagError "MissingOnceTagError" (cc_CPSWError):
+    cc_MissingOnceTagError (const char *)
+  cdef cppclass cc_MissingIncludeFileNameError "MissingIncludeFileNameError" (cc_CPSWError):
+    cc_MissingIncludeFileNameError (const char *)
+  cdef cppclass cc_NoYAMLSupportError "NoYAMLSupportError" (cc_CPSWError):
+    cc_NoYAMLSupportError (const char *)
+  cdef cppclass cc_MultipleInstantiationError "MultipleInstantiationError" (cc_CPSWError):
+    cc_MultipleInstantiationError (const char *)
+  cdef cppclass cc_BadSchemaVersionError "BadSchemaVersionError" (cc_CPSWError):
+    cc_BadSchemaVersionError (const char *)
+  cdef cppclass cc_TimeoutError "TimeoutError" (cc_CPSWError):
+    cc_TimeoutError (const char *)
