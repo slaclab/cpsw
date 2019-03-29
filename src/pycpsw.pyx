@@ -1174,26 +1174,29 @@ RETURNS: number of values successfully saved to file.
       cydir = bydir
     return wrap_Path_dumpConfigToYamlFile(self.cptr, cfnam, ctnam, cydir)
 
-  def dumpConfigToYamlString(self, templFileName = None, yamlIncDirName = None):
+  def dumpConfigToYamlString(self, template = None, yamlIncDirName = None, templateIsFilename = True):
     """
 Read a configuration from hardware and return as a string in YAML format.
-If 'templFileName' is given then the paths listed in there (and only those)
-are used in the order defined in 'templFileName'. Otherwise, the 'configPrio'
+If 'template' is given then the CPSW paths listed in there (and only those)
+are used in the order defined in the 'template'. Otherwise, the 'configPrio'
 property of each field in the hierarchy is honored (see README.configData).
 'yamlIncDirname' can be used to specify where additional YAML files are
 stored.
+
+If 'templateIsFilename' is True then 'template' is the filename of a template
+file. Otherwise 'template' is a string containing the template itself.
     """
     cdef const char *ctnam = NULL
     cdef const char *cydir = NULL
     tnam  = None
     bydir = None
-    if None != templFileName:
-      tnam  = templFileName.encode("UTF-8")
-      ctnam = tnam
+    if None != template:
+      tmpl  = template.encode("UTF-8")
+      ctmpl = tmpl
     if None != yamlIncDirName:
       bydir = yamlIncDirName.encode("UTF-8")
       cydir = bydir
-    return wrap_Path_dumpConfigToYamlString(self.cptr, ctnam, cydir)
+    return wrap_Path_dumpConfigToYamlString(self.cptr, ctmpl, cydir, templateIsFilename)
 
   @staticmethod
   def create(arg = None):

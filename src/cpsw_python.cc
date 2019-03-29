@@ -74,9 +74,9 @@ std::fstream strm( filename, std::fstream::out );
 }
 
 std::string
-wrap_Path_dumpConfigToYamlString(ConstPath p, const char *templFilename, const char *yaml_dir)
+wrap_Path_dumpConfigToYamlString(ConstPath p, const char *templ, const char *yaml_dir, bool templIsFilename)
 {
-	return	IPath_dumpConfigToYamlString(p.get(), templFilename, yaml_dir);
+	return	IPath_dumpConfigToYamlString(p.get(), templ, yaml_dir, templIsFilename);
 }
 
 std::string
@@ -100,6 +100,33 @@ std::ostringstream strm;
 
 	return strm.str();
 }
+
+std::string
+IPath_dumpConfigToYamlString(const IPath *p, const char *templ, const char *yaml_dir, bool templIsFilename)
+{
+GILUnlocker allowThreadingWhileWaiting;
+YAML::Node  conf;
+
+	if ( templ ) {
+		if ( templIsFilename ) {
+			conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templ, yaml_dir );
+		} else {
+			conf = CYamlFieldFactoryBase::loadPreprocessedYaml( templ );
+		}
+	}
+
+	p->dumpConfigToYaml( conf );
+
+YAML::Emitter emit;
+	emit << conf;
+
+std::ostringstream strm;
+
+	strm << emit.c_str() << "\n";
+
+	return strm.str();
+}
+
 
 std::string
 wrap_Val_Base_repr(shared_ptr<IVal_Base> obj)

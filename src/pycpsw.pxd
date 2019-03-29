@@ -74,7 +74,7 @@ cdef extern from "cpsw_python.h" namespace "cpsw_python":
   cdef uint64_t wrap_Path_loadConfigFromYamlString(cc_Path, const char *,  const char *)           except+handleException
 
   cdef uint64_t wrap_Path_dumpConfigToYamlFile(cc_Path, const char *, const char *, const char *)  except+handleException
-  cdef string   wrap_Path_dumpConfigToYamlString(cc_Path, const char *, const char *)              except+handleException
+  cdef string   wrap_Path_dumpConfigToYamlString(cc_Path, const char *, const char *, bool)        except+handleException
 
   cdef cc_Path  wrap_Path_loadYamlStream(const string &, const char *, const char *, IYamlFixup *) except+handleException
   cdef unsigned IScalVal_RO_getVal(IScalVal_RO *, PyObject *, int , int )                          except+handleException

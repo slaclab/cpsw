@@ -196,10 +196,10 @@ uint64_t
 IPath_dumpConfigToYamlFile(const IPath *p, const char *filename, const char *templFilename = 0, const char *yaml_dir = 0);
 
 std::string
-wrap_Path_dumpConfigToYamlString(ConstPath p, const char *templFilename = 0, const char *yaml_dir = 0);
+wrap_Path_dumpConfigToYamlString(ConstPath p, const char *templ = 0, const char *yaml_dir = 0, bool templIsFilename = true);
 
 std::string
-IPath_dumpConfigToYamlString(const IPath *p, const char *templFilename = 0, const char *yaml_dir = 0);
+IPath_dumpConfigToYamlString(const IPath *p, const char *templ = 0, const char *yaml_dir = 0, bool templIsFilename = true);
 
 Path
 wrap_Path_loadYamlStream(const std::string &yaml, const char *root_name = "root", const char *yaml_dir_name = 0, IYamlFixup *fixup = 0);
