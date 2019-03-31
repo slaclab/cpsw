@@ -16,6 +16,7 @@
 #define YAML_KEY_schemaVersionMinor    "schemaVersionMinor"
 #define YAML_KEY_schemaVersionRevision "schemaVersionRevision"
 #define YAML_KEY_MERGE  "<<"
+#define YAML_KEY_align  "align"
 #define YAML_KEY_at  "at"
 #define YAML_KEY_byteOrder  "byteOrder"
 #define YAML_KEY_cacheable  "cacheable"

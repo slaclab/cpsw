@@ -17,8 +17,15 @@
 #include <unistd.h>
 
 #include <cpsw_yaml.h>
+#include <cpsw_aligned_mmio.h>
 
 #undef  MEMDEV_DEBUG
+
+static uint64_t
+write_func8(uint8_t *dst, uint8_t *src, size_t n, uint8_t msk1, uint8_t mskn);
+
+static uint64_t
+read_func8(uint8_t *dst, uint8_t *src, size_t n);
 
 CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size, uint8_t *ext_buf)
 : CDevImpl(k, name, size),
@@ -85,11 +92,11 @@ CMemDevImpl::~CMemDevImpl()
 	/* let a shared mapping live on */
 }
 
-void CMemDevImpl::addAtAddress(Field child)
+void CMemDevImpl::addAtAddress(Field child, int align)
 {
 IAddress::AKey k = getAKey();
 
-	add( cpsw::make_shared<CMemAddressImpl>(k), child );
+	add( cpsw::make_shared<CMemAddressImpl>(k, align), child );
 }
 
 void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
@@ -97,6 +104,17 @@ void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
 	if ( 1 != nelms )
 		throw ConfigurationError("CMemDevImpl::addAtAddress -- can only have exactly 1 child");
 	addAtAddress( child );
+}
+
+void
+CMemDevImpl::addAtAddress(Field child, YamlState &ypath)
+{
+int align = DFLT_ALIGN;
+
+	if ( readNode(ypath, YAML_KEY_align, &align ) ) {
+		/* nothing special... */
+	}
+	addAtAddress(child, align);
 }
 
 void CMemDevImpl::dumpYamlPart(YAML::Node &node) const
@@ -107,9 +125,30 @@ void CMemDevImpl::dumpYamlPart(YAML::Node &node) const
 	}
 }
 
-CMemAddressImpl::CMemAddressImpl(AKey k)
-: CAddressImpl(k, 1)
+CMemAddressImpl::CMemAddressImpl(AKey k, int align)
+: CAddressImpl(k, 1),
+  align_( align )
 {
+	switch ( align ) {
+		case 1:
+			read_func_  = read_func8;
+			write_func_ = write_func8;
+			break;
+		case 2:
+			read_func_  = cpsw_read_aligned<uint16_t>;
+			write_func_ = cpsw_write_aligned<uint16_t>;
+			break;
+		case 4:
+			read_func_  = cpsw_read_aligned<uint32_t>;
+			write_func_ = cpsw_write_aligned<uint32_t>;
+			break;
+		case 8:
+			read_func_  = cpsw_read_aligned<uint64_t>;
+			write_func_ = cpsw_write_aligned<uint64_t>;
+			break;
+		default:
+			throw ConfigurationError("MemDev - supported address alignment: 1,2,4 or 8 only");
+	}
 }
 
 uint64_t CMemAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
@@ -127,35 +166,30 @@ printf("off %lu, dbytes %lu, size %lu\n", args->off_, args->nbytes_, owner->getS
 		// at least 1 byte they can
 		return 1;
 	}
-	memcpy(args->dst_, owner->getBufp() + args->off_, toget);
+
+	read_func_(args->dst_, owner->getBufp() + args->off_, toget);
+
 #ifdef MEMDEV_DEBUG
 printf("MemDev read from off %lli to %p:", args->off_, args->dst_);
 for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->dst_[ii]); printf("\n");
 #endif
+
 	if ( args->aio_ )
 		args->aio_->callback( 0 );
 	return toget;
 }
 
-uint64_t CMemAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+static uint64_t
+read_func8(uint8_t *dst, uint8_t *src, size_t n)
 {
-MemDevImpl owner( getOwnerAs<MemDevImpl>() );
-uint8_t *buf  = owner->getBufp();
-unsigned put  = args->nbytes_;
-unsigned rval = put;
-uint8_t  msk1 = args->msk1_;
-uint8_t  mskn = args->mskn_;
-uint64_t off  = args->off_;
-uint8_t *src  = args->src_;
+	memcpy( dst, src, n );
+	return n;
+}
 
-	if ( off + put > owner->getSize() ) {
-		throw ConfigurationError("MemAddress: write out of range");
-	}
-
-#ifdef MEMDEV_DEBUG
-printf("MemDev write to off %lli from %p:", args->off_, args->src_);
-for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->src_[ii]); printf("\n");
-#endif
+static uint64_t
+write_func8(uint8_t *buf, uint8_t *src, size_t put, uint8_t msk1, uint8_t mskn)
+{
+uint64_t off = 0;
 
 	if ( (msk1 || mskn) && put == 1 ) {
 		msk1 |= mskn;
@@ -174,12 +208,37 @@ for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->src_[ii]); 
 		put--;
 	}
 	if ( put ) {
-		memcpy(owner->getBufp() + off, src, put);
+		memcpy(buf + off, src, put);
 	}
 	if ( mskn ) {
 		/* merge last byte */
 		buf[off+put] = (buf[off+put] & mskn ) | ( src[put] & ~mskn );
 	}
+	return put;
+}
+
+uint64_t CMemAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+{
+MemDevImpl owner( getOwnerAs<MemDevImpl>() );
+uint8_t *buf  = owner->getBufp();
+unsigned put  = args->nbytes_;
+unsigned rval;
+uint8_t  msk1 = args->msk1_;
+uint8_t  mskn = args->mskn_;
+uint64_t off  = args->off_;
+uint8_t *src  = args->src_;
+
+	if ( off + put > owner->getSize() ) {
+		throw ConfigurationError("MemAddress: write out of range");
+	}
+
+#ifdef MEMDEV_DEBUG
+printf("MemDev write to off %lli from %p:", args->off_, args->src_);
+for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->src_[ii]); printf("\n");
+#endif
+
+	rval = write_func_( buf + off, src, put, msk1, mskn );
+
 	return rval;
 }
 

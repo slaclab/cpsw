@@ -20,12 +20,25 @@ typedef shared_ptr<const CMemDevImpl> ConstMemDevImpl;
 // pseudo-device with memory backing (for testing)
 
 class CMemAddressImpl : public CAddressImpl {
+	private:
+		int align_;
+		uint64_t (*read_func_ )(uint8_t *dst, uint8_t *src, size_t n);
+		uint64_t (*write_func_)(uint8_t *dst, uint8_t *src, size_t n, uint8_t msk1, uint8_t mskn);
+
 	public:
-		CMemAddressImpl(AKey key);
+		CMemAddressImpl(AKey key, int align);
 
 		CMemAddressImpl(const CMemAddressImpl &orig, AKey k)
-		: CAddressImpl(orig, k)
+		: CAddressImpl( orig,           k),
+		  align_      ( orig.align_      ),
+		  read_func_  ( orig.read_func_  ),
+		  write_func_ ( orig.write_func_ )
 		{
+		}
+
+		virtual int getAlignment() const
+		{
+			return align_;
 		}
 
 		// ANY subclass must implement clone(AKey) !
@@ -54,7 +67,8 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 
 		virtual void dumpYamlPart(YAML::Node &node) const;
 
-		virtual void addAtAddress(Field child);
+		virtual void addAtAddress(Field child, YamlState &ypath);
+		virtual void addAtAddress(Field child, int align = DFLT_ALIGN);
 
 		// must override to check that nelms == 1
 		virtual void addAtAddress(Field child, unsigned nelms);

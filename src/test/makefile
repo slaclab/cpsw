@@ -111,6 +111,11 @@ cpsw_strval_tst_SRCS      = cpsw_strval_tst.cc
 cpsw_strval_tst_LIBS      = $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_strval_tst
 
+cpsw_aligned_mmio_tst_SRCS= cpsw_aligned_mmio_tst.cc
+cpsw_aligned_mmio_tst_LIBS= $(CPSW_LIBS)
+TESTPROGRAMS              += cpsw_aligned_mmio_tst
+
+
 TEST_AXIV_YES=
 TEST_AXIV_NO =cpsw_axiv_udp_tst
 TEST_AXIV    =NO
