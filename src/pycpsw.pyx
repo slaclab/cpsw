@@ -796,7 +796,7 @@ Executed on the loaded YAML Node hierarchy.
     self.__call__(root, top)
 
   @staticmethod
-  def findByName(Node node, Path path, char sep='/'):
+  def findByName(Node node, Path path, char sep = b'/'):
     """
 Lookup a YAML node from 'node' traversing a hierarchy
 of YAML::Map's while handling merge keys ('<<').

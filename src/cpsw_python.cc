@@ -176,7 +176,7 @@ IndexRange rng(from, to);
 
 	Py_ssize_t nelms = view.len / view.itemsize;
 
-	if ( nelms > val->getNelms() )
+	if ( nelms > (Py_ssize_t)val->getNelms() )
 		nelms = val->getNelms();
 
 	{
