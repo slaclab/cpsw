@@ -19,6 +19,10 @@ cdef extern from "yaml-cpp/yaml.h" namespace "YAML::NodeType":
     Map
 
 cdef extern from "yaml-cpp/yaml.h" namespace "YAML":
+
+  # Forward Declaration
+  cdef cppclass c_Node "YAML::Node"
+
   cdef cppclass const_iterator:
     value_type &operator++() const;
     value_type &operator*()  const;
@@ -56,6 +60,7 @@ cdef extern from "yaml-cpp/yaml.h" namespace "YAML::iterator::":
  
 cdef class Node:
   cdef c_Node         c_node
+
+cdef class NodeIterator:
   cdef const_iterator c_it
-
-
+  cdef c_Node         c_node

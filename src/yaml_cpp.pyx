@@ -169,8 +169,20 @@ cdef class Node:
       raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported key type")
 
   def __iter__(self):
-    self.c_it = self.c_node.begin()
-    return self
+    return NodeIterator( self )
+
+cdef class ValueType:
+  cdef readonly Node first
+  cdef readonly Node second
+  def __cinit__(self, Node k, Node v):
+    self.first  = k
+    self.second = v
+
+cdef class NodeIterator:
+
+  def __cinit__(self, Node nod):
+    yamlNodeReset( &self.c_node, &nod.c_node )
+    self.c_it   = nod.c_node.begin()
 
   def __next__(self):
     if self.c_it == self.c_node.end():
@@ -182,7 +194,8 @@ cdef class Node:
       return n1
     else:
       incr( self.c_it )
-      return (n1, n2)
+      return ValueType(n1, n2)
+
 
 def LoadFile(str filename):
   cdef Node   rval = Node()
