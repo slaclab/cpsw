@@ -18,8 +18,11 @@ template <typename Key>
 static const YAML::Node
 yamlNodeFind(const YAML::Node &n, const Key &k)
 {
-	// non-const operator[] inserts into YAML map!
-	return static_cast<const YAML::Node>(n)[k];
+// non-const operator[] inserts into YAML map!
+const YAML::Node &found( static_cast<const YAML::Node>(n)[k] );
+// If nothing is found an undefined node is returned which cannot
+// be assigned to anything...
+	return found.IsDefined() ? found : Node();
 }
 
 template <typename Key, typename Val>
@@ -87,6 +90,12 @@ static inline void
 yamlNodeReset(YAML::Node *n1p, const YAML::Node *n2p)
 {
 	n1p->reset( *n2p );
+}
+
+static inline void
+yamlNodeReset(YAML::Node *n1p, const YAML::Node &n2)
+{
+	n1p->reset( n2 );
 }
 
 #endif

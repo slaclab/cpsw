@@ -19,6 +19,7 @@ cdef extern from "yaml_cpp_util.h":
   cdef const c_Node yamlNodeFind[K](c_Node &n, const K &k)       except+;
   cdef void yamlNodeSet[K,V](c_Node &n, const K &k, V &v)        except+;
   cdef void yamlNodeReset(c_Node *, const c_Node *)              except+;
+  cdef void yamlNodeReset(c_Node *, const c_Node &)              except+;
   cdef bool boolNode(c_Node &)                                   except+;
   cdef string c_emitNode "emitNode"(const c_Node &)              except+;
   cdef int  handleIterator(c_Node *, c_Node *, const_iterator *) except+;
@@ -119,13 +120,13 @@ cdef class Node:
     cdef Node rval = Node()
     if isinstance(key, Node):
       knod = key
-      rval.c_node = yamlNodeFind[c_Node](self.c_node, knod.c_node)
+      yamlNodeReset( &rval.c_node, yamlNodeFind[c_Node](self.c_node, knod.c_node) )
     elif isinstance(key, str):
       kstr = key.encode('UTF-8')
-      rval.c_node = yamlNodeFind[string](self.c_node, kstr)
+      yamlNodeReset( &rval.c_node, yamlNodeFind[string](self.c_node, kstr) )
     elif isinstance(key, int):
       kint = key
-      rval.c_node = yamlNodeFind[longlong](self.c_node, kint)
+      yamlNodeReset( &rval.c_node, yamlNodeFind[longlong](self.c_node, kint) )
     else:
       raise TypeError("yaml_cpp::c_Node::__getitem__ unsupported key type")
     return rval
