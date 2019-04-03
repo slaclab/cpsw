@@ -22,6 +22,23 @@ yamlNodeFind(const YAML::Node &n, const Key &k)
 const YAML::Node &found( static_cast<const YAML::Node>(n)[k] );
 // If nothing is found an undefined node is returned which cannot
 // be assigned to anything...
+// The boost implementation returned an 'undefined' node when a key
+// didnt' exist. However, the weird assignment semantics of yaml-cpp
+// don't allow for undefined nodes to be assigned (this raised the
+// exception).
+// 
+// Node x = map["nonexistent"]
+// return x;
+// 
+// works fine and returns an 'undefined' node.
+// 
+// However,
+// 
+// Node x;
+//   x = map["nonexistent"];
+// 
+// throws!!!
+// 
 	return found.IsDefined() ? found : Node();
 }
 
