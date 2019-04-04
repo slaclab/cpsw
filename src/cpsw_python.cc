@@ -209,8 +209,7 @@ IScalVal_RO_getVal(IScalVal_RO *val, int fromIdx, int toIdx, bool forceNumeric)
 	/* Need to hack around in order to get the shared pointer back... */
 	CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> ctxt;
         ctxt.issueGetVal( val, fromIdx, toIdx, forceNumeric, AsyncIO() );
-	PyUniqueObj o = ctxt.complete( 0 );
-	return o.release();
+	return ctxt.complete( 0 ).release();
 }
 
 unsigned
@@ -277,11 +276,8 @@ bool enumScalar = false;
 	// Thus, we have to handle this case separately...
 
 	if ( ! PySequence_Check( op ) ) {
-		// a single string (attempt to set enum) is also a sequence
-		// boost::python::extract() is not very useful here
-		// since it does a range check (and produces a mysterious
-		// segfault [g++-5.4/python3.5] if the number if out of
-		// range. We really want modulo 2^64 here which is what
+		// a single string (attempt to set enum) is also a sequence.
+		// We really want modulo 2^64 here which is what
 		// the PyLong_AsUnsignedLongLongMask() achieves.
 		uint64_t num64;
 		if ( ! PyLong_Check( op ) ) {
@@ -320,7 +316,13 @@ bool enumScalar = false;
 			// python3 all strings are unicode and we must first convert
 			// to a c++ std::string. Should be backwards compatible to
 			// python 2.7.
-			std::vector<PyUniqueObj>  vstr;
+
+			// Instead of
+			//     std::vector<PyUniqueObj>  vstr;
+			// use an array here -- compatibility with older C++ (boost
+			// doesn't have anything suitable up the sleeve; ptr_container
+			// does not support the destructors PyUniqueObj needs)
+			PyUniqueObj               vstr[ nelms ];
 			std::vector<const char *> vcstr;
 
 			for ( unsigned i = 0; i < nelms; ++i ) {
@@ -329,7 +331,7 @@ bool enumScalar = false;
 				if ( ! str ) {
 					throw InvalidArgError("IScalVal_setVal: Unable to convert string to ASCII");
 				}
-				vstr.push_back( std::move( bytes ) );
+				vstr[i] = cpsw::move( bytes );
 				vcstr.push_back( str   );
 			}
 			{
@@ -342,7 +344,6 @@ bool enumScalar = false;
 		for ( unsigned i = 0; i < nelms; ++i ) {
 			PyUniqueObj ob_tmp( PySequence_GetItem( op, i ) );
 			PyObject *op1 = ob_tmp.get();
-			// see above why we use this instead of boost::python::extract
 			uint64_t num64;
 			if ( ! PyLong_Check( op1 ) ) {
 #if PY_VERSION_HEX < 0x03000000
@@ -377,8 +378,7 @@ IDoubleVal_RO_getVal(IDoubleVal_RO *val, int fromIdx, int toIdx)
 	/* Need to hack around in order to get the shared pointer back... */
 	CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> ctxt;
         ctxt.issueGetVal( val, fromIdx, toIdx, AsyncIO() );
-	PyUniqueObj o = ctxt.complete( 0 );
-	return o.release();
+	return ctxt.complete( 0 ).release();
 }
 
 
@@ -453,7 +453,7 @@ Py_buffer view;
 }
 
 PyUniqueObj::PyUniqueObj( PyListObj &o )
-: B( o.release() )
+: up_( o.up_.release() )
 {
 }
 

@@ -109,8 +109,8 @@ PyUniqueObj status;
 
 	if ( err ) {
 		/* Build argument list */
-		PyUniqueObj arg  = PyUnicode_FromString( err->what() );
-		PyUniqueObj args = PyTuple_New(1);
+		PyUniqueObj arg ( PyUnicode_FromString( err->what() ) );
+		PyUniqueObj args( PyTuple_New(1) );
 		if ( ! args || ! arg || PyTuple_SetItem( args.get(), 0, arg.get() ) ) {
 			throw std::runtime_error("CAsyncIO::callback -- unable to create Python object for arguments");
 		}
@@ -118,9 +118,10 @@ PyUniqueObj status;
 		/* call constructor; note that PyObject_New() just creates an object
 		 * and maybe sets its type but does not execute the constructor.
 		 */
-		status = PyObject_Call( translateException(err), args.get(), NULL );
+		PyUniqueObj tmp( PyObject_Call( translateException(err), args.get(), NULL ) );
+		status = cpsw::move( tmp );
 	} else {
-		result = complete( 0 );
+		complete(0).transfer( result );
 	}
 
 	/* Call into Python */

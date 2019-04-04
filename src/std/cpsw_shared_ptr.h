@@ -12,8 +12,10 @@ namespace cpsw {
 	using std::weak_ptr;
 	using std::make_shared;
 	using std::allocate_shared;
-    using std::dynamic_pointer_cast;
-    using std::static_pointer_cast;
+	using std::dynamic_pointer_cast;
+	using std::static_pointer_cast;
+	using std::unique_ptr;
+	using std::move;
 };
 
 #endif

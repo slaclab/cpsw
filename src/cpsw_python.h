@@ -128,22 +128,61 @@ PyObj(const std::string &v)
 
 class PyListObj;
 
-class PyUniqueObj : public std::unique_ptr<PyObject, PyObjDestructor> {
+class PyUniqueObj {
 private:
 
-typedef std::unique_ptr<PyObject, PyObjDestructor> B;
+typedef cpsw::unique_ptr<PyObject, PyObjDestructor> B;
+
+	B up_;
 
 public:
 	PyUniqueObj()
-	: B( PyObj( (PyObject*)NULL ) )
+	: up_( PyObj( (PyObject*)NULL ) )
 	{}
 
 	PyUniqueObj(PyListObj &o);
 
 	template <typename T>
 	PyUniqueObj(T o)
-	: B( PyObj( o ) )
+	: up_( PyObj( o ) )
 	{
+	}
+
+	PyUniqueObj(PyUniqueObj &orig)
+	: up_( cpsw::move( orig.up_ ) )
+	{
+	}
+
+	PyUniqueObj & operator=(PyUniqueObj &rhs)
+	{
+		up_ = cpsw::move( rhs.up_ );
+		return *this;
+	}
+
+	/* Some move-semantics hacks to accommodate
+ *   * old compilers. This method allows the unique
+ *   * pointer to be transferred from a temporary
+ *   * object (such as a return value) to 'to'.
+ *   */
+    void
+	transfer(PyUniqueObj &to)
+	{
+		to.up_ = cpsw::move( up_ );
+	}
+
+	PyObject *release()
+	{
+		return up_.release();
+	}
+
+	PyObject *get()
+	{
+		return up_.get();
+	}
+
+	operator bool()
+	{
+		return (bool)up_;
 	}
 };
 
