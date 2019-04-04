@@ -608,11 +608,11 @@ static CYTHON_INLINE float __PYX_NAN() {
 #include "new"
 #include "stdexcept"
 #include "typeinfo"
-#include <memory>
 #include <vector>
 #include <string>
 #include <stdint.h>
 #include "yaml-cpp/yaml.h"
+#include <cpsw_shared_ptr.h>
 #include "cpsw_api_user.h"
 #include "cpsw_python.h"
 #include "cpsw_cython.h"
@@ -879,7 +879,7 @@ struct CpswPyExcO_MultipleInstantiationError;
 struct CpswPyExcO_BadSchemaVersionError;
 struct CpswPyExcO_TimeoutError;
 
-/* "pycpsw.pxd":38
+/* "pycpsw.pxd":52
  *   cdef cppclass IDoubleVal
  * 
  * ctypedef const IEntry            CIEntry             # <<<<<<<<<<<<<<
@@ -888,7 +888,7 @@ struct CpswPyExcO_TimeoutError;
  */
 typedef IEntry const __pyx_t_6pycpsw_CIEntry;
 
-/* "pycpsw.pxd":39
+/* "pycpsw.pxd":53
  * 
  * ctypedef const IEntry            CIEntry
  * ctypedef const IChild            CIChild             # <<<<<<<<<<<<<<
@@ -897,7 +897,7 @@ typedef IEntry const __pyx_t_6pycpsw_CIEntry;
  */
 typedef IChild const __pyx_t_6pycpsw_CIChild;
 
-/* "pycpsw.pxd":40
+/* "pycpsw.pxd":54
  * ctypedef const IEntry            CIEntry
  * ctypedef const IChild            CIChild
  * ctypedef const IHub              CIHub             # <<<<<<<<<<<<<<
@@ -906,7 +906,7 @@ typedef IChild const __pyx_t_6pycpsw_CIChild;
  */
 typedef IHub const __pyx_t_6pycpsw_CIHub;
 
-/* "pycpsw.pxd":41
+/* "pycpsw.pxd":55
  * ctypedef const IChild            CIChild
  * ctypedef const IHub              CIHub
  * ctypedef const IPath             CIPath             # <<<<<<<<<<<<<<
@@ -915,7 +915,7 @@ typedef IHub const __pyx_t_6pycpsw_CIHub;
  */
 typedef IPath const __pyx_t_6pycpsw_CIPath;
 
-/* "pycpsw.pxd":42
+/* "pycpsw.pxd":56
  * ctypedef const IHub              CIHub
  * ctypedef const IPath             CIPath
  * ctypedef const IVal_Base         CIVal_Base             # <<<<<<<<<<<<<<
@@ -924,7 +924,7 @@ typedef IPath const __pyx_t_6pycpsw_CIPath;
  */
 typedef IVal_Base const __pyx_t_6pycpsw_CIVal_Base;
 
-/* "pycpsw.pxd":43
+/* "pycpsw.pxd":57
  * ctypedef const IPath             CIPath
  * ctypedef const IVal_Base         CIVal_Base
  * ctypedef const IScalVal_Base     CIScalVal_Base             # <<<<<<<<<<<<<<
@@ -933,7 +933,7 @@ typedef IVal_Base const __pyx_t_6pycpsw_CIVal_Base;
  */
 typedef IScalVal_Base const __pyx_t_6pycpsw_CIScalVal_Base;
 
-/* "pycpsw.pxd":44
+/* "pycpsw.pxd":58
  * ctypedef const IVal_Base         CIVal_Base
  * ctypedef const IScalVal_Base     CIScalVal_Base
  * ctypedef const IEnum             CIEnum             # <<<<<<<<<<<<<<
@@ -942,7 +942,7 @@ typedef IScalVal_Base const __pyx_t_6pycpsw_CIScalVal_Base;
  */
 typedef IEnum const __pyx_t_6pycpsw_CIEnum;
 
-/* "pycpsw.pxd":45
+/* "pycpsw.pxd":59
  * ctypedef const IScalVal_Base     CIScalVal_Base
  * ctypedef const IEnum             CIEnum
  * ctypedef const string            CString             # <<<<<<<<<<<<<<
@@ -951,212 +951,212 @@ typedef IEnum const __pyx_t_6pycpsw_CIEnum;
  */
 typedef std::string const __pyx_t_6pycpsw_CString;
 
-/* "pycpsw.pxd":47
+/* "pycpsw.pxd":61
  * ctypedef const string            CString
  * 
  * ctypedef shared_ptr[CIEntry]                 cc_ConstEntry             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IEntry]                  cc_Entry
  * ctypedef shared_ptr[CIChild]                 cc_ConstChild
  */
-typedef std::shared_ptr<__pyx_t_6pycpsw_CIEntry>  __pyx_t_6pycpsw_cc_ConstEntry;
+typedef shared_ptr<__pyx_t_6pycpsw_CIEntry>  __pyx_t_6pycpsw_cc_ConstEntry;
 
-/* "pycpsw.pxd":48
+/* "pycpsw.pxd":62
  * 
  * ctypedef shared_ptr[CIEntry]                 cc_ConstEntry
  * ctypedef shared_ptr[IEntry]                  cc_Entry             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[CIChild]                 cc_ConstChild
  * ctypedef shared_ptr[IChild]                  cc_Child
  */
-typedef std::shared_ptr<IEntry>  __pyx_t_6pycpsw_cc_Entry;
+typedef shared_ptr<IEntry>  __pyx_t_6pycpsw_cc_Entry;
 
-/* "pycpsw.pxd":49
+/* "pycpsw.pxd":63
  * ctypedef shared_ptr[CIEntry]                 cc_ConstEntry
  * ctypedef shared_ptr[IEntry]                  cc_Entry
  * ctypedef shared_ptr[CIChild]                 cc_ConstChild             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IChild]                  cc_Child
  * ctypedef shared_ptr[ vector[cc_ConstChild] ] cc_ConstChildren
  */
-typedef std::shared_ptr<__pyx_t_6pycpsw_CIChild>  __pyx_t_6pycpsw_cc_ConstChild;
+typedef shared_ptr<__pyx_t_6pycpsw_CIChild>  __pyx_t_6pycpsw_cc_ConstChild;
 
-/* "pycpsw.pxd":50
+/* "pycpsw.pxd":64
  * ctypedef shared_ptr[IEntry]                  cc_Entry
  * ctypedef shared_ptr[CIChild]                 cc_ConstChild
  * ctypedef shared_ptr[IChild]                  cc_Child             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[ vector[cc_ConstChild] ] cc_ConstChildren
  * ctypedef shared_ptr[CIHub]                   cc_ConstHub
  */
-typedef std::shared_ptr<IChild>  __pyx_t_6pycpsw_cc_Child;
+typedef shared_ptr<IChild>  __pyx_t_6pycpsw_cc_Child;
 
-/* "pycpsw.pxd":51
+/* "pycpsw.pxd":65
  * ctypedef shared_ptr[CIChild]                 cc_ConstChild
  * ctypedef shared_ptr[IChild]                  cc_Child
  * ctypedef shared_ptr[ vector[cc_ConstChild] ] cc_ConstChildren             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[CIHub]                   cc_ConstHub
  * ctypedef shared_ptr[IHub]                    cc_Hub
  */
-typedef std::shared_ptr<std::vector<__pyx_t_6pycpsw_cc_ConstChild> >  __pyx_t_6pycpsw_cc_ConstChildren;
+typedef shared_ptr<std::vector<__pyx_t_6pycpsw_cc_ConstChild> >  __pyx_t_6pycpsw_cc_ConstChildren;
 
-/* "pycpsw.pxd":52
+/* "pycpsw.pxd":66
  * ctypedef shared_ptr[IChild]                  cc_Child
  * ctypedef shared_ptr[ vector[cc_ConstChild] ] cc_ConstChildren
  * ctypedef shared_ptr[CIHub]                   cc_ConstHub             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IHub]                    cc_Hub
  * ctypedef shared_ptr[IPath  ]                 cc_Path
  */
-typedef std::shared_ptr<__pyx_t_6pycpsw_CIHub>  __pyx_t_6pycpsw_cc_ConstHub;
+typedef shared_ptr<__pyx_t_6pycpsw_CIHub>  __pyx_t_6pycpsw_cc_ConstHub;
 
-/* "pycpsw.pxd":53
+/* "pycpsw.pxd":67
  * ctypedef shared_ptr[ vector[cc_ConstChild] ] cc_ConstChildren
  * ctypedef shared_ptr[CIHub]                   cc_ConstHub
  * ctypedef shared_ptr[IHub]                    cc_Hub             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IPath  ]                 cc_Path
  * ctypedef shared_ptr[CIPath ]                 cc_ConstPath
  */
-typedef std::shared_ptr<IHub>  __pyx_t_6pycpsw_cc_Hub;
+typedef shared_ptr<IHub>  __pyx_t_6pycpsw_cc_Hub;
 
-/* "pycpsw.pxd":54
+/* "pycpsw.pxd":68
  * ctypedef shared_ptr[CIHub]                   cc_ConstHub
  * ctypedef shared_ptr[IHub]                    cc_Hub
  * ctypedef shared_ptr[IPath  ]                 cc_Path             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[CIPath ]                 cc_ConstPath
  * ctypedef shared_ptr[IVal_Base]               cc_Val_Base
  */
-typedef std::shared_ptr<IPath>  __pyx_t_6pycpsw_cc_Path;
+typedef shared_ptr<IPath>  __pyx_t_6pycpsw_cc_Path;
 
-/* "pycpsw.pxd":55
+/* "pycpsw.pxd":69
  * ctypedef shared_ptr[IHub]                    cc_Hub
  * ctypedef shared_ptr[IPath  ]                 cc_Path
  * ctypedef shared_ptr[CIPath ]                 cc_ConstPath             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IVal_Base]               cc_Val_Base
  * ctypedef shared_ptr[CIVal_Base]              cc_ConstVal_Base
  */
-typedef std::shared_ptr<__pyx_t_6pycpsw_CIPath>  __pyx_t_6pycpsw_cc_ConstPath;
+typedef shared_ptr<__pyx_t_6pycpsw_CIPath>  __pyx_t_6pycpsw_cc_ConstPath;
 
-/* "pycpsw.pxd":56
+/* "pycpsw.pxd":70
  * ctypedef shared_ptr[IPath  ]                 cc_Path
  * ctypedef shared_ptr[CIPath ]                 cc_ConstPath
  * ctypedef shared_ptr[IVal_Base]               cc_Val_Base             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[CIVal_Base]              cc_ConstVal_Base
  * ctypedef shared_ptr[IScalVal_Base]           cc_ScalVal_Base
  */
-typedef std::shared_ptr<IVal_Base>  __pyx_t_6pycpsw_cc_Val_Base;
+typedef shared_ptr<IVal_Base>  __pyx_t_6pycpsw_cc_Val_Base;
 
-/* "pycpsw.pxd":57
+/* "pycpsw.pxd":71
  * ctypedef shared_ptr[CIPath ]                 cc_ConstPath
  * ctypedef shared_ptr[IVal_Base]               cc_Val_Base
  * ctypedef shared_ptr[CIVal_Base]              cc_ConstVal_Base             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IScalVal_Base]           cc_ScalVal_Base
  * ctypedef shared_ptr[CIScalVal_Base]          cc_ConstScalVal_Base
  */
-typedef std::shared_ptr<__pyx_t_6pycpsw_CIVal_Base>  __pyx_t_6pycpsw_cc_ConstVal_Base;
+typedef shared_ptr<__pyx_t_6pycpsw_CIVal_Base>  __pyx_t_6pycpsw_cc_ConstVal_Base;
 
-/* "pycpsw.pxd":58
+/* "pycpsw.pxd":72
  * ctypedef shared_ptr[IVal_Base]               cc_Val_Base
  * ctypedef shared_ptr[CIVal_Base]              cc_ConstVal_Base
  * ctypedef shared_ptr[IScalVal_Base]           cc_ScalVal_Base             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[CIScalVal_Base]          cc_ConstScalVal_Base
  * ctypedef shared_ptr[IEnum]                   cc_Enum
  */
-typedef std::shared_ptr<IScalVal_Base>  __pyx_t_6pycpsw_cc_ScalVal_Base;
+typedef shared_ptr<IScalVal_Base>  __pyx_t_6pycpsw_cc_ScalVal_Base;
 
-/* "pycpsw.pxd":59
+/* "pycpsw.pxd":73
  * ctypedef shared_ptr[CIVal_Base]              cc_ConstVal_Base
  * ctypedef shared_ptr[IScalVal_Base]           cc_ScalVal_Base
  * ctypedef shared_ptr[CIScalVal_Base]          cc_ConstScalVal_Base             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IEnum]                   cc_Enum
  * ctypedef shared_ptr[CIEnum]                  cc_ConstEnum
  */
-typedef std::shared_ptr<__pyx_t_6pycpsw_CIScalVal_Base>  __pyx_t_6pycpsw_cc_ConstScalVal_Base;
+typedef shared_ptr<__pyx_t_6pycpsw_CIScalVal_Base>  __pyx_t_6pycpsw_cc_ConstScalVal_Base;
 
-/* "pycpsw.pxd":60
+/* "pycpsw.pxd":74
  * ctypedef shared_ptr[IScalVal_Base]           cc_ScalVal_Base
  * ctypedef shared_ptr[CIScalVal_Base]          cc_ConstScalVal_Base
  * ctypedef shared_ptr[IEnum]                   cc_Enum             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[CIEnum]                  cc_ConstEnum
  * ctypedef shared_ptr[CString]                 cc_ConstString
  */
-typedef std::shared_ptr<IEnum>  __pyx_t_6pycpsw_cc_Enum;
+typedef shared_ptr<IEnum>  __pyx_t_6pycpsw_cc_Enum;
 
-/* "pycpsw.pxd":61
+/* "pycpsw.pxd":75
  * ctypedef shared_ptr[CIScalVal_Base]          cc_ConstScalVal_Base
  * ctypedef shared_ptr[IEnum]                   cc_Enum
  * ctypedef shared_ptr[CIEnum]                  cc_ConstEnum             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[CString]                 cc_ConstString
  * ctypedef shared_ptr[IAsyncIO]                cc_AsyncIO
  */
-typedef std::shared_ptr<__pyx_t_6pycpsw_CIEnum>  __pyx_t_6pycpsw_cc_ConstEnum;
+typedef shared_ptr<__pyx_t_6pycpsw_CIEnum>  __pyx_t_6pycpsw_cc_ConstEnum;
 
-/* "pycpsw.pxd":62
+/* "pycpsw.pxd":76
  * ctypedef shared_ptr[IEnum]                   cc_Enum
  * ctypedef shared_ptr[CIEnum]                  cc_ConstEnum
  * ctypedef shared_ptr[CString]                 cc_ConstString             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IAsyncIO]                cc_AsyncIO
  * ctypedef shared_ptr[IScalVal_RO]             cc_ScalVal_RO
  */
-typedef std::shared_ptr<__pyx_t_6pycpsw_CString>  __pyx_t_6pycpsw_cc_ConstString;
+typedef shared_ptr<__pyx_t_6pycpsw_CString>  __pyx_t_6pycpsw_cc_ConstString;
 
-/* "pycpsw.pxd":63
+/* "pycpsw.pxd":77
  * ctypedef shared_ptr[CIEnum]                  cc_ConstEnum
  * ctypedef shared_ptr[CString]                 cc_ConstString
  * ctypedef shared_ptr[IAsyncIO]                cc_AsyncIO             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IScalVal_RO]             cc_ScalVal_RO
  * ctypedef shared_ptr[IScalVal]                cc_ScalVal
  */
-typedef std::shared_ptr<IAsyncIO>  __pyx_t_6pycpsw_cc_AsyncIO;
+typedef shared_ptr<IAsyncIO>  __pyx_t_6pycpsw_cc_AsyncIO;
 
-/* "pycpsw.pxd":64
+/* "pycpsw.pxd":78
  * ctypedef shared_ptr[CString]                 cc_ConstString
  * ctypedef shared_ptr[IAsyncIO]                cc_AsyncIO
  * ctypedef shared_ptr[IScalVal_RO]             cc_ScalVal_RO             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IScalVal]                cc_ScalVal
  * ctypedef shared_ptr[IStream]                 cc_Stream
  */
-typedef std::shared_ptr<IScalVal_RO>  __pyx_t_6pycpsw_cc_ScalVal_RO;
+typedef shared_ptr<IScalVal_RO>  __pyx_t_6pycpsw_cc_ScalVal_RO;
 
-/* "pycpsw.pxd":65
+/* "pycpsw.pxd":79
  * ctypedef shared_ptr[IAsyncIO]                cc_AsyncIO
  * ctypedef shared_ptr[IScalVal_RO]             cc_ScalVal_RO
  * ctypedef shared_ptr[IScalVal]                cc_ScalVal             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IStream]                 cc_Stream
  * ctypedef shared_ptr[ICommand]                cc_Command
  */
-typedef std::shared_ptr<IScalVal>  __pyx_t_6pycpsw_cc_ScalVal;
+typedef shared_ptr<IScalVal>  __pyx_t_6pycpsw_cc_ScalVal;
 
-/* "pycpsw.pxd":66
+/* "pycpsw.pxd":80
  * ctypedef shared_ptr[IScalVal_RO]             cc_ScalVal_RO
  * ctypedef shared_ptr[IScalVal]                cc_ScalVal
  * ctypedef shared_ptr[IStream]                 cc_Stream             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[ICommand]                cc_Command
  * ctypedef shared_ptr[IDoubleVal_RO]           cc_DoubleVal_RO
  */
-typedef std::shared_ptr<IStream>  __pyx_t_6pycpsw_cc_Stream;
+typedef shared_ptr<IStream>  __pyx_t_6pycpsw_cc_Stream;
 
-/* "pycpsw.pxd":67
+/* "pycpsw.pxd":81
  * ctypedef shared_ptr[IScalVal]                cc_ScalVal
  * ctypedef shared_ptr[IStream]                 cc_Stream
  * ctypedef shared_ptr[ICommand]                cc_Command             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IDoubleVal_RO]           cc_DoubleVal_RO
  * ctypedef shared_ptr[IDoubleVal]              cc_DoubleVal
  */
-typedef std::shared_ptr<ICommand>  __pyx_t_6pycpsw_cc_Command;
+typedef shared_ptr<ICommand>  __pyx_t_6pycpsw_cc_Command;
 
-/* "pycpsw.pxd":68
+/* "pycpsw.pxd":82
  * ctypedef shared_ptr[IStream]                 cc_Stream
  * ctypedef shared_ptr[ICommand]                cc_Command
  * ctypedef shared_ptr[IDoubleVal_RO]           cc_DoubleVal_RO             # <<<<<<<<<<<<<<
  * ctypedef shared_ptr[IDoubleVal]              cc_DoubleVal
  * 
  */
-typedef std::shared_ptr<IDoubleVal_RO>  __pyx_t_6pycpsw_cc_DoubleVal_RO;
+typedef shared_ptr<IDoubleVal_RO>  __pyx_t_6pycpsw_cc_DoubleVal_RO;
 
-/* "pycpsw.pxd":69
+/* "pycpsw.pxd":83
  * ctypedef shared_ptr[ICommand]                cc_Command
  * ctypedef shared_ptr[IDoubleVal_RO]           cc_DoubleVal_RO
  * ctypedef shared_ptr[IDoubleVal]              cc_DoubleVal             # <<<<<<<<<<<<<<
  * 
  * cdef extern from "cpsw_python.h" namespace "cpsw_python":
  */
-typedef std::shared_ptr<IDoubleVal>  __pyx_t_6pycpsw_cc_DoubleVal;
+typedef shared_ptr<IDoubleVal>  __pyx_t_6pycpsw_cc_DoubleVal;
 
 /* "yaml_cpp.pxd":61
  *     c_Node second;
@@ -2413,8 +2413,6 @@ static PyTypeObject *__pyx_ptype_7cpython_4type_type = 0;
 
 /* Module declarations from 'libcpp' */
 
-/* Module declarations from 'libcpp.memory' */
-
 /* Module declarations from 'libcpp.vector' */
 
 /* Module declarations from 'libcpp.string' */
@@ -2424,8 +2422,6 @@ static PyTypeObject *__pyx_ptype_7cpython_4type_type = 0;
 /* Module declarations from 'yaml_cpp' */
 static PyTypeObject *__pyx_ptype_8yaml_cpp_Node = 0;
 static PyTypeObject *__pyx_ptype_8yaml_cpp_NodeIterator = 0;
-
-/* Module declarations from 'libcpp.cast' */
 
 /* Module declarations from 'cpython.buffer' */
 
@@ -3958,7 +3954,7 @@ static PyObject *__pyx_pf_6pycpsw_5Child_getOwner(struct __pyx_obj_6pycpsw_Child
  */
   __Pyx_XDECREF(__pyx_r);
   try {
-    __pyx_t_1 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIChild,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getOwner();
+    __pyx_t_1 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIChild,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getOwner();
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 87, __pyx_L1_error)
@@ -4026,7 +4022,7 @@ static PyObject *__pyx_pf_6pycpsw_5Child_2getNelms(struct __pyx_obj_6pycpsw_Chil
  */
   __Pyx_XDECREF(__pyx_r);
   try {
-    __pyx_t_1 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIChild,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getNelms();
+    __pyx_t_1 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIChild,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getNelms();
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 95, __pyx_L1_error)
@@ -4125,7 +4121,7 @@ static PyObject *__pyx_f_6pycpsw_5Child_make(__pyx_t_6pycpsw_cc_ConstChild __pyx
  *     return po
  * 
  */
-  __pyx_v_po->__pyx_base.cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,__pyx_t_6pycpsw_CIChild>(__pyx_v_cp);
+  __pyx_v_po->__pyx_base.cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,__pyx_t_6pycpsw_CIChild>(__pyx_v_cp);
 
   /* "pycpsw.pyx":103
  *     po      = Child(priv__)
@@ -4341,7 +4337,7 @@ static PyObject *__pyx_pf_6pycpsw_3Hub_findByName(struct __pyx_obj_6pycpsw_Hub *
  */
   __Pyx_XDECREF(__pyx_r);
   try {
-    __pyx_t_3 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIHub,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->findByName(__pyx_v_cpath);
+    __pyx_t_3 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIHub,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->findByName(__pyx_v_cpath);
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 133, __pyx_L1_error)
@@ -4412,7 +4408,7 @@ static PyObject *__pyx_pf_6pycpsw_3Hub_2getChild(struct __pyx_obj_6pycpsw_Hub *_
   __Pyx_XDECREF(__pyx_r);
   __pyx_t_1 = __Pyx_PyObject_AsString(__pyx_v_nameString); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 139, __pyx_L1_error)
   try {
-    __pyx_t_2 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIHub,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getChild(__pyx_t_1);
+    __pyx_t_2 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIHub,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getChild(__pyx_t_1);
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 139, __pyx_L1_error)
@@ -4488,7 +4484,7 @@ static PyObject *__pyx_pf_6pycpsw_3Hub_4getChildren(struct __pyx_obj_6pycpsw_Hub
  *     cdef iterator         ite = children.get().end()
  */
   try {
-    __pyx_t_1 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIHub,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getChildren();
+    __pyx_t_1 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIHub,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getChildren();
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 145, __pyx_L1_error)
@@ -4677,7 +4673,7 @@ static PyObject *__pyx_f_6pycpsw_3Hub_make(__pyx_t_6pycpsw_cc_ConstHub __pyx_v_c
  *     return po
  * 
  */
-  __pyx_v_po->__pyx_base.cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,__pyx_t_6pycpsw_CIHub>(__pyx_v_cp);
+  __pyx_v_po->__pyx_base.cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,__pyx_t_6pycpsw_CIHub>(__pyx_v_cp);
 
   /* "pycpsw.pyx":160
  *     po      = Hub(priv__)
@@ -4859,7 +4855,7 @@ static PyObject *__pyx_pf_6pycpsw_8Val_Base_getNelms(struct __pyx_obj_6pycpsw_Va
  */
   __Pyx_XDECREF(__pyx_r);
   try {
-    __pyx_t_1 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getNelms();
+    __pyx_t_1 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getNelms();
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 176, __pyx_L1_error)
@@ -4927,7 +4923,7 @@ static PyObject *__pyx_pf_6pycpsw_8Val_Base_2getPath(struct __pyx_obj_6pycpsw_Va
  */
   __Pyx_XDECREF(__pyx_r);
   try {
-    __pyx_t_1 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getPath();
+    __pyx_t_1 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getPath();
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 182, __pyx_L1_error)
@@ -4995,7 +4991,7 @@ static PyObject *__pyx_pf_6pycpsw_8Val_Base_4getConstPath(struct __pyx_obj_6pycp
  */
   __Pyx_XDECREF(__pyx_r);
   try {
-    __pyx_t_1 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getConstPath();
+    __pyx_t_1 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getConstPath();
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 187, __pyx_L1_error)
@@ -5064,7 +5060,7 @@ static PyObject *__pyx_pf_6pycpsw_8Val_Base_6getEncoding(struct __pyx_obj_6pycps
  *       return None
  */
   try {
-    __pyx_t_1 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getEncoding();
+    __pyx_t_1 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.cptr).get()->getEncoding();
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 203, __pyx_L1_error)
@@ -5246,7 +5242,7 @@ static PyObject *__pyx_pf_6pycpsw_8Val_Base_8create(struct __pyx_obj_6pycpsw_Pat
  *     po.ptr  = static_pointer_cast[IVal_Base,IVal_Base]( obj )
  *     return po
  */
-  __pyx_v_po->__pyx_base.cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IVal_Base>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IVal_Base>(__pyx_v_obj);
 
   /* "pycpsw.pyx":220
  *     po      = Val_Base(priv__)
@@ -5255,7 +5251,7 @@ static PyObject *__pyx_pf_6pycpsw_8Val_Base_8create(struct __pyx_obj_6pycpsw_Pat
  *     return po
  * 
  */
-  __pyx_v_po->ptr = std::static_pointer_cast<IVal_Base,IVal_Base>(__pyx_v_obj);
+  __pyx_v_po->ptr = cpsw::static_pointer_cast<IVal_Base,IVal_Base>(__pyx_v_obj);
 
   /* "pycpsw.pyx":221
  *     po.cptr = static_pointer_cast[CIEntry,  IVal_Base]( obj )
@@ -5817,7 +5813,7 @@ static PyObject *__pyx_pf_6pycpsw_12ScalVal_Base_getSizeBits(struct __pyx_obj_6p
  */
   __Pyx_XDECREF(__pyx_r);
   try {
-    __pyx_t_1 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIScalVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.__pyx_base.cptr).get()->getSizeBits();
+    __pyx_t_1 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIScalVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.__pyx_base.cptr).get()->getSizeBits();
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 267, __pyx_L1_error)
@@ -5885,7 +5881,7 @@ static PyObject *__pyx_pf_6pycpsw_12ScalVal_Base_2isSigned(struct __pyx_obj_6pyc
  */
   __Pyx_XDECREF(__pyx_r);
   try {
-    __pyx_t_1 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIScalVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.__pyx_base.cptr).get()->isSigned();
+    __pyx_t_1 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIScalVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.__pyx_base.cptr).get()->isSigned();
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 276, __pyx_L1_error)
@@ -5956,7 +5952,7 @@ static PyObject *__pyx_pf_6pycpsw_12ScalVal_Base_4getEnum(struct __pyx_obj_6pycp
  *     if not cenums:
  */
   try {
-    __pyx_t_1 = std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIScalVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.__pyx_base.cptr).get()->getEnum();
+    __pyx_t_1 = cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIScalVal_Base,__pyx_t_6pycpsw_CIEntry>(__pyx_v_self->__pyx_base.__pyx_base.cptr).get()->getEnum();
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
     __PYX_ERR(0, 285, __pyx_L1_error)
@@ -6162,7 +6158,7 @@ static PyObject *__pyx_pf_6pycpsw_12ScalVal_Base_6create(struct __pyx_obj_6pycps
  *     po.ptr  = static_pointer_cast[IVal_Base,IScalVal_Base]( obj )
  *     return po
  */
-  __pyx_v_po->__pyx_base.__pyx_base.cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IScalVal_Base>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.__pyx_base.cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IScalVal_Base>(__pyx_v_obj);
 
   /* "pycpsw.pyx":306
  *     po      = ScalVal_Base(priv__)
@@ -6171,7 +6167,7 @@ static PyObject *__pyx_pf_6pycpsw_12ScalVal_Base_6create(struct __pyx_obj_6pycps
  *     return po
  * 
  */
-  __pyx_v_po->__pyx_base.ptr = std::static_pointer_cast<IVal_Base,IScalVal_Base>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.ptr = cpsw::static_pointer_cast<IVal_Base,IScalVal_Base>(__pyx_v_obj);
 
   /* "pycpsw.pyx":307
  *     po.cptr = static_pointer_cast[CIEntry,  IScalVal_Base]( obj )
@@ -7110,7 +7106,7 @@ static PyObject *__pyx_pf_6pycpsw_10ScalVal_RO_4create(struct __pyx_obj_6pycpsw_
  *     po.ptr  = static_pointer_cast[IVal_Base,IScalVal_RO]( obj )
  *     po.rptr = obj
  */
-  __pyx_v_po->__pyx_base.__pyx_base.__pyx_base.cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IScalVal_RO>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.__pyx_base.__pyx_base.cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IScalVal_RO>(__pyx_v_obj);
 
   /* "pycpsw.pyx":434
  *     po      = ScalVal_RO(priv__)
@@ -7119,7 +7115,7 @@ static PyObject *__pyx_pf_6pycpsw_10ScalVal_RO_4create(struct __pyx_obj_6pycpsw_
  *     po.rptr = obj
  *     return po
  */
-  __pyx_v_po->__pyx_base.__pyx_base.ptr = std::static_pointer_cast<IVal_Base,IScalVal_RO>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.__pyx_base.ptr = cpsw::static_pointer_cast<IVal_Base,IScalVal_RO>(__pyx_v_obj);
 
   /* "pycpsw.pyx":435
  *     po.cptr = static_pointer_cast[CIEntry,  IScalVal_RO]( obj )
@@ -7521,7 +7517,7 @@ static PyObject *__pyx_pf_6pycpsw_7ScalVal_2create(struct __pyx_obj_6pycpsw_Path
  *     po.ptr  = static_pointer_cast[IVal_Base  , IScalVal]( obj )
  *     po.rptr = static_pointer_cast[IScalVal_RO, IScalVal]( obj )
  */
-  __pyx_v_po->__pyx_base.__pyx_base.__pyx_base.__pyx_base.cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IScalVal>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.__pyx_base.__pyx_base.__pyx_base.cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IScalVal>(__pyx_v_obj);
 
   /* "pycpsw.pyx":498
  *     po      = ScalVal(priv__)
@@ -7530,7 +7526,7 @@ static PyObject *__pyx_pf_6pycpsw_7ScalVal_2create(struct __pyx_obj_6pycpsw_Path
  *     po.rptr = static_pointer_cast[IScalVal_RO, IScalVal]( obj )
  *     po.wptr = obj
  */
-  __pyx_v_po->__pyx_base.__pyx_base.__pyx_base.ptr = std::static_pointer_cast<IVal_Base,IScalVal>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.__pyx_base.__pyx_base.ptr = cpsw::static_pointer_cast<IVal_Base,IScalVal>(__pyx_v_obj);
 
   /* "pycpsw.pyx":499
  *     po.cptr = static_pointer_cast[CIEntry    , IScalVal]( obj )
@@ -7539,7 +7535,7 @@ static PyObject *__pyx_pf_6pycpsw_7ScalVal_2create(struct __pyx_obj_6pycpsw_Path
  *     po.wptr = obj
  *     return po
  */
-  __pyx_v_po->__pyx_base.rptr = std::static_pointer_cast<IScalVal_RO,IScalVal>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.rptr = cpsw::static_pointer_cast<IScalVal_RO,IScalVal>(__pyx_v_obj);
 
   /* "pycpsw.pyx":500
  *     po.ptr  = static_pointer_cast[IVal_Base  , IScalVal]( obj )
@@ -8124,7 +8120,7 @@ static PyObject *__pyx_pf_6pycpsw_12DoubleVal_RO_4create(struct __pyx_obj_6pycps
  *     po.ptr  = static_pointer_cast[IVal_Base, IDoubleVal_RO]( obj )
  *     po.rptr = obj
  */
-  __pyx_v_po->__pyx_base.__pyx_base.cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IDoubleVal_RO>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.__pyx_base.cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IDoubleVal_RO>(__pyx_v_obj);
 
   /* "pycpsw.pyx":569
  *     po      = DoubleVal_RO(priv__)
@@ -8133,7 +8129,7 @@ static PyObject *__pyx_pf_6pycpsw_12DoubleVal_RO_4create(struct __pyx_obj_6pycps
  *     po.rptr = obj
  *     return po
  */
-  __pyx_v_po->__pyx_base.ptr = std::static_pointer_cast<IVal_Base,IDoubleVal_RO>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.ptr = cpsw::static_pointer_cast<IVal_Base,IDoubleVal_RO>(__pyx_v_obj);
 
   /* "pycpsw.pyx":570
  *     po.cptr = static_pointer_cast[CIEntry,   IDoubleVal_RO]( obj )
@@ -8535,7 +8531,7 @@ static PyObject *__pyx_pf_6pycpsw_9DoubleVal_2create(struct __pyx_obj_6pycpsw_Pa
  *     po.ptr  = static_pointer_cast[IVal_Base    , IDoubleVal]( obj )
  *     po.rptr = static_pointer_cast[IDoubleVal_RO, IDoubleVal]( obj )
  */
-  __pyx_v_po->__pyx_base.__pyx_base.__pyx_base.cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IDoubleVal>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.__pyx_base.__pyx_base.cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IDoubleVal>(__pyx_v_obj);
 
   /* "pycpsw.pyx":625
  *     po      = DoubleVal(priv__)
@@ -8544,7 +8540,7 @@ static PyObject *__pyx_pf_6pycpsw_9DoubleVal_2create(struct __pyx_obj_6pycpsw_Pa
  *     po.rptr = static_pointer_cast[IDoubleVal_RO, IDoubleVal]( obj )
  *     po.wptr = obj
  */
-  __pyx_v_po->__pyx_base.__pyx_base.ptr = std::static_pointer_cast<IVal_Base,IDoubleVal>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.__pyx_base.ptr = cpsw::static_pointer_cast<IVal_Base,IDoubleVal>(__pyx_v_obj);
 
   /* "pycpsw.pyx":626
  *     po.cptr = static_pointer_cast[CIEntry      , IDoubleVal]( obj )
@@ -8553,7 +8549,7 @@ static PyObject *__pyx_pf_6pycpsw_9DoubleVal_2create(struct __pyx_obj_6pycpsw_Pa
  *     po.wptr = obj
  *     return po
  */
-  __pyx_v_po->__pyx_base.rptr = std::static_pointer_cast<IDoubleVal_RO,IDoubleVal>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.rptr = cpsw::static_pointer_cast<IDoubleVal_RO,IDoubleVal>(__pyx_v_obj);
 
   /* "pycpsw.pyx":627
  *     po.ptr  = static_pointer_cast[IVal_Base    , IDoubleVal]( obj )
@@ -9371,7 +9367,7 @@ static PyObject *__pyx_pf_6pycpsw_6Stream_8create(struct __pyx_obj_6pycpsw_Path 
  *     po.ptr  = static_pointer_cast[IVal_Base,IVal_Base]( vobj )
  *     return po
  */
-  __pyx_v_po->__pyx_base.__pyx_base.__pyx_base.cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IVal_Base>(__pyx_v_vobj);
+  __pyx_v_po->__pyx_base.__pyx_base.__pyx_base.cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,IVal_Base>(__pyx_v_vobj);
 
   /* "pycpsw.pyx":704
  *     po      = Stream(priv__)
@@ -9380,7 +9376,7 @@ static PyObject *__pyx_pf_6pycpsw_6Stream_8create(struct __pyx_obj_6pycpsw_Path 
  *     return po
  * 
  */
-  __pyx_v_po->__pyx_base.__pyx_base.ptr = std::static_pointer_cast<IVal_Base,IVal_Base>(__pyx_v_vobj);
+  __pyx_v_po->__pyx_base.__pyx_base.ptr = cpsw::static_pointer_cast<IVal_Base,IVal_Base>(__pyx_v_vobj);
 
   /* "pycpsw.pyx":705
  *     po.cptr = static_pointer_cast[CIEntry,  IVal_Base]( vobj )
@@ -9765,7 +9761,7 @@ static PyObject *__pyx_pf_6pycpsw_7Command_4create(struct __pyx_obj_6pycpsw_Path
  *     # We can't use the 'const IEntry' pointer because 'execute'
  * 	# is not a 'const' method...
  */
-  __pyx_v_po->__pyx_base.cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,ICommand>(__pyx_v_obj);
+  __pyx_v_po->__pyx_base.cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIEntry,ICommand>(__pyx_v_obj);
 
   /* "pycpsw.pyx":744
  *     # We can't use the 'const IEntry' pointer because 'execute'
@@ -9774,7 +9770,7 @@ static PyObject *__pyx_pf_6pycpsw_7Command_4create(struct __pyx_obj_6pycpsw_Path
  *     return po
  * 
  */
-  __pyx_v_po->ptr = std::static_pointer_cast<ICommand,ICommand>(__pyx_v_obj);
+  __pyx_v_po->ptr = cpsw::static_pointer_cast<ICommand,ICommand>(__pyx_v_obj);
 
   /* "pycpsw.pyx":745
  * 	# is not a 'const' method...
@@ -12000,7 +11996,7 @@ static PyObject *__pyx_pf_6pycpsw_4Path_10clear(struct __pyx_obj_6pycpsw_Path *_
  *       self.ptr.get().clear()
  */
     try {
-      __pyx_v_self->ptr.get()->clear(std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIHub,__pyx_t_6pycpsw_CIEntry>(__pyx_v_h->__pyx_base.cptr));
+      __pyx_v_self->ptr.get()->clear(cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIHub,__pyx_t_6pycpsw_CIEntry>(__pyx_v_h->__pyx_base.cptr));
     } catch(...) {
       cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
       __PYX_ERR(0, 963, __pyx_L1_error)
@@ -14869,7 +14865,7 @@ static PyObject *__pyx_pf_6pycpsw_4Path_52create(PyObject *__pyx_v_arg) {
  */
     __Pyx_XDECREF(__pyx_r);
     try {
-      __pyx_t_4 = IPath::create(std::dynamic_pointer_cast<__pyx_t_6pycpsw_CIHub,__pyx_t_6pycpsw_CIEntry>(__pyx_v_h->__pyx_base.cptr));
+      __pyx_t_4 = IPath::create(cpsw::dynamic_pointer_cast<__pyx_t_6pycpsw_CIHub,__pyx_t_6pycpsw_CIEntry>(__pyx_v_h->__pyx_base.cptr));
     } catch(...) {
       cpsw_python::handleException(); if (!PyErr_Occurred())PyErr_SetString(PyExc_RuntimeError, "Error converting c++ exception.");
       __PYX_ERR(0, 1213, __pyx_L1_error)
@@ -15803,7 +15799,7 @@ static PyObject *__pyx_f_6pycpsw_4Path_make(__pyx_t_6pycpsw_cc_Path __pyx_v_cp) 
  *     return po
  * 
  */
-  __pyx_v_po->cptr = std::static_pointer_cast<__pyx_t_6pycpsw_CIPath,IPath>(__pyx_v_cp);
+  __pyx_v_po->cptr = cpsw::static_pointer_cast<__pyx_t_6pycpsw_CIPath,IPath>(__pyx_v_cp);
 
   /* "pycpsw.pyx":1294
  *     po.ptr  = cp
@@ -16378,12 +16374,12 @@ static int __pyx_pw_6pycpsw_9CPSWError_1__init__(PyObject *__pyx_v_self, PyObjec
 static int __pyx_pf_6pycpsw_9CPSWError___init__(struct CpswPyExcO_CPSWError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<CPSWError>  __pyx_v_foo;
+  shared_ptr<CPSWError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<CPSWError>  __pyx_t_3;
+  shared_ptr<CPSWError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1323
@@ -16420,7 +16416,7 @@ static int __pyx_pf_6pycpsw_9CPSWError___init__(struct CpswPyExcO_CPSWError *__p
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<CPSWError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<CPSWError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1325, __pyx_L1_error)
@@ -16878,12 +16874,12 @@ static int __pyx_pw_6pycpsw_10ErrnoError_1__init__(PyObject *__pyx_v_self, PyObj
 static int __pyx_pf_6pycpsw_10ErrnoError___init__(struct CpswPyExcO_ErrnoError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<ErrnoError>  __pyx_v_foo;
+  shared_ptr<ErrnoError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<ErrnoError>  __pyx_t_3;
+  shared_ptr<ErrnoError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1333
@@ -16920,7 +16916,7 @@ static int __pyx_pf_6pycpsw_10ErrnoError___init__(struct CpswPyExcO_ErrnoError *
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<ErrnoError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<ErrnoError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1335, __pyx_L1_error)
@@ -17309,12 +17305,12 @@ static int __pyx_pw_6pycpsw_7IOError_1__init__(PyObject *__pyx_v_self, PyObject 
 static int __pyx_pf_6pycpsw_7IOError___init__(struct CpswPyExcO_IOError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<IOError>  __pyx_v_foo;
+  shared_ptr<IOError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<IOError>  __pyx_t_3;
+  shared_ptr<IOError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1340
@@ -17351,7 +17347,7 @@ static int __pyx_pf_6pycpsw_7IOError___init__(struct CpswPyExcO_IOError *__pyx_v
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<IOError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<IOError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1342, __pyx_L1_error)
@@ -17740,12 +17736,12 @@ static int __pyx_pw_6pycpsw_13InternalError_1__init__(PyObject *__pyx_v_self, Py
 static int __pyx_pf_6pycpsw_13InternalError___init__(struct CpswPyExcO_InternalError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<InternalError>  __pyx_v_foo;
+  shared_ptr<InternalError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<InternalError>  __pyx_t_3;
+  shared_ptr<InternalError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1347
@@ -17782,7 +17778,7 @@ static int __pyx_pf_6pycpsw_13InternalError___init__(struct CpswPyExcO_InternalE
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<InternalError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<InternalError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1349, __pyx_L1_error)
@@ -18171,12 +18167,12 @@ static int __pyx_pw_6pycpsw_18DuplicateNameError_1__init__(PyObject *__pyx_v_sel
 static int __pyx_pf_6pycpsw_18DuplicateNameError___init__(struct CpswPyExcO_DuplicateNameError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<DuplicateNameError>  __pyx_v_foo;
+  shared_ptr<DuplicateNameError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<DuplicateNameError>  __pyx_t_3;
+  shared_ptr<DuplicateNameError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1354
@@ -18213,7 +18209,7 @@ static int __pyx_pf_6pycpsw_18DuplicateNameError___init__(struct CpswPyExcO_Dupl
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<DuplicateNameError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<DuplicateNameError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1356, __pyx_L1_error)
@@ -18602,12 +18598,12 @@ static int __pyx_pw_6pycpsw_11NotDevError_1__init__(PyObject *__pyx_v_self, PyOb
 static int __pyx_pf_6pycpsw_11NotDevError___init__(struct CpswPyExcO_NotDevError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<NotDevError>  __pyx_v_foo;
+  shared_ptr<NotDevError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<NotDevError>  __pyx_t_3;
+  shared_ptr<NotDevError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1361
@@ -18644,7 +18640,7 @@ static int __pyx_pf_6pycpsw_11NotDevError___init__(struct CpswPyExcO_NotDevError
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<NotDevError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<NotDevError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1363, __pyx_L1_error)
@@ -19033,12 +19029,12 @@ static int __pyx_pw_6pycpsw_13NotFoundError_1__init__(PyObject *__pyx_v_self, Py
 static int __pyx_pf_6pycpsw_13NotFoundError___init__(struct CpswPyExcO_NotFoundError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<NotFoundError>  __pyx_v_foo;
+  shared_ptr<NotFoundError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<NotFoundError>  __pyx_t_3;
+  shared_ptr<NotFoundError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1368
@@ -19075,7 +19071,7 @@ static int __pyx_pf_6pycpsw_13NotFoundError___init__(struct CpswPyExcO_NotFoundE
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<NotFoundError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<NotFoundError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1370, __pyx_L1_error)
@@ -19464,12 +19460,12 @@ static int __pyx_pw_6pycpsw_16InvalidPathError_1__init__(PyObject *__pyx_v_self,
 static int __pyx_pf_6pycpsw_16InvalidPathError___init__(struct CpswPyExcO_InvalidPathError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<InvalidPathError>  __pyx_v_foo;
+  shared_ptr<InvalidPathError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<InvalidPathError>  __pyx_t_3;
+  shared_ptr<InvalidPathError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1375
@@ -19506,7 +19502,7 @@ static int __pyx_pf_6pycpsw_16InvalidPathError___init__(struct CpswPyExcO_Invali
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<InvalidPathError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<InvalidPathError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1377, __pyx_L1_error)
@@ -19895,12 +19891,12 @@ static int __pyx_pw_6pycpsw_17InvalidIdentError_1__init__(PyObject *__pyx_v_self
 static int __pyx_pf_6pycpsw_17InvalidIdentError___init__(struct CpswPyExcO_InvalidIdentError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<InvalidIdentError>  __pyx_v_foo;
+  shared_ptr<InvalidIdentError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<InvalidIdentError>  __pyx_t_3;
+  shared_ptr<InvalidIdentError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1382
@@ -19937,7 +19933,7 @@ static int __pyx_pf_6pycpsw_17InvalidIdentError___init__(struct CpswPyExcO_Inval
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<InvalidIdentError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<InvalidIdentError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1384, __pyx_L1_error)
@@ -20326,12 +20322,12 @@ static int __pyx_pw_6pycpsw_15InvalidArgError_1__init__(PyObject *__pyx_v_self, 
 static int __pyx_pf_6pycpsw_15InvalidArgError___init__(struct CpswPyExcO_InvalidArgError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<InvalidArgError>  __pyx_v_foo;
+  shared_ptr<InvalidArgError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<InvalidArgError>  __pyx_t_3;
+  shared_ptr<InvalidArgError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1389
@@ -20368,7 +20364,7 @@ static int __pyx_pf_6pycpsw_15InvalidArgError___init__(struct CpswPyExcO_Invalid
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<InvalidArgError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<InvalidArgError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1391, __pyx_L1_error)
@@ -20757,12 +20753,12 @@ static int __pyx_pw_6pycpsw_27AddressAlreadyAttachedError_1__init__(PyObject *__
 static int __pyx_pf_6pycpsw_27AddressAlreadyAttachedError___init__(struct CpswPyExcO_AddressAlreadyAttachedError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<AddressAlreadyAttachedError>  __pyx_v_foo;
+  shared_ptr<AddressAlreadyAttachedError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<AddressAlreadyAttachedError>  __pyx_t_3;
+  shared_ptr<AddressAlreadyAttachedError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1396
@@ -20799,7 +20795,7 @@ static int __pyx_pf_6pycpsw_27AddressAlreadyAttachedError___init__(struct CpswPy
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<AddressAlreadyAttachedError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<AddressAlreadyAttachedError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1398, __pyx_L1_error)
@@ -21188,12 +21184,12 @@ static int __pyx_pw_6pycpsw_18ConfigurationError_1__init__(PyObject *__pyx_v_sel
 static int __pyx_pf_6pycpsw_18ConfigurationError___init__(struct CpswPyExcO_ConfigurationError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<ConfigurationError>  __pyx_v_foo;
+  shared_ptr<ConfigurationError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<ConfigurationError>  __pyx_t_3;
+  shared_ptr<ConfigurationError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1403
@@ -21230,7 +21226,7 @@ static int __pyx_pf_6pycpsw_18ConfigurationError___init__(struct CpswPyExcO_Conf
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<ConfigurationError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<ConfigurationError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1405, __pyx_L1_error)
@@ -21619,12 +21615,12 @@ static int __pyx_pw_6pycpsw_19AddrOutOfRangeError_1__init__(PyObject *__pyx_v_se
 static int __pyx_pf_6pycpsw_19AddrOutOfRangeError___init__(struct CpswPyExcO_AddrOutOfRangeError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<AddrOutOfRangeError>  __pyx_v_foo;
+  shared_ptr<AddrOutOfRangeError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<AddrOutOfRangeError>  __pyx_t_3;
+  shared_ptr<AddrOutOfRangeError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1410
@@ -21661,7 +21657,7 @@ static int __pyx_pf_6pycpsw_19AddrOutOfRangeError___init__(struct CpswPyExcO_Add
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<AddrOutOfRangeError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<AddrOutOfRangeError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1412, __pyx_L1_error)
@@ -22050,12 +22046,12 @@ static int __pyx_pw_6pycpsw_15ConversionError_1__init__(PyObject *__pyx_v_self, 
 static int __pyx_pf_6pycpsw_15ConversionError___init__(struct CpswPyExcO_ConversionError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<ConversionError>  __pyx_v_foo;
+  shared_ptr<ConversionError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<ConversionError>  __pyx_t_3;
+  shared_ptr<ConversionError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1417
@@ -22092,7 +22088,7 @@ static int __pyx_pf_6pycpsw_15ConversionError___init__(struct CpswPyExcO_Convers
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<ConversionError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<ConversionError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1419, __pyx_L1_error)
@@ -22481,12 +22477,12 @@ static int __pyx_pw_6pycpsw_28InterfaceNotImplementedError_1__init__(PyObject *_
 static int __pyx_pf_6pycpsw_28InterfaceNotImplementedError___init__(struct CpswPyExcO_InterfaceNotImplementedError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<InterfaceNotImplementedError>  __pyx_v_foo;
+  shared_ptr<InterfaceNotImplementedError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<InterfaceNotImplementedError>  __pyx_t_3;
+  shared_ptr<InterfaceNotImplementedError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1424
@@ -22523,7 +22519,7 @@ static int __pyx_pf_6pycpsw_28InterfaceNotImplementedError___init__(struct CpswP
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<InterfaceNotImplementedError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<InterfaceNotImplementedError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1426, __pyx_L1_error)
@@ -22923,12 +22919,12 @@ static int __pyx_pw_6pycpsw_14BadStatusError_1__init__(PyObject *__pyx_v_self, P
 static int __pyx_pf_6pycpsw_14BadStatusError___init__(struct CpswPyExcO_BadStatusError *__pyx_v_self, PyObject *__pyx_v_msg, int __pyx_v_status) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<BadStatusError>  __pyx_v_foo;
+  shared_ptr<BadStatusError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<BadStatusError>  __pyx_t_3;
+  shared_ptr<BadStatusError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1431
@@ -22965,7 +22961,7 @@ static int __pyx_pf_6pycpsw_14BadStatusError___init__(struct CpswPyExcO_BadStatu
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<BadStatusError>(__pyx_v_cs, __pyx_v_status);
+    __pyx_t_3 = cpsw::make_shared<BadStatusError>(__pyx_v_cs, __pyx_v_status);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1433, __pyx_L1_error)
@@ -23354,12 +23350,12 @@ static int __pyx_pw_6pycpsw_9IntrError_1__init__(PyObject *__pyx_v_self, PyObjec
 static int __pyx_pf_6pycpsw_9IntrError___init__(struct CpswPyExcO_IntrError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<IntrError>  __pyx_v_foo;
+  shared_ptr<IntrError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<IntrError>  __pyx_t_3;
+  shared_ptr<IntrError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1438
@@ -23396,7 +23392,7 @@ static int __pyx_pf_6pycpsw_9IntrError___init__(struct CpswPyExcO_IntrError *__p
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<IntrError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<IntrError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1440, __pyx_L1_error)
@@ -23785,12 +23781,12 @@ static int __pyx_pw_6pycpsw_15StreamDoneError_1__init__(PyObject *__pyx_v_self, 
 static int __pyx_pf_6pycpsw_15StreamDoneError___init__(struct CpswPyExcO_StreamDoneError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<StreamDoneError>  __pyx_v_foo;
+  shared_ptr<StreamDoneError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<StreamDoneError>  __pyx_t_3;
+  shared_ptr<StreamDoneError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1445
@@ -23827,7 +23823,7 @@ static int __pyx_pf_6pycpsw_15StreamDoneError___init__(struct CpswPyExcO_StreamD
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<StreamDoneError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<StreamDoneError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1447, __pyx_L1_error)
@@ -24216,12 +24212,12 @@ static int __pyx_pw_6pycpsw_17FailedStreamError_1__init__(PyObject *__pyx_v_self
 static int __pyx_pf_6pycpsw_17FailedStreamError___init__(struct CpswPyExcO_FailedStreamError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<FailedStreamError>  __pyx_v_foo;
+  shared_ptr<FailedStreamError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<FailedStreamError>  __pyx_t_3;
+  shared_ptr<FailedStreamError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1452
@@ -24258,7 +24254,7 @@ static int __pyx_pf_6pycpsw_17FailedStreamError___init__(struct CpswPyExcO_Faile
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<FailedStreamError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<FailedStreamError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1454, __pyx_L1_error)
@@ -24647,12 +24643,12 @@ static int __pyx_pw_6pycpsw_19MissingOnceTagError_1__init__(PyObject *__pyx_v_se
 static int __pyx_pf_6pycpsw_19MissingOnceTagError___init__(struct CpswPyExcO_MissingOnceTagError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<MissingOnceTagError>  __pyx_v_foo;
+  shared_ptr<MissingOnceTagError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<MissingOnceTagError>  __pyx_t_3;
+  shared_ptr<MissingOnceTagError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1459
@@ -24689,7 +24685,7 @@ static int __pyx_pf_6pycpsw_19MissingOnceTagError___init__(struct CpswPyExcO_Mis
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<MissingOnceTagError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<MissingOnceTagError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1461, __pyx_L1_error)
@@ -25078,12 +25074,12 @@ static int __pyx_pw_6pycpsw_27MissingIncludeFileNameError_1__init__(PyObject *__
 static int __pyx_pf_6pycpsw_27MissingIncludeFileNameError___init__(struct CpswPyExcO_MissingIncludeFileNameError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<MissingIncludeFileNameError>  __pyx_v_foo;
+  shared_ptr<MissingIncludeFileNameError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<MissingIncludeFileNameError>  __pyx_t_3;
+  shared_ptr<MissingIncludeFileNameError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1466
@@ -25120,7 +25116,7 @@ static int __pyx_pf_6pycpsw_27MissingIncludeFileNameError___init__(struct CpswPy
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<MissingIncludeFileNameError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<MissingIncludeFileNameError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1468, __pyx_L1_error)
@@ -25468,10 +25464,10 @@ static int __pyx_pw_6pycpsw_18NoYAMLSupportError_1__init__(PyObject *__pyx_v_sel
 }
 
 static int __pyx_pf_6pycpsw_18NoYAMLSupportError___init__(struct CpswPyExcO_NoYAMLSupportError *__pyx_v_self) {
-  std::shared_ptr<NoYAMLSupportError>  __pyx_v_foo;
+  shared_ptr<NoYAMLSupportError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  std::shared_ptr<NoYAMLSupportError>  __pyx_t_1;
+  shared_ptr<NoYAMLSupportError>  __pyx_t_1;
   PyObject *__pyx_t_2 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
@@ -25483,7 +25479,7 @@ static int __pyx_pf_6pycpsw_18NoYAMLSupportError___init__(struct CpswPyExcO_NoYA
  * 
  */
   try {
-    __pyx_t_1 = std::make_shared<NoYAMLSupportError>();
+    __pyx_t_1 = cpsw::make_shared<NoYAMLSupportError>();
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1473, __pyx_L1_error)
@@ -25830,10 +25826,10 @@ static int __pyx_pw_6pycpsw_7NoError_1__init__(PyObject *__pyx_v_self, PyObject 
 }
 
 static int __pyx_pf_6pycpsw_7NoError___init__(struct CpswPyExcO_NoError *__pyx_v_self) {
-  std::shared_ptr<NoError>  __pyx_v_foo;
+  shared_ptr<NoError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  std::shared_ptr<NoError>  __pyx_t_1;
+  shared_ptr<NoError>  __pyx_t_1;
   PyObject *__pyx_t_2 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
@@ -25845,7 +25841,7 @@ static int __pyx_pf_6pycpsw_7NoError___init__(struct CpswPyExcO_NoError *__pyx_v
  * 
  */
   try {
-    __pyx_t_1 = std::make_shared<NoError>();
+    __pyx_t_1 = cpsw::make_shared<NoError>();
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1478, __pyx_L1_error)
@@ -26233,12 +26229,12 @@ static int __pyx_pw_6pycpsw_26MultipleInstantiationError_1__init__(PyObject *__p
 static int __pyx_pf_6pycpsw_26MultipleInstantiationError___init__(struct CpswPyExcO_MultipleInstantiationError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<MultipleInstantiationError>  __pyx_v_foo;
+  shared_ptr<MultipleInstantiationError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<MultipleInstantiationError>  __pyx_t_3;
+  shared_ptr<MultipleInstantiationError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1483
@@ -26275,7 +26271,7 @@ static int __pyx_pf_6pycpsw_26MultipleInstantiationError___init__(struct CpswPyE
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<MultipleInstantiationError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<MultipleInstantiationError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1485, __pyx_L1_error)
@@ -26664,12 +26660,12 @@ static int __pyx_pw_6pycpsw_21BadSchemaVersionError_1__init__(PyObject *__pyx_v_
 static int __pyx_pf_6pycpsw_21BadSchemaVersionError___init__(struct CpswPyExcO_BadSchemaVersionError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<BadSchemaVersionError>  __pyx_v_foo;
+  shared_ptr<BadSchemaVersionError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<BadSchemaVersionError>  __pyx_t_3;
+  shared_ptr<BadSchemaVersionError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1490
@@ -26706,7 +26702,7 @@ static int __pyx_pf_6pycpsw_21BadSchemaVersionError___init__(struct CpswPyExcO_B
  * 
  */
   try {
-    __pyx_t_3 = std::make_shared<BadSchemaVersionError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<BadSchemaVersionError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1492, __pyx_L1_error)
@@ -27095,12 +27091,12 @@ static int __pyx_pw_6pycpsw_12TimeoutError_1__init__(PyObject *__pyx_v_self, PyO
 static int __pyx_pf_6pycpsw_12TimeoutError___init__(struct CpswPyExcO_TimeoutError *__pyx_v_self, PyObject *__pyx_v_msg) {
   PyObject *__pyx_v_bstr = NULL;
   char const *__pyx_v_cs;
-  std::shared_ptr<TimeoutError>  __pyx_v_foo;
+  shared_ptr<TimeoutError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  std::shared_ptr<TimeoutError>  __pyx_t_3;
+  shared_ptr<TimeoutError>  __pyx_t_3;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1497
@@ -27136,7 +27132,7 @@ static int __pyx_pf_6pycpsw_12TimeoutError___init__(struct CpswPyExcO_TimeoutErr
  *     self._msg = foo.get().what()
  */
   try {
-    __pyx_t_3 = std::make_shared<TimeoutError>(__pyx_v_cs);
+    __pyx_t_3 = cpsw::make_shared<TimeoutError>(__pyx_v_cs);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 1499, __pyx_L1_error)
@@ -43096,7 +43092,7 @@ if (!__Pyx_RefNanny) {
   /* "pycpsw.pyx":10
  *  #@C distributed except according to the terms contained in the LICENSE.txt file.
  * 
- * from    libcpp.cast     cimport *             # <<<<<<<<<<<<<<
+ * #from    libcpp.cast     cimport *             # <<<<<<<<<<<<<<
  * from    cython.operator cimport preincrement, dereference
  * from    libc.stdio      cimport fopen, fclose, FILE
  */

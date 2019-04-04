@@ -10,7 +10,8 @@
  #@C distributed except according to the terms contained in the LICENSE.txt file.
 
 from cpython.object cimport PyObject
-from libcpp.memory  cimport shared_ptr, make_shared
+#from libcpp.memory  cimport shared_ptr namespace "cpsw"
+#from libcpp.memory  cimport make_shared
 from libcpp         cimport bool
 from libcpp.vector  cimport *
 from libcpp.string  cimport *
@@ -18,6 +19,19 @@ from libc.stdint    cimport *
 from libc.stdio     cimport *
 
 from yaml_cpp       cimport c_Node
+
+# Redefine stuff from libcpp.memory so we can
+# use our 'cpsw' namespace and redirect to boost
+# if we don't have c++11...
+cdef extern from "<cpsw_shared_ptr.h>" nogil:
+  cdef cppclass shared_ptr[T]:
+    T   *get()
+    void reset()
+    bool operator bool()
+    bool operator!()
+
+cdef extern from "<cpsw_shared_ptr.h>" namespace "cpsw" nogil:
+  cdef shared_ptr[T] make_shared[T](...) except +
 
 cdef extern from "cpsw_api_user.h":
   cdef cppclass IEntry

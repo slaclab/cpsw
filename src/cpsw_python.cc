@@ -208,7 +208,7 @@ IScalVal_RO_getVal(IScalVal_RO *val, int fromIdx, int toIdx, bool forceNumeric)
 	/* Need to hack around in order to get the shared pointer back... */
 	CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> ctxt;
         ctxt.issueGetVal( val, fromIdx, toIdx, forceNumeric, AsyncIO() );
-	PyUniqueObj o = std::move( ctxt.complete( 0 ) );
+	PyUniqueObj o = ctxt.complete( 0 );
 	return o.release();
 }
 
@@ -376,7 +376,7 @@ IDoubleVal_RO_getVal(IDoubleVal_RO *val, int fromIdx, int toIdx)
 	/* Need to hack around in order to get the shared pointer back... */
 	CGetValWrapperContextTmpl<PyUniqueObj, PyListObj> ctxt;
         ctxt.issueGetVal( val, fromIdx, toIdx, AsyncIO() );
-	PyUniqueObj o = std::move( ctxt.complete( 0 ) );
+	PyUniqueObj o = ctxt.complete( 0 );
 	return o.release();
 }
 

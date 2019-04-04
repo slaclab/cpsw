@@ -7,18 +7,18 @@
  #@C No part of CPSW, including this file, may be copied, modified, propagated, or
  #@C distributed except according to the terms contained in the LICENSE.txt file.
 
-from    libcpp.cast     cimport *
+#from    libcpp.cast     cimport *
 from    cython.operator cimport preincrement, dereference
 from    libc.stdio      cimport fopen, fclose, FILE
 from    cpython.buffer  cimport PyObject_CheckBuffer
 from    cpython.ref     cimport Py_XDECREF
 
-cdef extern from "<memory>" namespace "std":
-  cdef shared_ptr[T] static_pointer_cast[T,U](shared_ptr[U])
-  cdef shared_ptr[T] dynamic_pointer_cast[T,U](shared_ptr[U])
-
 cimport pycpsw
 from    yaml_cpp cimport c_Node, Node
+
+cdef extern from "<cpsw_shared_ptr.h>" namespace "cpsw":
+  cdef shared_ptr[T] static_pointer_cast[T,U](shared_ptr[U])
+  cdef shared_ptr[T] dynamic_pointer_cast[T,U](shared_ptr[U])
 
 cdef extern from "cpsw_yaml.h" namespace "YAML":
   cdef cppclass ConvertEncoding "YAML::convert<IVal_Base::Encoding>":
