@@ -331,7 +331,7 @@ bool enumScalar = false;
 				if ( ! str ) {
 					throw InvalidArgError("IScalVal_setVal: Unable to convert string to ASCII");
 				}
-				vstr[i] = cpsw::move( bytes );
+				bytes.transfer( vstr[i] );
 				vcstr.push_back( str   );
 			}
 			{

@@ -119,7 +119,7 @@ PyUniqueObj status;
 		 * and maybe sets its type but does not execute the constructor.
 		 */
 		PyUniqueObj tmp( PyObject_Call( translateException(err), args.get(), NULL ) );
-		status = cpsw::move( tmp );
+		tmp.transfer( status );
 	} else {
 		complete(0).transfer( result );
 	}
