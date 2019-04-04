@@ -88,7 +88,7 @@ public:
 struct PyObjDestructor {
 	void operator()(PyObject *p)
 	{
-		Py_DECREF( p );
+		Py_XDECREF( p );
 	}
 };
 
