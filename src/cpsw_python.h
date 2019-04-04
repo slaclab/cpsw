@@ -70,6 +70,21 @@ public:
 	}
 };
 
+class GILGuard {
+private:
+	PyGILState_STATE state_;
+public:
+	GILGuard()
+	: state_( PyGILState_Ensure() )
+	{
+	}
+
+	~GILGuard()
+	{
+		PyGILState_Release( state_ );
+	}
+};
+
 struct PyObjDestructor {
 	void operator()(PyObject *p)
 	{

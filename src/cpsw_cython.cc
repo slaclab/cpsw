@@ -100,7 +100,7 @@ CAsyncIO::CAsyncIO()
 void
 CAsyncIO::callback(CPSWError *err)
 {
-PyGILState_STATE state_ = PyGILState_Ensure();
+GILGuard guard;
 {
 
 PyUniqueObj result;
@@ -126,7 +126,6 @@ PyUniqueObj status;
 	callback( me(), result.release(), status.release() );
 
 }
-	PyGILState_Release( state_ );
 }
 
 void
@@ -142,9 +141,10 @@ public:
 	void operator()(CAsyncIO *aio)
 	{
 	/* called from CPSW thread; must acquire GIL first */
-	PyGILState_STATE state_ = PyGILState_Ensure();
+	GILGuard guard;
+	{
 		Py_DECREF( aio->me() );
-	PyGILState_Release( state_ );
+	}
 	}
 };
 
