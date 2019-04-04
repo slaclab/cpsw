@@ -181,14 +181,18 @@ include $(CPSW_DIR)/rules.mak
 pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_swig_python.h
 	swig -python -c++ -o $@ $<
 
-pycpsw.cc: pycpsw.pyx pycpsw.pxd yaml_cpp.pxd cpsw_api_user.h
-	cython --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X language_level=3 -X embedsignature=True $< -o $@
+$(addsuffix /,$(SRCDIR))pycpsw.cc: pycpsw.pyx pycpsw.pxd yaml_cpp.pxd cpsw_api_user.h
+	$(call maybe_run_cython,$(CYTHON) --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X language_level=3 -X embedsignature=True $< -o $@)
 
-pyyaml_cpp.cc: yaml_cpp.pyx yaml_cpp.pxd
-	cython --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X language_level=3 -X embedsignature=True $< -o $@
+$(addsuffix /,$(SRCDIR))pyyaml_cpp.cc: yaml_cpp.pyx yaml_cpp.pxd
+	$(call maybe_run_cython,$(CYTHON) --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X language_level=3 -X embedsignature=True $< -o $@)
 
 doc/README.yamlDefinition.md:doc/README.yamlDefinition.in
 	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
 
 %.html: %.md
 	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@
+
+.PHONY: foo
+foo:
+	echo $(SRCDIR)

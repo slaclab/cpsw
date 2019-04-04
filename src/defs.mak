@@ -53,6 +53,7 @@ ARCHSPECIFIC_VARS+=USR_CXXFLAGS
 ARCHSPECIFIC_VARS+=USR_CFLAGS
 ARCHSPECIFIC_VARS+=USR_LDFLAGS
 ARCHSPECIFIC_VARS+=USE_CXX11
+ARCHSPECIFIC_VARS+=CYTHON
 
 # For all of the ARCHSPECIFIC_LIBVARS
 # we'll construct
@@ -79,6 +80,8 @@ CXX    =$(CROSS)$(or $(CXX_$(TARNM)),$(CXX_default),g++)
 AR     =$(CROSS)$(or $(AR_$(TARNM)),$(AR_default),ar)
 RANLIB =$(CROSS)$(or $(RANLIB_$(TARNM)),$(RANLIB_default),ranlib)
 INSTALL=install -C
+
+CYTHON = cython
 
 # Tool options
 OPT_CXXFLAGS=-g -Wall -O2
@@ -148,6 +151,41 @@ SHPTR_DIR_USE_CXX11_NO=boost/
 SHPTR_DIR_USE_CXX11=$(SHPTR_DIR_USE_CXX11_$(USE_CXX11))
 
 INCLUDE_DIRS+=$(CPSW_DIR)/$(SHPTR_DIR_USE_CXX11)
+
+# CYTHON
+# We don't want users to *have* cython installed. Also, ATM most cython versions
+# found in distros do not support python 3.7.
+# We check whether we really need to run cython by computing a checksum over the
+# dependencies of a cython-generated '.cc/.c' file. The checksum is also stored
+# in a file. Both, the cython-generated source *and* the file holding the checksum
+# are maintained in git. If the '.cc' file is outdated then the rule to remamke
+# it can execute $(call maybe_run_cython, CMD). The macro compares the checksum
+# with the stored checksum and if they match the '.cc' is merely 'touch'ed in
+# order to update its timestamp. Only if a mismatch is found is cython re-run
+# and the checksum-file updated.
+#
+# ARGUMENT: CYTHON command; should generate $@, e.g.,
+#
+#           $(call maybe_run_cython,$(CYTHON) $< -o $@)
+#
+define maybe_run_cython
+	@echo "Check if we have to remake cython-generated sources"
+	cython_cksum="`cat $^ | cksum`" ; \
+    stamp_file="$(addsuffix /,$(dirname $@))$(basename $@).stamp" ; \
+	if [ -e "$@" -a -e "$${stamp_file}" ] && [ "$${cython_cksum}" = "`cat $${stamp_file}`" ] ; then\
+		echo "Checksum found and it matches 'stamp'; just touching $@" ; \
+		touch $@; \
+	else \
+		echo "Remaking cython sources" ; \
+		if $(1) ; then \
+			echo "Updating '$${stamp_file}'"; \
+			echo "$${cython_cksum}" > "$${stamp_file}"; \
+		else \
+			echo "CYTON command failed" ; \
+			false ; \
+		fi \
+	fi
+endef
 
 # definitions
 include $(CPSW_DIR)/../config.mak
