@@ -8,6 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 #include <cpsw_python.h>
 #include <cpsw_cython.h>
+#include <stdexcept>
 
 extern "C" {
 

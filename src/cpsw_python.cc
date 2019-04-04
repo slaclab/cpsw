@@ -15,6 +15,7 @@
 #include <Python.h>
 #include <yaml-cpp/yaml.h>
 #include <fstream>
+#include <stdexcept>
 
 namespace cpsw_python {
 
@@ -630,7 +631,7 @@ translateException(CPSWError *err)
 		return pCpswPyExc_CPSWError;
 	}
 	// should never get here
-	throw std::runtime_error("Internal Error -- uncaught CPSWError");
+	throw std::runtime_error( std::string( "Internal Error -- uncaught CPSWError" ) );
 }
 
 
