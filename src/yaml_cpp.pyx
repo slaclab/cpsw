@@ -1,3 +1,5 @@
+# cython: c_string_type=str, c_string_encoding=ascii
+# ^^^^^^ DO NOT REMOVE THE ABOVE LINE ^^^^^^^
 #@C Copyright Notice
 #@C ================
 #@C This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
@@ -46,7 +48,7 @@ cdef class Node:
   def __cinit__(self, str s = None):
     cdef c_Node snod
     if None != s:
-      snod = c_Node( s.encode( 'UTF-8' ) )
+      snod = c_Node( s )
       yamlNodeReset( &self.c_node, &snod )
 
   def IsDefined(self):
@@ -65,21 +67,21 @@ cdef class Node:
     return self.c_node.IsMap()
 
   def Scalar(self):
-    return self.c_node.Scalar().decode('UTF-8')
+    return self.c_node.Scalar()
 
   def Type(self):
     return NodeType( self.c_node.Type() )
 
   def remove(self, key):
-    cdef Node   knod
-    cdef string   kstr
+    cdef Node     knod
     cdef longlong kint
+    cdef string   cstr
     if isinstance(key, Node):
       knod = key
       return self.c_node.remove( knod.c_node )
     elif isinstance(key, str):
-      kstr = key.encode('UTF-8')
-      return self.c_node.remove( kstr )
+      cstr = key
+      return self.c_node.remove( cstr )
     elif isinstance(key, int):
       kint = key
       return self.c_node.remove( kint )
@@ -93,8 +95,7 @@ cdef class Node:
       pnod = rhs
       self.c_node = pnod.c_node
     elif isinstance(rhs, str):
-      bstr = rhs.encode('UTF-8')
-      self.c_node = c_Node( bstr )
+      self.c_node = c_Node( rhs )
     else:
       raise TypeError('yaml_cpp::c_Node::set not supported for argument type')
 
@@ -102,11 +103,11 @@ cdef class Node:
     self.c_node.push_back( rhs.c_node )
 
   def getAs(self):
-    return self.c_node.as[string]().decode('UTF-8')
+    return self.c_node.as[string]()
 
   def __repr__(self):
     if isinstance(self, Node) and self.IsScalar():
-      return self.c_node.as[string]().decode('UTF-8')
+      return self.c_node.as[string]()
     else:
       return object.__repr__(self)
 
@@ -115,15 +116,13 @@ cdef class Node:
 
   def __getitem__(self, key):
     cdef Node   knod
-    cdef string   kstr
     cdef longlong kint
     cdef Node rval = Node()
     if isinstance(key, Node):
       knod = key
       yamlNodeReset( &rval.c_node, yamlNodeFind[c_Node](self.c_node, knod.c_node) )
     elif isinstance(key, str):
-      kstr = key.encode('UTF-8')
-      yamlNodeReset( &rval.c_node, yamlNodeFind[string](self.c_node, kstr) )
+      yamlNodeReset( &rval.c_node, yamlNodeFind[string](self.c_node, key) )
     elif isinstance(key, int):
       kint = key
       yamlNodeReset( &rval.c_node, yamlNodeFind[longlong](self.c_node, kint) )
@@ -133,24 +132,20 @@ cdef class Node:
 
   def __setitem__(self, key, val):
     cdef Node   knod, vnod
-    cdef string   kstr, vstr
     cdef longlong kint
 
     if isinstance(key, str):
-      kstr = key.encode('UTF-8')
       if isinstance(val, str):
-        vstr = val.encode('UTF-8')
-        yamlNodeSet[string, string](self.c_node, kstr, vstr)
+        yamlNodeSet[string, string](self.c_node, key, val)
       elif isinstance(val, Node):
         vnod = val
-        yamlNodeSet[string, c_Node  ](self.c_node, kstr, vnod.c_node)
+        yamlNodeSet[string, c_Node  ](self.c_node, key, vnod.c_node)
       else:
         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
     elif isinstance(key, int):
       kint = key
       if isinstance(val, str):
-        vstr = val.encode('UTF-8')
-        yamlNodeSet[longlong, string](self.c_node, kint, vstr)
+        yamlNodeSet[longlong, string](self.c_node, kint, val)
       elif isinstance(val, Node):
         vnod = val
         yamlNodeSet[longlong, c_Node  ](self.c_node, kint, vnod.c_node)
@@ -159,8 +154,7 @@ cdef class Node:
     elif isinstance(key, Node):
       knod = key
       if isinstance(val, str):
-        vstr = val.encode('UTF-8')
-        yamlNodeSet[c_Node, string](self.c_node, knod.c_node, vstr)
+        yamlNodeSet[c_Node, string](self.c_node, knod.c_node, val)
       elif isinstance(val, Node):
         vnod = val
         yamlNodeSet[c_Node, c_Node  ](self.c_node, knod.c_node, vnod.c_node)
@@ -200,9 +194,7 @@ cdef class NodeIterator:
 
 def LoadFile(str filename):
   cdef Node   rval = Node()
-  cdef string snam = filename.encode('UTF-8')
-
-  rval.c_node = c_LoadFile( snam )
+  rval.c_node = c_LoadFile( filename )
   return rval
 
 def emitNode(Node node):

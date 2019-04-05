@@ -1,3 +1,5 @@
+# cython: c_string_type=str, c_string_encoding=ascii
+# ^^^^^^ DO NOT REMOVE THE ABOVE LINE ^^^^^^^
  #@C Copyright Notice
  #@C ================
  #@C This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
@@ -7,7 +9,6 @@
  #@C No part of CPSW, including this file, may be copied, modified, propagated, or
  #@C distributed except according to the terms contained in the LICENSE.txt file.
 
-#from    libcpp.cast     cimport *
 from    cython.operator cimport preincrement, dereference
 from    libc.stdio      cimport fopen, fclose, FILE
 from    cpython.buffer  cimport PyObject_CheckBuffer
@@ -43,7 +44,7 @@ Basic Node in the hierarchy
     """
 Return the name of this Entry
     """
-    return self.cptr.get().getName().decode('UTF-8','strict')
+    return self.cptr.get().getName()
 
   def getSize(self):
     """
@@ -59,7 +60,7 @@ Note: if an array of Entries is present then 'getSize()' returns
     """
 Return the description string (if any) of this Entry.
     """
-    return self.cptr.get().getDescription().decode('UTF-8', 'strict')
+    return self.cptr.get().getDescription()
 
   def getPollSecs(self):
     """
@@ -128,9 +129,7 @@ WARNING: do not use this method unless you know what you are
          instantiating interfaces (ScalVal, Command, ...) will
          result in I/O failures!
     """
-    bstr = pathString.encode('UTF-8')
-    cdef const char *cpath = bstr;
-    return Path.make( dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().findByName( cpath ) )
+    return Path.make( dynamic_pointer_cast[CIHub, CIEntry](self.cptr).get().findByName( pathString ) )
 
   def getChild(self, nameString):
     """
@@ -203,7 +202,7 @@ floating-point number.
     cdef ValEncoding enc = dynamic_pointer_cast[CIVal_Base, CIEntry](self.cptr).get().getEncoding()
     if not enc:
       return None
-    return ConvertEncoding.do_encode( enc ).decode('UTF-8', 'strict')
+    return ConvertEncoding.do_encode( enc )
 
   # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
   @staticmethod
@@ -239,7 +238,7 @@ original order of the menu entreis.
     rval = []
     while it != ite:
       cc_str = dereference( it ).first
-      nam = cc_str.get().c_str().decode('UTF-8', 'strict')
+      nam = cc_str.get().c_str()
       num = dereference( it ).second
       tup = ( nam, num )
       rval.append( tup )
@@ -917,9 +916,7 @@ would be identical to
 
 A 'NotFoundError' is thrown if the target of the operation does not exist.
     """
-    bstr = pathString.encode('UTF-8')
-    cdef const char *cpath = bstr;
-    return Path.make( self.cptr.get().findByName( cpath ) )
+    return Path.make( self.cptr.get().findByName( pathString ) )
 
   def __add__(self, pathString):
     """
@@ -991,7 +988,7 @@ Return the child at the end of this Path (if any -- 'None' otherwise).
     """
 Convert this Path to a string representation.
     """
-    return self.cptr.get().toString().decode('UTF-8','strict')
+    return self.cptr.get().toString()
 
   def __repr__(self):
     return self.toString()
@@ -1006,8 +1003,7 @@ Print information about this Path to a file (stdout if 'None').
     if None == fileName:
       f = stdout
     else:
-      cfnam = fileName.encode('UTF-8')
-      f     = fopen( cfnam.c_str(), "w+" );
+      f = fopen( fileName, "w+" );
       if f == NULL:
         raise RuntimeError("Unable to open file: " + fileName);
     try:
@@ -1121,15 +1117,10 @@ Load a configuration file in YAML format and write out into the hardware.
 be found. Defaults to the directory where the YAML file is located.\n
 RETURNS: number of values successfully written out.
     """
-    cdef const char *cfnam
     cdef const char *cdnam = NULL
-    fnam  = configYamlFileName.encode('UTF-8')
-    cfnam = fnam
-    dnam  = None
     if None != yamlIncDirName:
-      dnam  = yamlIncDirName.encode('UTF-8')
-      cdnam = dnam
-    return wrap_Path_loadConfigFromYamlFile(self.cptr, cfnam, cdnam)
+      cdnam  = yamlIncDirName
+    return wrap_Path_loadConfigFromYamlFile(self.cptr, configYamlFileName, cdnam)
 
   def loadConfigFromYamlString(self, configYamlString, yamlIncDirName = None):
     """
@@ -1139,15 +1130,10 @@ Load a configuration from a YAML formatted string and write out into the hardwar
 Defaults to the directory where the YAML file is located.\n
 RETURNS: number of values successfully written out.
     """
-    cdef const char *ccfgstr
     cdef const char *cdnam = NULL
-    cfgstr  = configYamlString.encode('UTF-8')
-    ccfgstr = cfgstr
-    dnam  = None
     if None != yamlIncDirName:
-      dnam  = yamlIncDirName.encode('UTF-8')
-      cdnam = dnam
-    return wrap_Path_loadConfigFromYamlString(self.cptr, ccfgstr, cdnam)
+      cdnam = yamlIncDirName
+    return wrap_Path_loadConfigFromYamlString(self.cptr, configYamlString, cdnam)
 
   def dumpConfigToYamlFile(self, fileName, templFileName = None, yamlIncDirName = None):
     """
@@ -1159,20 +1145,13 @@ property of each field in the hierarchy is honored (see README.configData).
 stored.\n
 RETURNS: number of values successfully saved to file.
     """
-    cdef const char *cfnam = NULL
     cdef const char *ctnam = NULL
     cdef const char *cydir = NULL
-    fnam  = fileName.encode("UTF-8")
-    cfnam = fnam
-    tnam  = None
-    bydir = None
     if None != templFileName:
-      tnam  = templFileName.encode("UTF-8")
-      ctnam = tnam
+      ctnam  = templFileName
     if None != yamlIncDirName:
-      bydir = yamlIncDirName.encode("UTF-8")
-      cydir = bydir
-    return wrap_Path_dumpConfigToYamlFile(self.cptr, cfnam, ctnam, cydir)
+      cydir = yamlIncDirName
+    return wrap_Path_dumpConfigToYamlFile(self.cptr, fileName, ctnam, cydir)
 
   def dumpConfigToYamlString(self, template = None, yamlIncDirName = None, templateIsFilename = True):
     """
@@ -1186,16 +1165,12 @@ stored.
 If 'templateIsFilename' is True then 'template' is the filename of a template
 file. Otherwise 'template' is a string containing the template itself.
     """
-    cdef const char *ctnam = NULL
+    cdef const char *ctmpl = NULL
     cdef const char *cydir = NULL
-    tnam  = None
-    bydir = None
     if None != template:
-      tmpl  = template.encode("UTF-8")
-      ctmpl = tmpl
+      ctmpl = template
     if None != yamlIncDirName:
-      bydir = yamlIncDirName.encode("UTF-8")
-      cydir = bydir
+      cydir = yamlIncDirName
     return wrap_Path_dumpConfigToYamlString(self.cptr, ctmpl, cydir, templateIsFilename)
 
   @staticmethod
@@ -1214,9 +1189,7 @@ information.
     elif None == arg:
       return Path.make( IPath.create0() )
     elif issubclass(type(arg), str):
-      bstr  = arg.encode('UTF-8')
-      cpath = bstr;
-      return Path.make( IPath.create2( cpath ) )
+      return Path.make( IPath.create2( arg ) )
     else:
       raise TypeError("Expected a Hub object here")
 
@@ -1235,23 +1208,15 @@ The directory is relevant for included YAML files.
 
 RETURNS: Root Path of the device hierarchy.
     """
-    cdef const char *cname = NULL
-    cdef const char *croot = NULL
     cdef const char *cydir = NULL
     cdef IYamlFixup *cfixp = NULL;
-    bname = yamlFileName.encode("UTF-8")
-    cname = bname
-    broot = rootName.encode("UTF-8")
-    croot = broot
-    bydir = None
     if None != yamlIncDirName:
-      bydir = yamlIncDirName.encode("UTF-8")
-      cydir = bydir
+      cydir = yamlIncDirName
 
     if None != yamlFixup:
       cfixp = &yamlFixup.cc_YamlFixup
 
-    return Path.make( IPath.loadYamlFile( cname, croot, cydir, cfixp ) )
+    return Path.make( IPath.loadYamlFile( yamlFileName, rootName, cydir, cfixp ) )
 
   @staticmethod
   def loadYaml(str yamlString, str rootName="root", yamlIncDirName = None, YamlFixup yamlFixup = None):
@@ -1268,21 +1233,15 @@ The directory is relevant for included YAML files.
 
 RETURNS: Root Path of the device hierarchy.
     """
-    cdef string cyamlString = yamlString.encode("UTF-8")
-    cdef const char *croot  = NULL
     cdef const char *cydir  = NULL
     cdef IYamlFixup *cfixp  = NULL;
-    broot = rootName.encode("UTF-8")
-    croot = broot
-    bydir = None
     if None != yamlIncDirName:
-      bydir = yamlIncDirName.encode("UTF-8")
-      cydir = bydir
+      cydir = yamlIncDirName
 
     if None != yamlFixup:
       cfixp = &yamlFixup.cc_YamlFixup
 
-    return Path.make( wrap_Path_loadYamlStream( cyamlString, croot, cydir, cfixp ) )
+    return Path.make( wrap_Path_loadYamlStream( yamlString, rootName, cydir, cfixp ) )
 
   @staticmethod
   cdef make(cc_Path cp):
@@ -1313,159 +1272,116 @@ currently supported facilities.
 
   cdef const char *cstr = NULL;
   if None != facility:
-    bstr = facility.encode('UTF-8')
-    cstr = bstr
+    cstr = facility
   return c_setCPSWVerbosity( cstr, level )
 
 cdef public class CPSWError(Exception)[type CpswPyExcT_CPSWError, object CpswPyExcO_CPSWError]:
 
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_CPSWError] foo = make_shared[cc_CPSWError]( cs )
+    cdef shared_ptr[cc_CPSWError] foo = make_shared[cc_CPSWError]( msg )
     self._msg = foo.get().what()
 
   def what(self):
-    return self._msg.decode('UTF-8', 'strict')
+    return self._msg
 
 cdef public class ErrnoError(CPSWError)[type CpswPyExcT_ErrnoError, object CpswPyExcO_ErrnoError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_ErrnoError] foo = make_shared[cc_ErrnoError]( cs )
+    cdef shared_ptr[cc_ErrnoError] foo = make_shared[cc_ErrnoError]( msg )
     self._msg = foo.get().what()
 
 cdef public class IOError(ErrnoError)[type CpswPyExcT_IOError, object CpswPyExcO_IOError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_IOError] foo = make_shared[cc_IOError]( cs )
+    cdef shared_ptr[cc_IOError] foo = make_shared[cc_IOError]( msg )
     self._msg = foo.get().what()
 
 cdef public class InternalError(ErrnoError)[type CpswPyExcT_InternalError, object CpswPyExcO_InternalError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_InternalError] foo = make_shared[cc_InternalError]( cs )
+    cdef shared_ptr[cc_InternalError] foo = make_shared[cc_InternalError]( msg )
     self._msg = foo.get().what()
 
 cdef public class DuplicateNameError(CPSWError)[type CpswPyExcT_DuplicateNameError, object CpswPyExcO_DuplicateNameError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_DuplicateNameError] foo = make_shared[cc_DuplicateNameError]( cs )
+    cdef shared_ptr[cc_DuplicateNameError] foo = make_shared[cc_DuplicateNameError]( msg )
     self._msg = foo.get().what()
 
 cdef public class NotDevError(CPSWError)[type CpswPyExcT_NotDevError, object CpswPyExcO_NotDevError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_NotDevError] foo = make_shared[cc_NotDevError]( cs )
+    cdef shared_ptr[cc_NotDevError] foo = make_shared[cc_NotDevError]( msg )
     self._msg = foo.get().what()
 
 cdef public class NotFoundError(CPSWError)[type CpswPyExcT_NotFoundError, object CpswPyExcO_NotFoundError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_NotFoundError] foo = make_shared[cc_NotFoundError]( cs )
+    cdef shared_ptr[cc_NotFoundError] foo = make_shared[cc_NotFoundError]( msg )
     self._msg = foo.get().what()
 
 cdef public class InvalidPathError(CPSWError)[type CpswPyExcT_InvalidPathError, object CpswPyExcO_InvalidPathError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_InvalidPathError] foo = make_shared[cc_InvalidPathError]( cs )
+    cdef shared_ptr[cc_InvalidPathError] foo = make_shared[cc_InvalidPathError]( msg )
     self._msg = foo.get().what()
 
 cdef public class InvalidIdentError(CPSWError)[type CpswPyExcT_InvalidIdentError, object CpswPyExcO_InvalidIdentError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_InvalidIdentError] foo = make_shared[cc_InvalidIdentError]( cs )
+    cdef shared_ptr[cc_InvalidIdentError] foo = make_shared[cc_InvalidIdentError]( msg )
     self._msg = foo.get().what()
 
 cdef public class InvalidArgError(CPSWError)[type CpswPyExcT_InvalidArgError, object CpswPyExcO_InvalidArgError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_InvalidArgError] foo = make_shared[cc_InvalidArgError]( cs )
+    cdef shared_ptr[cc_InvalidArgError] foo = make_shared[cc_InvalidArgError]( msg )
     self._msg = foo.get().what()
 
 cdef public class AddressAlreadyAttachedError(CPSWError)[type CpswPyExcT_AddressAlreadyAttachedError, object CpswPyExcO_AddressAlreadyAttachedError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_AddressAlreadyAttachedError] foo = make_shared[cc_AddressAlreadyAttachedError]( cs )
+    cdef shared_ptr[cc_AddressAlreadyAttachedError] foo = make_shared[cc_AddressAlreadyAttachedError]( msg )
     self._msg = foo.get().what()
 
 cdef public class ConfigurationError(CPSWError)[type CpswPyExcT_ConfigurationError, object CpswPyExcO_ConfigurationError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_ConfigurationError] foo = make_shared[cc_ConfigurationError]( cs )
+    cdef shared_ptr[cc_ConfigurationError] foo = make_shared[cc_ConfigurationError]( msg )
     self._msg = foo.get().what()
 
 cdef public class AddrOutOfRangeError(CPSWError)[type CpswPyExcT_AddrOutOfRangeError, object CpswPyExcO_AddrOutOfRangeError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_AddrOutOfRangeError] foo = make_shared[cc_AddrOutOfRangeError]( cs )
+    cdef shared_ptr[cc_AddrOutOfRangeError] foo = make_shared[cc_AddrOutOfRangeError]( msg )
     self._msg = foo.get().what()
 
 cdef public class ConversionError(CPSWError)[type CpswPyExcT_ConversionError, object CpswPyExcO_ConversionError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_ConversionError] foo = make_shared[cc_ConversionError]( cs )
+    cdef shared_ptr[cc_ConversionError] foo = make_shared[cc_ConversionError]( msg )
     self._msg = foo.get().what()
 
 cdef public class InterfaceNotImplementedError(CPSWError)[type CpswPyExcT_InterfaceNotImplementedError, object CpswPyExcO_InterfaceNotImplementedError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_InterfaceNotImplementedError] foo = make_shared[cc_InterfaceNotImplementedError]( cs )
+    cdef shared_ptr[cc_InterfaceNotImplementedError] foo = make_shared[cc_InterfaceNotImplementedError]( msg )
     self._msg = foo.get().what()
 
 cdef public class BadStatusError(CPSWError)[type CpswPyExcT_BadStatusError, object CpswPyExcO_BadStatusError]:
   def __init__(self, str msg, int status):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_BadStatusError] foo = make_shared[cc_BadStatusError]( cs, status )
+    cdef shared_ptr[cc_BadStatusError] foo = make_shared[cc_BadStatusError]( msg, status )
     self._msg = foo.get().what()
 
 cdef public class IntrError(CPSWError)[type CpswPyExcT_IntrError, object CpswPyExcO_IntrError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_IntrError] foo = make_shared[cc_IntrError]( cs )
+    cdef shared_ptr[cc_IntrError] foo = make_shared[cc_IntrError]( msg )
     self._msg = foo.get().what()
 
 cdef public class StreamDoneError(CPSWError)[type CpswPyExcT_StreamDoneError, object CpswPyExcO_StreamDoneError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_StreamDoneError] foo = make_shared[cc_StreamDoneError]( cs )
+    cdef shared_ptr[cc_StreamDoneError] foo = make_shared[cc_StreamDoneError]( msg )
     self._msg = foo.get().what()
 
 cdef public class FailedStreamError(CPSWError)[type CpswPyExcT_FailedStreamError, object CpswPyExcO_FailedStreamError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_FailedStreamError] foo = make_shared[cc_FailedStreamError]( cs )
+    cdef shared_ptr[cc_FailedStreamError] foo = make_shared[cc_FailedStreamError]( msg )
     self._msg = foo.get().what()
 
 cdef public class MissingOnceTagError(CPSWError)[type CpswPyExcT_MissingOnceTagError, object CpswPyExcO_MissingOnceTagError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_MissingOnceTagError] foo = make_shared[cc_MissingOnceTagError]( cs )
+    cdef shared_ptr[cc_MissingOnceTagError] foo = make_shared[cc_MissingOnceTagError]( msg )
     self._msg = foo.get().what()
 
 cdef public class MissingIncludeFileNameError(CPSWError)[type CpswPyExcT_MissingIncludeFileNameError, object CpswPyExcO_MissingIncludeFileNameError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_MissingIncludeFileNameError] foo = make_shared[cc_MissingIncludeFileNameError]( cs )
+    cdef shared_ptr[cc_MissingIncludeFileNameError] foo = make_shared[cc_MissingIncludeFileNameError]( msg )
     self._msg = foo.get().what()
 
 cdef public class NoYAMLSupportError(CPSWError)[type CpswPyExcT_NoYAMLSupportError, object CpswPyExcO_NoYAMLSupportError]:
@@ -1480,21 +1396,15 @@ cdef public class NoError(CPSWError)[type CpswPyExcT_NoError, object CpswPyExcO_
 
 cdef public class MultipleInstantiationError(CPSWError)[type CpswPyExcT_MultipleInstantiationError, object CpswPyExcO_MultipleInstantiationError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_MultipleInstantiationError] foo = make_shared[cc_MultipleInstantiationError]( cs )
+    cdef shared_ptr[cc_MultipleInstantiationError] foo = make_shared[cc_MultipleInstantiationError]( msg )
     self._msg = foo.get().what()
 
 cdef public class BadSchemaVersionError(CPSWError)[type CpswPyExcT_BadSchemaVersionError, object CpswPyExcO_BadSchemaVersionError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_BadSchemaVersionError] foo = make_shared[cc_BadSchemaVersionError]( cs )
+    cdef shared_ptr[cc_BadSchemaVersionError] foo = make_shared[cc_BadSchemaVersionError]( msg )
     self._msg = foo.get().what()
 
 cdef public class TimeoutError(CPSWError)[type CpswPyExcT_TimeoutError, object CpswPyExcO_TimeoutError]:
   def __init__(self, str msg):
-    bstr = msg.encode('UTF-8')
-    cdef const char *cs = bstr
-    cdef shared_ptr[cc_TimeoutError] foo = make_shared[cc_TimeoutError]( cs )
+    cdef shared_ptr[cc_TimeoutError] foo = make_shared[cc_TimeoutError]( msg )
     self._msg = foo.get().what()
