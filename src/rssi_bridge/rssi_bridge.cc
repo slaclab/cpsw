@@ -347,7 +347,7 @@ std::vector< PP > ports;
 		}
 	}
 
-	while ( (opt = getopt(argc, argv, "hRCp:u:a:d")) > 0 ) {
+	while ( (opt = getopt(argc, argv, opts)) > 0 ) {
 		switch (opt) {
 			case 'h':
 				rval = 0;
