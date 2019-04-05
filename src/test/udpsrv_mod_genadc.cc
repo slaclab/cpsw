@@ -286,7 +286,7 @@ static CBSA     theBSA( 1000 );
 void *CBSA::threadBody()
 {
 struct   timespec    dly       = dly_;
-unsigned             maxsz     = DEC_MAX*DAC_TABLE_TBL_SIZE + TIMING_HEADER_SIZE + STREAMBUF_HEADROOM;
+unsigned             maxsz     = DEC_MAX*DAC_TABLE_TBL_SIZE + TIMING_HEADER_SIZE + STREAMBUF_HEADROOM + STREAMBUF_TAILROOM;
 std::vector<uint8_t> streambuf;
 
 unsigned             actOsz, actIsz;
