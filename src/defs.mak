@@ -181,7 +181,7 @@ define maybe_run_cython
 			echo "Updating '$${stamp_file}'"; \
 			echo "$${cython_cksum}" > "$${stamp_file}"; \
 		else \
-			echo "CYTON command failed" ; \
+			echo "CYTHON command failed" ; \
 			false ; \
 		fi \
 	fi
