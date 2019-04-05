@@ -1,4 +1,16 @@
 master:
+    Merged 'swig/cython' branch. Major changes involve c++11 support
+    and migration from boost::python to cython. All python wrappers
+    have been migrated.
+
+    This means that boost is no longer necessary (if c++11 is available).
+    A few headers (lockfree) are still used but can be disabled in 
+    the configuration file (switch to a native but simple implementation
+    which may or may not be less performant).
+
+R3.branch:
+    Created a R3.branch tag prior to merging major updates
+
     The python wrapper is generated with CYTHON by default. Boost is
     still supported (in case the new cython wrapper makes problems).
     Experimental support for SWIG is also available. Eventually, however,
