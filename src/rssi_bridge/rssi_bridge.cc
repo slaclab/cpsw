@@ -303,9 +303,6 @@ usage(const char *nm)
 	fprintf(stderr,"       -v                        : Increase verbosity\n");
 }
 
-#define DFLT_PORT 8192
-#define DFLT_RSSI 0
-
 typedef std::pair<unsigned short, unsigned short> PP;
 
 static std::vector< PortMap > portMaps;
@@ -313,7 +310,7 @@ static std::vector< PortMap > portMaps;
 int
 main(int argc, char **argv)
 {
-const char        *peerIp      = "127.0.0.1";
+const char        *peerIp      = 0;
 int                rval        = 1;
 int                opt;
 Bridge::Flags      flags       = Bridge::NONE;
@@ -409,6 +406,16 @@ std::vector< PP > ports;
 		}
 	}
 
+	if ( ! peerIp ) {
+		fprintf(stderr,"Error: you must use a '-a <ip_addr>' argument to specify the target IP\n");
+		return rval;
+	}
+
+	if ( ports.empty() ) {
+		fprintf(stderr,"Error: you must specify at least one target port ('-p <port>')\n");
+		return rval;
+	}
+
 	peer = inet_addr( peerIp );
 	if ( INADDR_NONE == peer ) {
 		fprintf(stderr,"Error: invalid IP address in -%c\n", opt);
@@ -443,13 +450,6 @@ std::vector< PP > ports;
 				perror("Unable to lock");
 			}
 			return rval;
-		}
-	}
-
-	if ( ports.empty() ) {
-		ports.push_back( PP( DFLT_PORT, useRpc ? 0 : DFLT_PORT ) );
-		if ( DFLT_RSSI ) {
-			rssiMsk |= 1;
 		}
 	}
 
