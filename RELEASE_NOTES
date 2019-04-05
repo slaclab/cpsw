@@ -7,6 +7,8 @@ master:
     Internal Modification: call open/close only on the adapters that
     perform I/O. This makes the python wrapper simpler.
 
+    BUGFIX: stack overrun in udpsrv
+
     Feature: cpsw_mem_dev: support 'offset' property when mapping a 
         file descriptor.
 

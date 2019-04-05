@@ -56,8 +56,8 @@
 #define VERS_V2    2
 #define VERSBITS   4
 
-#define HEADSIZE          8
-#define TAILSPACE         16
+#define HEADSIZE          STREAMBUF_HEADROOM
+#define TAILSPACE         STREAMBUF_TAILROOM
 #define TAILSIZE_V2       8
 
 #define EOFRAG_V1         0x80
@@ -1257,7 +1257,7 @@ int i,c;
 
 
 		if ( strm_args[i].ileave ) {
-			send_fragmented(strm_args[i].port, buf, totsize, size, tdest, 0, strm_args[i].ileave);
+			send_fragmented(strm_args[i].port, buf + HEADSIZE, totsize, size, tdest, 0, strm_args[i].ileave);
 		} else {
 			insertTDESTV1(buf, tdest);
 

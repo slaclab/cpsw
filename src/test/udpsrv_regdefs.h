@@ -140,6 +140,7 @@ extern "C" {
 	int streamIsRunning();
 
 #define STREAMBUF_HEADROOM 8
+#define STREAMBUF_TAILROOM 16
 
 	/* send a stream message; the buffer must have 8-bytes at
 	 * the head reserved for the packet header and extra space

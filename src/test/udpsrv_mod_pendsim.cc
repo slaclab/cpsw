@@ -327,7 +327,7 @@ int64_t vi = v*4294967296.; // 2^32
 void *CPendSim::threadBody()
 {
 struct   timespec dly = dly_;
-uint8_t  streambuf[STREAMBUF_HEADROOM+MSGSZ+16]; // tail space
+uint8_t  streambuf[STREAMBUF_HEADROOM+MSGSZ+STREAMBUF_TAILROOM]; // tail space
 
 	while ( 1 ) {
 		while ( nanosleep( &dly, &dly ) ) {
