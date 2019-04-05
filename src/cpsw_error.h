@@ -238,47 +238,55 @@ public:
 class ErrnoError: public CPSWError {
 protected:
 	template <typename T>
+	static std::string buildString(T s, int err = errno)
+	{
+		return std::string( s ).append(": ").append( strerror( err ) );
+	}
+
+	template <typename T>
 	ErrnoError(const T s, const char *typeName)
-	: CPSWError(s, typeName),
-	  err_(0)
+	: CPSWError( buildString(s) ),
+	  err_(errno)
 	{
 	}
 
 	template <typename T, typename U>
-	ErrnoError(const T s, const U u, const char *typeName)
-	: CPSWError(s, typeName),
-	  err_(u)
+	ErrnoError(const T s, const U err, const char *typeName)
+	: CPSWError( buildString(s, err), typeName ),
+	  err_( err )
 	{
 	}
+
 
 
 public:
 	int err_;
 
 	ErrnoError(const char *n)
-	: CPSWError( n, typeName() ),
-	  err_(0)
+	: CPSWError( buildString( n ), typeName() ),
+	  err_( errno )
 	{
 	}
 
 	ErrnoError(const std::string &n)
-	: CPSWError( n, typeName() ),
-	  err_(0)
+	: CPSWError( buildString( n ), typeName() ),
+	  err_( errno )
 	{
 	}
 
 	ErrnoError(const std::string &s, int err)
-	: CPSWError( (s + std::string(": ")).append(strerror(err)), typeName() ),
+	: CPSWError( buildString( s, err ), typeName() ),
 	  err_( err )
 	{
 	}
 
 
 	ErrnoError(const char *s, int err)
-	: CPSWError( std::string(s).append(": ").append(strerror(err)), typeName() ),
+	: CPSWError( buildString( s, err ), typeName() ),
 	  err_( err )
 	{
 	}
+
 	// every subclass MUST implement 'clone'
 	virtual CPSWErrorHdl clone() { return cpsw::make_shared<CPSWError>(*this); }
 	// every subclass MUST implement 'throwMe'
