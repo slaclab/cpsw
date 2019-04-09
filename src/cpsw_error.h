@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 #include <exception>
 #include <cpsw_shared_ptr.h>
 
