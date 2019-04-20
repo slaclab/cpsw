@@ -795,7 +795,7 @@ Executed on the loaded YAML Node hierarchy.
     self.__call__(root, top)
 
   @staticmethod
-  def findByName(Node node, Path path, char sep = b'/'):
+  def findByName(Node node, const char *path, char sep = b'/'):
     """
 Lookup a YAML node from 'node' traversing a hierarchy
 of YAML::Map's while handling merge keys ('<<').
@@ -803,7 +803,7 @@ The path to lookup is a string with path elements
 separated by 'sep'
     """
     n = Node()
-    n.c_node = IYamlFixup.findByName( node.c_node, path.c_Path, sep )
+    n.c_node = IYamlFixup.findByName( node.c_node, path, sep )
     return n
 
 cdef public class PathVisitor[type CpswPyWrapT_PathVisitor, object CpswPyWrapO_PathVisitor]:

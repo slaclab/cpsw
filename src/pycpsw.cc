@@ -2301,7 +2301,6 @@ static const char __pyx_k_cydir[] = "cydir";
 static const char __pyx_k_level[] = "level";
 static const char __pyx_k_msg_2[] = "_msg";
 static const char __pyx_k_toIdx[] = "toIdx";
-static const char __pyx_k_c_Path[] = "c_Path";
 static const char __pyx_k_create[] = "create";
 static const char __pyx_k_import[] = "__import__";
 static const char __pyx_k_object[] = "object";
@@ -2411,7 +2410,6 @@ static PyObject *__pyx_n_s_ValueError;
 static PyObject *__pyx_n_s_arg;
 static PyObject *__pyx_n_s_asyncIO;
 static PyObject *__pyx_n_s_bufObject;
-static PyObject *__pyx_n_s_c_Path;
 static PyObject *__pyx_n_s_call;
 static PyObject *__pyx_n_s_callback;
 static PyObject *__pyx_n_s_cfixp;
@@ -2587,7 +2585,7 @@ static PyObject *__pyx_pf_6pycpsw_7Command_6__reduce_cython__(CYTHON_UNUSED stru
 static PyObject *__pyx_pf_6pycpsw_7Command_8__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_6pycpsw_Command *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
 static int __pyx_pf_6pycpsw_9YamlFixup___cinit__(struct CpswPyWrapO_YamlFixup *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_6pycpsw_9YamlFixup_2__call__(struct CpswPyWrapO_YamlFixup *__pyx_v_self, PyObject *__pyx_v_root, PyObject *__pyx_v_top); /* proto */
-static PyObject *__pyx_pf_6pycpsw_9YamlFixup_4findByName(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_node, struct __pyx_obj_6pycpsw_Path *__pyx_v_path, char __pyx_v_sep); /* proto */
+static PyObject *__pyx_pf_6pycpsw_9YamlFixup_4findByName(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_node, char const *__pyx_v_path, char __pyx_v_sep); /* proto */
 static PyObject *__pyx_pf_6pycpsw_9YamlFixup_6__reduce_cython__(CYTHON_UNUSED struct CpswPyWrapO_YamlFixup *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_6pycpsw_9YamlFixup_8__setstate_cython__(CYTHON_UNUSED struct CpswPyWrapO_YamlFixup *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
 static int __pyx_pf_6pycpsw_11PathVisitor___cinit__(struct CpswPyWrapO_PathVisitor *__pyx_v_self); /* proto */
@@ -10297,18 +10295,18 @@ static PyObject *__pyx_pf_6pycpsw_9YamlFixup_2__call__(struct CpswPyWrapO_YamlFi
 /* "pycpsw.pyx":798
  * 
  *   @staticmethod
- *   def findByName(Node node, Path path, char sep = b'/'):             # <<<<<<<<<<<<<<
+ *   def findByName(Node node, const char *path, char sep = b'/'):             # <<<<<<<<<<<<<<
  *     """
  * Lookup a YAML node from 'node' traversing a hierarchy
  */
 
 /* Python wrapper */
 static PyObject *__pyx_pw_6pycpsw_9YamlFixup_5findByName(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_6pycpsw_9YamlFixup_4findByName[] = "YamlFixup.findByName(Node node, Path path, char sep=b'/')\n\nLookup a YAML node from 'node' traversing a hierarchy\nof YAML::Map's while handling merge keys ('<<').\nThe path to lookup is a string with path elements\nseparated by 'sep'\n    ";
+static char __pyx_doc_6pycpsw_9YamlFixup_4findByName[] = "YamlFixup.findByName(Node node, const char *path, char sep=b'/')\n\nLookup a YAML node from 'node' traversing a hierarchy\nof YAML::Map's while handling merge keys ('<<').\nThe path to lookup is a string with path elements\nseparated by 'sep'\n    ";
 static PyMethodDef __pyx_mdef_6pycpsw_9YamlFixup_5findByName = {"findByName", (PyCFunction)__pyx_pw_6pycpsw_9YamlFixup_5findByName, METH_VARARGS|METH_KEYWORDS, __pyx_doc_6pycpsw_9YamlFixup_4findByName};
 static PyObject *__pyx_pw_6pycpsw_9YamlFixup_5findByName(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_8yaml_cpp_Node *__pyx_v_node = 0;
-  struct __pyx_obj_6pycpsw_Path *__pyx_v_path = 0;
+  char const *__pyx_v_path;
   char __pyx_v_sep;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
@@ -10361,7 +10359,7 @@ static PyObject *__pyx_pw_6pycpsw_9YamlFixup_5findByName(CYTHON_UNUSED PyObject 
       }
     }
     __pyx_v_node = ((struct __pyx_obj_8yaml_cpp_Node *)values[0]);
-    __pyx_v_path = ((struct __pyx_obj_6pycpsw_Path *)values[1]);
+    __pyx_v_path = __Pyx_PyObject_AsString(values[1]); if (unlikely((!__pyx_v_path) && PyErr_Occurred())) __PYX_ERR(0, 798, __pyx_L3_error)
     if (values[2]) {
       __pyx_v_sep = __Pyx_PyInt_As_char(values[2]); if (unlikely((__pyx_v_sep == (char)-1) && PyErr_Occurred())) __PYX_ERR(0, 798, __pyx_L3_error)
     } else {
@@ -10377,7 +10375,6 @@ static PyObject *__pyx_pw_6pycpsw_9YamlFixup_5findByName(CYTHON_UNUSED PyObject 
   return NULL;
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_node), __pyx_ptype_8yaml_cpp_Node, 1, "node", 0))) __PYX_ERR(0, 798, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_path), __pyx_ptype_6pycpsw_Path, 1, "path", 0))) __PYX_ERR(0, 798, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_9YamlFixup_4findByName(__pyx_v_node, __pyx_v_path, __pyx_v_sep);
 
   /* function exit code */
@@ -10389,20 +10386,19 @@ static PyObject *__pyx_pw_6pycpsw_9YamlFixup_5findByName(CYTHON_UNUSED PyObject 
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_6pycpsw_9YamlFixup_4findByName(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_node, struct __pyx_obj_6pycpsw_Path *__pyx_v_path, char __pyx_v_sep) {
+static PyObject *__pyx_pf_6pycpsw_9YamlFixup_4findByName(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_node, char const *__pyx_v_path, char __pyx_v_sep) {
   struct __pyx_obj_8yaml_cpp_Node *__pyx_v_n = NULL;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
-  char const *__pyx_t_2;
-  YAML::Node __pyx_t_3;
+  YAML::Node __pyx_t_2;
   __Pyx_RefNannySetupContext("findByName", 0);
 
   /* "pycpsw.pyx":805
  * separated by 'sep'
  *     """
  *     n = Node()             # <<<<<<<<<<<<<<
- *     n.c_node = IYamlFixup.findByName( node.c_node, path.c_Path, sep )
+ *     n.c_node = IYamlFixup.findByName( node.c_node, path, sep )
  *     return n
  */
   __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_ptype_8yaml_cpp_Node), __pyx_empty_tuple, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 805, __pyx_L1_error)
@@ -10413,25 +10409,21 @@ static PyObject *__pyx_pf_6pycpsw_9YamlFixup_4findByName(struct __pyx_obj_8yaml_
   /* "pycpsw.pyx":806
  *     """
  *     n = Node()
- *     n.c_node = IYamlFixup.findByName( node.c_node, path.c_Path, sep )             # <<<<<<<<<<<<<<
+ *     n.c_node = IYamlFixup.findByName( node.c_node, path, sep )             # <<<<<<<<<<<<<<
  *     return n
  * 
  */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_path), __pyx_n_s_c_Path); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 806, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_AsString(__pyx_t_1); if (unlikely((!__pyx_t_2) && PyErr_Occurred())) __PYX_ERR(0, 806, __pyx_L1_error)
   try {
-    __pyx_t_3 = IYamlFixup::findByName(__pyx_v_node->c_node, __pyx_t_2, __pyx_v_sep);
+    __pyx_t_2 = IYamlFixup::findByName(__pyx_v_node->c_node, __pyx_v_path, __pyx_v_sep);
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred()) PyErr_SetString(PyExc_RuntimeError , "Error converting c++ exception.");
     __PYX_ERR(0, 806, __pyx_L1_error)
   }
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_v_n->c_node = __pyx_t_3;
+  __pyx_v_n->c_node = __pyx_t_2;
 
   /* "pycpsw.pyx":807
  *     n = Node()
- *     n.c_node = IYamlFixup.findByName( node.c_node, path.c_Path, sep )
+ *     n.c_node = IYamlFixup.findByName( node.c_node, path, sep )
  *     return n             # <<<<<<<<<<<<<<
  * 
  * cdef public class PathVisitor[type CpswPyWrapT_PathVisitor, object CpswPyWrapO_PathVisitor]:
@@ -10444,7 +10436,7 @@ static PyObject *__pyx_pf_6pycpsw_9YamlFixup_4findByName(struct __pyx_obj_8yaml_
   /* "pycpsw.pyx":798
  * 
  *   @staticmethod
- *   def findByName(Node node, Path path, char sep = b'/'):             # <<<<<<<<<<<<<<
+ *   def findByName(Node node, const char *path, char sep = b'/'):             # <<<<<<<<<<<<<<
  *     """
  * Lookup a YAML node from 'node' traversing a hierarchy
  */
@@ -41581,7 +41573,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_arg, __pyx_k_arg, sizeof(__pyx_k_arg), 0, 0, 1, 1},
   {&__pyx_n_s_asyncIO, __pyx_k_asyncIO, sizeof(__pyx_k_asyncIO), 0, 0, 1, 1},
   {&__pyx_n_s_bufObject, __pyx_k_bufObject, sizeof(__pyx_k_bufObject), 0, 0, 1, 1},
-  {&__pyx_n_s_c_Path, __pyx_k_c_Path, sizeof(__pyx_k_c_Path), 0, 0, 1, 1},
   {&__pyx_n_s_call, __pyx_k_call, sizeof(__pyx_k_call), 0, 0, 1, 1},
   {&__pyx_n_s_callback, __pyx_k_callback, sizeof(__pyx_k_callback), 0, 0, 1, 1},
   {&__pyx_n_s_cfixp, __pyx_k_cfixp, sizeof(__pyx_k_cfixp), 0, 0, 1, 1},
@@ -42238,7 +42229,7 @@ static int __Pyx_InitCachedConstants(void) {
   /* "pycpsw.pyx":798
  * 
  *   @staticmethod
- *   def findByName(Node node, Path path, char sep = b'/'):             # <<<<<<<<<<<<<<
+ *   def findByName(Node node, const char *path, char sep = b'/'):             # <<<<<<<<<<<<<<
  *     """
  * Lookup a YAML node from 'node' traversing a hierarchy
  */
@@ -43110,7 +43101,7 @@ PyMODINIT_FUNC PyInit_pycpsw(void)
   /* "pycpsw.pyx":798
  * 
  *   @staticmethod
- *   def findByName(Node node, Path path, char sep = b'/'):             # <<<<<<<<<<<<<<
+ *   def findByName(Node node, const char *path, char sep = b'/'):             # <<<<<<<<<<<<<<
  *     """
  * Lookup a YAML node from 'node' traversing a hierarchy
  */
@@ -43124,7 +43115,7 @@ PyMODINIT_FUNC PyInit_pycpsw(void)
  *     self.__call__(root, top)
  * 
  *   @staticmethod             # <<<<<<<<<<<<<<
- *   def findByName(Node node, Path path, char sep = b'/'):
+ *   def findByName(Node node, const char *path, char sep = b'/'):
  *     """
  */
   __pyx_t_1 = __Pyx_GetNameInClass((PyObject *)__pyx_ptype_6pycpsw_YamlFixup, __pyx_n_s_findByName); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 798, __pyx_L1_error)
