@@ -106,17 +106,6 @@ void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
 	addAtAddress( child );
 }
 
-void
-CMemDevImpl::addAtAddress(Field child, YamlState &ypath)
-{
-int align = DFLT_ALIGN;
-
-	if ( readNode(ypath, YAML_KEY_align, &align ) ) {
-		/* nothing special... */
-	}
-	addAtAddress(child, align);
-}
-
 void CMemDevImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CDevImpl::dumpYamlPart( node );
@@ -125,11 +114,10 @@ void CMemDevImpl::dumpYamlPart(YAML::Node &node) const
 	}
 }
 
-CMemAddressImpl::CMemAddressImpl(AKey k, int align)
-: CAddressImpl(k, 1),
-  align_( align )
+void
+CMemAddressImpl::checkAlign()
 {
-	switch ( align ) {
+	switch ( align_ ) {
 		case 1:
 			read_func_  = read_func8;
 			write_func_ = write_func8;
@@ -149,6 +137,23 @@ CMemAddressImpl::CMemAddressImpl(AKey k, int align)
 		default:
 			throw ConfigurationError("MemDev - supported address alignment: 1,2,4 or 8 only");
 	}
+}
+
+CMemAddressImpl::CMemAddressImpl(AKey k, int align)
+: CAddressImpl(k, 1),
+  align_( align )
+{
+	checkAlign();
+}
+
+CMemAddressImpl::CMemAddressImpl(AKey key, YamlState &ypath)
+: CAddressImpl( key, ypath          ),
+  align_      ( IMemDev::DFLT_ALIGN )
+{
+	if ( 1 != getNelms() )
+		throw ConfigurationError("CMemAddressImpl::CMemAddressImpl -- can only have exactly 1 child");
+	readNode(ypath, YAML_KEY_align, &align_ );
+	checkAlign();
 }
 
 uint64_t CMemAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const

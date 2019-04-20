@@ -42,6 +42,20 @@ CAddressImpl::CAddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
 		this->byteOrder_ = hostByteOrder();
 }
 
+CAddressImpl::CAddressImpl(AKey owner, YamlState &ypath)
+: owner_     ( owner                          ),
+  child_     ( static_cast<CEntryImpl*>(NULL) ),
+  nelms_     ( IDev::DFLT_NELMS               ),
+  byteOrder_ ( UNKNOWN                        )
+{
+	readNode(ypath, YAML_KEY_nelms, &nelms_);
+	readNode(ypath, YAML_KEY_byteOrder, &byteOrder_ );
+
+	openCount_.store(0, cpsw::memory_order_release);
+	if ( UNKNOWN == byteOrder_ )
+		byteOrder_ = hostByteOrder();
+}
+
 // The current implementation allows us to just 
 // copy references. But that might change in the
 // future if we decide to build a full copy of
@@ -336,13 +350,10 @@ CDevImpl::postHook( ConstShObj orig )
 }
 
 void
-CDevImpl::addAtAddress(Field child, YamlState &ypath)
+CDevImpl::addAtAddress(Field child, unsigned nelms)
 {
-unsigned nelms = DFLT_NELMS;
-
-	readNode(ypath, YAML_KEY_nelms, &nelms);
-
-	addAtAddress(child, nelms);
+	IAddress::AKey k = getAKey();
+	add( cpsw::make_shared<CAddressImpl>(k, nelms), child->getSelf() );
 }
 
 void

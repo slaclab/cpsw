@@ -60,6 +60,13 @@ CNullAddressImpl::CNullAddressImpl(AKey k)
 {
 }
 
+CNullAddressImpl::CNullAddressImpl(AKey k, YamlState &ypath)
+: CAddressImpl(k, ypath)
+{
+	if ( 1 != getNelms() )
+		throw ConfigurationError("CNullAddressImpl -- can only have exactly 1 child");
+}
+
 uint64_t CNullAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 {
 NullDevImpl owner( getOwnerAs<NullDevImpl>() );

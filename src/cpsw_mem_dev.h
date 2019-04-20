@@ -12,6 +12,7 @@
 
 #include <cpsw_hub.h>
 #include <string.h>
+#include <cpsw_yaml.h>
 
 class CMemDevImpl;
 typedef shared_ptr<CMemDevImpl>            MemDevImpl;
@@ -25,8 +26,11 @@ class CMemAddressImpl : public CAddressImpl {
 		uint64_t (*read_func_ )(uint8_t *dst, uint8_t *src, size_t n);
 		uint64_t (*write_func_)(uint8_t *dst, uint8_t *src, size_t n, uint8_t msk1, uint8_t mskn);
 
+		void checkAlign();
+
 	public:
 		CMemAddressImpl(AKey key, int align);
+		CMemAddressImpl(AKey key, YamlState &ypath);
 
 		CMemAddressImpl(const CMemAddressImpl &orig, AKey k)
 		: CAddressImpl( orig,           k),
@@ -67,7 +71,12 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 
 		virtual void dumpYamlPart(YAML::Node &node) const;
 
-		virtual void addAtAddress(Field child, YamlState &ypath);
+		virtual void
+		addAtAddress(Field child, YamlState &ypath)
+		{
+			doAddAtAddress<CMemAddressImpl>( child, ypath );
+		}
+
 		virtual void addAtAddress(Field child, int align = DFLT_ALIGN);
 
 		// must override to check that nelms == 1

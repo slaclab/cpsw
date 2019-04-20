@@ -13,6 +13,7 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_entry.h>
 #include <cpsw_compat.h>
+#include <cpsw_yaml.h>
 
 #include <stdio.h>
 //#include <cpsw_hub.h>
@@ -132,6 +133,7 @@ class CAddressImpl : public IAddress {
 
 	public:
 		CAddressImpl(AKey owner, unsigned nelms = 1, ByteOrder byteOrder = UNKNOWN);
+		CAddressImpl(AKey owner, YamlState &ypath);
 
 		virtual ~CAddressImpl()
 		{

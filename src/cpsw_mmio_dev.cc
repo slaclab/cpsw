@@ -30,6 +30,17 @@ CMMIOAddressImpl::CMMIOAddressImpl(
 {
 }
 
+CMMIOAddressImpl::CMMIOAddressImpl(AKey key, YamlState &ypath)
+: CAddressImpl( key, ypath            ),
+  stride_     ( IMMIODev::DFLT_STRIDE )
+{
+	if ( readNode(ypath, YAML_KEY_offset, &offset_ ) ) {
+		readNode(ypath, YAML_KEY_stride,    &stride_);
+	} else {
+		throw ConfigurationError("CMMIOAddressImpl: missing '" YAML_KEY_offset "' in YAML");
+	}
+}
+
 void CMMIOAddressImpl::dump(FILE *f) const
 {
 	CAddressImpl::dump( f ); fprintf(f, "+0x%" PRIx64 " (stride %" PRId64 ")", offset_, stride_);
@@ -158,25 +169,6 @@ void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, ui
 			cpsw::make_shared<CMMIOAddressImpl>(k, offset, nelms, stride, byteOrder),
 			child
 	   );
-}
-
-void
-CMMIODevImpl::addAtAddress(Field child, YamlState &ypath)
-{
-uint64_t  offset;
-unsigned  nelms     = DFLT_NELMS;
-uint64_t  stride    = DFLT_STRIDE;
-ByteOrder byteOrder = DFLT_BYTE_ORDER;
-
-	if ( readNode(ypath, YAML_KEY_offset, &offset ) ) {
-		readNode    (ypath, YAML_KEY_nelms,     &nelms);
-		readNode    (ypath, YAML_KEY_stride,    &stride);
-		readNode    (ypath, YAML_KEY_byteOrder, &byteOrder);
-
-		addAtAddress(child, offset, nelms, stride, byteOrder);
-	} else {
-		CDevImpl::addAtAddress(child, ypath);
-	}
 }
 
 void

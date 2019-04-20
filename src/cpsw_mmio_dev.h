@@ -14,6 +14,7 @@
 #include <cpsw_path.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <cpsw_yaml.h>
 
 class CMMIODevImpl;
 typedef shared_ptr<CMMIODevImpl> MMIODevImpl;
@@ -30,6 +31,8 @@ class CMMIOAddressImpl : public CAddressImpl {
 			unsigned nelms    = 1,
 			uint64_t stride   = IMMIODev::STRIDE_AUTO,
 			ByteOrder byteOrder = UNKNOWN );
+
+		CMMIOAddressImpl(AKey key, YamlState &ypath);
 
 		CMMIOAddressImpl(const CMMIOAddressImpl &orig, AKey k)
 		: CAddressImpl(orig, k),
@@ -70,7 +73,16 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 		}
 
 		CMMIODevImpl(Key &k, YamlState &ypath);
-		virtual void addAtAddress(Field child, YamlState &ypath);
+
+		virtual void addAtAddress(Field child, YamlState &ypath)
+		{
+		uint64_t  offset;
+			if ( readNode(ypath, YAML_KEY_offset, &offset ) ) {
+				doAddAtAddress<CMMIOAddressImpl>( child, ypath );
+			} else {
+				doAddAtAddress<CAddressImpl>( child, ypath );
+			}
+		}
 
 		virtual void dumpYamlPart(YAML::Node &) const;
 

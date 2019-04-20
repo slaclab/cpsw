@@ -77,13 +77,20 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 
 		// template: each (device-specific) address must be instantiated
 		// by it's creator device and then added.
-		virtual void addAtAddress(Field child, unsigned nelms)
+		virtual void addAtAddress(Field child, unsigned nelms);
+
+		template <typename T>
+		void doAddAtAddress(Field child, YamlState &ypath)
 		{
-		    IAddress::AKey k = getAKey();
-			add( cpsw::make_shared<CAddressImpl>(k, nelms), child->getSelf() );
+			IAddress::AKey k = getAKey();
+			add( cpsw::make_shared<T>(k, ypath), child->getSelf() );
 		}
 
-		virtual void addAtAddress(Field child, YamlState &ypath);
+		virtual void
+		addAtAddress(Field child, YamlState &ypath)
+		{
+			doAddAtAddress<CAddressImpl>( child, ypath );
+		}
 
 		virtual Path findByName(const char *s) const;
 

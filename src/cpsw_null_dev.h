@@ -11,6 +11,7 @@
 #define CPSW_NULL_TST_DEV_H
 
 #include <cpsw_hub.h>
+#include <cpsw_yaml.h>
 
 class CNullDevImpl;
 typedef shared_ptr<CNullDevImpl>            NullDevImpl;
@@ -26,6 +27,8 @@ class CNullAddressImpl : public CAddressImpl {
 		: CAddressImpl(orig, k)
 		{
 		}
+
+		CNullAddressImpl(AKey k, YamlState &ypath);
 
 		// ANY subclass must implement clone(AKey) !
 		virtual CNullAddressImpl *clone(AKey k) { return new CNullAddressImpl( *this, k ); }
@@ -50,6 +53,11 @@ class CNullDevImpl : public CDevImpl, public virtual INullDev {
 
 		// must override to check that nelms == 1
 		virtual void addAtAddress(Field child, unsigned nelms);
+
+		virtual void addAtAddress(Field child, YamlState &ypath)
+		{
+			doAddAtAddress<CNullAddressImpl>( child, ypath );
+		}
 
 		virtual CNullDevImpl *clone(Key &k)
 		{
