@@ -302,8 +302,15 @@ bool enumScalar = false;
 
 	if ( useEnum ) {
 		if ( enumScalar ) {
-			PyUniqueObj bytes( PyUnicode_AsASCIIString( op ) );
-			const char *str   = bytes ? PyBytes_AsString( bytes.get() ) : 0;
+			PyUniqueObj holder;
+            const char *str;
+			if ( PyBytes_Check( op ) ) {
+				str = PyBytes_AsString( op );
+			} else {
+			    PyUniqueObj bytes( PyUnicode_AsASCIIString( op ) );
+			    str   = bytes ? PyBytes_AsString( bytes.get() ) : 0;
+                holder = bytes;
+			}
 			if ( ! str ) {
 				throw InvalidArgError("IScalVal_setVal: Unable to convert string to ASCII");
 			}
@@ -326,12 +333,20 @@ bool enumScalar = false;
 			std::vector<const char *> vcstr;
 
 			for ( unsigned i = 0; i < nelms; ++i ) {
-				PyUniqueObj bytes( PyUnicode_AsASCIIString( PySequence_GetItem( op, i ) ) );
-				const char *str = bytes ? PyBytes_AsString( bytes.get() ) : 0;
+	            const char *str;
+				PyUniqueObj itm( PySequence_GetItem( op, i )  );
+				PyObject   *itmop = itm.get();
+				if ( PyBytes_Check( itmop ) ) {
+					str = PyBytes_AsString( itmop );
+					itm.transfer( vstr[i] );
+				} else {
+					PyUniqueObj bytes( PyUnicode_AsASCIIString( itmop ) );
+					str = bytes ? PyBytes_AsString( bytes.get() ) : 0;
+					bytes.transfer( vstr[i] );
+				}
 				if ( ! str ) {
 					throw InvalidArgError("IScalVal_setVal: Unable to convert string to ASCII");
 				}
-				bytes.transfer( vstr[i] );
 				vcstr.push_back( str   );
 			}
 			{
@@ -400,7 +415,8 @@ IndexRange rng(from, to);
 
 	std::vector<double> v64;
 	for ( unsigned i = 0; i < nelms; ++i ) {
-		v64.push_back( xtractDouble( PySequence_GetItem( op, i ) ) );
+		PyUniqueObj tmp( PySequence_GetItem( op, i ) );
+		v64.push_back( xtractDouble( tmp.get() ) );
 	}
 	{
 	GILUnlocker allowThreadingWhileWaiting;
