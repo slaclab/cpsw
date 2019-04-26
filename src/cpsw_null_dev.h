@@ -33,8 +33,8 @@ class CNullAddressImpl : public CAddressImpl {
 		// ANY subclass must implement clone(AKey) !
 		virtual CNullAddressImpl *clone(AKey k) { return new CNullAddressImpl( *this, k ); }
 
-		virtual uint64_t read(CompositePathIterator *node, CReadArgs *args)   const;
-		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
+		virtual uint64_t read (CReadArgs *args)  const;
+		virtual uint64_t write(CWriteArgs *args) const;
 };
 
 class CNullDevImpl : public CDevImpl, public virtual INullDev {

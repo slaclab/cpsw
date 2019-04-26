@@ -68,7 +68,7 @@ int rval = CAddressImpl::close( node );
 }
 
 uint64_t
-CCommAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+CCommAddressImpl::read(CReadArgs *args) const
 {
 BufChain bch;
 
@@ -105,7 +105,7 @@ BufChain bch;
 }
 
 uint64_t
-CCommAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+CCommAddressImpl::write(CWriteArgs *args) const
 {
 BufChain bch = IBufChain::create();
 uint64_t rval;

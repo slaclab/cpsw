@@ -156,7 +156,7 @@ CMemAddressImpl::CMemAddressImpl(AKey key, YamlState &ypath)
 	checkAlign();
 }
 
-uint64_t CMemAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+uint64_t CMemAddressImpl::read(CReadArgs *args) const
 {
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
 unsigned toget = args->nbytes_;
@@ -179,8 +179,6 @@ printf("MemDev read from off %lli to %p:", args->off_, args->dst_);
 for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->dst_[ii]); printf("\n");
 #endif
 
-	if ( args->aio_ )
-		args->aio_->callback( 0 );
 	return toget;
 }
 
@@ -222,7 +220,7 @@ uint64_t off = 0;
 	return put;
 }
 
-uint64_t CMemAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+uint64_t CMemAddressImpl::write(CWriteArgs *args) const
 {
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
 uint8_t *buf  = owner->getBufp();

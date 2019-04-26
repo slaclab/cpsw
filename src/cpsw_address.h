@@ -94,6 +94,8 @@ class IAddress : public IChild {
 		virtual int      close(CompositePathIterator *node)                         = 0;
 		virtual uint64_t read (CompositePathIterator *node, CReadArgs *args)  const = 0;
 		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const = 0;
+		virtual uint64_t dispatchRead (CompositePathIterator *node, CReadArgs *args)  const = 0;
+		virtual uint64_t dispatchWrite(CompositePathIterator *node, CWriteArgs *args) const = 0;
 
 		virtual void dump(FILE *f)           const = 0;
 
@@ -119,13 +121,19 @@ class CAddressImpl : public IAddress {
 	private:
 		mutable EntryImpl  child_;
 		unsigned           nelms_;
-		cpsw::atomic<int> openCount_;
+		cpsw::atomic<int>  openCount_;
+		bool               isSync_;
 	protected:
-		ByteOrder      byteOrder_;
+		ByteOrder          byteOrder_;
 
 	protected:
 
 		CAddressImpl(const CAddressImpl&, AKey new_owner);
+
+		void               setAsync()
+		{
+			isSync_ = false;
+		}
 
 	private:
 		CAddressImpl & operator=(const CAddressImpl &);
@@ -171,8 +179,12 @@ class CAddressImpl : public IAddress {
 
 		virtual int      open (CompositePathIterator *);
 		virtual int      close(CompositePathIterator *);
-		virtual uint64_t read (CompositePathIterator *node, CReadArgs *args) const;
+		virtual uint64_t read (CompositePathIterator *node, CReadArgs *args)  const;
 		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
+		virtual uint64_t read (CReadArgs *args)  const;
+		virtual uint64_t write(CWriteArgs *args) const;
+		virtual uint64_t dispatchRead (CompositePathIterator *node, CReadArgs *args)  const;
+		virtual uint64_t dispatchWrite(CompositePathIterator *node, CWriteArgs *args) const;
 
 		virtual int  getOpenCount()
 		{

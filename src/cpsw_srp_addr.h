@@ -110,9 +110,9 @@ private:
 
 protected:
 	mutable CMtx     mutex_;
-	virtual uint64_t readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes, AsyncIO aio) const;
-	virtual uint64_t readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const;
-	virtual uint64_t writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
+	virtual uint64_t readBlk_unlocked(IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes, AsyncIO aio) const;
+	virtual uint64_t readBlk_unlocked(IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const;
+	virtual uint64_t writeBlk_unlocked(IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const;
 
 public:
 	CSRPAddressImpl(AKey key, ProtoStackBuilder, ProtoPort);
@@ -129,8 +129,8 @@ public:
 	virtual ~CSRPAddressImpl();
 	virtual int      open (CompositePathIterator *node);
 	virtual int      close(CompositePathIterator *node);
-	virtual uint64_t read(CompositePathIterator *node,  CReadArgs *args)  const;
-	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
+	virtual uint64_t read (CReadArgs *args)  const;
+	virtual uint64_t write(CWriteArgs *args) const;
 
 	virtual void dump(FILE *f) const;
 

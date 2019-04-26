@@ -52,8 +52,8 @@ public:
 
 	virtual int      open (CompositePathIterator *node);
 	virtual int      close(CompositePathIterator *node);
-	virtual uint64_t read (CompositePathIterator *node,  CReadArgs *args)  const;
-	virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
+	virtual uint64_t read (CReadArgs *args)  const;
+	virtual uint64_t write(CWriteArgs *args) const;
 
 	virtual void dump(FILE *f) const;
 

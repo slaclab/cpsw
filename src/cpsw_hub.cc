@@ -34,7 +34,11 @@ ByteOrder hostByteOrder() {  return _hostByteOrder; }
 void _setHostByteOrder(ByteOrder o) { _hostByteOrder = o; }
 
 CAddressImpl::CAddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
-:owner_(owner), child_( static_cast<CEntryImpl*>(NULL) ), nelms_(nelms), byteOrder_(byteOrder)
+: owner_     ( owner                          ),
+  child_     ( static_cast<CEntryImpl*>(NULL) ),
+  nelms_     ( nelms                          ),
+  isSync_    ( true                           ),
+  byteOrder_ ( byteOrder                      )
 {
 	openCount_.store(0, cpsw::memory_order_release);
 
@@ -46,6 +50,7 @@ CAddressImpl::CAddressImpl(AKey owner, YamlState &ypath)
 : owner_     ( owner                          ),
   child_     ( static_cast<CEntryImpl*>(NULL) ),
   nelms_     ( IDev::DFLT_NELMS               ),
+  isSync_    ( true                           ),
   byteOrder_ ( UNKNOWN                        )
 {
 	readNode(ypath, YAML_KEY_nelms, &nelms_);
@@ -61,9 +66,10 @@ CAddressImpl::CAddressImpl(AKey owner, YamlState &ypath)
 // future if we decide to build a full copy of
 // everything.
 CAddressImpl::CAddressImpl(const CAddressImpl &orig, AKey new_owner)
-:owner_(new_owner),
+:owner_    (new_owner      ),
  //child_(orig.child_), has no new child yet!
- nelms_(orig.nelms_),
+ nelms_    (orig.nelms_    ),
+ isSync_   (orig.isSync_   ),
  byteOrder_(orig.byteOrder_)
 {
 }
@@ -152,12 +158,12 @@ int rval = openCount_.fetch_sub(1, cpsw::memory_order_acq_rel );
 	return rval;
 }
 
-
-uint64_t  CAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+uint64_t  CAddressImpl::dispatchRead(CompositePathIterator *node, CReadArgs *args) const
 {
 	Address c;
+
 #ifdef HUB_DEBUG
-	printf("Reading %d bytes from %s", args->nbytes_, getName());
+	printf("Reading %d bytes from %s (dispatching to parent)", args->nbytes_, getName());
 	if ( getNelms() > 1 ) {
 		printf("[%i", (*node)->idxf_);
 		if ( (*node)->idxt_ > (*node)->idxf_ )
@@ -175,12 +181,56 @@ uint64_t  CAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
 		c = (*node)->c_p_;
 		return c->read(node, args);
 	} else {
-		throw ConfigurationError("Configuration Error: -- unable to route I/O for read");
+		throw ConfigurationError("Configuration Error: -- unable to dispatch read to parent");
 		return 0;
 	}
 }
 
-uint64_t CAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+uint64_t  CAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+{
+int f = (*node)->idxf_;
+int t = (*node)->idxt_;
+
+CReadArgs nargs = *args;
+int       i;
+uint64_t  rval = 0;
+uint64_t  got;
+
+#ifdef HUB_DEBUG
+	printf("Reading %d bytes from %s", args->nbytes_, getName());
+	if ( getNelms() > 1 ) {
+		printf("[%i", (*node)->idxf_);
+		if ( (*node)->idxt_ > (*node)->idxf_ )
+			printf("-%i", (*node)->idxt_);
+		printf("]");
+	}
+	printf(" @%"PRIx64, args->off_);
+	printf(" --> %p ", args->dst_);
+	dump(); printf("\n");
+#endif
+
+	nargs.off_ += f * args->nbytes_;
+
+	for ( i = f; i <= t; i++ ) {
+		got         = read( &nargs );
+		rval       += got;
+		nargs.off_ += got;
+		if ( 0 != nargs.dst_ )
+			nargs.dst_ += got;
+	}
+
+	if ( isSync_ && nargs.aio_ ) {
+		nargs.aio_->callback( 0 );
+	}
+	return rval;
+}
+
+uint64_t  CAddressImpl::read(CReadArgs *args) const
+{
+	throw ConfigurationError("Configuration Error: -- unable to route I/O for read");
+}
+
+uint64_t CAddressImpl::dispatchWrite(CompositePathIterator *node, CWriteArgs *args) const
 {
 	Address c;
 
@@ -190,9 +240,35 @@ uint64_t CAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) cons
 		c = (*node)->c_p_;
 		return c->write(node, args);
 	} else {
-		throw ConfigurationError("Configuration Error: -- unable to route I/O for write");
+		throw ConfigurationError("Configuration Error: -- unable to dispatch write to parent");
 		return 0;
 	}
+}
+
+uint64_t CAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+{
+int        f = (*node)->idxf_;
+int        t = (*node)->idxt_;
+CWriteArgs nargs = *args;
+int        i;
+uint64_t   rval = 0;
+uint64_t   put;
+
+	nargs.off_ += f * args->nbytes_;
+
+	for ( i = f; i <= t; i++ ) {
+		put         = write( &nargs );
+		rval       += put;
+		nargs.off_ += put;
+		if ( 0 != nargs.src_ )
+			nargs.src_ += put;
+	}
+	return rval;
+}
+
+uint64_t CAddressImpl::write(CWriteArgs *args) const
+{
+	throw ConfigurationError("Configuration Error: -- unable to route I/O for write");
 }
 
 Hub CAddressImpl::getOwner() const

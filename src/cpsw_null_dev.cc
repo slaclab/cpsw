@@ -67,7 +67,7 @@ CNullAddressImpl::CNullAddressImpl(AKey k, YamlState &ypath)
 		throw ConfigurationError("CNullAddressImpl -- can only have exactly 1 child");
 }
 
-uint64_t CNullAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+uint64_t CNullAddressImpl::read(CReadArgs *args) const
 {
 NullDevImpl owner( getOwnerAs<NullDevImpl>() );
 unsigned toget = args->nbytes_;
@@ -85,13 +85,10 @@ printf("NullDev read from off %lli to %p:", args->off_, args->dst_);
 for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->dst_[ii]); printf("\n");
 #endif
 
-	if ( args->aio_ )
-		args->aio_->callback( 0 );
-
 	return toget;
 }
 
-uint64_t CNullAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+uint64_t CNullAddressImpl::write(CWriteArgs *args) const
 {
 NullDevImpl owner( getOwnerAs<NullDevImpl>() );
 unsigned put  = args->nbytes_;

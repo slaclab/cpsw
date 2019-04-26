@@ -118,6 +118,8 @@ CSRPAddressImpl::CSRPAddressImpl(AKey key, ProtoStackBuilder bldr, ProtoPort sta
 ProtoModSRPMux       srpMuxMod( dynamic_pointer_cast<ProtoModSRPMux::element_type>( stack->getProtoMod() ) );
 int                  nbits;
 
+	setAsync();
+
 	if ( hasRssi( stack ) ) {
 		// have RSSI
 
@@ -266,7 +268,7 @@ unsigned tidOff = getProtoVersion() == IProtoStackBuilder::SRP_UDP_V2 ? 0 : 4;
 	return toTid( msgTid );
 }
 
-uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes, AsyncIO aio) const
+uint64_t CSRPAddressImpl::readBlk_unlocked(IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes, AsyncIO aio) const
 {
 SRPAsyncReadTransaction xact = srpReadTransactionPool.alloc();
 
@@ -281,7 +283,7 @@ SRPAsyncReadTransaction xact = srpReadTransactionPool.alloc();
 	return 0;
 }
 
-uint64_t CSRPAddressImpl::readBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
+uint64_t CSRPAddressImpl::readBlk_unlocked(IField::Cacheable cacheable, uint8_t *dst, uint64_t off, unsigned sbytes) const
 {
 #ifdef SRPADDR_DEBUG
 struct timespec retry_then;
@@ -383,7 +385,7 @@ int rval = CAddressImpl::close( node );
 	return rval;
 }
 
-uint64_t CSRPAddressImpl::read(CompositePathIterator *node, CReadArgs *args) const
+uint64_t CSRPAddressImpl::read(CReadArgs *args) const
 {
 uint64_t rval            = 0;
 unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & SRPWRDALGNMSK) );
@@ -410,9 +412,9 @@ unsigned nWords;
 		while ( nWords > maxWordsRx_ ) {
 			int nbytes = maxWordsRx_*4 - headbytes;
 			if ( args->aio_ ) {
-				rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes, args->aio_);
+				rval   += readBlk_unlocked(args->cacheable_, dst, off, nbytes, args->aio_);
 			} else {
-				rval   += readBlk_unlocked(node, args->cacheable_, dst, off, nbytes);
+				rval   += readBlk_unlocked(args->cacheable_, dst, off, nbytes);
 			}
 			nWords -= maxWordsRx_;
 			sbytes -= nbytes;
@@ -422,9 +424,9 @@ unsigned nWords;
 		}
 
 		if ( args->aio_ ) {
-			rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes, args->aio_);
+			rval += readBlk_unlocked(args->cacheable_, dst, off, sbytes, args->aio_);
 		} else {
-			rval += readBlk_unlocked(node, args->cacheable_, dst, off, sbytes);
+			rval += readBlk_unlocked(args->cacheable_, dst, off, sbytes);
 		}
 	}
 
@@ -471,7 +473,7 @@ int      j;
 	return xchn;
 }
 
-uint64_t CSRPAddressImpl::writeBlk_unlocked(CompositePathIterator *node, IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
+uint64_t CSRPAddressImpl::writeBlk_unlocked(IField::Cacheable cacheable, uint8_t *src, uint64_t off, unsigned dbytes, uint8_t msk1, uint8_t mskn) const
 {
 SRPWord  xbuf[5];
 SRPWord  zero = 0;
@@ -586,7 +588,7 @@ int      posted   = (    POSTED        == defaultWriteMode_
 
 		rargs.aio_ = aio;
 
-		read(node, &rargs);
+		read(&rargs);
 	}
 	if ( merge_last ) {
 
@@ -612,7 +614,7 @@ int      posted   = (    POSTED        == defaultWriteMode_
         // (it won't complete until destroyed!)
         rargs.aio_.swap(aio);
 
-		read(node, &rargs);
+		read(&rargs);
 
 	}
 
@@ -791,7 +793,7 @@ retry:
 	throw IOError("Too many retries");
 }
 
-uint64_t CSRPAddressImpl::write(CompositePathIterator *node, CWriteArgs *args) const
+uint64_t CSRPAddressImpl::write(CWriteArgs *args) const
 {
 uint64_t rval            = 0;
 unsigned headbytes       = (byteResolution_ ? 0 : (args->off_ & SRPWRDALGNMSK) );
@@ -816,7 +818,7 @@ unsigned nWords;
 #endif
 	while ( nWords > maxWordsTx_ ) {
 		int nbytes = maxWordsTx_*4 - headbytes;
-		rval += writeBlk_unlocked(node, args->cacheable_, src, off, nbytes, msk1, 0);
+		rval += writeBlk_unlocked(args->cacheable_, src, off, nbytes, msk1, 0);
 		nWords -= maxWordsTx_;
 		dbytes -= nbytes;
 		src    += nbytes;
@@ -825,7 +827,7 @@ unsigned nWords;
 		msk1      = 0;
 	}
 
-	rval += writeBlk_unlocked(node, args->cacheable_, src, off, dbytes, msk1, args->mskn_);
+	rval += writeBlk_unlocked(args->cacheable_, src, off, dbytes, msk1, args->mskn_);
 
 	nWrites_++;
 	return rval;

@@ -48,8 +48,8 @@ class CMemAddressImpl : public CAddressImpl {
 		// ANY subclass must implement clone(AKey) !
 		virtual CMemAddressImpl *clone(AKey k) { return new CMemAddressImpl( *this, k ); }
 
-		virtual uint64_t read(CompositePathIterator *node, CReadArgs *args)   const;
-		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;
+		virtual uint64_t read(CReadArgs *args)   const;
+		virtual uint64_t write(CWriteArgs *args) const;
 };
 
 class CMemDevImpl : public CDevImpl, public virtual IMemDev {

@@ -84,7 +84,7 @@ CReadArgs  nargs = *args;
 
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		SlicedPathIterator it( *node, range_p );
-		rval += CAddressImpl::read(&it, &nargs);
+		rval += dispatchRead(&it, &nargs);
 
 		nargs.off_ += getStride();
 
@@ -134,7 +134,7 @@ CWriteArgs nargs = *args;
 #endif
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		SlicedPathIterator it( *node, range_p );
-		rval += CAddressImpl::write(&it, &nargs);
+		rval += dispatchWrite(&it, &nargs);
 	
 		nargs.off_ += getStride();
 

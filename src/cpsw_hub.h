@@ -80,10 +80,12 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual void addAtAddress(Field child, unsigned nelms);
 
 		template <typename T>
-		void doAddAtAddress(Field child, YamlState &ypath)
+		shared_ptr<T> doAddAtAddress(Field child, YamlState &ypath)
 		{
 			IAddress::AKey k = getAKey();
-			add( cpsw::make_shared<T>(k, ypath), child->getSelf() );
+			shared_ptr<T> rval( cpsw::make_shared<T>(k, ypath) );
+			add( rval, child->getSelf() );
+			return rval;
 		}
 
 		virtual void

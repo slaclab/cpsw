@@ -914,6 +914,10 @@ ByteOrder          targetEndian = cl->getByteOrder();
 
 	ctxt->getReadParms( &args );
 
+#ifdef SVAL_DEBUG
+	printf("READ PARMS: nbytes %u, nelms %u, off %llu, elsz %u\n", args.nbytes_, nelms, (unsigned long long)args.off_, elsz);
+#endif
+
 	cl->read( it, &args );
 
 	return nelms;
@@ -933,6 +937,10 @@ ByteOrder          targetEndian = cl->getByteOrder();
 	args.cacheable_ = ie_->getCacheable();
 	args.off_       = 0;
 	ctxt.getReadParms( &args );
+
+#ifdef SVAL_DEBUG
+	printf("READ PARMS: nbytes %u, nelms %u, off %llu, elsz %u\n", args.nbytes_, nelms, (unsigned long long)args.off_, elsz);
+#endif
 
 	cl->read( it, &args );
 
