@@ -1,4 +1,6 @@
 master:
+    Internal read/write API rework.
+
     Merged 'swig/cython' branch. Major changes involve c++11 support
     and migration from boost::python to cython. All python wrappers
     have been migrated.
@@ -9,6 +11,8 @@ master:
     which may or may not be less performant).
 
 R3.branch:
+    BUGFIX: cpsw_path findByName() crashed when ".." crossed root
+
     Created a R3.branch tag prior to merging major updates
 
     The python wrapper is generated with CYTHON by default. Boost is

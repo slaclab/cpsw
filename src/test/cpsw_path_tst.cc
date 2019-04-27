@@ -199,6 +199,11 @@ Path p4 = root->findByName("device/reg[0]");
 	printf("%d\n", p4->tail()->getNelms());
 }
 
+static void test_dotdot_across_root_f8560f57884( Hub r )
+{
+	r->findByName("outer/../outer/inner");
+}
+
 using std::cout;
 
 class DumpNameVisitor : public IPathVisitor {
@@ -533,6 +538,8 @@ Hub     r  = use_yaml ? build_yaml() : build();
 	test_a53564754e5eaa9029ff(use_yaml);
 
 	test_explore_R3_5_3_21_g6dabdad();
+
+	test_dotdot_across_root_f8560f57884( build_yaml() );
 
 	printf("leaving\n");
 } catch (CPSWError e ) {

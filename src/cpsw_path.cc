@@ -17,7 +17,7 @@
 #include <limits.h>
 #include <iostream>
 
-#undef PATH_DEBUG
+#undef  PATH_DEBUG
 
 using cpsw::dynamic_pointer_cast;
 using cpsw::static_pointer_cast;
@@ -469,22 +469,23 @@ shared_ptr<const EntryImpl::element_type> tailp;
 cout<<"checking: "<< s <<"\n";
 #endif
 
-	if ( empty() ) {
-		if ( (tailp = originAsDevImpl()) ) {
+	if ( p->empty() ) {
 #ifdef PATH_DEBUG
 cout<<"using origin\n";
 #endif
-		} else {
-			throw InternalError();
-		}
 	} else {
-		tailp = back().c_p_->getEntryImpl();
+		found = p->back().c_p_;
 #ifdef PATH_DEBUG
-cout<<"starting at: "<<tailp->getName() << "\n";
+cout<<"starting at: "<<found->getName() << "\n";
 #endif
 	}
 
 	do {
+		if ( found ) {
+			tailp = found->getEntryImpl();
+		} else if ( ! (tailp = p->originAsDevImpl()) ) {
+			throw InternalError();
+		}
 
 		int      idxf  = -1;
 		int      idxt  = -1;
@@ -570,8 +571,6 @@ cout<<"starting at: "<<tailp->getName() << "\n";
 			p->push_back( PathEntry(found, idxf, idxt, p->getNelms()) );
 
 		}
-
-		tailp = found->getEntryImpl();
 
 	} while ( (s = sl) != NULL );
 
