@@ -199,7 +199,7 @@ Path p4 = root->findByName("device/reg[0]");
 	printf("%d\n", p4->tail()->getNelms());
 }
 
-static void test_dotdot_across_root( Hub r )
+static void test_dotdot_across_root_f8560f57884( Hub r )
 {
 	r->findByName("outer/../outer/inner");
 }
@@ -539,7 +539,7 @@ Hub     r  = use_yaml ? build_yaml() : build();
 
 	test_explore_R3_5_3_21_g6dabdad();
 
-	test_dotdot_across_root( build_yaml() );
+	test_dotdot_across_root_f8560f57884( build_yaml() );
 
 	printf("leaving\n");
 } catch (CPSWError e ) {
