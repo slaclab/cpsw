@@ -89,19 +89,34 @@ Hub root;
 		mmio->addAtAddress( IIntField::create("val" , 32     ), REGBASE+REG_SCR_OFF );
 		mmio->addAtAddress( iMyCommandImpl_create("cmd", "val"), 0 );
 
+	{
 	ISequenceCommand::Items items;
 		items.push_back( ISequenceCommand::Item( "../val", 0 ) );
 		items.push_back( ISequenceCommand::Item( "usleep", 100000 ) );
 		items.push_back( ISequenceCommand::Item( "../cmd", 0 ) );
 
 		dummy_container->addAtAddress( ISequenceCommand::create("seq", &items) );
+	}
 
 		mmio->addAtAddress( dummy_container, 0 );
 
 
 		netio->addAtAddress( mmio, IProtoStackBuilder::create() );
 
+	{
+	ISequenceCommand::Items items;
+		items.push_back( ISequenceCommand::Item( "system(sleep 1)", 0 ) );
+		mmio->addAtAddress( ISequenceCommand::create("sys", &items), 0 );
+	}
+
+	{
+	ISequenceCommand::Items items;
+		items.push_back( ISequenceCommand::Item( "system(xxnox 1)", 0 ) );
+		mmio->addAtAddress( ISequenceCommand::create("bad", &items), 0 );
+	}
+
 		root = netio;
+
 	}
 
 	if ( dmp_yaml ) {
@@ -160,6 +175,31 @@ Hub root;
 
 	if ( difft < 100000 ) {
 		throw TestFailed();
+	}
+
+
+	Command sys = ICommand::create( root->findByName("mmio/sys") );
+
+	clock_gettime( CLOCK_MONOTONIC, &then );
+
+	sys->execute();
+
+	clock_gettime( CLOCK_MONOTONIC, &now );
+
+	difft = (now.tv_nsec - then.tv_nsec)/1000;
+
+	difft += (now.tv_sec - then.tv_sec) * 1000000;
+
+	if ( difft < 100000 ) {
+		throw TestFailed();
+	}
+
+	try {
+		Command bad = ICommand::create( root->findByName("mmio/bad") );
+		bad->execute();
+		throw TestFailed();
+	} catch (InvalidArgError e) {
+		/* expected */
 	}
 
 

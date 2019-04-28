@@ -167,6 +167,19 @@ void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 		if( (*it).first.compare(0, 6, "usleep") == 0 ) {
 			usleep( (useconds_t) (*it).second );
 		}
+		else if ( (*it).first.compare(0, 7, "system(") == 0 && ( ')' == (*it).first.at( (*it).first.length() - 1 ) ) ) {
+			int         status;
+			std::string cmd( (*it).first, 7, (*it).first.length() - 8 );
+
+			if ( ( status = system( cmd.c_str() ) ) ) {
+				throw InvalidArgError(
+				    std::string( "CSequenceCommandImpl: 'system' execution of '" )
+				    + cmd
+				    + std::string( "' failed -- status = ")
+					+ std::to_string( status )
+				);
+			}
+		}
 		else {
 			try {
 				Path p( parent->findByName( (*it).first.c_str() ) );

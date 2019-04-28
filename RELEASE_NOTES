@@ -1,4 +1,7 @@
 master:
+    SequenceCommand: now also recognizes 'system(<args>)' for executing
+    native scripts, code etc.
+
     Internal read/write API rework.
 
     Merged 'swig/cython' branch. Major changes involve c++11 support
