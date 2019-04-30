@@ -115,6 +115,8 @@ namespace cpsw_python {
 		virtual ~CAsyncIO();
 	};
 
+    YAML::Node wrap_IYamlFixup_findByName(const YAML::Node &src, const char *path, char sep = '/');
+
 };
 
 #include <pycpsw.h>

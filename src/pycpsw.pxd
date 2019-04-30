@@ -264,6 +264,8 @@ cdef extern from "cpsw_cython.h" namespace "cpsw_python":
     unsigned   issueGetVal(IScalVal_RO*, int, int, bool, cc_AsyncIO) except+handleException
     unsigned   issueGetVal(IDoubleVal_RO *, int, int, cc_AsyncIO)    except+handleException
 
+  cdef c_Node wrap_IYamlFixup_findByName(const c_Node &, const char *, char) except+handleException
+
 cdef extern from "cpsw_error.h":
   cdef cppclass cc_CPSWError "CPSWError":
     cc_CPSWError(const char*)

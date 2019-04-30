@@ -9,6 +9,7 @@
 #include <cpsw_python.h>
 #include <cpsw_cython.h>
 #include <stdexcept>
+#include <yaml-cpp/yaml.h>
 
 extern "C" {
 
@@ -160,6 +161,12 @@ CAsyncIO::makeShared()
 
 CAsyncIO::~CAsyncIO()
 {
+}
+
+YAML::Node wrap_IYamlFixup_findByName(const YAML::Node &src, const char *path, char sep)
+{
+YAML::Node n = IYamlFixup::findByName(src, path, sep);
+	return !!n && n.IsDefined() ? n : YAML::Node();
 }
 
 };

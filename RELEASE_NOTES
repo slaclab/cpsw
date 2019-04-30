@@ -1,4 +1,6 @@
 master:
+    pycpsw BUGFIX: RuntimeError when IYamlFixup::findByName() didn't find a node
+
     SequenceCommand: now also recognizes 'system(<args>)' for executing
     native scripts, code etc.
 

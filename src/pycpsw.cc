@@ -10458,7 +10458,7 @@ static PyObject *__pyx_pf_6pycpsw_9YamlFixup_4findByName(struct __pyx_obj_8yaml_
  * separated by 'sep'
  *     """
  *     n = Node()             # <<<<<<<<<<<<<<
- *     n.c_node = IYamlFixup.findByName( node.c_node, path, sep )
+ *     n.c_node = wrap_IYamlFixup_findByName( node.c_node, path, sep )
  *     return n
  */
   __pyx_t_1 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_8yaml_cpp_Node)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 805, __pyx_L1_error)
@@ -10469,12 +10469,12 @@ static PyObject *__pyx_pf_6pycpsw_9YamlFixup_4findByName(struct __pyx_obj_8yaml_
   /* "pycpsw.pyx":806
  *     """
  *     n = Node()
- *     n.c_node = IYamlFixup.findByName( node.c_node, path, sep )             # <<<<<<<<<<<<<<
+ *     n.c_node = wrap_IYamlFixup_findByName( node.c_node, path, sep )             # <<<<<<<<<<<<<<
  *     return n
  * 
  */
   try {
-    __pyx_t_2 = IYamlFixup::findByName(__pyx_v_node->c_node, __pyx_v_path, __pyx_v_sep);
+    __pyx_t_2 = cpsw_python::wrap_IYamlFixup_findByName(__pyx_v_node->c_node, __pyx_v_path, __pyx_v_sep);
   } catch(...) {
     cpsw_python::handleException(); if (!PyErr_Occurred()) PyErr_SetString(PyExc_RuntimeError , "Error converting c++ exception.");
     __PYX_ERR(0, 806, __pyx_L1_error)
@@ -10483,7 +10483,7 @@ static PyObject *__pyx_pf_6pycpsw_9YamlFixup_4findByName(struct __pyx_obj_8yaml_
 
   /* "pycpsw.pyx":807
  *     n = Node()
- *     n.c_node = IYamlFixup.findByName( node.c_node, path, sep )
+ *     n.c_node = wrap_IYamlFixup_findByName( node.c_node, path, sep )
  *     return n             # <<<<<<<<<<<<<<
  * 
  * cdef public class PathVisitor[type CpswPyWrapT_PathVisitor, object CpswPyWrapO_PathVisitor]:

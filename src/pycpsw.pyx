@@ -803,7 +803,7 @@ The path to lookup is a string with path elements
 separated by 'sep'
     """
     n = Node()
-    n.c_node = IYamlFixup.findByName( node.c_node, path, sep )
+    n.c_node = wrap_IYamlFixup_findByName( node.c_node, path, sep )
     return n
 
 cdef public class PathVisitor[type CpswPyWrapT_PathVisitor, object CpswPyWrapO_PathVisitor]:
