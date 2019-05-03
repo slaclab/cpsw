@@ -80,6 +80,7 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 			if ( readNode(ypath, YAML_KEY_offset, &offset ) ) {
 				doAddAtAddress<CMMIOAddressImpl>( child, ypath );
 			} else {
+				fprintf(stderr, "WARNING: no '" YAML_KEY_offset "' attribute found in YAML -- adding as an non-MMIO/unknown device\n");
 				doAddAtAddress<CAddressImpl>( child, ypath );
 			}
 		}
