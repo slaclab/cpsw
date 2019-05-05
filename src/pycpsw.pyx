@@ -26,7 +26,12 @@ cdef extern from "cpsw_yaml.h" namespace "YAML":
     @staticmethod
     string do_encode(const ValEncoding &)
 
+cdef extern from "ceval.h":
+  cdef void PyEval_InitThreads()
+
 priv__ = object()
+
+PyEval_InitThreads()
 
 cdef class NoInit:
   def __cinit__(self, *args):

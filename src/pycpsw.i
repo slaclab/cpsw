@@ -41,6 +41,10 @@
     using namespace cpsw_python;
 %}
 
+%init %{
+    PyEval_InitThreads();
+%}
+
 /* If I don't explicitly ignore these operators then I see warnings... */
 %ignore IEnum::IIterator;
 %ignore IEnum::IIterator::operator++;
