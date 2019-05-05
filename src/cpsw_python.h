@@ -57,6 +57,9 @@ namespace cpsw_python {
 
 class GILUnlocker {
 private:
+	GILUnlocker(const GILUnlocker &);
+	GILUnlocker &operator=(const GILUnlocker &);
+
 	PyThreadState *_save;
 public:
 	GILUnlocker()
@@ -72,6 +75,8 @@ public:
 
 class GILGuard {
 private:
+	GILGuard(const GILGuard &);
+	GILGuard &operator=(const GILGuard &);
 	PyGILState_STATE state_;
 public:
 	GILGuard()
