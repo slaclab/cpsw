@@ -45,6 +45,8 @@ class CMemAddressImpl : public CAddressImpl {
 			return align_;
 		}
 
+		virtual void dumpYamlPart(YAML::Node &) const;
+
 		// ANY subclass must implement clone(AKey) !
 		virtual CMemAddressImpl *clone(AKey k) { return new CMemAddressImpl( *this, k ); }
 

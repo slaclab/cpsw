@@ -247,6 +247,16 @@ printf("\n");
 	return rval;
 }
 
+
+void
+CMemAddressImpl::dumpYamlPart(YAML::Node &node) const
+{
+	CAddressImpl::dumpYamlPart( node );
+	if ( align_ != IMemDev::DFLT_ALIGN ) {
+		writeNode(node, YAML_KEY_align, align_);
+	}
+}
+
 MemDev IMemDev::create(const char *name, uint64_t size, uint8_t *ext_buf)
 {
 	return CShObj::create<MemDevImpl>(name, size, ext_buf);
