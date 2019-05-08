@@ -40,7 +40,7 @@ class CMemAddressImpl : public CAddressImpl {
 		{
 		}
 
-		virtual int getAlignment() const
+		virtual unsigned getAlignment() const
 		{
 			return align_;
 		}

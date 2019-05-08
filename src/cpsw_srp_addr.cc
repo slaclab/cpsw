@@ -188,6 +188,12 @@ CSRPAddressImpl::dumpYamlPart(YAML::Node &node) const
 	writeNode(node, YAML_KEY_SRP, srpParms);
 }
 
+unsigned
+CSRPAddressImpl::getAlignment() const
+{
+	return byteResolution_ ? 1 : sizeof(SRPWord);
+}
+
 CSRPAddressImpl::~CSRPAddressImpl()
 {
 	shutdownProtoStack();
@@ -517,7 +523,7 @@ int      posted   = (    POSTED        == defaultWriteMode_
 	bool lastbyte_in_firstwords = false;
 
 	if ( (merge_first || merge_last) && cacheable < IField::WB_CACHEABLE ) {
-		throw IOError("Cannot merge bits/bytes to non-cacheable area");
+		throw IOError("CSRPAddressImpl: Cannot merge bits/bytes to non-cacheable area");
 	}
 
 	AsyncIO                 aio;

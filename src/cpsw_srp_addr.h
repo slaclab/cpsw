@@ -136,6 +136,8 @@ public:
 
 	virtual void startProtoStack();
 
+	virtual unsigned getAlignment()                      const;
+
 	// ANY subclass must implement clone(AKey) !
 	virtual CSRPAddressImpl *clone(AKey k) { return new CSRPAddressImpl( *this, k ); }
 	virtual void     setTimeoutUs(unsigned timeoutUs);
