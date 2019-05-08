@@ -177,7 +177,10 @@ class CAddressImpl : public IAddress {
 			return byteOrder_;
 		}
 
+
+		virtual int      incOpen();
 		virtual int      open (CompositePathIterator *);
+		virtual int      decOpen();
 		virtual int      close(CompositePathIterator *);
 		virtual uint64_t read (CompositePathIterator *node, CReadArgs *args)  const;
 		virtual uint64_t write(CompositePathIterator *node, CWriteArgs *args) const;

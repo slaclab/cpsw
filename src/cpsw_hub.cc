@@ -72,6 +72,7 @@ CAddressImpl::CAddressImpl(const CAddressImpl &orig, AKey new_owner)
  isSync_   (orig.isSync_   ),
  byteOrder_(orig.byteOrder_)
 {
+	openCount_.store( orig.openCount_.load( cpsw::memory_order_acquire ), cpsw::memory_order_release);
 }
 
 AddressImpl CAddressImpl::clone(DevImpl new_owner)
@@ -128,6 +129,16 @@ uint64_t CAddressImpl::getSize() const
 	return child_->getSize();
 }
 
+int  CAddressImpl::incOpen()
+{
+	return openCount_.fetch_add(1, cpsw::memory_order_acq_rel );
+}
+
+int  CAddressImpl::decOpen()
+{
+	return openCount_.fetch_sub(1, cpsw::memory_order_acq_rel );
+}
+
 
 int  CAddressImpl::open(CompositePathIterator *node)
 {
@@ -140,12 +151,12 @@ Address c;
 	}
 
 	/* return 'our' count */
-	return openCount_.fetch_add(1, cpsw::memory_order_acq_rel );
+	return incOpen();
 }
 
 int  CAddressImpl::close(CompositePathIterator *node)
 {
-int rval = openCount_.fetch_sub(1, cpsw::memory_order_acq_rel );
+int rval = decOpen();
 
 	/* make sure parent is closed */
 	++(*node);
