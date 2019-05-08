@@ -1,4 +1,7 @@
 master:
+    Feature: added cpsw_fs_address which implements access to the underlying
+    file-system. (E.g., char-devices).
+
     Feature: may now create ScalVal_WO interfaces - but writes are marked
     as non-cacheable.
 
