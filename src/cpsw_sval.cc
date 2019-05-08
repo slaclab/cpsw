@@ -396,17 +396,13 @@ CIntEntryImpl::createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type
 			throw InterfaceNotImplementedError("Double_RO interface not supported (write-only)");
 		}
 		return _createAdapter<DoubleVal_ROAdapt>(this, p);
-	}
-#if 0
-	// without caching and bit-level access at the SRP protocol level we cannot
-	// support write-only yet.
-	else if ( isInterface<ScalVal_WO>(interfaceType) || isInterface<DoubleVal_WO>(interfaceType) ) {
+	} else if ( isInterface<ScalVal_WO>(interfaceType) || isInterface<DoubleVal_WO>(interfaceType) ) {
 		if ( getMode() == IVal_Base::RO ) {
 			throw InterfaceNotImplementedError("ScalVal_WO/Double_WO interface not supported (read-only)");
 		}
 		return _createAdapter<ScalVal_WOAdapt>(this, p);
 	}
-#endif
+
 	// maybe the superclass knows about this interface?
 	return CEntryImpl::createAdapter(key, p, interfaceType);
 }
@@ -1291,7 +1287,7 @@ prib("byte-swapped", obufp + oidx);
 
 	CWriteArgs args;
 
-	args.cacheable_ = ie_->getCacheable();
+	args.cacheable_ = ( IVal_Base::WO == getMode() ) ? IField::NOT_CACHEABLE : ie_->getCacheable();
 	args.src_       = obufp;
 	args.off_       = off;
 	args.nbytes_    = dbytes;
