@@ -488,6 +488,11 @@ namespace YAML {
 }
 
 // helpers to read map entries
+static inline bool hasNode(YamlState &node, const char *fld)
+{
+const YAML::Node &n( node.lookup(fld) );
+	return ( !!n && ! n.IsNull() );
+}
 
 template <typename T> static void mustReadNode(YamlState &node, const char *fld, T *val)
 {
