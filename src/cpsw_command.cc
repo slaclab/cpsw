@@ -172,11 +172,13 @@ void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 			std::string cmd( (*it).first, 7, (*it).first.length() - 8 );
 
 			if ( ( status = system( cmd.c_str() ) ) ) {
+				char sbuf[100];
+				snprintf(sbuf, sizeof(sbuf), "%d", status);
 				throw InvalidArgError(
 				    std::string( "CSequenceCommandImpl: 'system' execution of '" )
 				    + cmd
 				    + std::string( "' failed -- status = ")
-					+ std::to_string( status )
+					+ std::string( sbuf                   )
 				);
 			}
 		}
