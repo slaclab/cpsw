@@ -53,13 +53,6 @@ public:
 
 	virtual            ~IEntryAdapt();
 
-    // If a subclass wishes to prohibit an interface to be created more
-    // than once for a given path (= device instance array) then it should
-    // override 'singleInterfaceOnly()' and return 'true'.
-	// You want singleInterfaceOnly for adapters which hold absolute state
-	// information, for example cached values.
-    static  bool        singleInterfaceOnly()  { return false;          }
-
 	// The new version of 'check_interface' is called by the interface 'factory'/create
 	// static member function. It uses polymorphism to let the implementation create
 	// a suitable 'Adapter' so that there can be multiple implementations of the same
@@ -97,7 +90,7 @@ template <typename INTERF> INTERF IEntryAdapt::check_interface(ConstPath p)
 	if ( adapter && (rval = cpsw::dynamic_pointer_cast<typename INTERF::element_type>( adapter )) ) {
 		CEntryImpl::UniqueHandle uniq;
 
-		if ( singleInterfaceOnly() ) {
+		if ( ei->singleInterfaceOnly() ) {
 			// getUniqueHandle throws "MultipleInstantiationError" if  Path 'p'
 			// overlaps with the path of an existing interface to Entry 'e'
 			uniq = ei->getUniqueHandle( key, p );
@@ -123,7 +116,7 @@ template <typename ADAPT, typename IMPL> ADAPT IEntryAdapt::check_interface(Cons
 	if ( e ) {
 		CEntryImpl::UniqueHandle uniq;
 
-		if ( singleInterfaceOnly() ) {
+		if ( e->singleInterfaceOnly() ) {
 			IEntryAdapterKey key;
 			// getUniqueHandle throws "MultipleInstantiationError" if  Path 'p'
 			// overlaps with the path of an existing interface to Entry 'e'

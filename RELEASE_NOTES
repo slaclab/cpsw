@@ -1,4 +1,9 @@
 master:
+	Feature: cpsw_entry/cpsw_entry_adapt: promoted 'singleInterfaceOnly'
+    feature from static- to virtual method. Individual entries can now
+    reject creation of multiple interfaces.  This feature is now settable
+    from YAML.
+
     pycpsw BUGFIX: RuntimeError when IYamlFixup::findByName() didn't find a node
 
     SequenceCommand: now also recognizes 'system(<args>)' for executing

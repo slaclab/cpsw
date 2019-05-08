@@ -42,6 +42,7 @@ const char *cptr;
 CEntryImpl::CEntryImpl(Key &k, const char *name, uint64_t size)
 : CShObj(k),
   name_( name ),
+  singleInterfaceOnly_( false ),
   size_( size),
   cacheable_( DFLT_CACHEABLE ),
   configPrio_( DFLT_CONFIG_PRIO ),
@@ -57,6 +58,7 @@ CEntryImpl::CEntryImpl(const CEntryImpl &ei, Key &k)
 : CShObj(ei,k),
   name_(ei.name_),
   description_(ei.description_),
+  singleInterfaceOnly_(ei.singleInterfaceOnly_),
   size_(ei.size_),
   cacheable_( DFLT_CACHEABLE ),      // reset copy to default
   configPrio_( DFLT_CONFIG_PRIO ),   // reset copy to default
@@ -70,6 +72,7 @@ CEntryImpl::CEntryImpl(const CEntryImpl &ei, Key &k)
 CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
 : CShObj(key),
   name_( ypath.getName() ),
+  singleInterfaceOnly_( false ),
   size_( DFLT_SIZE ),
   cacheable_( DFLT_CACHEABLE ),
   configPrio_( DFLT_CONFIG_PRIO ),
@@ -100,6 +103,8 @@ CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
 	if ( readNode( ypath, YAML_KEY_pollSecs, &pollSecs ) ) {
 		setPollSecs( pollSecs );
 	}
+
+	readNode( ypath, YAML_KEY_singleInterfaceOnly, &singleInterfaceOnly_ );
 
 	checkArgs();
 
@@ -139,6 +144,9 @@ const char *d = getDescription();
 
 	if ( getPollSecs() != getDefaultPollSecs() )
 		writeNode(node, YAML_KEY_pollSecs, getPollSecs());
+
+	if ( singleInterfaceOnly_ )
+		writeNode(node, YAML_KEY_singleInterfaceOnly, singleInterfaceOnly_);
 }
 
 int CEntryImpl::getDefaultConfigPrio() const

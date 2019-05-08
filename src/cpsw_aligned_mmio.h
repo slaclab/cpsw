@@ -36,7 +36,7 @@ uintptr_t   off0,  offN;
 		buf0.t = *wad0; /* must be aligned access */
 		if ( offN ) {
 			if ( wad0 == wadN ) {
-				memcpy( dst, buf0.c + off0, offN - off0 + 1 );
+				memcpy( dst, buf0.c + off0, offN - off0 );
                 return n;
 			} else {
 				bufN.t = *wadN; /* must be aligned access */

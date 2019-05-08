@@ -13,6 +13,15 @@
 
 #include <cpsw_aligned_mmio.h>
 
+static int memis(uint8_t *d, uint8_t cmp, int len)
+{
+	while ( len-- > 0 ) {
+		if ( *d++ != cmp )
+			return 1;
+	}
+	return 0;
+}
+
 int
 main()
 {
@@ -38,8 +47,15 @@ uint8_t m1,mn;
 			memset(dbuf, 0, sizeof(dbuf));
 			cpsw_read_aligned<uint64_t>( dbuf, ((uint8_t*)&data) + i, j );
 
-			if ( memcmp(dbuf, ((uint8_t*)&data) + i, j) ) {
+			if ( memcmp(dbuf, ((uint8_t*)&data) + i, j) || memis(dbuf + j, 0x00, sizeof(dbuf) - j) ) {
+				unsigned kk;
 				printf("MISMATCH: i %d, j %d\n", i, j);
+                for ( kk=0; kk<sizeof(dbuf); kk++ ) {
+                    if ( (kk&7) == 0 )
+						printf("\n");
+					printf(" 0x%02x", dbuf[kk]);
+				}
+				printf("\n");
 				return 1;
 			} else {
 				succ++;
@@ -90,8 +106,6 @@ uint8_t m1,mn;
 				} else {
 					succ++;
 				}
-
-				
 			}
 		}
 	}

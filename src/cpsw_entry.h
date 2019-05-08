@@ -50,6 +50,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		//            constructor!
 		std::string	        name_;
 		std::string         description_;
+		bool                singleInterfaceOnly_;
 	protected:
 		uint64_t    	    size_;
 	private:
@@ -186,11 +187,19 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 
 		virtual void accept(IVisitor    *v, RecursionOrder order, int recursionDepth);
 
-		virtual EntryImpl getSelf()            { return getSelfAs<EntryImpl>();      }
-		virtual EntryImpl getConstSelf() const { return getSelfAsConst<EntryImpl>(); }
+		virtual EntryImpl getSelf()                      { return getSelfAs<EntryImpl>();      }
+		virtual EntryImpl getConstSelf()           const { return getSelfAsConst<EntryImpl>(); }
 
-		virtual Hub isHub()                   const { return Hub();          }
-		virtual ConstDevImpl isConstDevImpl() const { return ConstDevImpl(); }
+		virtual Hub isHub()                        const { return Hub();                       }
+		virtual ConstDevImpl isConstDevImpl()      const { return ConstDevImpl();              }
+
+		// If a subclass or particular entry wishes to prohibit an interface to be created more
+		// than once for a given path (= device instance array) then it should
+		// override 'singleInterfaceOnly()' and return 'true' (or set via YAML).
+		// You want singleInterfaceOnly for adapters (or underlying entities) which hold
+		// absolute state information, for example cached values.
+
+		virtual bool         singleInterfaceOnly() const { return singleInterfaceOnly_;        }
 
 		// obtain a unique handle. No other EntryAdapt can be created
 		// for a path that intersects with 'adapt's path until
