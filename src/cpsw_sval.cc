@@ -717,7 +717,9 @@ protected:
 			if ( tmpBufSz_ )
 				delete [] tmpBufAlloc_;
 			tmpBufSz_    = buf_bytes;
-			tmpBufAlloc_ = new uint8_t[tmpBufSz_];
+			if ( tmpBufSz_ > 0 ) {
+				tmpBufAlloc_ = new uint8_t[tmpBufSz_];
+			}
 			rval         = tmpBufAlloc_;
 		}
 		return rval;
