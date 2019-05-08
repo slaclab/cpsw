@@ -109,6 +109,8 @@ class IAddress : public IChild {
 
 		virtual void dumpYamlPart(YAML::Node &) const = 0;
 
+		virtual unsigned getAlignment()      const = 0;
+
 		virtual ~IAddress() {}
 };
 
@@ -177,6 +179,7 @@ class CAddressImpl : public IAddress {
 			return byteOrder_;
 		}
 
+		virtual unsigned getAlignment() const { return 1; }
 
 		virtual int      incOpen();
 		virtual int      open (CompositePathIterator *);
@@ -210,6 +213,8 @@ class CAddressImpl : public IAddress {
 
 		// This should NOT be overridden unless you know what you are doing!
 		virtual AddressImpl clone(DevImpl);
+
+		virtual void checkWriteAlignmentReqs(CWriteArgs *wargs) const;
 
 	protected:
 		template <typename T> T getOwnerAs() const

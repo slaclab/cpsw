@@ -268,12 +268,14 @@ uint64_t   put;
 	nargs.off_ += f * args->nbytes_;
 
 	for ( i = f; i <= t; i++ ) {
+		checkWriteAlignmentReqs( &nargs );
 		put         = write( &nargs );
 		rval       += put;
 		nargs.off_ += put;
 		if ( 0 != nargs.src_ )
 			nargs.src_ += put;
 	}
+
 	return rval;
 }
 
@@ -448,6 +450,21 @@ CAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	writeNode(node, YAML_KEY_nelms,     nelms_    );
 	writeNode(node, YAML_KEY_byteOrder, byteOrder_);
+}
+
+void
+CAddressImpl::checkWriteAlignmentReqs(CWriteArgs *wargs) const
+{
+	if ( wargs->cacheable_ < IField::WB_CACHEABLE ) {
+		unsigned msk = getAlignment() - 1;
+
+		if ( wargs->msk1_ || wargs->mskn_  ) {
+			throw IOError("CAddressImpl: Cannot merge bits to non-cacheable area");
+		}
+		if ( ((unsigned)wargs->off_ & msk) || ((unsigned)wargs->nbytes_ & msk) ) {
+			throw IOError("CAddressImpl: Non-word aligned writes to non-cacheable area not permitted");
+		}
+	}
 }
 
 void
