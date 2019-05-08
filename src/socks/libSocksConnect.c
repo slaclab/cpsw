@@ -14,12 +14,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <errno.h>
 
 #include "libSocks.h"
 
-int 
+int
+libSocksDebug = 0;
+
+int
 libSocksConnect(int sockfd, const struct sockaddr *addr, socklen_t addrlen, const LibSocksProxy *proxy)
 {
 int rval;
@@ -31,6 +35,21 @@ int vers = -1;
 		vers = proxy->version;
 		if ( 4 == vers || 5 == vers ) {
 			dest = &proxy->address.sa;
+
+			if ( libSocksDebug > 0 ) {
+				char bufs[100];
+				char bufp[100];
+				const struct sockaddr_in *sina = (const struct sockaddr_in*)addr;
+				const struct sockaddr_in *sinp = (const struct sockaddr_in*)&proxy->address.sa;
+
+
+				if (   inet_ntop( AF_INET, &sina->sin_addr, bufs, sizeof(bufs) )
+						&& inet_ntop( AF_INET, &sinp->sin_addr, bufp, sizeof(bufp) ) ) {
+					fprintf(stderr,"INFO: Connecting to %s:%d via %s:%d\n", bufs, ntohs(sina->sin_port), bufp, ntohs(sinp->sin_port));
+				} else {
+					fprintf(stderr,"WARNING (unable to print INFO message): inet_ntop failed: %s\n", strerror(errno));
+				}
+			}
 		}
 	}
 

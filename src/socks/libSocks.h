@@ -83,6 +83,8 @@ libSocksStrToProxy(LibSocksProxy *proxy, const char *str);
 int
 libSocksGetByName(const char *host, const char *service, struct sockaddr *res);
 
+extern int libSocksDebug;
+
 #ifdef __cplusplus
 }
 #endif
