@@ -10,6 +10,7 @@
 #include <cpsw_api_builder.h>
 #include <cpsw_hub.h>
 #include <cpsw_path.h>
+#include <cpsw_fs_addr.h>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>

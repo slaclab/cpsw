@@ -74,10 +74,7 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 		virtual void dumpYamlPart(YAML::Node &node) const;
 
 		virtual void
-		addAtAddress(Field child, YamlState &ypath)
-		{
-			doAddAtAddress<CMemAddressImpl>( child, ypath );
-		}
+		addAtAddress(Field child, YamlState &ypath);
 
 		virtual void addAtAddress(Field child, int align = DFLT_ALIGN);
 

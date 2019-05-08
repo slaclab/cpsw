@@ -18,8 +18,9 @@
 
 #include <cpsw_yaml.h>
 #include <cpsw_aligned_mmio.h>
+#include <cpsw_fs_addr.h>
 
-#undef  MEMDEV_DEBUG
+//#define MEMDEV_DEBUG
 
 static uint64_t
 write_func8(uint8_t *dst, uint8_t *src, size_t n, uint8_t msk1, uint8_t mskn);
@@ -104,6 +105,16 @@ void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
 	if ( 1 != nelms )
 		throw ConfigurationError("CMemDevImpl::addAtAddress -- can only have exactly 1 child");
 	addAtAddress( child );
+}
+
+void
+CMemDevImpl::addAtAddress(Field child, YamlState &ypath)
+{
+	if ( hasNode( ypath, YAML_KEY_fileName ) ) {
+		doAddAtAddress<CFSAddressImpl>( child, ypath );
+	} else {
+		doAddAtAddress<CMemAddressImpl>( child, ypath );
+	}
 }
 
 void CMemDevImpl::dumpYamlPart(YAML::Node &node) const
