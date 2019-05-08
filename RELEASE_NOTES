@@ -1,4 +1,7 @@
 master:
+    Feature: may now create ScalVal_WO interfaces - but writes are marked
+    as non-cacheable.
+
 	Feature: cpsw_entry/cpsw_entry_adapt: promoted 'singleInterfaceOnly'
     feature from static- to virtual method. Individual entries can now
     reject creation of multiple interfaces.  This feature is now settable
