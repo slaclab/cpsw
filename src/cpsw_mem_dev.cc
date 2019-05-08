@@ -160,10 +160,10 @@ uint64_t CMemAddressImpl::read(CReadArgs *args) const
 {
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
 unsigned toget = args->nbytes_;
-	if ( args->off_ + toget > owner->getSize() ) {
 #ifdef MEMDEV_DEBUG
-printf("off %lu, dbytes %lu, size %lu\n", args->off_, args->nbytes_, owner->getSize());
+printf("off %llu, dbytes %lu, size %lu\n", (unsigned long long)args->off_, (unsigned long)args->nbytes_, (unsigned long)owner->getSize());
 #endif
+	if ( args->off_ + toget > owner->getSize() ) {
 		throw ConfigurationError("MemAddress: read out of range");
 	}
 	if ( ! args->dst_  ) {
@@ -175,8 +175,9 @@ printf("off %lu, dbytes %lu, size %lu\n", args->off_, args->nbytes_, owner->getS
 	read_func_(args->dst_, owner->getBufp() + args->off_, toget);
 
 #ifdef MEMDEV_DEBUG
-printf("MemDev read from off %lli to %p:", args->off_, args->dst_);
-for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->dst_[ii]); printf("\n");
+printf("MemDev read from off %lli to %p:", (unsigned long long)args->off_, args->dst_);
+for ( unsigned ii=0; ii<args->nbytes_; ii++) { printf(" 0x%02x", args->dst_[ii]); }
+printf("\n");
 #endif
 
 	return toget;
@@ -237,7 +238,8 @@ uint8_t *src  = args->src_;
 
 #ifdef MEMDEV_DEBUG
 printf("MemDev write to off %lli from %p:", args->off_, args->src_);
-for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->src_[ii]); printf("\n");
+for ( unsigned ii=0; ii<args->nbytes_; ii++) { printf(" 0x%02x", args->src_[ii]); }
+printf("\n");
 #endif
 
 	rval = write_func_( buf + off, src, put, msk1, mskn );

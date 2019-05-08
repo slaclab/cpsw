@@ -54,7 +54,12 @@ IndexRange singleElement(0); // IndexRange operates 'inside' the array bounds de
 IndexRange *range_p;
 
 #ifdef MMIODEV_DEBUG
-	printf("MMIO read; nelmsRight: %d, nbytes_ %d, stride %d, idxf %d, idxt %d\n", node->getNelmsRight(), args->nbytes_, getStride(), (*node)->idxf_, (*node)->idxt_);
+	printf("MMIO read; nelmsRight: %lld, nbytes_ %lld, stride %lld, idxf %lld, idxt %lld\n",
+		(unsigned long long)node->getNelmsRight(),
+		(unsigned long long)args->nbytes_,
+		(unsigned long long)getStride(),
+		(unsigned long long)(*node)->idxf_,
+		(unsigned long long)(*node)->idxt_);
 #endif
 
 CReadArgs  nargs = *args;
