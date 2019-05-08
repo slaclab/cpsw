@@ -446,6 +446,16 @@ CDevImpl::addAtAddress(Field child, unsigned nelms)
 }
 
 void
+CDevImpl::addAtAddress(Field child, YamlState &ypath)
+{
+	try {
+		doAddAtAddress<CFSAddressImpl>( child, ypath );
+	} catch (ConfigurationError &e) {
+		doAddAtAddress<CAddressImpl>( child, ypath );
+	}
+}
+
+void
 CAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	writeNode(node, YAML_KEY_nelms,     nelms_    );

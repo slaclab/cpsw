@@ -89,10 +89,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		}
 
 		virtual void
-		addAtAddress(Field child, YamlState &ypath)
-		{
-			doAddAtAddress<CAddressImpl>( child, ypath );
-		}
+		addAtAddress(Field child, YamlState &ypath);
 
 		virtual Path findByName(const char *s) const;
 
