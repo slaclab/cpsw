@@ -177,6 +177,18 @@ void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, ui
 }
 
 void
+CMMIODevImpl::addAtAddress(Field child, YamlState &ypath)
+{
+uint64_t  offset;
+	if ( readNode(ypath, YAML_KEY_offset, &offset ) ) {
+		doAddAtAddress<CMMIOAddressImpl>( child, ypath );
+	} else {
+		fprintf(stderr, "WARNING: no '" YAML_KEY_offset "' attribute found in YAML -- adding '%s' as an non-MMIO/unknown device\n", child->getName());
+		doAddAtAddress<CAddressImpl>( child, ypath );
+	}
+}
+
+void
 CMMIOAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CAddressImpl::dumpYamlPart( node );

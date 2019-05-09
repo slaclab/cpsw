@@ -74,16 +74,7 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 
 		CMMIODevImpl(Key &k, YamlState &ypath);
 
-		virtual void addAtAddress(Field child, YamlState &ypath)
-		{
-		uint64_t  offset;
-			if ( readNode(ypath, YAML_KEY_offset, &offset ) ) {
-				doAddAtAddress<CMMIOAddressImpl>( child, ypath );
-			} else {
-				fprintf(stderr, "WARNING: no '" YAML_KEY_offset "' attribute found in YAML -- adding as an non-MMIO/unknown device\n");
-				doAddAtAddress<CAddressImpl>( child, ypath );
-			}
-		}
+		virtual void addAtAddress(Field child, YamlState &ypath);
 
 		virtual void dumpYamlPart(YAML::Node &) const;
 
