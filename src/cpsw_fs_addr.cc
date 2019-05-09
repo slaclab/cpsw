@@ -14,7 +14,15 @@
 #include <sys/select.h>
 #include <pthread.h>
 
-#define CFS_DEBUG
+//#define CFS_DEBUG
+
+/* Using 'select' as a timeout mechanism for writes is not suitable because
+ * the actual 'write' can still block. Also, e.g., uio(7) does not implement
+ * EPOLLOUT.
+ * An implementation would likely to have to use timers and signals in order
+ * to interrupt a 'write' or resort so some asynchronous facility.
+ */
+#undef USE_SELECT_ON_WRITE
 
 #define DFLT_SEEKEABLE true
 #define DFLT_OFFSET    ((uint64_t)0)
@@ -264,6 +272,10 @@ fd_set efds;
 int    stat;
 int    got;
 
+#ifdef CFS_DEBUG
+	fprintf(stderr, "CFSAddressImpl::readTimeout %ld bytes\n", (unsigned long)n);
+#endif
+
 	if ( n == 0 )
 		return;
 
@@ -296,20 +308,31 @@ int    got;
 
 static void writeTimeout(int fd, uint8_t *buf, unsigned n, const CTimeout *timeout)
 {
+#ifdef USE_SELECT_ON_WRITE
 fd_set ofds;
 fd_set efds;
 int    stat;
+#endif
 int    put;
+
+#ifdef CFS_DEBUG
+	fprintf(stderr, "CFSAddressImpl::writeTimeout %ld bytes\n", (unsigned long)n);
+#endif
 
 	if ( n == 0 )
 		return;
 
 	do {
 
+#ifdef USE_SELECT_ON_WRITE
 		FD_ZERO( &ofds ); FD_SET( fd, &ofds );
 		FD_ZERO( &efds ); FD_SET( fd, &efds );
 
 		stat = pselect( fd + 1, 0, &ofds, &efds, timeout->isIndefinite() ? 0 : &timeout->tv_, 0 );
+
+#ifdef CFS_DEBUG
+		fprintf(stderr, "CFSAddressImpl::writeTimeout select returned %i\n", stat);
+#endif
 		if ( 0 >= stat ) {
 			if ( 0 == stat ) {
 				throw TimeoutError("CFSAddressImpl::write timed out");
@@ -317,6 +340,7 @@ int    put;
 				throw ErrnoError("CFSAddressImpl::write pselect failed");
 			}
 		}
+#endif
 
 		put = ::write( fd, buf, n );
 
