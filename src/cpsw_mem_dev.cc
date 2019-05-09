@@ -110,9 +110,9 @@ void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
 void
 CMemDevImpl::addAtAddress(Field child, YamlState &ypath)
 {
-	if ( hasNode( ypath, YAML_KEY_fileName ) ) {
+	try {
 		doAddAtAddress<CFSAddressImpl>( child, ypath );
-	} else {
+	} catch (NotFoundError &e) {
 		doAddAtAddress<CMemAddressImpl>( child, ypath );
 	}
 }
