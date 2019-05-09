@@ -451,7 +451,7 @@ CDevImpl::addAtAddress(Field child, YamlState &ypath)
 {
 	try {
 		doAddAtAddress<CFSAddressImpl>( child, ypath );
-	} catch (ConfigurationError &e) {
+	} catch (NotFoundError &e) {
 		doAddAtAddress<CAddressImpl>( child, ypath );
 	}
 }
