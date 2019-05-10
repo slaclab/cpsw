@@ -23,11 +23,6 @@ RANLIB_host:=$(or $(RANLIB),ranlib)
 
 GIT_VERSION_STRING:=$(shell echo -n '"'`git describe --always --dirty`'"')
 
-# if CROSS_xxx (for target architecture 'xxx' is not defined then try CROSS_default)
-#
-# For a host build this should be empty (since we assume the tools to be in PATH)
-# but the user may override by defining CROSS_host...
-#
 # arch2var(VARIABLE_PREFIX)
 define arch2var
 $(1)=$$(or $$($(1)_$$(TARNM)),$$($(1)_default))
@@ -52,6 +47,10 @@ ARCHSPECIFIC_VARS+=USR_CPPFLAGS
 ARCHSPECIFIC_VARS+=USR_CXXFLAGS
 ARCHSPECIFIC_VARS+=USR_CFLAGS
 ARCHSPECIFIC_VARS+=USR_LDFLAGS
+ARCHSPECIFIC_VARS+=LOC_CPPFLAGS
+ARCHSPECIFIC_VARS+=LOC_CXXFLAGS
+ARCHSPECIFIC_VARS+=LOC_CFLAGS
+ARCHSPECIFIC_VARS+=LOC_LDFLAGS
 ARCHSPECIFIC_VARS+=USE_CXX11
 ARCHSPECIFIC_VARS+=CYTHON
 
@@ -96,14 +95,18 @@ BOOST_CPPFLAGS_NO+=-DWITHOUT_BOOST
 CPPFLAGS+= $(addprefix -I,$(SRCDIR) $(INCLUDE_DIRS) $(INSTALL_DIR:%=%/include))
 CPPFLAGS+= $(addprefix -I,$(subst :, ,$(cpswinc_DIRS)))
 CPPFLAGS+= $(USR_CPPFLAGS)
+CPPFLAGS+= $(LOC_CPPFLAGS)
 CPPFLAGS+= $(BOOST_CPPFLAGS_$(WITH_BOOST))
 CXXFLAGS+= $(OPT_CXXFLAGS)
 CXXFLAGS+= $(STD_CXXFLAGS)
 CXXFLAGS+= $(USR_CXXFLAGS)
+CXXFLAGS+= $(LOC_CXXFLAGS)
 CFLAGS  += $(OPT_CFLAGS)
 CFLAGS  += $(USR_CFLAGS)
+CFLAGS  += $(LOC_CFLAGS)
 
 LDFLAGS += $(USR_LDFLAGS)
+LDFLAGS += $(LOC_LDFLAGS)
 
 VPATH=$(SRCDIR)
 
