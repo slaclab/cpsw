@@ -22,6 +22,7 @@ env-cpsw.sh: .FORCE
 	echo 'export LD_LIBRARY_PATH=$(PYLIBPATH)$${LD_LIBRARY_PATH:+:$${LD_LIBRARY_PATH}}' >> $@
 	echo 'export PYTHONPATH=$(abspath $(INSTALL_DIR))/$(TARCH)/bin$${PYTHONPATH:+:$${PYTHONPATH}}' >> $@
 	echo 'export PATH=$(abspath $(INSTALL_BIN))$(addprefix :,$(PYBINPATH))$${PATH:+:$${PATH}}' >> $@
+	$(POSTPROCESS_ENV_SCRIPT) $@
 
 clean_local:
 	$(RM) env-cpsw.sh

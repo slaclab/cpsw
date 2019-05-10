@@ -149,3 +149,10 @@ WITH_BOOST_default=YES
 
 # Define an install location
 INSTALL_DIR=$(TOPDIR)
+
+# Optional command to post-process the script that is generated to
+# set up LD_LIBRARY_PATH, PATH, PYTHONPATH.
+# Such a script may be necessary in a cross-environment when paths
+# as seen from the target differ from the installation paths as
+# seen from the host...
+POSTPROCESS_ENV_SCRIPT_default=true
