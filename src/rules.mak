@@ -183,7 +183,7 @@ $(STATIC_LIBRARIES:%=lib%.a):
 	$(CC) $(CPPFLAGS) $(CLAGS) -fpic -o $@ -c $<
 
 $(SHARED_LIBRARIES:%=lib%.so):
-	$(CXX) -shared -o $@ $^
+	$(CXX) -shared $(LDFLAGS) -o $@ $^
 
 # Find library with <stem> passed as the first argument.
 # Return path to 'lib<stem>.so' or 'lib<stem>.a':
