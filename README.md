@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/slaclab/cpsw.svg?branch=master)](https://travis-ci.org/slaclab/cpsw)
+[![Build Status](https://travis-ci.com/slaclab/cpsw.svg?branch=master)](https://travis-ci.com/slaclab/cpsw)
 
 # CPSW: Common Platform Software
 
