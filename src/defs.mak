@@ -126,6 +126,7 @@ cpswlib_DIRS=$(addsuffix /O.$(TARCH),$(CPSW_DIR))$(cpsw_deplib_DIRS)
 
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
 CPSW_LIBS   = cpsw yaml-cpp pthread rt dl
+CPSW_STATIC_LIBS = cpsw.a yaml-cpp.a pthread rt dl
 
 STATIC_LIBRARIES=$(STATIC_LIBRARIES_$(WITH_STATIC_LIBRARIES))
 SHARED_LIBRARIES=$(SHARED_LIBRARIES_$(WITH_SHARED_LIBRARIES))
