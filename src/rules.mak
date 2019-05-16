@@ -287,6 +287,9 @@ deps: $(addsuffix .dp, $(basename $(SRCS)))
 	cat $^ > $@
 endif
 
+%.dp:%.cpp $(DEP_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
+
 %.dp:%.cc $(DEP_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MM -MT "$(addprefix $(@:%.dp=%),.o .pic.o)" $< > $@
 
