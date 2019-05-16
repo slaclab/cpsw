@@ -9,6 +9,7 @@
 using std::shared_ptr;
 
 namespace cpsw {
+	using std::shared_ptr;
 	using std::weak_ptr;
 	using std::make_shared;
 	using std::allocate_shared;

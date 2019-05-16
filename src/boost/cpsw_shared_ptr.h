@@ -12,6 +12,7 @@
 using boost::shared_ptr;
 
 namespace cpsw {
+	using boost::shared_ptr;
 	using boost::weak_ptr;
 	using boost::make_shared;
 	using boost::allocate_shared;
