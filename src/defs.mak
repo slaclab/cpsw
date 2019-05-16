@@ -194,6 +194,8 @@ endef
 # definitions
 include $(CPSW_DIR)/../config.mak
 -include $(CPSW_DIR)/../config.local.mak
+-include $(SRCDIR)/config.local.mak
+# legacy
 -include $(SRCDIR)/local.mak
 
 ifndef TOPDIR
@@ -201,3 +203,4 @@ ifndef TOPDIR
 # in a sub-directory...
 TOPDIR:=$(shell NP=./; while P=$${NP} && NP=$${NP}../ && [ -e $${NP}makefile ] && grep -q CPSW_DIR $${NP}makefile ; do true; done; echo $${P})
 endif
+-include $(TOPDIR)/config.local.mak
