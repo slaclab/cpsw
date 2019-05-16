@@ -62,6 +62,7 @@ before_script:
     - echo "pyinc_DIR=/usr/local/include/python3.6m/" >> config.mak
     - echo "USE_CXX11_default=NO"                     >> config.mak
     - echo "INSTALL_DIR=/usr/local/cpsw/"             >> config.mak
+    - echo "POSTPROCESS_ENV_SCRIPT_default=true"      >> config.mak
 
 script:
     # Test building the code
