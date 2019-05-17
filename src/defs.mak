@@ -203,5 +203,8 @@ ifndef TOPDIR
 # Heuristics to find a top-level makefile; assume cpsw can be
 # in a sub-directory...
 TOPDIR:=$(shell NP=./; while P=$${NP} && NP=$${NP}../ && [ -e $${NP}makefile ] && grep -q CPSW_DIR $${NP}makefile ; do true; done; echo $${P})
-endif
+else
+# Package using cpsw makefiles may define TOPDIR and add to config or override
+-include $(TOPDIR)/config.mak
 -include $(TOPDIR)/config.local.mak
+endif
