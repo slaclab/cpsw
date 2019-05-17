@@ -52,17 +52,14 @@ install:
     - sudo make install 1>/dev/null 2>&1
 
 before_script:
-    # Prepare config.mak file
+    # Prepare config.local.mak file
     - cd $TRAVIS_BUILD_DIR
-    - rm -f config.mak
-    - echo "WITH_STATIC_LIBRARIES=YES"                >> config.mak
-    - echo "WITH_SHARED_LIBRARIES=YES"                >> config.mak
-    - echo "yaml_cppinc_DIR=/usr/local/include/"      >> config.mak
-    - echo "yaml_cpplib_DIR=/usr/local/lib/"          >> config.mak
-    - echo "pyinc_DIR=/usr/local/include/python3.6m/" >> config.mak
-    - echo "USE_CXX11_default=NO"                     >> config.mak
-    - echo "INSTALL_DIR=/usr/local/cpsw/"             >> config.mak
-    - echo "POSTPROCESS_ENV_SCRIPT_default=true"      >> config.mak
+    - echo "HARCH=linux-x86_64"                       >  config.local.mak
+    - echo "ARCHES=\"\""                              >> config.local.mak
+    - echo "yaml_cppinc_DIR=/usr/local/include/"      >> config.local.mak
+    - echo "yaml_cpplib_DIR=/usr/local/lib/"          >> config.local.mak
+    - echo "pyinc_DIR=/usr/local/include/python3.6m/" >> config.local.mak
+    - echo "INSTALL_DIR=/usr/local/cpsw/"             >> config.local.mak
 
 script:
     # Test building the code
