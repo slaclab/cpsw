@@ -55,7 +55,7 @@ before_script:
     # Prepare config.local.mak file
     - cd $TRAVIS_BUILD_DIR
     - echo "HARCH=linux-x86_64"                       >  config.local.mak
-    - echo "ARCHES=\"\""                              >> config.local.mak
+    - echo "ARCHES=\$(HARCH)"                         >> config.local.mak
     - echo "yaml_cppinc_DIR=/usr/local/include/"      >> config.local.mak
     - echo "yaml_cpplib_DIR=/usr/local/lib/"          >> config.local.mak
     - echo "pyinc_DIR=/usr/local/include/python3.6m/" >> config.local.mak
