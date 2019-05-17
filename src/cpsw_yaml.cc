@@ -362,7 +362,7 @@ const PNode *otop  = top;
 
 		// no need for 'fixInvalidNode()' since 'merged_node' is only
 		// operated on if it is not 'undefined'.
-		const YAML::Node &merged_node( YAML::NodeFind<YAML::Node>( *top, YAML_KEY_MERGE) );
+		const YAML::Node merged_node( YAML::NodeFind<YAML::Node>( *top, YAML_KEY_MERGE) );
 
 		if ( merged_node ) {
 			// try (backtracking) lookup from the node at the mergekey
@@ -573,7 +573,7 @@ bool        instantiate    = true;
 template <typename T> void
 CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlState &node)
 {
-	const YAML::PNode &class_node( node.lookup(YAML_KEY_class) );
+	const YAML::PNode class_node( node.lookup(YAML_KEY_class) );
 	if ( ! class_node ) {
 		throw   NotFoundError( std::string("No property '")
 			  + std::string(YAML_KEY_class)
@@ -662,8 +662,8 @@ public:
 
 			YAML::Node downmerged_node( YAML::NodeType::Undefined );
 			while ( it != ite ) {
-				const std::string &k = it->first.as<std::string>();
-				const YAML::Node  &v = it->second;
+				const std::string k = it->first.as<std::string>();
+				const YAML::Node  v = it->second;
 
 				// skip merge node! But remember it and follow downstream
 				// after all other children are handled.
