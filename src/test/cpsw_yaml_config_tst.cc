@@ -18,6 +18,8 @@
 #include <yaml-cpp/yaml.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 class TestFailed {
 public:
@@ -69,6 +71,24 @@ static const char *yamlFmt=
 "              " YAML_KEY_offset ": 0x200\n"
 "              " YAML_KEY_nelms ":  8\n"
 ;
+
+static void wrf(const char *contents, const char *fnam)
+{
+FILE *f;
+	if ( ! (f = fopen(fnam, "w")) ) {
+		perror("unable to open file for writing\n");
+		throw TestFailed("unable to open file");
+	}
+size_t l = strlen(contents);
+	if ( l != fwrite(contents, 1, l, f) ) {
+		perror("Unable to write all characters to include file");
+		throw TestFailed("unable to write file");
+	}
+	if ( fclose(f) ) {
+		perror("closing file");
+		throw TestFailed("unable to close file");
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -196,6 +216,23 @@ std::cout << e.c_str() << "\n";
 			if ( v2Found )
 				throw TestFailed("val2 still found in config dump");
 		}
+	}
+
+	if (1) {
+		char yaml[10000];
+		snprintf(yaml, sizeof(yaml), yamlFmt, "true", "true");
+		Path r = IPath::loadYamlStream( yaml );
+		struct stat sb;
+		std::string fnam = std::string( argv[0] ) + "_config.yaml";
+		unlink( fnam.c_str() );
+		if ( 0 == stat( fnam.c_str(), &sb) ) {
+			fprintf(stderr,"Unable to remove config yaml file\n");
+			throw TestFailed("unable to remove file");
+		}
+		YAML::Emitter e;
+		e << cnfg;
+		wrf( e.c_str(), fnam.c_str() );
+		r->loadConfigFromYamlFile( fnam.c_str() );
 	}
 
 		
