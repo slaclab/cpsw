@@ -17,7 +17,7 @@
 
 using cpsw::PNode;
 
-#define YAML_MERGE_DEBUG
+#undef  YAML_MERGE_DEBUG
 
 namespace cpsw {
 
@@ -100,20 +100,13 @@ mergeInto(const PNode *p, YAML::Node n, YAML::Node m)
 #endif
 }
 
-#undef REWRITE
-
-YAML::Node
+static void
 resolveMergeKeys(const PNode *p, YAML::Node n)
 {
 YAML::iterator it  = n.begin();
 YAML::iterator ite = n.end();
 YAML::Node     merged_node;
 YAML::Node     resolved_val;
-#ifdef REWRITE
-YAML::Node     rval( YAML::NodeType::Map );
-#else
-YAML::Node     rval( n );
-#endif
 
     // first make sure that all merge keys are
     // resolved in all *children* (map entries) of
@@ -125,6 +118,9 @@ YAML::Node     rval( n );
 		YAML::Node         v( it->second );
 
 		if ( v.IsDefined() && v.IsMap() ) {
+
+			resolveMergeKeys( &here, v );
+
 			if ( 0 == ::strcmp( YAML_MERGE_KEY_PATTERN, k.c_str() ) ) {
 				if ( ! merged_node.IsNull() ) {
 					throw CPSWError(   std::string("yaml_merge: multiple ")
@@ -132,22 +128,15 @@ YAML::Node     rval( n );
 					                 + " found here: "
 					                 + pps( &here ) );
 				}
-				merged_node.reset( resolveMergeKeys( &here, v ) );
-			} else {
-#ifdef REWRITE
-				rval[ k ] =
-#endif
-						resolveMergeKeys( &here, v );
+				merged_node.reset( v );
 			}
+
 		} else {
 			if ( 0 == ::strcmp( YAML_MERGE_KEY_PATTERN, k.c_str() ) ) {
 				throw CPSWError( std::string("yaml_merge: merged node is not a map: " + pps( &here )) );
 			}
 #ifdef YAML_MERGE_DEBUG
 			fprintf(stderr, "Leaf found: %s\n", pps( &here ).c_str());
-#endif
-#ifdef REWRITE
-			rval[ k ] = v;
 #endif
 		}
 		++it;
@@ -159,12 +148,15 @@ YAML::Node     rval( n );
 	// key into the rest of map entries of 'n'
 
 	if ( ! merged_node.IsNull() ) {
-		mergeInto( p, rval, merged_node );
-#ifndef REWRITE
-		rval.remove( YAML_MERGE_KEY_PATTERN );
-#endif
+		mergeInto( p, n, merged_node );
+		n.remove( YAML_MERGE_KEY_PATTERN );
 	}
-	return rval;
+}
+
+void
+resolveMergeKeys(YAML::Node n)
+{
+	resolveMergeKeys(0, n);
 }
 
 };

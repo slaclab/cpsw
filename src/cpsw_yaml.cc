@@ -589,7 +589,7 @@ YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
 		YAML::Node rootNode( YAML::Load( top_preprocessed_stream ) );
 
 		if ( resolveMergeKeys ) {
-        	rootNode.reset( cpsw::resolveMergeKeys( 0, rootNode ) );
+			cpsw::resolveMergeKeys( rootNode );
 		}
 
 		int vers;

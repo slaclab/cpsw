@@ -192,7 +192,7 @@ std::string str( yaml );
 		root.reset( CYamlFieldFactoryBase::loadPreprocessedYaml( sstrm, NULL, false ) );
 		}
 
-		root = cpsw::resolveMergeKeys( 0, root );
+		cpsw::resolveMergeKeys( root );
 
 		dump( root );
 
@@ -219,7 +219,7 @@ int i;
 		}
 		// remove merge of the default node
 		root["root"].remove( YAML_KEY_MERGE );
-		root = cpsw::resolveMergeKeys( 0, root );
+		cpsw::resolveMergeKeys( root );
 		// all fields should now be present
 		top = CYamlFieldFactoryBase::dispatchMakeField( root, "root" );
 
@@ -244,7 +244,7 @@ int i;
 		// if we set 'instantiate=false' then '/main/merge' must not
 		// be created - even though a default is merged upstream
 		root["root"][YAML_KEY_children]["main"][YAML_KEY_children][YAML_KEY_MERGE]["merge"][YAML_KEY_instantiate]=false;
-		root = cpsw::resolveMergeKeys( 0, root );
+		cpsw::resolveMergeKeys( root );
 
 		top = CYamlFieldFactoryBase::dispatchMakeField( root, "root" );
 

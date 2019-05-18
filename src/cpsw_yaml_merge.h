@@ -29,7 +29,9 @@ public:
 	}
 };
 
-YAML::Node resolveMergeKeys(const PNode *p, YAML::Node n);
+// resolve merge keys (recursively) under 'n'. I.e., perform
+// merges and remove the merge key.
+void resolveMergeKeys(YAML::Node n);
 
 extern const char * const YAML_MERGE_KEY_PATTERN;
 
