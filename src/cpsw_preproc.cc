@@ -221,7 +221,9 @@ unsigned headerLines = 0;
 		char hlbuf[30];
 		snprintf(hlbuf, sizeof(hlbuf), "%d", headerLines);
 
-		mux_->pushbuf( StreamMuxBuf::mkstrm( std::string("##(") + std::string(hlbuf) + std::string(") ") + line + std::string("\n") ), &name, headerLines );
+		if ( verbose_ ) {
+			mux_->pushbuf( StreamMuxBuf::mkstrm( std::string("##(") + std::string(hlbuf) + std::string(") ") + line + std::string("\n") ), &name, headerLines );
+		}
 
 		headerLines++;
 
