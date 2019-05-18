@@ -29,7 +29,7 @@ public:
 	}
 };
 
-void resolveMergeKeys(const PNode *p, YAML::Node n);
+YAML::Node resolveMergeKeys(const PNode *p, YAML::Node n);
 
 extern const char * const YAML_MERGE_KEY_PATTERN;
 

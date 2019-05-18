@@ -10,6 +10,7 @@
 #include <cpsw_api_user.h>
 #include <cpsw_api_builder.h>
 #include <cpsw_yaml.h>
+#include <cpsw_yaml_merge.h>
 #include <iostream>
 
 static const char *yaml=
@@ -144,13 +145,19 @@ const YAML::Node &p ( n/*["peripherals"]*/ );
 }
 
 
-class TestFailed {};
+class TestFailed {
+public:
+	int lineno;
+	TestFailed( int lno )
+	: lineno( lno )
+	{}
+};
 
-static void createPathShouldFail(Hub h, const char *name)
+static void createPathShouldFail(Hub h, const char *name, int lno)
 {
 	try {
 		h->findByName( name );
-		throw TestFailed();
+		throw TestFailed( lno );
 	} catch (NotFoundError &e) {
 	}
 }
@@ -165,14 +172,29 @@ const char *paths[] = {
 	0
 };
 
+void dump(YAML::Node n)
+{
+YAML::Emitter out;
+	out << n;
+	std::cout << "###### BEGIN YAML DUMP ########\n";
+	std::cout << out.c_str() << "\n";
+	std::cout << "###### END YAML DUMP ########\n";
+}
+
 int
 main(int argc, char **argv)
 {
 std::string str( yaml );
-std::stringstream sstrm( str );
-	try {
-		YAML::Node root( CYamlFieldFactoryBase::loadPreprocessedYaml( sstrm ) );
+	{
+		YAML::Node root;
+		{
+		std::stringstream sstrm( str );
+		root.reset( CYamlFieldFactoryBase::loadPreprocessedYaml( sstrm, NULL, false ) );
+		}
 
+		root = cpsw::resolveMergeKeys( 0, root );
+
+		dump( root );
 
 		Hub top( CYamlFieldFactoryBase::dispatchMakeField( root, "root" ) );
 
@@ -188,12 +210,16 @@ int i;
 		// 'default' node sets 'instantiate: false' everywhere
 
 		for ( i=0; paths[i]; i++ ) {
-			createPathShouldFail(top, paths[i]);
+			createPathShouldFail(top, paths[i], __LINE__);
 		}
 
+		{
+		std::stringstream sstrm( str );
+		root.reset( CYamlFieldFactoryBase::loadPreprocessedYaml( sstrm, NULL, false ) );
+		}
 		// remove merge of the default node
 		root["root"].remove( YAML_KEY_MERGE );
-
+		root = cpsw::resolveMergeKeys( 0, root );
 		// all fields should now be present
 		top = CYamlFieldFactoryBase::dispatchMakeField( root, "root" );
 
@@ -203,15 +229,22 @@ int i;
 
 		// check if the default 'nelms' is merged from upstream
 		if ( top->findByName( "main/merge" )->tail()->getNelms() != 44 )
-			throw TestFailed();
+			throw TestFailed( __LINE__ );
 
 		// check if the default/merged 'size' is overridden and erased
 		if ( top->findByName( "main/merge" )->tail()->getSize() != IField::DFLT_SIZE )
-			throw TestFailed();
+			throw TestFailed( __LINE__ );
 
+		{
+		std::stringstream sstrm( str );
+		root.reset( CYamlFieldFactoryBase::loadPreprocessedYaml( sstrm, NULL, false ) );
+		}
+		// remove merge of the default node
+		root["root"].remove( YAML_KEY_MERGE );
 		// if we set 'instantiate=false' then '/main/merge' must not
 		// be created - even though a default is merged upstream
 		root["root"][YAML_KEY_children]["main"][YAML_KEY_children][YAML_KEY_MERGE]["merge"][YAML_KEY_instantiate]=false;
+		root = cpsw::resolveMergeKeys( 0, root );
 
 		top = CYamlFieldFactoryBase::dispatchMakeField( root, "root" );
 
@@ -220,21 +253,18 @@ int i;
 				top->findByName( paths[i] );
 				if ( 0 == i ) {
 					std::cout << "found paths[0]\n";
-					throw TestFailed();
+					throw TestFailed( __LINE__ );
 				}
 			} catch (NotFoundError &e) {
 				if ( 0 != i ) {
 					std::cout << "not found paths[" << i <<"]\n";
-					throw TestFailed();
+					throw TestFailed( __LINE__ );
 				}
 			}
 		}
 
 	std::cout << argv[0] << " - success\n";
 
-	} catch ( CPSWError &e ) {
-		std::cout << "CPSW Error: " << e.getInfo() << "\n";
-		throw;
 	}
 
 

@@ -106,45 +106,8 @@ namespace YAML {
 
 		~PNode();
 
-		class MergekeyVisitor {
-		public:
-			virtual bool visit(PNode *merged_node) = 0;
-		};
-
-		// starting at 'this' node visit all merge keys upstream
-		// until the visitor's 'visit' method returns 'false', the
-		// root is reached or 'maxlevel' parents have been scanned
-		// for merge keys.
-		void visitMergekeys(MergekeyVisitor *, int maxlevel = -1);
-
-		// lookup a key starting at 'this' PNode and backtrack
-		// through merge ("<<") keys.
-		//
-		// If there is a structure like this
-		//
-		//   a:
-		//     <<:
-		//       b:
-		//         c:
-		//           key1: merged_value1
-		//           key2: merged_value2
-		//     b:
-		//       c:
-		//         key1: value1:
-		//
-		// then the algorithm is expected to
-		// find
-		//    a["b"]["c"]["key1"] -> value1
-		//    a["b"]["c"]["key2"] -> merged_value2
-		//
-		// Since recursive lookups through many merge keys can become
-		// quite expensive we provide the 'maxlevel' feature which
-		// tells the algorithm through how many levels of parents it
-		// should search for merge keys (0: none, <0 all levels).
 		PNode lookup(const char *key, int maxlevel = -1) const;
 
-	private:
-		static YAML::Node backtrack_mergekeys(const YAML::PNode *, unsigned, const YAML::Node &, int);
 	};
 };
 
@@ -668,9 +631,9 @@ class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 	public:
 		static Dev dispatchMakeField(const YAML::Node &node, const char *root_name);
 
-		static YAML::Node loadPreprocessedYaml    (std::istream &,          const char *yaml_dir = 0);
-		static YAML::Node loadPreprocessedYaml    (const char *char_stream, const char *yaml_dir = 0);
-		static YAML::Node loadPreprocessedYamlFile(const char *file_name,   const char *yaml_dir = 0);
+		static YAML::Node loadPreprocessedYaml    (std::istream &,          const char *yaml_dir = 0, bool resolveMergeKeys = true);
+		static YAML::Node loadPreprocessedYaml    (const char *char_stream, const char *yaml_dir = 0, bool resolveMergeKeys = true);
+		static YAML::Node loadPreprocessedYamlFile(const char *file_name,   const char *yaml_dir = 0, bool resolveMergeKeys = true);
 
 		static void dumpClasses() { getFieldRegistry_()->dumpClasses(); }
 };
