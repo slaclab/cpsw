@@ -156,7 +156,10 @@ YAML::Node     resolved_val;
 void
 resolveMergeKeys(YAML::Node n)
 {
-	resolveMergeKeys(0, n);
+	if ( ! n.IsDefined() || ! n.IsMap() ) {
+		throw InternalError("resolveMergeKeys() called on non-Map Node!");
+		resolveMergeKeys(0, n);
+	}
 }
 
 };
