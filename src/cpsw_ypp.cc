@@ -79,15 +79,13 @@ StreamMuxBuf::Stream top_strm;
 StreamMuxBuf     muxer;
 YamlPreprocessor preprocessor( top_strm, &muxer, yaml_dir );
 
-	if ( verb ) {
-    	preprocessor.setVerbose( true );
-	}
+	preprocessor.setVerbose( verb );
 
 	preprocessor.process();
 
 	std::istream preprocessed_stream( &muxer );
 
-	if ( verb && preprocessor.getSchemaVersionMajor() >= 0 ) {
+	if ( preprocessor.getSchemaVersionMajor() >= 0 ) {
 		std::cout << "#schemaversion "
 		          << preprocessor.getSchemaVersionMajor()
 		          << "."
