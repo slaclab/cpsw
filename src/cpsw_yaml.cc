@@ -50,10 +50,11 @@ typedef unordered_set<std::string> StrSet;
 void
 PNode::dump() const
 {
-	printf("PNode key: %s, p: %p, c: %p\n" , key_ , parent_, child_ );
+	printf( "PNode key: %s, p: %p\n" , key_.c_str() , parent_ );
 }
 
 
+#if 0
 // assign a new Node to this PNode while preserving parent/child/key
 // ('merge' operation)
 PNode &
@@ -86,109 +87,22 @@ PNode::operator=(const Node &orig_node)
 	}
 	return *this;
 }
+#endif
 
-void
-PNode::merge(const Node &orig_node)
-{
-	*this = orig_node;
-}
-
-// 'extract' a Node from a PNode
-Node
-PNode::get() const
-{
-	return * static_cast<const YAML::Node *>(this);
-}
-
-// 'assignment'; moves parent/child from the original to the destination
-PNode &
-PNode::operator=(const PNode &orig)
-{
-	if ( this != &orig ) {
-		if ( orig.child_ )
-			throw InternalError("can only copy a PNode at the tail of a chain");
-		static_cast<YAML::Node &>(*this) = static_cast<const YAML::Node &>(orig);
-		parent_ = orig.parent_;
-		child_  = orig.child_;
-		key_    = orig.key_;
-		if ( parent_ )
-			parent_->child_ = this;
-		orig.parent_ = 0;
-		orig.child_  = 0;
-		maj_ = orig.maj_;
-		min_ = orig.min_;
-		rev_ = orig.rev_;
-	}
-	return *this;
-}
-
-// 'copy constructor'; moves parent/child from the original to the destination
-PNode::PNode(const PNode &orig)
-: Node( static_cast<const YAML::Node&>(orig) ),
-  maj_( orig.maj_ ),
-  min_( orig.min_ ),
-  rev_( orig.rev_ )
-{
-	parent_ = orig.parent_;
-	child_  = orig.child_;
-	key_    = orig.key_;
-	if ( parent_ )
-		parent_->child_ = this;
-	orig.parent_ = 0;
-	orig.child_  = 0;
-}
-
-PNode::PNode( const PNode *parent, const char *key, const Node &node)
+PNode::PNode( const PNode *parent, const std::string &key, const Node &node)
 : Node( node ),
   parent_( parent ),
-  child_ ( 0 ),
-  key_( key ),
-  maj_( -1 ),
-  min_( -1 ),
-  rev_( -1 )
+  key_( key )
 {
-	if ( parent_ ) {
-		parent_->child_ = this;
-		maj_ = parent->maj_;
-		min_ = parent->min_;
-		rev_ = parent->rev_;
-	}
-}
-
-PNode::PNode( const char *key, const Node &top )
-: Node( top[key] ),
-  parent_( 0 ),
-  child_( 0 ),
-  key_( key ),
-  maj_( -1 ),
-  min_( -1 ),
-  rev_( -1 )
-{
-	{
-	YAML::Node n(top[ YAML_KEY_schemaVersionMajor    ]);
-	if ( n )
-		maj_ = n.as<int>();
-	}
-	{
-	YAML::Node n(top[ YAML_KEY_schemaVersionMinor    ]);
-	if ( n )
-		min_ = n.as<int>();
-	}
-	{
-	YAML::Node n(top[ YAML_KEY_schemaVersionRevision ]);
-	if ( n )
-		rev_ = n.as<int>();
-	}
 }
 
 std::string
 PNode::toString() const
 {
 	if ( parent_ )
-		return parent_->toString() + std::string("/") + std::string(key_);
-	return std::string("key_");
+		return parent_->toString() + "/" + key_;
+	return std::string("/");
 }
-
 
 // somewhere between 0.5.1 and 0.5.3 two 'flavors' of undefined nodes
 // were introduced (without the user being able to tell the difference :-()
@@ -208,21 +122,11 @@ static Node fixInvalidNode(const Node &n)
 
 // Construct a PNode by map lookup while remembering
 // the parent.
-PNode::PNode( const PNode *parent, const char *key )
+PNode::PNode( const PNode *parent, const std::string &key )
 : Node( fixInvalidNode((*parent)[key]) ),
   parent_(parent),
-  child_(0),
   key_(key)
 {
-	if ( parent->child_ )
-		throw   InternalError(std::string("Parent ")
-			  + parent->toString()
-			  + std::string(" asready has a child!")
-			    );
-	parent_->child_ = this;
-	maj_            = parent->maj_;
-	min_            = parent->min_;
-	rev_            = parent->rev_;
 }
 
 // Construct a PNode by sequence lookup while remembering
@@ -230,19 +134,12 @@ PNode::PNode( const PNode *parent, const char *key )
 PNode::PNode( const PNode *parent, unsigned index)
 : Node( fixInvalidNode( (*parent)[index] ) ),
   parent_(parent),
-  child_(0),
-  key_(0)
+  key_( "<none>" )
 {
-	parent_->child_ = this;
-	maj_            = parent->maj_;
-	min_            = parent->min_;
-	rev_            = parent->rev_;
 }
 
 PNode::~PNode()
 {
-	if ( parent_ )
-		parent_->child_ = 0;
 }
 
 
@@ -267,7 +164,7 @@ static void pp(const PNode *p)
 #endif
 
 PNode
-PNode::lookup(const char *key, int maxlevel) const
+PNode::lookup(const char *key) const
 {
 PNode node(this, key);
 
@@ -427,7 +324,7 @@ bool        instantiate    = true;
 template <typename T> void
 CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlState &node)
 {
-	const YAML::PNode class_node( node.lookup(YAML_KEY_class) );
+	const YAML::PNode &class_node( node.lookup(YAML_KEY_class) );
 	if ( ! class_node ) {
 		throw   NotFoundError( std::string("No property '")
 			  + std::string(YAML_KEY_class)
@@ -475,23 +372,23 @@ public:
 	{
 	}
 
-	virtual bool visit(PNode *merged_node)
+	virtual bool visit(const PNode *pnode)
 	{
 
-		YAML::const_iterator it ( merged_node->begin() );
-		YAML::const_iterator ite( merged_node->end()   );
+		YAML::const_iterator it ( pnode->begin() );
+		YAML::const_iterator ite( pnode->end()   );
 
 		while ( it != ite ) {
-			const std::string k = it->first.as<std::string>();
-			const YAML::Node  v = it->second;
+			const std::string &k = it->first.as<std::string>();
+			const YAML::Node   v = it->second;
 
 			// skip merge node! But remember it and follow downstream
 			// after all other children are handled.
 			if ( 0 == k.compare( cpsw::YAML_MERGE_KEY_PATTERN ) ) {
-				throw ConfigurationError("YAML still contains merge key!"); // FIXME
+				throw ConfigurationError("YAML still contains merge key!");
 			} else {
 				if ( ! d_->getChild( k.c_str() ) && 0 == not_instantiated_.count( k ) ) {
-					const YAML::PNode child( merged_node, k.c_str(), v );
+					const YAML::PNode child( pnode, k, v );
 #ifdef CPSW_YAML_DEBUG
 					fprintf(stderr,"AddChildrenVisitor: trying to make child %s\n", k.c_str());
 #endif
@@ -503,7 +400,7 @@ public:
 						fprintf(stderr,"AddChildrenVisitor: adding child %s\n", k.c_str());
 #endif
 
-						const YAML::PNode child_address( child.lookup(YAML_KEY_at) );
+						const YAML::PNode & child_address( child.lookup(YAML_KEY_at) );
 						if ( child_address ) {
 							d_->addAtAddress( c, child_address );
 						} else {
@@ -534,7 +431,7 @@ public:
 void
 CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState &node)
 {
-YAML::PNode         children( node.lookup(YAML_KEY_children) );
+const YAML::PNode  &children( node.lookup(YAML_KEY_children) );
 AddChildrenVisitor  visitor( &d, getRegistry() );
 
 #ifdef CPSW_YAML_DEBUG
@@ -557,8 +454,15 @@ AddChildrenVisitor  visitor( &d, getRegistry() );
 Dev
 CYamlFieldFactoryBase::dispatchMakeField(const YAML::Node &node, const char *root_name)
 {
-YamlState root( root_name, node );
-int       vers = root.getSchemaVersionMajor();
+YamlState root( 0, root_name, node[root_name] );
+
+int       vers = -1;
+
+YAML::Node versNode( node[ YAML_KEY_schemaVersionMajor ] );
+
+	if ( versNode ) {
+		vers = versNode.as<int>();
+	}
 
 	if (   vers < IYamlSupportBase::MIN_SUPPORTED_SCHEMA
 	    || vers > IYamlSupportBase::MAX_SUPPORTED_SCHEMA ) {

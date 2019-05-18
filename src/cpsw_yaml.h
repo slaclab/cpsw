@@ -20,33 +20,26 @@
 
 namespace YAML {
 	// A 'Node' extension which remembers parent nodes
-	// (which is necessary for backtracking through "<<" merge keys).
 
 	// The idea is that PNodes 'live' as automatic variables on the
 	// stack.
-	// The 'uplink_' points to the parent node which is on the stack
+	// The 'parent_' points to the parent node which is on the stack
 	// of the current function or one of its callers.
-	// The assumption is that this class is used from code which
-	// recurses and backtracks through the tree...
-
-	// PNodes observe 'copy-move' semantics. 'parent' and 'child'
-	// information of a PNode is erased when it is copied.
 
 	class PNode : public Node {
 	private:
-		const PNode mutable * parent_;
-		const PNode mutable * child_;
-		const char          * key_;
-		int                   maj_;
-		int                   min_;
-		int                   rev_;
+		const PNode         * parent_;
+		const std::string   & key_;
+
+		PNode(const PNode &orig);
+		PNode & operator=(const Node &orig_node);
 
 	public:
 		void dump() const;
 
 		const char *getName() const
 		{
-			return key_;
+			return key_.c_str();
 		}
 
 		const PNode *getParent() const
@@ -54,59 +47,24 @@ namespace YAML {
 			return parent_;
 		}
 
-		// assign a new Node to this PNode while preserving parent/child/key
-		// ('merge' operation)
-		PNode & operator=(const Node &orig_node);
-
-		void merge(const Node &orig_node);
-
-		// 'extract' a Node from a PNode
-		Node get() const;
-
-		// 'assignment'; moves parent/child from the original to the destination
-		PNode & operator=(const PNode &orig);
-
-		// 'copy constructor'; moves parent/child from the original to the destination
-		PNode(const PNode &orig);
-
 		// Construct a PNode by map lookup while remembering
 		// the parent.
-		PNode( const PNode *parent, const char *key );
+		PNode( const PNode *parent, const std::string &key);
 
 		// A PNode from a Node
-		PNode( const PNode *parent, const char *key, const Node &node );
+		PNode( const PNode *parent, const std::string &key, const Node &node );
 
 		// Construct a PNode by sequence lookup while remembering
 		// the parent.
-		// Note that merge tag backtracking does not support
-		// backing up through sequences!
 		PNode( const PNode *parent, unsigned index );
-
-		// Root node constructor
-		PNode( const char *key, const Node &node );
 
         // Build a string from all the ancestors to this PNode.
 		// Generations are separated by '/'.
 		std::string toString() const;
 
-		int getSchemaVersionMajor() const
-		{
-			return maj_;
-		}
-
-		int getSchemaVersionMinor() const
-		{
-			return min_;
-		}
-
-		int getSchemaVersionRevision() const
-		{
-			return rev_;
-		}
+		PNode lookup(const char *key) const;
 
 		~PNode();
-
-		PNode lookup(const char *key, int maxlevel = -1) const;
 
 	};
 };
