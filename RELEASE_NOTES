@@ -1,4 +1,6 @@
 master:
+    Implemented new, more efficient handling of merge keys.
+
     Feature: added cpsw_fs_address which implements access to the underlying
     file-system. (E.g., char-devices).
 
