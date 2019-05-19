@@ -158,8 +158,8 @@ resolveMergeKeys(YAML::Node n)
 {
 	if ( ! n.IsDefined() || ! n.IsMap() ) {
 		throw InternalError("resolveMergeKeys() called on non-Map Node!");
-		resolveMergeKeys(0, n);
 	}
+	resolveMergeKeys(0, n);
 }
 
 };
