@@ -24,23 +24,23 @@
  */
 #undef USE_SELECT_ON_WRITE
 
-#define DFLT_SEEKEABLE true
-#define DFLT_OFFSET    ((uint64_t)0)
+#define DFLT_SEEKABLE true
+#define DFLT_OFFSET   ((uint64_t)0)
 
 static void readTimeout (int fd, uint8_t *buf, unsigned n, const CTimeout *timeout);
 static void writeTimeout(int fd, uint8_t *buf, unsigned n, const CTimeout *timeout);
 
 
 CFSAddressImpl::CFSAddressImpl(AKey key, YamlState &ypath)
-: CAddressImpl( key, ypath     ),
-  fd_         ( -1             ),
-  seekeable_  ( DFLT_SEEKEABLE ),
-  offset_     ( DFLT_OFFSET    )
+: CAddressImpl( key, ypath    ),
+  fd_         ( -1            ),
+  seekable_   ( DFLT_SEEKABLE ),
+  offset_     ( DFLT_OFFSET   )
 {
 uint64_t us;
 
 	mustReadNode( ypath, YAML_KEY_fileName, &fileName_ );
-	readNode( ypath, YAML_KEY_seekeable, &seekeable_ );
+	readNode( ypath, YAML_KEY_seekable,  &seekable_ );
 	readNode( ypath, YAML_KEY_offset,    &offset_    );
 	if ( (hasTimeout_ = readNode( ypath, YAML_KEY_timeoutUS, &us )) ) {
 		timeout_.set( us );
@@ -52,10 +52,10 @@ CFSAddressImpl::dumpYamlPart(YAML::Node &node) const
 {
 	CAddressImpl::dumpYamlPart( node );
 	writeNode( node, YAML_KEY_fileName, fileName_ );
-	if ( seekeable_ != DFLT_SEEKEABLE ) {
-		writeNode( node, YAML_KEY_seekeable, seekeable_ );
+	if ( seekable_ != DFLT_SEEKABLE ) {
+		writeNode( node, YAML_KEY_seekable, seekable_ );
 	}
-	if ( seekeable_ != DFLT_OFFSET ) {
+	if ( offset_ != DFLT_OFFSET ) {
 		writeNode( node, YAML_KEY_offset, offset_ );
 	}
 	if ( hasTimeout_ ) {
@@ -160,7 +160,7 @@ CFSAddressImpl::read (CReadArgs  *args) const
 {
 const CTimeout *pto = getTimeout( 0 ) && args->timeout_.isIndefinite() ? &timeout_ : &args->timeout_;
 
-	if ( isSeekeable() && ((off_t)-1 == lseek( fd_, getOffset() + args->off_, SEEK_SET )) ) {
+	if ( isSeekable() && ((off_t)-1 == lseek( fd_, getOffset() + args->off_, SEEK_SET )) ) {
 		throw IOError("CFSAddressImpl::read lseek failed");
 	}
 
@@ -209,12 +209,12 @@ const CTimeout *pto = getTimeout( 0 ) && args->timeout_.isIndefinite() ? &timeou
 		if ( args->cacheable_ < IField::WT_CACHEABLE ) {
 			throw InvalidArgError("CFSAddressImpl::write Cannot merge bits when writing to non-cacheable area");
 		}
-		if ( ! isSeekeable() ) {
-			throw InvalidArgError("CFSAddressImpl::write Cannot merge bits when writing to non-seekeable area");
+		if ( ! isSeekable() ) {
+			throw InvalidArgError("CFSAddressImpl::write Cannot merge bits when writing to non-seekable area");
 		}
 	}
 
-	if ( isSeekeable() && ((off_t)-1 == lseek( fd_, getOffset() + args->off_, SEEK_SET )) ) {
+	if ( isSeekable() && ((off_t)-1 == lseek( fd_, getOffset() + args->off_, SEEK_SET )) ) {
 		throw IOError("CFSAddressImpl::write lseek failed");
 	}
 

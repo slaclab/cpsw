@@ -22,7 +22,7 @@ class CFSAddressImpl : public CAddressImpl {
 		int         fd_;
 		CMtx        mtx_;
 		std::string fileName_;
-		bool        seekeable_;
+		bool        seekable_;
 		uint64_t    offset_;
 		CTimeout    timeout_;
 		bool		hasTimeout_;        
@@ -34,7 +34,7 @@ class CFSAddressImpl : public CAddressImpl {
 		: CAddressImpl( orig,       k   ),
 		  fd_         ( orig.fd_        ),
 		  fileName_   ( orig.fileName_  ),
-		  seekeable_  ( orig.seekeable_ ),
+		  seekable_   ( orig.seekable_ ),
 		  offset_     ( orig.offset_    )
 		{
 			if ( orig.fd_ >= 0 && ((fd_ = dup( orig.fd_ )) < 0 ) ) {
@@ -43,9 +43,9 @@ class CFSAddressImpl : public CAddressImpl {
 		}
 
 		virtual bool
-		isSeekeable() const
+		isSeekable() const
 		{ 
-			return seekeable_;
+			return seekable_;
 		}
 
 		virtual uint64_t
