@@ -1,4 +1,9 @@
 master:
+    SequenceCommand now supports two-dimensional sequences, i.e.,
+    a sequence of command sequences. This can be used to let the
+    user pick a sequence at run-time. Handy in combination with
+    an attached 'enum' menu.
+
     Implemented new, more efficient handling of merge keys.
 
     Feature: added cpsw_fs_address which implements access to the underlying

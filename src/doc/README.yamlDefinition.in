@@ -501,6 +501,23 @@ the sequence to delay for the specified number of
 microseconds. Note that this shadows any sibling
 named 'usleep'.
 
+The 'system(cmds)' Path is also treated special and will cause
+a process to be forked executing the `cmds` using the unix
+`system()` library call.
+
+The SequenceCommand also supports a two-dimensional sequence
+of sequences to offer a choice between multiple commands.
+The user can then pick one of the sequences at run-time by
+providing an index argument to the `execute` method.
+
+An `enum` menu may also be associated with the sequence
+command (more about 'enum' menus in the 'IntField' section.
+
+This menu must specify exactly as many entries as there are
+sequences. In particular: if only a single sequence is defined
+then the menu can only contain a single entry (mapping to the
+integer '0'). This can be used to 'label' the command sequence.
+
 ### 2.5 The 'IntField' Class
 
 IntField is derived from Field and is a 'leaf' class. It implements

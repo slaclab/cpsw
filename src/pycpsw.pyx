@@ -718,13 +718,45 @@ coded by the endpoint.
 
   cdef cc_Command ptr
 
-  def execute(self):
+  def execute(self, arg = None):
     """
 Execute the command implemented by the endpoint addressed by the
 path which was created when instantiating the Command interface.
+Pass optional integer or string argument.
     """
-    self.ptr.get().execute()
+    if None == arg:
+      self.ptr.get().execute(          )
+    elif isinstance( arg, int ):
+      self.ptr.get().execute( <int>arg )
+    elif isinstance( arg, str ):
+      self.ptr.get().execute( <str>arg )
+    else:
+      raise InvalidArgError("Invalid argument to 'command'")
 
+  def execute(self, str arg):
+    """
+Execute the command implemented by the endpoint addressed by the
+path which was created when instantiating the Command interface.
+Pass integer argument.
+    """
+    self.ptr.get().execute( arg )
+
+  def getEnum(self):
+    """
+Return 'Enum' object associated with this Command (if any).
+
+An Enum object is a list of (str,int) tuples with associates strings
+with numerical values.
+    """
+    cdef cc_Enum cenums = self.ptr.get().getEnum()
+
+    if not cenums:
+      return None
+
+    enums     = Enum(priv__)
+    enums.ptr = cenums
+    return enums
+ 
   def getPath(self):
     """
 Return a copy of the Path which was used to create this Command.
@@ -735,7 +767,7 @@ Return a copy of the Path which was used to create this Command.
   @staticmethod
   def create(Path p):
     """
-Instantiate a 'Stream' interface at the endpoint identified by 'path'
+Instantiate a 'Command' interface at the endpoint identified by 'path'
 
 NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does
       not support this interface.

@@ -16,6 +16,8 @@
 
 #include <cpsw_yaml.h>
 
+#include <vector>
+
 using cpsw::static_pointer_cast;
 using cpsw::weak_ptr;
 
@@ -93,7 +95,22 @@ public:
 		virtual CommandImplContext createContext( Path pParent )   const;
 
 		// context is passed back to 'executeCommand'
-		virtual void executeCommand( CommandImplContext pContext ) const;
+		virtual void executeCommand( CommandImplContext pContext              ) const;
+
+		virtual void executeCommand( CommandImplContext pContext, int64_t     ) const
+		{
+			executeCommand( pContext );
+		}
+
+		virtual void executeCommand( CommandImplContext pContext, const char* ) const
+		{
+			executeCommand( pContext );
+		}
+
+		virtual Enum getEnum() const
+		{
+			return Enum();
+		}
 
 		CCommandImpl(Key &k, const char* name);
 
@@ -141,6 +158,12 @@ public:
 
 		virtual void execute();
 
+		virtual void execute(int64_t);
+
+		virtual void execute(const char*);
+
+		virtual Enum getEnum() const;
+
         virtual ~CCommandAdapt();
 
 protected:
@@ -152,11 +175,24 @@ typedef shared_ptr<CSequenceCommandImpl> SequenceCommandImpl;
 
 class CSequenceCommandImpl : public CCommandImpl, public virtual ISequenceCommand {
 private:
-	Items items_;
+	Items             items_;
+	std::vector<int>  index_;
+	Enum              enums_;
+
+	void              parseItems(YamlState *);
+
 public:
 	CSequenceCommandImpl(Key &k, const char *name, const Items *items_p);
-	virtual void executeCommand(CommandImplContext context) const;
 	CSequenceCommandImpl(Key &k, YamlState &node);
+
+	virtual void executeCommand(CommandImplContext context                 ) const;
+	virtual void executeCommand(CommandImplContext context, int64_t     arg) const;
+	virtual void executeCommand(CommandImplContext context, const char *arg) const;
+
+	virtual Enum getEnum() const
+	{
+		return enums_;
+	}
 
 	CSequenceCommandImpl(const CSequenceCommandImpl &orig, Key &k)
 	: CCommandImpl( orig, k ),

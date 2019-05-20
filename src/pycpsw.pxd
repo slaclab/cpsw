@@ -231,6 +231,9 @@ cdef extern from "cpsw_api_user.h":
 
   cdef cppclass ICommand(IEntry):
     void       execute()                        except+handleException
+    void       execute(int64_t)                 except+handleException
+    void       execute(const char *)            except+handleException
+    cc_Enum    getEnum()                        except+handleException
     cc_Path    getPath()                        except+handleException
     @staticmethod
     cc_Command create(cc_Path path)             except+handleException
