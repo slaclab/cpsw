@@ -91,6 +91,13 @@ const char *yaml=
 "          " YAML_KEY_at ":\n"
 "            " YAML_KEY_nelms ": 16\n";
 
+{
+YAML::Node topn = CYamlFieldFactoryBase::loadPreprocessedYaml( yaml );
+printf("## Preprocessed YAML\n");
+YAML::Emitter out;
+	out << topn;
+	printf("%s\n#####\n", out.c_str());
+}
 Hub	root = IPath::loadYamlStream( yaml, "root" )->origin();
 
 Path p;
