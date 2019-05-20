@@ -334,7 +334,10 @@ while ( (opt = getopt(argc, argv, "Y")) > 0 ) {
 	}
 }
 
-try {
+/*
+try
+*/
+	{
 Path    p  = IPath::create();
 Hub     r  = use_yaml ? build_yaml() : build();
 
