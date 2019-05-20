@@ -542,9 +542,11 @@ Hub     r  = use_yaml ? build_yaml() : build();
 	test_dotdot_across_root_f8560f57884( build_yaml() );
 
 	printf("leaving\n");
+/*
 } catch (CPSWError e ) {
 	printf("CPSW Error: %s\n", e.getInfo().c_str());
 	throw;
+*/
 }
 	if ( CpswObjCounter::report() ) {
 		fprintf(stderr,"FAILED -- objects leaked\n");
