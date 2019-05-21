@@ -139,7 +139,7 @@ public:
 
 		virtual EntryAdapt createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type_info &interfaceType) const;
 };
-
+ 
 class CCommandAdapt;
 typedef shared_ptr<CCommandAdapt> CommandAdapt;
 
@@ -149,10 +149,6 @@ private:
 
 public:
 		CCommandAdapt(Key &k, ConstPath p, shared_ptr<const CCommandImpl> ie);
-
-		virtual Encoding  getEncoding()  const;
-		virtual Path      getPath()      const;
-		virtual ConstPath getConstPath() const;
 
 		static Command create(Path p);
 
@@ -209,6 +205,18 @@ public:
 
 	static  const char *_getClassName()       { return "SequenceCommand"; }
 	virtual const char * getClassName() const { return _getClassName();   }
+};
+
+class CSequenceScalVal_WOAdapt;
+typedef shared_ptr<CSequenceScalVal_WOAdapt> SequenceScalVal_WOAdapt;
+
+class CSequenceScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IEntryAdapt {
+private:
+		CommandImplContext pContext_;
+
+public:
+		CSequenceScalVal_WOAdapt(Key &k, ConstPath p, shared_ptr<const CSequenceCommandImpl> ie);
+
 };
 
 #endif
