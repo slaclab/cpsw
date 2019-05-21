@@ -287,13 +287,7 @@ ConstPath parent( context->getParent() );
 
 				try {
 					// if ScalVal
-#if 0
-					// without caching and bit-level access at the SRP protocol level we cannot
-					// support write-only yet.
 					ScalVal_WO s( IScalVal_WO::create( p ) );
-#else
-					ScalVal s( IScalVal::create( p ) );
-#endif
 					//set all nelms to same value if addressing multiple
 					s->setVal( (*it).second );
 
