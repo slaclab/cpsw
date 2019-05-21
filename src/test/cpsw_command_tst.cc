@@ -232,9 +232,9 @@ Hub root;
 		r = IPath::loadYamlStream( yaml );
 	}
 
-	Command c = ICommand::create( r->findByName( "cmd" ) );
-		c->execute("low");
-		c->execute( 1   );
+	ScalVal_WO c = IScalVal_WO::create( r->findByName( "cmd" ) );
+		c->setVal("low");
+		c->setVal( 1   );
 
 	if ( dmp_yaml ) {
 		std::string nam = std::string( dmp_yaml ) + "1";	

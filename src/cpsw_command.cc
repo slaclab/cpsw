@@ -18,6 +18,8 @@
 
 #include <iostream>
 
+#define SINGLE_SEQ 2
+
 
 DECLARE_OBJ_COUNTER( CCommandImplContext::sh_ocnt_, "CommandImplContext", 0 )
 
@@ -90,24 +92,6 @@ void
 CCommandAdapt::execute()
 {
 	asCommandImpl()->executeCommand( pContext_ );
-}
-
-void
-CCommandAdapt::execute(int64_t arg)
-{
-	asCommandImpl()->executeCommand( pContext_, arg );
-}
-
-void
-CCommandAdapt::execute(const char *arg)
-{
-	asCommandImpl()->executeCommand( pContext_, arg );
-}
-
-Enum
-CCommandAdapt::getEnum() const
-{
-	return asCommandImpl()->getEnum();
 }
 
 SequenceCommand ISequenceCommand::create(const char* name, const Items *items_p)
@@ -183,8 +167,17 @@ YamlState &seq_node( node.lookup( YAML_KEY_sequence ) );
 		parseItems( &item_node );
 	}
 
-	if ( enums_ && enums_->getNelms() != index_.size() - 1 ) {
-		throw ConfigurationError( std::string(getName()) + ": enum must have as many elements as the sequences" );
+	if ( enums_ ) {
+		if ( enums_->getNelms() != index_.size() - 1 ) {
+			throw ConfigurationError( std::string(getName()) + ": enum must have as many elements as the sequences" );
+		}
+	} else {
+		if ( SINGLE_SEQ == index_.size() ) {
+			// Attach a single menu item so that a GUI can use a string
+			MutableEnum enm = IMutableEnum::create();
+			enm->add( "Execute", 0 );
+			enums_ =  enm;
+		}
 	}
 }
 
@@ -197,7 +190,7 @@ CSequenceCommandImpl::dumpYamlPart(YAML::Node &node) const
 
 	YAML::Node seq_node( YAML::NodeType::Sequence );
 
-	if ( index_.size() > 2 ) {
+	if ( index_.size() > SINGLE_SEQ ) {
 		for ( unsigned i = 0; i < index_.size() - 1; ++i ) {
 			YAML::Node item_seq_node( YAML::NodeType::Sequence );
 			for ( int j = index_[i]; j < index_[i+1]; j++ ) {
@@ -289,7 +282,7 @@ ConstPath parent( context->getParent() );
 
 void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 {
-	if ( index_.size() > 2 ) {
+	if ( index_.size() > SINGLE_SEQ ) {
 		ConstPath parent( context->getParent() );
 		throw InvalidArgError( std::string("CSequenceCommandImpl: ") + parent->toString() + "/" + getName() + " - need integer argument" );
 	}
@@ -308,3 +301,49 @@ void CSequenceCommandImpl::executeCommand(CommandImplContext context, const char
 	executeCommand( context, i.second );
 }
 
+EntryAdapt
+CSequenceCommandImpl::createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type_info &interfaceType) const
+{
+	if ( isInterface<ScalVal_WO>( interfaceType ) ) {
+		return _createAdapter<SequenceScalVal_WOAdapt>( this, p );
+	}
+	if ( isInterface<Command>( interfaceType ) ) {
+		if ( index_.size() > SINGLE_SEQ ) {
+			throw InterfaceNotImplemented("SequenceCommand with multiple sequences supports only ScalVal_WO interface");
+		}
+        return _createAdapter<CommandAdapt>(this, p);
+	}
+	return CEntryImpl::createAdapter(key, p, interfaceType);
+}
+
+CSequenceScalVal_WOAdapt::CSequenceScalVal_WOAdapt(Key &k, ConstPath p, shared_ptr<const CSequenceCommandImpl> ie)
+  : IEntryAdapt  (k, p, ie),
+    CCommandAdapt(k, p, ie)
+{
+}
+
+uint64_t
+CSequenceScalVal_WOAdapt::getSizeBits() const
+{
+	return 8*sizeof(int64_t);
+}
+
+bool
+CSequenceScalVal_WOAdapt::isSigned()    const
+{
+	return true;
+}
+
+Enum
+CSequenceScalVal_WOAdapt::getEnum()     const
+{
+	return asSequenceCommandImpl()->getEnum();
+}
+
+void
+CSequenceScalVal_WOAdapt::checkArgs(unsigned nelms, IndexRange *range)
+{
+	if ( nelms != 1 || ( range && ( range->getFrom()  > 0 || range->getTo() > 0 ) ) ) {
+		throw InvalidArgError("CSequenceScalVal: only a single value can be written");
+	}
+}

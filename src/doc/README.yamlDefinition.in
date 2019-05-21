@@ -465,6 +465,7 @@ It implements the user-API 'Command' interface and can
 execute sequences of
   - delays
   - writing values to 'ScalVal' interfaces
+  - executing system commands (unix' `system()`)
 
 In addition to Field's properties SequenceCommand supports
 `YAML_KEY_sequence`. It's value must be a YAML sequence of
@@ -505,10 +506,11 @@ The 'system(cmds)' Path is also treated special and will cause
 a process to be forked executing the `cmds` using the unix
 `system()` library call.
 
-The SequenceCommand also supports a two-dimensional sequence
+#### 2.4.1 Choice of Multiple Sequences
+
+The SequenceCommand also supports a 'two-dimensional' sequence
 of sequences to offer a choice between multiple commands.
-The user can then pick one of the sequences at run-time by
-providing an index argument to the `execute` method.
+The user can then pick one of the sequences at run-time.
 
 An `enum` menu may also be associated with the sequence
 command (more about 'enum' menus in the 'IntField' section.
@@ -517,6 +519,28 @@ This menu must specify exactly as many entries as there are
 sequences. In particular: if only a single sequence is defined
 then the menu can only contain a single entry (mapping to the
 integer '0'). This can be used to 'label' the command sequence.
+
+A SequenceCommand with multiple sequences is not accessible
+by the user-API 'Command' interface but by 'ScalVal_WO'.
+
+Here is an example of a SequenceCommand with two
+choices:
+
+        mySequence:
+          YAML_KEY_class:  SequenceCommand      # *mandatory*
+            YAML_KEY_sequence:
+              -
+                - YAML_KEY_entry: "system(echo running choice one)"
+                  YAML_KEY_value: 0             # ignored
+              -
+                - YAML_KEY_entry: "system(echo running choice two)"
+                  YAML_KEY_value: 0
+            YAML_KEY_enum:
+              - YAML_KEY_name:  "Choice One"
+                YAML_KEY_value: 0
+              - YAML_KEY_name:  "Choice Two"
+                YAML_KEY_value: 1
+
 
 ### 2.5 The 'IntField' Class
 

@@ -97,21 +97,6 @@ public:
 		// context is passed back to 'executeCommand'
 		virtual void executeCommand( CommandImplContext pContext              ) const;
 
-		virtual void executeCommand( CommandImplContext pContext, int64_t     ) const
-		{
-			executeCommand( pContext );
-		}
-
-		virtual void executeCommand( CommandImplContext pContext, const char* ) const
-		{
-			executeCommand( pContext );
-		}
-
-		virtual Enum getEnum() const
-		{
-			return Enum();
-		}
-
 		CCommandImpl(Key &k, const char* name);
 
 		CCommandImpl(Key  &k, YamlState &node)
@@ -154,16 +139,18 @@ public:
 
 		virtual void execute();
 
-		virtual void execute(int64_t);
-
-		virtual void execute(const char*);
-
-		virtual Enum getEnum() const;
-
         virtual ~CCommandAdapt();
 
 protected:
-		virtual shared_ptr<const CCommandImpl> asCommandImpl() const { return static_pointer_cast<const CCommandImpl, const CEntryImpl>(ie_); }
+		virtual shared_ptr<const CCommandImpl> asCommandImpl() const
+		{
+			return static_pointer_cast<const CCommandImpl, const CEntryImpl>(ie_);
+		}
+
+		virtual CommandImplContext getContext()
+		{
+			return pContext_;
+		}
 };
 
 class CSequenceCommandImpl;
@@ -205,18 +192,47 @@ public:
 
 	static  const char *_getClassName()       { return "SequenceCommand"; }
 	virtual const char * getClassName() const { return _getClassName();   }
+
+	virtual EntryAdapt createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type_info &interfaceType) const;
 };
 
 class CSequenceScalVal_WOAdapt;
 typedef shared_ptr<CSequenceScalVal_WOAdapt> SequenceScalVal_WOAdapt;
 
-class CSequenceScalVal_WOAdapt : public virtual IScalVal_WO, public virtual IEntryAdapt {
-private:
-		CommandImplContext pContext_;
+class CSequenceScalVal_WOAdapt : public virtual IScalVal_WO, public virtual CCommandAdapt {
+protected:
+		void             checkArgs(unsigned nelms, IndexRange *range);
+
+		template <typename T>
+		unsigned setValT(T *p, IndexRange *range, unsigned nelms = 1)
+		{
+			checkArgs( nelms, range );
+			asSequenceCommandImpl()->executeCommand( getContext(), *p );
+			return 1;
+		}
 
 public:
 		CSequenceScalVal_WOAdapt(Key &k, ConstPath p, shared_ptr<const CSequenceCommandImpl> ie);
 
+		virtual uint64_t getSizeBits() const;
+		virtual bool     isSigned()    const;
+        virtual Enum     getEnum()     const;
+
+		virtual unsigned setVal(uint64_t    *p, unsigned nelms = 1, IndexRange *range = 0) { return setValT( p, range, nelms ); }
+		virtual unsigned setVal(uint32_t    *p, unsigned nelms = 1, IndexRange *range = 0) { return setValT( p, range, nelms ); }
+		virtual unsigned setVal(uint16_t    *p, unsigned nelms = 1, IndexRange *range = 0) { return setValT( p, range, nelms ); }
+		virtual unsigned setVal(uint8_t     *p, unsigned nelms = 1, IndexRange *range = 0) { return setValT( p, range, nelms ); }
+
+		virtual unsigned setVal(const char* *p, unsigned nelms = 1, IndexRange *range = 0) { return setValT( p, range, nelms ); }
+		virtual unsigned setVal(uint64_t     v, IndexRange *range = 0)                     { return setValT(&v, range, 1     ); }
+		virtual unsigned setVal(const char*  v, IndexRange *range = 0)                     { return setValT(&v, range, 1     ); }
+
+protected:
+
+		virtual shared_ptr<const CSequenceCommandImpl> asSequenceCommandImpl() const
+		{
+			return static_pointer_cast<const CSequenceCommandImpl, const CEntryImpl>(ie_);
+		}
 };
 
 #endif

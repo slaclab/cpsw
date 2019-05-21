@@ -820,18 +820,6 @@ public:
 	 */
 	virtual void execute()                = 0;
 
-	virtual void execute(int64_t arg)     = 0;
-
-	virtual void execute(const char *arg) = 0;
-
-	/*!
-	 * Return 'Enum' object associated with this Command (if any).
-	 *
-	 * An Enum object is a dictionary with associates strings to numerical
-	 * values.
-	 */
-	virtual Enum     getEnum()          const = 0;
-
 	/*!
 	 * Instantiate a 'Command' interface at the endpoint identified by 'path'
 	 */

@@ -631,7 +631,7 @@ NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does
     po.wptr = obj
     return po
 
-cdef class Stream(ScalVal_Base):
+cdef class Stream(Val_Base):
   """
 Interface for endpoints with support streaming of raw data.
 NOTE: A stream must be explicitly managed (i.e., destroyed/closed
@@ -708,7 +708,7 @@ statement.
     po.ptr  = static_pointer_cast[IVal_Base,IVal_Base]( vobj )
     return po
 
-cdef class Command(Entry):
+cdef class Command(Val_Base):
   """
 The Command interface gives access to commands implemented by the underlying endpoint.
 
@@ -716,52 +716,14 @@ Details of the command are hidden. Execution runs the command or command sequenc
 coded by the endpoint.
   """
 
-  cdef cc_Command ptr
+  cdef cc_Command cmdptr;
 
-  def execute(self, arg = None):
+  def execute(self):
     """
 Execute the command implemented by the endpoint addressed by the
 path which was created when instantiating the Command interface.
-Pass optional integer or string argument.
     """
-    if None == arg:
-      self.ptr.get().execute(          )
-    elif isinstance( arg, int ):
-      self.ptr.get().execute( <int>arg )
-    elif isinstance( arg, str ):
-      self.ptr.get().execute( <str>arg )
-    else:
-      raise InvalidArgError("Invalid argument to 'command'")
-
-  def execute(self, str arg):
-    """
-Execute the command implemented by the endpoint addressed by the
-path which was created when instantiating the Command interface.
-Pass integer argument.
-    """
-    self.ptr.get().execute( arg )
-
-  def getEnum(self):
-    """
-Return 'Enum' object associated with this Command (if any).
-
-An Enum object is a list of (str,int) tuples with associates strings
-with numerical values.
-    """
-    cdef cc_Enum cenums = self.ptr.get().getEnum()
-
-    if not cenums:
-      return None
-
-    enums     = Enum(priv__)
-    enums.ptr = cenums
-    return enums
- 
-  def getPath(self):
-    """
-Return a copy of the Path which was used to create this Command.
-    """
-    return Path.make( self.ptr.get().getPath() )
+    self.cmdptr.get().execute()
 
   # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
   @staticmethod
@@ -773,11 +735,11 @@ NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does
       not support this interface.
     """
     cdef cc_Command obj = ICommand.create( p.cptr )
-    po      = Command(priv__)
-    po.cptr = static_pointer_cast[CIEntry,  ICommand]( obj )
+    po         = Command(priv__)
+    po.cptr    = static_pointer_cast[CIEntry,  ICommand]( obj )
     # We can't use the 'const IEntry' pointer because 'execute'
 	# is not a 'const' method...
-    po.ptr  = static_pointer_cast[ICommand ,ICommand]( obj )
+    po.cmdptr  = static_pointer_cast[ICommand ,ICommand]( obj )
     return po
 
 cdef cppclass CPathVisitor(IPathVisitor):
