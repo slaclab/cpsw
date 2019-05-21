@@ -29,7 +29,7 @@ namespace YAML {
 	class PNode : public Node {
 	private:
 		const PNode         * parent_;
-		const std::string   & key_;
+		const char          * key_;
 
 		PNode(const PNode &orig);
 		PNode & operator=(const Node &orig_node);
@@ -39,7 +39,7 @@ namespace YAML {
 
 		const char *getName() const
 		{
-			return key_.c_str();
+			return key_;
 		}
 
 		const PNode *getParent() const
@@ -49,10 +49,10 @@ namespace YAML {
 
 		// Construct a PNode by map lookup while remembering
 		// the parent.
-		PNode( const PNode *parent, const std::string &key);
+		PNode( const PNode *parent, const char *key );
 
 		// A PNode from a Node
-		PNode( const PNode *parent, const std::string &key, const Node &node );
+		PNode( const PNode *parent, const char *key, const Node &node );
 
 		// Construct a PNode by sequence lookup while remembering
 		// the parent.

@@ -50,7 +50,7 @@ typedef unordered_set<std::string> StrSet;
 void
 PNode::dump() const
 {
-	printf( "PNode key: %s, p: %p\n" , key_.c_str() , parent_ );
+	printf( "PNode key: %s, p: %p\n" , key_, parent_ );
 }
 
 
@@ -89,10 +89,10 @@ PNode::operator=(const Node &orig_node)
 }
 #endif
 
-PNode::PNode( const PNode *parent, const std::string &key, const Node &node)
-: Node( node ),
+PNode::PNode( const PNode *parent, const char *key, const Node &node)
+: Node   ( node   ),
   parent_( parent ),
-  key_( key )
+  key_   ( key    )
 {
 }
 
@@ -122,19 +122,19 @@ static Node fixInvalidNode(const Node &n)
 
 // Construct a PNode by map lookup while remembering
 // the parent.
-PNode::PNode( const PNode *parent, const std::string &key )
-: Node( fixInvalidNode((*parent)[key]) ),
-  parent_(parent),
-  key_(key)
+PNode::PNode( const PNode *parent, const char *key )
+: Node   ( fixInvalidNode((*parent)[key]) ),
+  parent_( parent ),
+  key_   ( key    )
 {
 }
 
 // Construct a PNode by sequence lookup while remembering
 // the parent.
-PNode::PNode( const PNode *parent, unsigned index)
+PNode::PNode( const PNode *parent, unsigned index )
 : Node( fixInvalidNode( (*parent)[index] ) ),
-  parent_(parent),
-  key_( "<none>" )
+  parent_( parent   ),
+  key_   ( "<none>" )
 {
 }
 
@@ -143,6 +143,7 @@ PNode::~PNode()
 }
 
 
+#ifdef CPSW_YAML_DEBUG
 void
 isd(PNode *pn)
 {
@@ -153,7 +154,6 @@ else
 }
 
 
-#ifdef CPSW_YAML_DEBUG
 static void pp(const PNode *p)
 {
 	if ( p ) {
@@ -388,7 +388,7 @@ public:
 				throw ConfigurationError("YAML still contains merge key!");
 			} else {
 				if ( ! d_->getChild( k.c_str() ) && 0 == not_instantiated_.count( k ) ) {
-					const YAML::PNode child( pnode, k, v );
+					const YAML::PNode child( pnode, k.c_str(), v );
 #ifdef CPSW_YAML_DEBUG
 					fprintf(stderr,"AddChildrenVisitor: trying to make child %s\n", k.c_str());
 #endif
