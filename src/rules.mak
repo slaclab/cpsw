@@ -267,7 +267,7 @@ endef
 $(addsuffix _run,$(FILTERED_TBINS)):%_run: %
 	@for opt in $(RUN_OPTS) ; do \
 	    echo "Running ./$< $${opt}"; \
-        if ( eval LD_LIBRARY_PATH="$(call make_ldlib_path,$($^_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) gdb ./$< -ex \"run $${opt}\" -ex 'where' -ex 'thread all bt' --batch --return-child-result ) ; then \
+        if ( eval LD_LIBRARY_PATH="$(call make_ldlib_path,$($^_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) gdb ./$< -ex \'run $${opt}\' -ex \'where\' -ex \'thread all bt\' --batch --return-child-result ) ; then \
 			echo "TEST ./$< $${opt} PASSED" ; \
 		else \
 			echo "TEST ./$< $${opt} FAILED" ; \
