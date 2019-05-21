@@ -91,13 +91,6 @@ const char *yaml=
 "          " YAML_KEY_at ":\n"
 "            " YAML_KEY_nelms ": 16\n";
 
-{
-YAML::Node topn = CYamlFieldFactoryBase::loadPreprocessedYaml( yaml );
-printf("## Preprocessed YAML\n");
-YAML::Emitter out;
-	out << topn;
-	printf("%s\n#####\n", out.c_str());
-}
 Hub	root = IPath::loadYamlStream( yaml, "root" )->origin();
 
 Path p;
@@ -341,10 +334,7 @@ while ( (opt = getopt(argc, argv, "Y")) > 0 ) {
 	}
 }
 
-/*
-try
-*/
-	{
+try {
 Path    p  = IPath::create();
 Hub     r  = use_yaml ? build_yaml() : build();
 
@@ -552,11 +542,9 @@ Hub     r  = use_yaml ? build_yaml() : build();
 	test_dotdot_across_root_f8560f57884( build_yaml() );
 
 	printf("leaving\n");
-/*
 } catch (CPSWError e ) {
 	printf("CPSW Error: %s\n", e.getInfo().c_str());
 	throw;
-*/
 }
 	if ( CpswObjCounter::report() ) {
 		fprintf(stderr,"FAILED -- objects leaked\n");
