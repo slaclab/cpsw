@@ -309,7 +309,7 @@ CSequenceCommandImpl::createAdapter(IEntryAdapterKey &key, ConstPath p, const st
 	}
 	if ( isInterface<Command>( interfaceType ) ) {
 		if ( index_.size() > SINGLE_SEQ ) {
-			throw InterfaceNotImplemented("SequenceCommand with multiple sequences supports only ScalVal_WO interface");
+			throw InterfaceNotImplementedError("SequenceCommand with multiple sequences supports only ScalVal_WO interface");
 		}
         return _createAdapter<CommandAdapt>(this, p);
 	}
