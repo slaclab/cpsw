@@ -157,12 +157,26 @@ class CSequenceCommandImpl;
 typedef shared_ptr<CSequenceCommandImpl> SequenceCommandImpl;
 
 class CSequenceCommandImpl : public CCommandImpl, public virtual ISequenceCommand {
+protected:
+	typedef std::vector<int> Index;
 private:
 	Items             items_;
-	std::vector<int>  index_;
+	Index             index_;
 	Enum              enums_;
 
+protected:
+
 	void              parseItems(YamlState *);
+
+	const Items * const getItems() const
+	{
+		return &items_;
+	}
+
+	const Index * const getIndex() const
+	{
+		return &index_;
+	}
 
 public:
 	CSequenceCommandImpl(Key &k, const char *name, const Items *items_p);
