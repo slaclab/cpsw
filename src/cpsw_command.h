@@ -179,6 +179,17 @@ protected:
 	}
 
 public:
+
+	const Items * const getItems(Key &k) const
+	{
+		return getItems();
+	}
+
+	const Index * const getIndex(Key &k) const
+	{
+		return getIndex();
+	}
+
 	CSequenceCommandImpl(Key &k, const char *name, const Items *items_p);
 	CSequenceCommandImpl(Key &k, YamlState &node);
 
