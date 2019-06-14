@@ -85,6 +85,21 @@ do. However, you may want to define the installation location (5. above).
 
 The following section discusses the settings 1..5 above:
 
+#### 2.0.1 Build with C++11 and without boost
+If a C++11 compiler is available then most dependency on boost can
+be eliminated except for 'lockfree::stack, lockfree:queue' (which
+are just templates from headers).
+
+In `config.local.mak` the variable `USE_CXX11_<arch>` can be set
+to `YES` in order to do so.
+
+It is also possible to replace the lockfree implementations from
+boost by trivial (mutex based) implementations thus removing any
+dependency on boost completely. Set `WITH_BOOST_<arch>` to `NO`
+for such a configuration. Note, however, that performance may
+suffer (but it also may only have a minor impact -- no thorough
+testing has been performed yet).
+
 ### 2.1 Select target architectures:
 
 Each desired target architecture must be added to the `ARCHES` variable
@@ -252,30 +267,43 @@ python bindings require shared libraries.
 ### 2.5 Python Bindings
 
 CPSW comes with python bindings for python 2.7 or 3.4 (other versions
-may work but have not been tested). You need the `boost_python` library
-and headers for building the python bindings as well as the python
-headers. Defining the location of `boost` has already been discussed.
+may work but have not been tested). There are three ways of building
+python bindings:
 
-Analogous variables for python (headers) are employed:
+  a) using `boost_python` (which is the legacy method).
+  b) using SWIG -- note, however, that this implementation is
+     incomplete and experimental. The effort has been abandoned
+     in favor of c).
+  c) using `cython`.
+
+Note that future versions of CPSW will likely deprecate a) and b).
+
+#### 2.5.2 Configuration Variables for Python
+
+The user must define the location of the for python headers. The
+build process will look for the following variables in order
+of precedence:
 
         $(pyinc_DIR_<architecture>)
         $(pyinc_DIR_default)
         $(py_DIR_<architecture>)/include
         $(py_DIR_default)/include
 
-are searched in that order. The default name for the `boost_python`
-library (without pre- and suffix) is `boost_python`. If you need
-to change this name (e.g., on ubuntu the respective library for
-python3.4 is called `boost_python-py34`) then you can modify
+*Note*: the python bindings require cpsw and dependent *shared libraries*.
 
-        BOOST_PYTHON_LIB_<architecture>
-        BOOST_PYTHON_LIB_default
+The resulting python module is called `pycpsw` and may be imported as
+such into python. Note that the dynamic/run-time linker must be able to locate
+`libcpsw` and other dependent libraries, e.g., in the environment variable
+`LD_LIBRARY_PATH` or by some other means (consult `man ld.so` for more
+information).
 
-Finally, you may have to define a variant of `WITH_PYCPSW` to `YES` or `NO`
-in order to instruct the makefiles to actually build the python bindings:
+#### 2.5.2 CYTHON Bindings
+You need to have cython installed (only if you modify CPSW code;
+otherwise the pre-built code can be compiled).
 
-        WITH_PYCPSW_<architecture> = NO  # or YES
-        WITH_PYCPSW_default        = YES # or NO
+This is the default option which is enabled if the variables
+pointing to python headers are non-empty and if shared libraries
+are enabled.
 
 However, the default setting already tries to 'guess the right thing':
 it will cause python bindings to be built if and only if
@@ -285,13 +313,24 @@ it will cause python bindings to be built if and only if
     `py_DIR_default` is set).
  2. `WITH_SHARED_LIBRARIES` evaluates to `YES` for the target architecture
 
-*Note*: the python bindings require cpsw and dependent *shared libraries*.
+#### 2.5.3 `boost_python` Bindings
+You need the `boost_python` library
+and headers for building the python bindings as well as the python
+headers. Defining the location of `boost` has already been discussed.
 
-The resulting python module is called `pycpsw` and may be imported as
-such into python. Note that the dynamic/run-time linker must be able to locate
-`libcpsw` and other dependent libraries, e.g., in the environment variable
-`LD_LIBRARY_PATH` or by some other means (consult `man ld.so` for more
-information).
+The default name for the `boost_python`
+library (without pre- and suffix) is `boost_python`. If you need
+to change this name (e.g., on ubuntu the respective library for
+python3.4 is called `boost_python-py34`) then you can modify
+
+        BOOST_PYTHON_LIB_<architecture>
+        BOOST_PYTHON_LIB_default
+
+Finally, you may have to define a variant of `WITH_PYCPSW` to `BOOST`
+in order to instruct the makefiles to actually build the python bindings:
+
+        WITH_PYCPSW_<architecture> = NO    # or BOOST/CYTHON/SWIG
+        WITH_PYCPSW_default        = BOOST # or NO
 
 ### 2.6 The Installation Location
 

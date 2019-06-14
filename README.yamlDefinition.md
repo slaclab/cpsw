@@ -206,17 +206,9 @@ but in this case the simple lookup algorithm presented above no longer
 works (`setting_2` is not found in `mymap["nested_map"]` but there is also
 no merge key in `mymap["nested_map"]`).
 
-As a result, the merging algorithm implemented by CPSW is much more
+As a result, the merging algorithm implemented by CPSW is more
 sophisticated and actually supports the notation just presented in the
 example.
-
-If a key is not found then CPSW uses a backtracking algorithm to
-climb out of the map searching for merged nodes at each 'ancestor'
-level and then descending into merged nodes recursively looking
-for the desired key.
-
-Note that this complex mergin considerably increases the complexity
-for lookup if a key is not found/present at all.
 
 ## 2. CPSW Building Blocks
 
@@ -436,6 +428,34 @@ where the element is attached. (Similar to the 'C' language:
 an array is usually an 'array of element-types' and not an
 'array-of-element type'.
 
+#### 2.3.1 The 'File-System Address' Class
+This class provides access to files (or devices) on the host
+computer via the operating system. The presence of 
+`fileName` (inside `at`) triggers instantiation
+of this class, e.g.,:
+
+        bytes:
+          class:    IntField
+          sizeBits: 8
+          at:
+            nelms:     1024
+            #
+            # Path to the file
+            fileName:  <string>  # *mandatory*
+            # indicate whether the
+            # file is seekable. Some devices
+            # are not...
+            seekable:  <bool>    # optional
+            # map the child entry at
+            # an offset into the file.
+            # This requires the file
+            # to be seekable!
+            offset:    <int>     # optional
+            # optional timeout for *read*
+            # operations (in micro-seconds).
+            YAML_KEY_timeoutUs: <int>     # optional
+      
+
 ### 2.4 The 'SequenceCommand' Class
 
 The SequenceCommand class is derived from Field and is a
@@ -445,6 +465,7 @@ It implements the user-API 'Command' interface and can
 execute sequences of
   - delays
   - writing values to 'ScalVal' interfaces
+  - executing system commands (unix' `system()`)
 
 In addition to Field's properties SequenceCommand supports
 `sequence`. It's value must be a YAML sequence of
@@ -480,6 +501,46 @@ The 'usleep' Path is treated special and will cause
 the sequence to delay for the specified number of
 microseconds. Note that this shadows any sibling
 named 'usleep'.
+
+The 'system(cmds)' Path is also treated special and will cause
+a process to be forked executing the `cmds` using the unix
+`system()` library call.
+
+#### 2.4.1 Choice of Multiple Sequences
+
+The SequenceCommand also supports a 'two-dimensional' sequence
+of sequences to offer a choice between multiple commands.
+The user can then pick one of the sequences at run-time.
+
+An `enum` menu may also be associated with the sequence
+command (more about 'enum' menus in the 'IntField' section.
+
+This menu must specify exactly as many entries as there are
+sequences. In particular: if only a single sequence is defined
+then the menu can only contain a single entry (mapping to the
+integer '0'). This can be used to 'label' the command sequence.
+
+A SequenceCommand with multiple sequences is not accessible
+by the user-API 'Command' interface but by 'ScalVal_WO'.
+
+Here is an example of a SequenceCommand with two
+choices:
+
+        mySequence:
+          class:  SequenceCommand      # *mandatory*
+            sequence:
+              -
+                - entry: "system(echo running choice one)"
+                  value: 0             # ignored
+              -
+                - entry: "system(echo running choice two)"
+                  value: 0
+            YAML_KEY_enum:
+              - name:  "Choice One"
+                value: 0
+              - name:  "Choice Two"
+                value: 1
+
 
 ### 2.5 The 'IntField' Class
 
