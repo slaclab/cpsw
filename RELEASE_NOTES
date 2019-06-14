@@ -1,4 +1,4 @@
-master:
+R4.1.0:
     SequenceCommand now supports two-dimensional sequences, i.e.,
     a sequence of command sequences. This can be used to let the
     user pick a sequence at run-time. Handy in combination with
