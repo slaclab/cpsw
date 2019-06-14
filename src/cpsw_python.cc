@@ -42,7 +42,7 @@ uint64_t
 IPath_loadConfigFromYamlString(const IPath *p, const char *yaml,  const char *yaml_dir)
 {
 GILUnlocker allowThreadingWhileWaiting;
-YAML::Node  conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir ) );
+YAML::Node  conf( CYamlFieldFactoryBase::loadPreprocessedYaml( yaml, yaml_dir, false ) );
 	return p->loadConfigFromYaml( conf );
 }
 
@@ -60,7 +60,7 @@ uint64_t    rval;
 YAML::Node  conf;
 
 	if ( templFilename ) {
-		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
+		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir, false );
 	}
 
 	rval = p->dumpConfigToYaml( conf );
@@ -87,7 +87,7 @@ GILUnlocker allowThreadingWhileWaiting;
 YAML::Node  conf;
 
 	if ( templFilename ) {
-		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir );
+		conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templFilename, yaml_dir, false );
 	}
 
 	p->dumpConfigToYaml( conf );
@@ -110,9 +110,9 @@ YAML::Node  conf;
 
 	if ( templ ) {
 		if ( templIsFilename ) {
-			conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templ, yaml_dir );
+			conf = CYamlFieldFactoryBase::loadPreprocessedYamlFile( templ, yaml_dir, false );
 		} else {
-			conf = CYamlFieldFactoryBase::loadPreprocessedYaml( templ );
+			conf = CYamlFieldFactoryBase::loadPreprocessedYaml( templ, 0, false );
 		}
 	}
 

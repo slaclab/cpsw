@@ -20,26 +20,19 @@
 
 namespace YAML {
 	// A 'Node' extension which remembers parent nodes
-	// (which is necessary for backtracking through "<<" merge keys).
 
 	// The idea is that PNodes 'live' as automatic variables on the
 	// stack.
-	// The 'uplink_' points to the parent node which is on the stack
+	// The 'parent_' points to the parent node which is on the stack
 	// of the current function or one of its callers.
-	// The assumption is that this class is used from code which
-	// recurses and backtracks through the tree...
-
-	// PNodes observe 'copy-move' semantics. 'parent' and 'child'
-	// information of a PNode is erased when it is copied.
 
 	class PNode : public Node {
 	private:
-		const PNode mutable * parent_;
-		const PNode mutable * child_;
+		const PNode         * parent_;
 		const char          * key_;
-		int                   maj_;
-		int                   min_;
-		int                   rev_;
+
+		PNode(const PNode &orig);
+		PNode & operator=(const Node &orig_node);
 
 	public:
 		void dump() const;
@@ -54,21 +47,6 @@ namespace YAML {
 			return parent_;
 		}
 
-		// assign a new Node to this PNode while preserving parent/child/key
-		// ('merge' operation)
-		PNode & operator=(const Node &orig_node);
-
-		void merge(const Node &orig_node);
-
-		// 'extract' a Node from a PNode
-		Node get() const;
-
-		// 'assignment'; moves parent/child from the original to the destination
-		PNode & operator=(const PNode &orig);
-
-		// 'copy constructor'; moves parent/child from the original to the destination
-		PNode(const PNode &orig);
-
 		// Construct a PNode by map lookup while remembering
 		// the parent.
 		PNode( const PNode *parent, const char *key );
@@ -78,73 +56,16 @@ namespace YAML {
 
 		// Construct a PNode by sequence lookup while remembering
 		// the parent.
-		// Note that merge tag backtracking does not support
-		// backing up through sequences!
 		PNode( const PNode *parent, unsigned index );
-
-		// Root node constructor
-		PNode( const char *key, const Node &node );
 
         // Build a string from all the ancestors to this PNode.
 		// Generations are separated by '/'.
 		std::string toString() const;
 
-		int getSchemaVersionMajor() const
-		{
-			return maj_;
-		}
-
-		int getSchemaVersionMinor() const
-		{
-			return min_;
-		}
-
-		int getSchemaVersionRevision() const
-		{
-			return rev_;
-		}
+		PNode lookup(const char *key) const;
 
 		~PNode();
 
-		class MergekeyVisitor {
-		public:
-			virtual bool visit(PNode *merged_node) = 0;
-		};
-
-		// starting at 'this' node visit all merge keys upstream
-		// until the visitor's 'visit' method returns 'false', the
-		// root is reached or 'maxlevel' parents have been scanned
-		// for merge keys.
-		void visitMergekeys(MergekeyVisitor *, int maxlevel = -1);
-
-		// lookup a key starting at 'this' PNode and backtrack
-		// through merge ("<<") keys.
-		//
-		// If there is a structure like this
-		//
-		//   a:
-		//     <<:
-		//       b:
-		//         c:
-		//           key1: merged_value1
-		//           key2: merged_value2
-		//     b:
-		//       c:
-		//         key1: value1:
-		//
-		// then the algorithm is expected to
-		// find
-		//    a["b"]["c"]["key1"] -> value1
-		//    a["b"]["c"]["key2"] -> merged_value2
-		//
-		// Since recursive lookups through many merge keys can become
-		// quite expensive we provide the 'maxlevel' feature which
-		// tells the algorithm through how many levels of parents it
-		// should search for merge keys (0: none, <0 all levels).
-		PNode lookup(const char *key, int maxlevel = -1) const;
-
-	private:
-		static YAML::Node backtrack_mergekeys(const YAML::PNode *, unsigned, const YAML::Node &, int);
 	};
 };
 
@@ -668,9 +589,9 @@ class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 	public:
 		static Dev dispatchMakeField(const YAML::Node &node, const char *root_name);
 
-		static YAML::Node loadPreprocessedYaml    (std::istream &,          const char *yaml_dir = 0);
-		static YAML::Node loadPreprocessedYaml    (const char *char_stream, const char *yaml_dir = 0);
-		static YAML::Node loadPreprocessedYamlFile(const char *file_name,   const char *yaml_dir = 0);
+		static YAML::Node loadPreprocessedYaml    (std::istream &,          const char *yaml_dir = 0, bool resolveMergeKeys = true);
+		static YAML::Node loadPreprocessedYaml    (const char *char_stream, const char *yaml_dir = 0, bool resolveMergeKeys = true);
+		static YAML::Node loadPreprocessedYamlFile(const char *file_name,   const char *yaml_dir = 0, bool resolveMergeKeys = true);
 
 		static void dumpClasses() { getFieldRegistry_()->dumpClasses(); }
 };

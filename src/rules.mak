@@ -263,11 +263,21 @@ define make_ldlib_path
 $(subst $(SPACE__),:,$(strip . $(dir $(filter %.so,$(1)))))
 endef
 
+ifeq ($(RUN_TESTS_IN_GDB),YES)
+define do_run_test
+gdb $1 -ex \'run $2\' -ex \'where\' -ex \'thread all bt\' --batch --return-child-result
+endef
+else
+define do_run_test
+$1 $2
+endef
+endif
+
 
 $(addsuffix _run,$(FILTERED_TBINS)):%_run: %
 	@for opt in $(RUN_OPTS) ; do \
 	    echo "Running ./$< $${opt}"; \
-        if ( eval LD_LIBRARY_PATH="$(call make_ldlib_path,$($^_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) ./$< $${opt} ) ; then \
+        if ( eval LD_LIBRARY_PATH="$(call make_ldlib_path,$($^_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) $(call do_run_test,./$<,$${opt}) ) ; then \
 			echo "TEST ./$< $${opt} PASSED" ; \
 		else \
 			echo "TEST ./$< $${opt} FAILED" ; \

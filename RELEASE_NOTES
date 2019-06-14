@@ -1,3 +1,12 @@
+master:
+    SequenceCommand now supports two-dimensional sequences, i.e.,
+    a sequence of command sequences. This can be used to let the
+    user pick a sequence at run-time. Handy in combination with
+    an attached 'enum' menu. Note, this is accessible via the
+    ScalVal_WO user API, not Command.
+
+    Implemented new, more efficient handling of merge keys.
+
 R4.0.0:
     Feature: added cpsw_fs_address which implements access to the underlying
     file-system. (E.g., char-devices).

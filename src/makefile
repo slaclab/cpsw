@@ -74,6 +74,7 @@ cpsw_SRCS+= libSocksUtil.c
 cpsw_SRCS+= rpcMapLookup.c
 cpsw_SRCS+= prot_xdr.c
 cpsw_SRCS+= cpsw_fs_addr.cc
+cpsw_SRCS+= cpsw_yaml_merge.cc
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h
@@ -126,6 +127,7 @@ DEP_HEADERS += cpsw_python.h
 DEP_HEADERS += cpsw_cython.h
 DEP_HEADERS += cpsw_aligned_mmio.h
 DEP_HEADERS += cpsw_fs_addr.h
+DEP_HEADERA += cpsw_yaml_merge.h
 
 STATIC_LIBRARIES_YES+=cpsw
 SHARED_LIBRARIES_YES+=cpsw
@@ -134,6 +136,10 @@ cpsw_yaml_xpand_SRCS += cpsw_yaml_xpand.cc
 cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 
 cpsw_ypp_SRCS        += cpsw_ypp.cc cpsw_preproc.cc
+
+cpsw_yaml_merge_SRCS += cpsw_yaml_merge.cc cpsw_yaml_merge_main.cc
+cpsw_yaml_merge_LIBS += yaml-cpp
+
 
 # Python wrapper; only built if WITH_PYCPSW is set to CYTHON/BOOST/SWIG
 # (can be target specific)
@@ -172,7 +178,7 @@ PYYAML_BOOST        = yaml_cpp.so
 PYYAML_CYTHON       = yaml_cpp.so
 PYYAML              = $(PYYAML_$(WITH_PYCPSW))
 
-PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML)
+PROGRAMS         += cpsw_yaml_xpand cpsw_ypp $(PYCPSW) $(PYYAML) cpsw_yaml_merge
 
 include $(CPSW_DIR)/rules.mak
 

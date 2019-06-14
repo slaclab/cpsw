@@ -155,7 +155,7 @@ public:
 
 	virtual uint64_t    loadConfigFromYamlFile(const char* filename, const char *incdir = 0) const
 	{
-	YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYamlFile( filename, incdir ) );
+	YAML::Node conf( CYamlFieldFactoryBase::loadPreprocessedYamlFile( filename, incdir, false ) );
 		return loadConfigFromYaml( conf );
 	}
 

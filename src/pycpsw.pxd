@@ -229,7 +229,7 @@ cdef extern from "cpsw_api_user.h":
     @staticmethod
     cc_Stream  create(cc_Path path)             except+handleException
 
-  cdef cppclass ICommand(IEntry):
+  cdef cppclass ICommand(IVal_Base):
     void       execute()                        except+handleException
     cc_Path    getPath()                        except+handleException
     @staticmethod

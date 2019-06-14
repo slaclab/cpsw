@@ -14,6 +14,11 @@
 #include <cpsw_address.h>
 
 #include <cpsw_error.h>
+#include <string>
+
+#include <iostream>
+
+#define SINGLE_SEQ 2
 
 
 DECLARE_OBJ_COUNTER( CCommandImplContext::sh_ocnt_, "CommandImplContext", 0 )
@@ -83,24 +88,6 @@ CCommandAdapt::~CCommandAdapt()
 	close();
 }
 
-IVal_Base::Encoding
-CCommandAdapt::getEncoding() const
-{
-	return asCommandImpl()->getEncoding();	
-}
-
-Path
-CCommandAdapt::getPath() const
-{
-	return IEntryAdapt::getPath();
-}
-
-ConstPath
-CCommandAdapt::getConstPath() const
-{
-	return IEntryAdapt::getConstPath();
-}
-
 void
 CCommandAdapt::execute()
 {
@@ -116,27 +103,81 @@ CSequenceCommandImpl::CSequenceCommandImpl(Key &k, const char *name, const Items
 : CCommandImpl(k, name),
   items_( *items_p )
 {
+	index_.push_back( 0 );
+	// always keep a marker at the end...
+	index_.push_back( items_.size() );
 }
 
-CSequenceCommandImpl::CSequenceCommandImpl(Key &key, YamlState &node)
-: CCommandImpl(key, node)
+void
+CSequenceCommandImpl::parseItems( YamlState *seq_node )
 {
-YamlState &seq_node( node.lookup(YAML_KEY_sequence) );
-	if ( ! seq_node ) {
-		throw InvalidArgError(std::string(getName()) + " no sequence found");
-	} 
-	if ( ! seq_node.IsSequence() ) {
-		throw InvalidArgError(std::string(getName()) + " YAML node not a sequence");
-	}
+unsigned i;
 
-	for ( unsigned i = 0; i < seq_node.size(); ++i ) {
-		YAML::PNode item_node( &seq_node, i );
+	for ( i = 0; i < seq_node->size(); ++i ) {
+		YAML::PNode item_node( seq_node, i );
 		std::string entry;
 		uint64_t    value;
 
 		mustReadNode( item_node, YAML_KEY_entry, &entry );
 		mustReadNode( item_node, YAML_KEY_value, &value );
 		items_.push_back( Item( entry, value ) );
+	}
+	// always keep a marker at the end...
+	index_.push_back( index_.back() + i );
+
+}
+
+CSequenceCommandImpl::CSequenceCommandImpl(Key &key, YamlState &node)
+: CCommandImpl(key, node)
+{
+YamlState &seq_node( node.lookup( YAML_KEY_sequence ) );
+
+	if ( ! seq_node ) {
+		throw ConfigurationError( std::string( getName() ) + ": no sequence found" );
+	} 
+	if ( ! seq_node.IsSequence() ) {
+		throw ConfigurationError( std::string( getName() ) + ": YAML node not a sequence" );
+	}
+
+	YamlState &enum_node( node.lookup( YAML_KEY_enums ) );
+
+	if ( enum_node ) {
+		enums_ = IMutableEnum::create( enum_node );
+	}
+
+	index_.push_back( 0 );
+
+	if ( 0 == seq_node.size() ) {
+		throw ConfigurationError( std::string(getName()) + ": sequence is empty" );
+	}
+
+	for ( unsigned i = 0; i < seq_node.size(); ++i ) {
+
+		YAML::PNode item_node( &seq_node, i );
+
+		if ( ! item_node.IsSequence() ) {
+			if ( 0 == i ) {
+				// single sequence case; this also terminates the 'index_' if the sequence is empty
+				parseItems( &seq_node );
+				break;
+			}
+			throw ConfigurationError( std::string(getName()) + ": YAML node not a sequence of sequences" );
+		}
+		// A sequence of sequences, i.e., multiple commands
+		parseItems( &item_node );
+	}
+
+	if ( enums_ ) {
+		if ( enums_->getNelms() != index_.size() - 1 ) {
+			throw ConfigurationError( std::string(getName()) + ": enum must have as many elements as the sequences" );
+		}
+	} else {
+		if ( SINGLE_SEQ == index_.size() ) {
+			// Attach a single menu item so that a GUI can use a string
+			MutableEnum enm = IMutableEnum::create();
+			enm->add( "Execute", 0 );
+			enums_ =  enm;
+		}
 	}
 }
 
@@ -147,22 +188,55 @@ CSequenceCommandImpl::dumpYamlPart(YAML::Node &node) const
 
 	Items::const_iterator it( items_.begin() );
 
-	while ( it != items_.end() ) {
-		YAML::Node item_node;
-		writeNode(item_node, YAML_KEY_entry, (*it).first );
-		writeNode(item_node, YAML_KEY_value, (*it).second);
-		pushNode(node, YAML_KEY_sequence, item_node);
-		++it;
+	YAML::Node seq_node( YAML::NodeType::Sequence );
+
+	if ( index_.size() > SINGLE_SEQ ) {
+		for ( unsigned i = 0; i < index_.size() - 1; ++i ) {
+			YAML::Node item_seq_node( YAML::NodeType::Sequence );
+			for ( int j = index_[i]; j < index_[i+1]; j++ ) {
+				YAML::Node item_node( YAML::NodeType::Map );
+				writeNode(item_node, YAML_KEY_entry, (*it).first );
+				writeNode(item_node, YAML_KEY_value, (*it).second);
+				item_seq_node.push_back( item_node );
+				++it;
+			}
+			seq_node.push_back( item_seq_node );
+		}
+	} else {
+		while ( it != items_.end() ) {
+			YAML::Node item_node( YAML::NodeType::Map );
+			writeNode(item_node, YAML_KEY_entry, (*it).first );
+			writeNode(item_node, YAML_KEY_value, (*it).second);
+			seq_node.push_back( item_node );
+			++it;
+		}
+	}
+
+	writeNode(node, YAML_KEY_sequence, seq_node);
+
+	if ( enums_ ) {
+		YAML::Node enums;
+		
+		enums_->dumpYaml( enums );
+		writeNode(node, YAML_KEY_enums, enums); 
 	}
 }
 
-void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
+void CSequenceCommandImpl::executeCommand(CommandImplContext context, int64_t arg) const
 {
-	ConstPath parent( context->getParent() );
+ConstPath parent( context->getParent() );
+
+	if ( arg < 0 || arg >= (int64_t)index_.size() - 1 ) {
+		throw InvalidArgError( std::string("CSequenceCommandImpl: ") + parent->toString() + "/" + getName() + " - integer arg out of range" );
+	}
 
 	Path p;
 
-	for( Items::const_iterator it = items_.begin(); it != items_.end(); ++it )
+	Items::const_iterator it  = items_.begin() + index_[arg    ];
+	Items::const_iterator ite = items_.begin() + index_[arg + 1];
+
+
+	for( ; it != ite; ++it )
 	{
 		if( (*it).first.compare(0, 6, "usleep") == 0 ) {
 			usleep( (useconds_t) (*it).second );
@@ -188,13 +262,7 @@ void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 
 				try {
 					// if ScalVal
-#if 0
-					// without caching and bit-level access at the SRP protocol level we cannot
-					// support write-only yet.
 					ScalVal_WO s( IScalVal_WO::create( p ) );
-#else
-					ScalVal s( IScalVal::create( p ) );
-#endif
 					//set all nelms to same value if addressing multiple
 					s->setVal( (*it).second );
 
@@ -212,4 +280,70 @@ void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
 	}
 }
 
+void CSequenceCommandImpl::executeCommand(CommandImplContext context) const
+{
+	if ( index_.size() > SINGLE_SEQ ) {
+		ConstPath parent( context->getParent() );
+		throw InvalidArgError( std::string("CSequenceCommandImpl: ") + parent->toString() + "/" + getName() + " - need integer argument" );
+	}
+	executeCommand( context, (int64_t)0 );
+}
 
+void CSequenceCommandImpl::executeCommand(CommandImplContext context, const char *arg) const
+{
+	if ( ! enums_ ) {
+		ConstPath parent( context->getParent() );
+		throw InvalidArgError( std::string("CSequenceCommandImpl: ") + parent->toString() + "/" + getName() + " - command has no enums; string arg not supported" );
+	}
+
+	IEnum::Item i = enums_->map( arg );
+	
+	executeCommand( context, i.second );
+}
+
+EntryAdapt
+CSequenceCommandImpl::createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type_info &interfaceType) const
+{
+	if ( isInterface<ScalVal_WO>( interfaceType ) ) {
+		return _createAdapter<SequenceScalVal_WOAdapt>( this, p );
+	}
+	if ( isInterface<Command>( interfaceType ) ) {
+		if ( index_.size() > SINGLE_SEQ ) {
+			throw InterfaceNotImplementedError("SequenceCommand with multiple sequences supports only ScalVal_WO interface");
+		}
+        return _createAdapter<CommandAdapt>(this, p);
+	}
+	return CEntryImpl::createAdapter(key, p, interfaceType);
+}
+
+CSequenceScalVal_WOAdapt::CSequenceScalVal_WOAdapt(Key &k, ConstPath p, shared_ptr<const CSequenceCommandImpl> ie)
+  : IEntryAdapt  (k, p, ie),
+    CCommandAdapt(k, p, ie)
+{
+}
+
+uint64_t
+CSequenceScalVal_WOAdapt::getSizeBits() const
+{
+	return 8*sizeof(int64_t);
+}
+
+bool
+CSequenceScalVal_WOAdapt::isSigned()    const
+{
+	return true;
+}
+
+Enum
+CSequenceScalVal_WOAdapt::getEnum()     const
+{
+	return asSequenceCommandImpl()->getEnum();
+}
+
+void
+CSequenceScalVal_WOAdapt::checkArgs(unsigned nelms, IndexRange *range)
+{
+	if ( nelms != 1 || ( range && ( range->getFrom()  > 0 || range->getTo() > 0 ) ) ) {
+		throw InvalidArgError("CSequenceScalVal: only a single value can be written");
+	}
+}

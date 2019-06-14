@@ -631,7 +631,7 @@ NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does
     po.wptr = obj
     return po
 
-cdef class Stream(ScalVal_Base):
+cdef class Stream(Val_Base):
   """
 Interface for endpoints with support streaming of raw data.
 NOTE: A stream must be explicitly managed (i.e., destroyed/closed
@@ -708,7 +708,7 @@ statement.
     po.ptr  = static_pointer_cast[IVal_Base,IVal_Base]( vobj )
     return po
 
-cdef class Command(Entry):
+cdef class Command(Val_Base):
   """
 The Command interface gives access to commands implemented by the underlying endpoint.
 
@@ -716,36 +716,30 @@ Details of the command are hidden. Execution runs the command or command sequenc
 coded by the endpoint.
   """
 
-  cdef cc_Command ptr
+  cdef cc_Command cmdptr;
 
   def execute(self):
     """
 Execute the command implemented by the endpoint addressed by the
 path which was created when instantiating the Command interface.
     """
-    self.ptr.get().execute()
-
-  def getPath(self):
-    """
-Return a copy of the Path which was used to create this Command.
-    """
-    return Path.make( self.ptr.get().getPath() )
+    self.cmdptr.get().execute()
 
   # Must use the 'p.cptr' (ConstPath) -- since we cannot rely on a non-const being passed!
   @staticmethod
   def create(Path p):
     """
-Instantiate a 'Stream' interface at the endpoint identified by 'path'
+Instantiate a 'Command' interface at the endpoint identified by 'path'
 
 NOTE: an InterfaceNotImplementedError exception is thrown if the endpoint does
       not support this interface.
     """
     cdef cc_Command obj = ICommand.create( p.cptr )
-    po      = Command(priv__)
-    po.cptr = static_pointer_cast[CIEntry,  ICommand]( obj )
+    po         = Command(priv__)
+    po.cptr    = static_pointer_cast[CIEntry,  ICommand]( obj )
     # We can't use the 'const IEntry' pointer because 'execute'
 	# is not a 'const' method...
-    po.ptr  = static_pointer_cast[ICommand ,ICommand]( obj )
+    po.cmdptr  = static_pointer_cast[ICommand ,ICommand]( obj )
     return po
 
 cdef cppclass CPathVisitor(IPathVisitor):

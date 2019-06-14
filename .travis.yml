@@ -51,6 +51,9 @@ install:
     - make --quiet
     - sudo make install 1>/dev/null 2>&1
 
+    # Install gdb
+    - sudo apt-get install -y gdb
+
 before_script:
     # Prepare config.local.mak file
     - cd $TRAVIS_BUILD_DIR
@@ -62,6 +65,7 @@ before_script:
     - echo "yaml_cpplib_DIR=/usr/local/lib/"          >> config.local.mak
     - echo "pyinc_DIR=/usr/local/include/python3.6m/" >> config.local.mak
     - echo "INSTALL_DIR=/usr/local/cpsw/"             >> config.local.mak
+    - ulimit -c unlimited
 
 script:
     # Test building the code

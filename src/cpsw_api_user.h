@@ -812,25 +812,13 @@ public:
 class ICommand;
 typedef shared_ptr<ICommand> Command;
 
-class ICommand: public virtual IEntry {
+class ICommand: public virtual IVal_Base {
 public:
 	/*!
 	 * Execute the command in the context of the calling thread.
 	 * The semantics are defined by the underlying implementation.
 	 */
-	virtual void execute() = 0;
-
-	/*!
-	 * Return a copy of the Path which was used to create this Command.
-	 */
-	virtual Path     getPath()          const = 0;
-
-	/*!
-	 * Return a const reference of the Path which was used to
-	 * create this Command. This is not a copy (more efficient if
-	 * you don't intend to modify it).
-	 */
-	virtual ConstPath getConstPath()    const = 0;
+	virtual void execute()                = 0;
 
 	/*!
 	 * Instantiate a 'Command' interface at the endpoint identified by 'path'

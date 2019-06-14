@@ -8,6 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #include <cpsw_api_builder.h>
+#include <cpsw_yaml_keydefs.h>
 #include <udpsrv_regdefs.h>
 #include <vector>
 #include <string>
@@ -48,6 +49,25 @@ IMyCommandImpl_create rval = (IMyCommandImpl_create) dlsym( dlh, IMYCOMMANDIMPL_
 	return rval;
 }
 
+static const char *yaml =
+  "#schemaversion 3.0.0                      \n"
+  "root:                                     \n"
+  "  " YAML_KEY_class    ": Dev              \n"
+  "  " YAML_KEY_children ":                  \n"
+  "    cmd:                                  \n"
+  "      " YAML_KEY_class ": SequenceCommand \n"
+  "      " YAML_KEY_at    ": { " YAML_KEY_nelms ": 1 }     \n"
+  "      " YAML_KEY_sequence ":              \n"
+  "        -                                 \n"
+  "          - { entry: \"system(echo hello)\", value: 0 } \n"
+  "          - { entry: \"system(echo bello)\", value: 0 } \n"
+  "        -                                 \n"
+  "          - { entry: \"system(echo lello)\", value: 0 } \n"
+  "          - { entry: \"system(echo mello)\", value: 0 } \n"
+  "      " YAML_KEY_enums ":                 \n"
+  "        - { name: low,  value: 0 }        \n"
+  "        - { name: high, value: 1 }        \n"
+;
 
 int
 main(int argc, char **argv)
@@ -202,6 +222,26 @@ Hub root;
 		/* expected */
 	}
 
+
+	{
+	Path r;
+	if ( use_yaml ) {
+		std::string nam = std::string( use_yaml ) + "1";	
+		r = IPath::loadYamlFile( nam.c_str() );
+	} else {
+		r = IPath::loadYamlStream( yaml );
+	}
+
+	ScalVal_WO c = IScalVal_WO::create( r->findByName( "cmd" ) );
+		c->setVal("low");
+		c->setVal( 1   );
+
+	if ( dmp_yaml ) {
+		std::string nam = std::string( dmp_yaml ) + "1";	
+		IYamlSupport::dumpYamlFile( r->origin(), nam.c_str(), "root" );
+	}
+
+	}
 
 } catch (CPSWError e) {
 	fprintf(stderr,"CPSW Error: %s\n", e.getInfo().c_str());
