@@ -28,7 +28,7 @@ HARCH=rhel6-x86_64
 
 # ARCHES += xxx yyy
 
-ARCHES += buildroot-2016.11.1-x86_64 buildroot-2016.11.1-i686 buildroot-2016.11.1-zynq
+ARCHES += buildroot-2016.11.1-x86_64 buildroot-2016.11.1-i686 buildroot-2016.11.1-arm
  
  
 # Next, you need to define prefixes (which may include
@@ -133,8 +133,10 @@ FOUND_BOOST_PY=$(if $(boostlib_DIR),$(if $(wildcard $(boostlib_DIR)/libboost_pyt
 #  are enabled; otherwise don't build PYCPSW.
 #WITH_PYCPSW_default=$(or $(and $(pyinc_DIR),$(WITH_SHARED_LIBRARIES),CYTHON),NO)
 
-py_DIR_default=/afs/slac/g/lcls/package/python/python2.7.9/$(TARCH)
-pyinc_DIR_default=$(addsuffix /include/python2.7/,$(py_DIR))
+#py_DIR_default=/afs/slac/g/lcls/package/python/python2.7.9/$(TARCH)
+#pyinc_DIR_default=$(addsuffix /include/python2.7/,$(py_DIR))
+py_DIR_default=/afs/slac/g/lcls/package/python/3.6.1/$(TARCH)
+pyinc_DIR_default=$(addsuffix /include/python3.6m/,$(py_DIR))
 
 # Whether to use C++11 or boost (note that boost is still used internally
 # by CPSW but enabling C++11 will remove dependency of *applications* on

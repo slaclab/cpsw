@@ -1,4 +1,6 @@
 R4.1.0:
+    Use python 3.6.1 by default.
+
     SequenceCommand now supports two-dimensional sequences, i.e.,
     a sequence of command sequences. This can be used to let the
     user pick a sequence at run-time. Handy in combination with
