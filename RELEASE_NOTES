@@ -1,4 +1,4 @@
-master:
+R4.0.0:
     Feature: added cpsw_fs_address which implements access to the underlying
     file-system. (E.g., char-devices).
 
@@ -25,6 +25,8 @@ master:
     A few headers (lockfree) are still used but can be disabled in 
     the configuration file (switch to a native but simple implementation
     which may or may not be less performant).
+
+    API enhancement: added asynchronous 'getVal' + notification via callback.
 
 R3.branch:
     BUGFIX: cpsw_path findByName() crashed when ".." crossed root
