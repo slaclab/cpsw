@@ -1,3 +1,5 @@
+    SequenceCommandImpl: permit creation of a ScalVal_Base interface
+
     yaml_cpsw_merge (program): fixed -Y option
     
 R4.1.0:

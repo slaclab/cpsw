@@ -304,7 +304,7 @@ void CSequenceCommandImpl::executeCommand(CommandImplContext context, const char
 EntryAdapt
 CSequenceCommandImpl::createAdapter(IEntryAdapterKey &key, ConstPath p, const std::type_info &interfaceType) const
 {
-	if ( isInterface<ScalVal_WO>( interfaceType ) ) {
+	if ( isInterface<ScalVal_WO>( interfaceType ) || isInterface<ScalVal_Base>( interfaceType ) ) {
 		return _createAdapter<SequenceScalVal_WOAdapt>( this, p );
 	}
 	if ( isInterface<Command>( interfaceType ) ) {
