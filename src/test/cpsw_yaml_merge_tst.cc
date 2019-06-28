@@ -12,6 +12,7 @@
 #include <cpsw_yaml.h>
 #include <cpsw_yaml_merge.h>
 #include <iostream>
+#include <stdio.h>
 
 static const char *yaml=
 "#schemaversion 3.0.0\n"
@@ -185,6 +186,7 @@ int
 main(int argc, char **argv)
 {
 std::string str( yaml );
+	printf("### ORIGINAL ###\n%s\n### ORIGINAL END ###\n", yaml);
 	{
 		YAML::Node root;
 		{
