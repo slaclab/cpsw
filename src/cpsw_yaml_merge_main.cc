@@ -61,7 +61,9 @@ const char *fn = 0;
 		usage( argv[0] );
 		return 1;
 	} else {
-		fn = argv[optind];
+		if ( ! fn ) {
+			fn = argv[optind];
+		}
 	}
 
 	YAML::Node root = YAML::LoadFile( fn );
