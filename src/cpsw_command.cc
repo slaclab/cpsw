@@ -226,6 +226,13 @@ void CSequenceCommandImpl::executeCommand(CommandImplContext context, int64_t ar
 {
 ConstPath parent( context->getParent() );
 
+	/* If this sequence is 'one-dimensional' then ignore the argument altogether
+	 * for sake of backwards compatibility!
+	 */
+	if ( 1 == index_.size() - 1 ) {
+		arg = 0;
+	}
+
 	if ( arg < 0 || arg >= (int64_t)index_.size() - 1 ) {
 		throw InvalidArgError( std::string("CSequenceCommandImpl: ") + parent->toString() + "/" + getName() + " - integer arg out of range" );
 	}

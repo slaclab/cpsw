@@ -135,6 +135,12 @@ Hub root;
 		mmio->addAtAddress( ISequenceCommand::create("bad", &items), 0 );
 	}
 
+    {
+	ISequenceCommand::Items items;
+		items.push_back( ISequenceCommand::Item( "sys", 0x1 ) );
+		mmio->addAtAddress( ISequenceCommand::create("indirect", &items), 0 );
+	}
+
 		root = netio;
 
 	}
@@ -197,21 +203,26 @@ Hub root;
 		throw TestFailed();
 	}
 
+	Command sys[2];
 
-	Command sys = ICommand::create( root->findByName("mmio/sys") );
+	sys[0] = ICommand::create( root->findByName("mmio/sys") );
+	sys[1] = ICommand::create( root->findByName("mmio/indirect") );
 
-	clock_gettime( CLOCK_MONOTONIC, &then );
+	for ( unsigned i = 0; i < sizeof(sys)/sizeof(sys[0]); i++ ) {
 
-	sys->execute();
+		clock_gettime( CLOCK_MONOTONIC, &then );
 
-	clock_gettime( CLOCK_MONOTONIC, &now );
+		sys[i]->execute();
 
-	difft = (now.tv_nsec - then.tv_nsec)/1000;
+		clock_gettime( CLOCK_MONOTONIC, &now );
 
-	difft += (now.tv_sec - then.tv_sec) * 1000000;
+		difft = (now.tv_nsec - then.tv_nsec)/1000;
 
-	if ( difft < 100000 ) {
-		throw TestFailed();
+		difft += (now.tv_sec - then.tv_sec) * 1000000;
+
+		if ( difft < 100000 ) {
+			throw TestFailed();
+		}
 	}
 
 	try {

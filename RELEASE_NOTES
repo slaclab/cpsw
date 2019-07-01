@@ -1,3 +1,10 @@
+R4.1.1:
+    SequenceCommandImpl: a lot of existing YAML write '1' to a command
+    in order to execute. Should really be '0' but was never checked by
+    previous releases. With support for multiple sub-sequences the
+    argument now has a meaning. For sake of backwards compatibility we
+    accept any argument in case a sequence is 'one-dimensional'.
+
     SequenceCommandImpl: permit creation of a ScalVal_Base interface
 
     yaml_cpsw_merge (program): fixed -Y option
