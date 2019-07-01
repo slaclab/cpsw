@@ -8,6 +8,8 @@ R4.1.1:
     SequenceCommandImpl: permit creation of a ScalVal_Base interface
 
     yaml_cpsw_merge (program): fixed -Y option
+
+    build with boost 1.64.0 and yaml-cpp-0.5.3_boost-1.64.0
     
 R4.1.0:
     Use python 3.6.1 by default.

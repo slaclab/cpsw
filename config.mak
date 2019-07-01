@@ -95,7 +95,7 @@ $(foreach brarnam,$(BR_ARNAMS),$(eval CROSS_$(brarnam)=$$(BR_CROSS)))
 #
 
 # 
-BOOST_VERSION=1.63.0
+BOOST_VERSION=1.64.0
 BOOST_PATH=$(PACKAGE_TOP)/boost/$(BOOST_VERSION)
 
 boost_DIR_default=$(BOOST_PATH)/$(TARCH)
@@ -106,7 +106,7 @@ boost_DIR_default=$(BOOST_PATH)/$(TARCH)
 # variables prefixed by 'yaml_cpp_' is used to identify
 # the install location of yaml-cpp headers and library.
 # 
-YAML_CPP_VERSION         = yaml-cpp-0.5.3
+YAML_CPP_VERSION         = yaml-cpp-0.5.3_boost-1.64.0
 YAML_CPP_PATH            = $(PACKAGE_TOP)/yaml-cpp/$(YAML_CPP_VERSION)
 
 yaml_cpp_DIR_default=$(YAML_CPP_PATH)/$(TARCH)
