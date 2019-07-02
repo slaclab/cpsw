@@ -1,4 +1,8 @@
-R4.1.1:
+R4.1.2:
+    Removed R4.1.1 tag which had been forced.
+
+    build with boost 1.64.0 and yaml-cpp-0.5.3_boost-1.64.0
+
     SequenceCommandImpl: a lot of existing YAML write '1' to a command
     in order to execute. Should really be '0' but was never checked by
     previous releases. With support for multiple sub-sequences the
@@ -9,8 +13,6 @@ R4.1.1:
 
     yaml_cpsw_merge (program): fixed -Y option
 
-    build with boost 1.64.0 and yaml-cpp-0.5.3_boost-1.64.0
-    
 R4.1.0:
     Use python 3.6.1 by default.
 
