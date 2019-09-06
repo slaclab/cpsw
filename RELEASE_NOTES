@@ -1,3 +1,6 @@
+    Ensure protocol module's modStartup()/modShutdown() are executed
+	only once (the same module can be used by multiple communication
+    ports).
 R4.1.2:
     Removed R4.1.1 tag which had been forced.
 

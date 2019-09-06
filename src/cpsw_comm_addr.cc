@@ -133,7 +133,7 @@ void CCommAddressImpl::startProtoStack()
 			mods.push_back( m );
 		}
 		for ( i = mods.size() - 1; i >= 0; i-- ) {
-			mods[i]->modStartup();
+			mods[i]->modStartupOnce();
 		}
 	}
 	mtu_ = protoStack_->open()->getMTU();
@@ -144,7 +144,7 @@ void CCommAddressImpl::shutdownProtoStack()
 	if ( protoStack_ && running_ ) {
 		ProtoMod m;
 		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
-			m->modShutdown();
+			m->modShutdownOnce();
 		}
 		running_ = false;
 	}

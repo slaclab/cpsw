@@ -55,7 +55,7 @@ IPortImpl::isOpen() const
 //    class IOpened;
 //
 //    class IBase {
-//       shared_ptr<IOpened> open()              = 0;       
+//       shared_ptr<IOpened> open()              = 0;
 //       void                someBaseFunction()  = 0;
 //    };
 //
@@ -65,7 +65,7 @@ IPortImpl::isOpen() const
 //
 // (We use this for streaming endpoints. If nobody holds
 // the interface 'open' then traffic should be discarded
-// instead of clogging the queue and eventually stalling 
+// instead of clogging the queue and eventually stalling
 // RSSI).
 //
 // How can we have a single class implement both interfaces
@@ -78,8 +78,8 @@ IPortImpl::isOpen() const
 //       shared_ptr<Implementation>  handle_;
 //       int                         openCount_;
 //    public:
-//       void                  someBaseFunction();              // implementation    
-//       void                  functionOnlyAvailableToOpened(); // implementation    
+//       void                  someBaseFunction();              // implementation
+//       void                  functionOnlyAvailableToOpened(); // implementation
 //       shared_ptr<IOpened>   open();
 //
 //       static shared_ptr<IBase> factory();
@@ -147,7 +147,7 @@ IPortImpl::isOpen() const
 //       return retVal;
 //       }
 //
-//       Remains the 'CloseManager'. This deletor doesn't really 
+//       Remains the 'CloseManager'. This deletor doesn't really
 //       delete anything but just keeps track of the openCount_
 //       and resets the handle_ once all 'opened' pointers go away.
 //
@@ -315,7 +315,7 @@ CPortImpl::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 		}
 
 		if ( rval ) {
-			// just went offline - drain 
+			// just went offline - drain
 			while ( ! isOpen() && tryPop() )
 				;
 		}
@@ -386,6 +386,31 @@ CProtoModImpl::CProtoModImpl(const CProtoModImpl &orig)
 
 CProtoModImpl::CProtoModImpl()
 {
+}
+
+CProtoModBase::CProtoModBase()
+: started_( 0 )
+{
+}
+
+void
+CProtoModBase::modStartupOnce()
+{
+	if ( 0 == started_++ ) {
+		modStartup();
+	}
+}
+
+
+void
+CProtoModBase::modShutdownOnce()
+{
+	if ( 0 >= started_ ) {
+		throw InternalError("Protocol Module startup count <= 0");
+	}
+	if ( 0 == --started_ ) {
+		modShutdown();
+	}
 }
 
 void

@@ -16,7 +16,7 @@
 class CProtoModRssi;
 typedef shared_ptr<CProtoModRssi> ProtoModRssi;
 
-class CProtoModRssi: public CShObj, public IPortImpl, public IProtoMod, public CRssi, public IMTUQuerier {
+class CProtoModRssi: public CShObj, public IPortImpl, public CProtoModBase, public CRssi, public IMTUQuerier {
 private:
 	ProtoDoor upstream_;
 
