@@ -170,7 +170,7 @@ int              connOpen;
 	evSet->add( (CConnectionOpenEventSource*)this, &eh );
 	threadStart();
 
-	CTimeout relt( 2000000 /*us*/ );
+	CTimeout relt( 5000000 /*us*/ );
 
 	do {
 		CTimeout abst(evSet->getAbsTimeout( &relt ));
@@ -181,7 +181,6 @@ int              connOpen;
 			break;	
 		}
 	} while ( ! connOpen );
-printf("Leaving modStartup (%p) with %i\n", this, connOpen);
 }
 
 BufChain

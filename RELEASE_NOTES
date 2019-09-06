@@ -1,3 +1,7 @@
+    Fixed RSSI reopen-delay. This was always reset to 0. FW does not
+    like to be hammered with SYN requests -- it would just never respond.
+    We work around this by backing off with an increasing delay.
+    If FW is left alone for a while a reconnection succeeds.
 R4.1.2:
     Removed R4.1.1 tag which had been forced.
 
