@@ -53,6 +53,7 @@ CRssi::CRssi(bool isServer, int threadPrio, IMTUQuerier *mtuQuerier)
 {
 	conID_ = (uint32_t)time(NULL);
 	::memset( &stats_, 0, sizeof(stats_) );
+
 	closedReopenDelay_.tv_nsec = 0;
 	closedReopenDelay_.tv_sec  = 0;
 
@@ -156,9 +157,6 @@ void CRssi::close()
 
 	peerOssMX_      = MAX_UNACKED_SEGS;
 	peerSgsMX_      = MAX_SEGMENT_SIZE;
-
-	closedReopenDelay_.tv_nsec = 0;
-	closedReopenDelay_.tv_sec  = 0;
 
 	conID_++;
 }
@@ -589,4 +587,21 @@ bool rval;
 	state_ = &stateCLOSED;
 
 	return rval;
+}
+
+void CRssi::resetReopenDelay()
+{
+	/* FW Rssi does not like it if we try to reopen too quickly;
+	 * if we keep resending SYN at too fast a pace then the FW
+	 * never responds with anything and we get stuck in a loop.
+	 */
+	closedReopenDelay_.tv_nsec = 0;
+	closedReopenDelay_.tv_sec  = 2;
+}
+
+void CRssi::increaseReopenDelay()
+{
+	if ( closedReopenDelay_.tv_sec < 10 ) {
+		closedReopenDelay_.tv_sec+=2;
+	}
 }

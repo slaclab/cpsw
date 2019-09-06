@@ -1,9 +1,14 @@
-    Added support for obtaining interface MTU in libTstAux; this
-    is used by rssi_bridge to fragment larger messages.
+    Fixed RSSI reopen-delay. This was always reset to 0. FW does not
+    like to be hammered with SYN requests -- it would just never respond.
+    We work around this by backing off with an increasing delay.
+    If FW is left alone for a while a reconnection succeeds.
 
     Ensure protocol module's modStartup()/modShutdown() are executed
 	only once (the same module can be used by multiple communication
     ports).
+
+    Added support for obtaining interface MTU in libTstAux; this
+    is used by rssi_bridge to fragment larger messages.
 
 R4.1.2:
     Removed R4.1.1 tag which had been forced.
