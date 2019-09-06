@@ -79,12 +79,11 @@ void CRssi::CLOSED::advance(CRssi *context)
 		context->changeState( &context->stateLISTEN );
 	} else {
 		if ( context->closedReopenDelay_.tv_sec ) {
-			fprintf(stderr,"Client unable to establish connection; sleeping for a while\n");
+			fprintf(stderr,"Client unable to establish connection; sleeping for a while (%lu)\n",
+				(unsigned long)context->closedReopenDelay_.tv_sec);
 			::nanosleep( &context->closedReopenDelay_, NULL );
 		}
-		if ( context->closedReopenDelay_.tv_sec < 10 ) {
-			context->closedReopenDelay_.tv_sec++;
-		}
+		context->increaseReopenDelay();
 		context->sendSYN( false );
 		context->changeState( &context->stateCLNT_WAIT_SYN_ACK );
 	}
@@ -314,6 +313,9 @@ void CRssi::SERV_WAIT_SYN_ACK::handleRxEvent(CRssi *context, IIntEventSource *sr
 {
 	CRssi::NOTCLOSED::handleRxEvent(context, src);
 	if ( context->unAckedSegs_.getSize() == 0 ) {
+
+		context->resetReopenDelay();
+
 		context->changeState( &context->statePREP_OPEN );
 		context->nulTimer()->arm_rel( context->nulTO_ );
 	}

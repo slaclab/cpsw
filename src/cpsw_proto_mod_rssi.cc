@@ -181,6 +181,7 @@ int              connOpen;
 			break;	
 		}
 	} while ( ! connOpen );
+printf("Leaving modStartup (%p) with %i\n", this, connOpen);
 }
 
 BufChain

@@ -542,6 +542,9 @@ protected:
 
 	RssiTimerList  timers_;
 
+	void resetReopenDelay();
+	void increaseReopenDelay();
+
 	void close();
 	void open();
 	void sendBufAndKeepForRetransmission(BufChain);
