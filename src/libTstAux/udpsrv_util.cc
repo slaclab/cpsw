@@ -1065,6 +1065,28 @@ public:
 		threadStop();
 		outQ_->shutdown();
 	}
+
+        /* ??? unable to determine; use some default */
+	virtual unsigned getMTU()
+	{
+	int       rval;
+	socklen_t sl = sizeof(rval);
+
+		if ( getsockopt( sd_.get(), SOL_IP, IP_MTU, &rval, &sl ) ) {
+			throw InternalError("getsockopt(IP_MTU) failed", errno);
+		}
+
+		rval -= 60; /* max. IP header */
+		rval -=  8; /* UDP     header */
+		if ( rval > 65536 ) {
+			rval = 65536;
+		} else if ( 0 >= rval ) {
+			/* ??? unable to determine; use some default */
+			fprintf(stderr,"WARNING: CUdpPort: unable to determine MTU\n");
+			rval = 1024;
+		}
+		return rval;
+	}
 };
 
 class CTcpPort : public ITcpPort, public CRunnable {
@@ -1315,6 +1337,12 @@ reconn:;
 			close(conn_);
 		conn_ = -1;
 		outQ_->shutdown();
+	}
+
+	virtual unsigned getMTU()
+	{
+	// arbitrary
+		return 65536;
 	}
 };
 

@@ -56,6 +56,11 @@ public:
 	virtual void start()                                   = 0;
 	virtual void stop()                                    = 0;
 
+    virtual unsigned getMTU()
+	{
+		throw InternalError("getMTU not implemented");
+	}
+
 	static ProtoPort create(bool isServer_);
 };
 

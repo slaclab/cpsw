@@ -123,6 +123,13 @@ public:
 		threadStop();
 	}
 
+	virtual unsigned getMTU()
+	{
+	unsigned upMTU = getUpstreamPort()->getMTU() - RssiHeader::minHeaderSize();
+	unsigned myMTU = peerSgsMX_;
+
+		return myMTU < upMTU ? myMTU : upMTU;
+	}
 };
 
 #endif

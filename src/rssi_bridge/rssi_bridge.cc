@@ -80,6 +80,7 @@ private:
 	int       dbg_;
 	Throttler throttler_;
 	int       throttle_;
+	unsigned  toMTU_;
 
 	CMover(const CMover&);
 	CMover &operator=(const CMover&);
@@ -153,6 +154,10 @@ CMover::threadBody()
 			if ( dbg_ ) {
 				printf("%s: got %ld bytes\n", getName().c_str(), (long)bc->getSize());
 			}
+#endif
+			while ( bc->getSize() > toMTU_ ) {
+			}
+#ifdef RSSI_BR_DEBUG
 			bool st =
 #endif
 			          to_->push( bc, NULL );
@@ -172,7 +177,8 @@ CMover::CMover(const char *name, ProtoPort to, ProtoPort from, int debug, Thrott
   from_     ( from         ),
   dbg_      ( debug        ),
   throttler_( throttler    ),
-  throttle_ ( throttle     )
+  throttle_ ( throttle     ),
+  toMTU_    ( to->getMTU() )
 {
 }
 
