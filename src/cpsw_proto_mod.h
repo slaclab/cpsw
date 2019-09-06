@@ -304,6 +304,8 @@ public:
 
 	virtual void modStartup()                          = 0;
 	virtual void modShutdown()                         = 0;
+	virtual void modStartupOnce()                      = 0;
+	virtual void modShutdownOnce()                     = 0;
 
 	virtual const char *getName() const                = 0;
 
@@ -410,7 +412,20 @@ public:
 	}
 };
 
-class CProtoModImpl : public IProtoMod {
+class CProtoModBase : public IProtoMod {
+private:
+	int        started_;
+public:
+	CProtoModBase();
+
+	// ensure that module's startup/shutdown are
+	// only executed once (first/last time)
+	virtual void modStartupOnce();
+	virtual void modShutdownOnce();
+
+};
+
+class CProtoModImpl : public CProtoModBase {
 protected:
 	ProtoDoor  upstream_;
 
@@ -422,7 +437,6 @@ public:
 	// subclasses may want to start threads
 	// once the module is attached
 	virtual void modStartup();
-
 	virtual void modShutdown();
 
 	virtual void attach(ProtoDoor upstream);
