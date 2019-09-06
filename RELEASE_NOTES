@@ -1,3 +1,5 @@
+    Added support for obtaining interface MTU in libTstAux; this
+    is used by rssi_bridge to fragment larger messages.
 R4.1.2:
     Removed R4.1.1 tag which had been forced.
 
