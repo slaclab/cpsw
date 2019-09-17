@@ -7,15 +7,26 @@
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
+#if defined(__linux__) && ! defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+
 #include <cpsw_thread.h>
 #include <cpsw_error.h>
 #include <unistd.h>
+#ifdef __linux__
+#include <sys/syscall.h>
+#endif
 #include <errno.h>
 
 #include <stdio.h>
 #include <signal.h>
 
-#undef CPSW_THREAD_DEBUG
+#define CPSW_THREAD_DEBUG 0
+
+#ifdef CPSW_THREAD_DEBUG
+int cpsw_thread_debug = CPSW_THREAD_DEBUG;
+#endif
 
 using std::string;
 
@@ -66,7 +77,16 @@ CRunnable *me = static_cast<CRunnable*>(arg);
 void     *rval;
 
 #ifdef CPSW_THREAD_DEBUG
-fprintf(stderr,"Starting up '%s'\n", me->getName().c_str());
+if ( cpsw_thread_debug > 0 ) {
+	fprintf(stderr,"Starting up thread '%s'", me->getName().c_str());
+#ifdef __linux__
+	{
+		pid_t tid = syscall( SYS_gettid );
+		fprintf(stderr," (LWP %ld)", (long)tid);
+	}
+#endif
+	fprintf(stderr," priority %d\n", me->getPrio());
+}
 #endif
 
 	try {

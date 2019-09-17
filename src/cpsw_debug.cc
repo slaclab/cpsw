@@ -20,6 +20,7 @@ static struct Component components[] = {
 	{ "rssi"               , &cpsw_rssi_debug   },
 	{ "proto_stack_builder", &cpsw_psbldr_debug },
 	{ "socks",               &libSocksDebug     },
+	{ "thread",              &cpsw_thread_debug },
 	{                    0 ,                  0 }
 };
 
