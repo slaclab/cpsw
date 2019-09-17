@@ -69,6 +69,7 @@ protected:
 		private:
 			atomic<uint64_t> nOctets_;
 			atomic<uint64_t> nDgrams_;
+			atomic<uint64_t> nRxDrop_;
 		public:
 			// cannot use smart pointer here because CProtoModUdp's
 			// constructor creates the threads (and a smart ptr is
@@ -87,6 +88,7 @@ protected:
 
 			virtual uint64_t getNumOctets() { return nOctets_.load( cpsw::memory_order_relaxed ); }
 			virtual uint64_t getNumDgrams() { return nDgrams_.load( cpsw::memory_order_relaxed ); }
+			virtual uint64_t getNumRxDrop() { return nRxDrop_.load( cpsw::memory_order_relaxed ); }
 
 			virtual ~CUdpRxHandlerThread() { threadStop(); }
 	};
@@ -144,6 +146,7 @@ public:
 	virtual uint64_t getNumTxDgrams() { return nTxDgrams_.load( cpsw::memory_order_relaxed ); }
 	virtual uint64_t getNumRxOctets();
 	virtual uint64_t getNumRxDgrams();
+	virtual uint64_t getNumRxDrops();
 	virtual void modStartup();
 	virtual void modShutdown();
 

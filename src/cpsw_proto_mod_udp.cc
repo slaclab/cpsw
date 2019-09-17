@@ -110,9 +110,7 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 				siz -= cap;
 			}
 
-#ifdef UDP_DEBUG
 		bool st=
-#endif
 			// do NOT wait indefinitely
 			// could be that the queue is full with
 			// retry replies they will only discover
@@ -131,6 +129,9 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 				printf(" (pushdown DROP)\n");
 #endif
 
+			if ( st ) {
+				nRxDrop_.fetch_add(1,   cpsw::memory_order_relaxed);
+			}
 		}
 #ifdef UDP_DEBUG
 		else {
@@ -151,6 +152,7 @@ CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(
 : CUdpHandlerThread(name, threadPriority, dest, me),
   nOctets_(0),
   nDgrams_(0),
+  nRxDrop_(0),
   owner_(owner)
 {
 }
@@ -159,6 +161,7 @@ CProtoModUdp::CUdpRxHandlerThread::CUdpRxHandlerThread(CUdpRxHandlerThread &orig
 : CUdpHandlerThread( orig, dest, me ),
   nOctets_(0),
   nDgrams_(0),
+  nRxDrop_(0),
   owner_(owner)
 {
 }
@@ -304,6 +307,17 @@ uint64_t rval = 0;
 	return rval;
 }
 
+uint64_t CProtoModUdp::getNumRxDrops()
+{
+unsigned i;
+uint64_t rval = 0;
+
+	for ( i=0; i<rxHandlers_.size(); i++ )
+		rval += rxHandlers_[i]->getNumRxDrop();
+	return rval;
+}
+
+
 CProtoModUdp::~CProtoModUdp()
 {
 unsigned i;
@@ -326,7 +340,8 @@ void CProtoModUdp::dumpInfo(FILE *f)
 	fprintf(f,"  #TX Octets: %15" PRIu64 "\n", getNumTxOctets());
 	fprintf(f,"  #TX DGRAMs: %15" PRIu64 "\n", getNumTxDgrams());
 	fprintf(f,"  #RX Octets: %15" PRIu64 "\n", getNumRxOctets());
-	fprintf(f,"  #RX DGRAMs: %15" PRIu64  "\n", getNumRxDgrams());
+	fprintf(f,"  #RX DGRAMs: %15" PRIu64 "\n", getNumRxDgrams());
+	fprintf(f,"  #RX droppd: %15" PRIu64 "\n", getNumRxDrops() );
 }
 
 bool CProtoModUdp::doPush(BufChain bc, bool wait, const CTimeout *timeout, bool abs_timeout)
