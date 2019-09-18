@@ -48,7 +48,8 @@ CRssi::CRssi(
 	int          threadPrio,
 	IMTUQuerier *mtuQuerier,
 	uint8_t      ldMaxUnackedSegs,
-	unsigned     queueDepth,
+	unsigned     outQDepth,
+	unsigned     inpQDepth,
 	uint64_t     rexTimeoutUS,
 	uint64_t     cumAckTimeoutUS,
 	uint64_t     nulTimeoutUS,
@@ -63,8 +64,8 @@ CRssi::CRssi(
 
   name_          ( isServer ? "S" : "C"              ),
   mtuQuerier_    ( mtuQuerier                        ),
-  outQ_          ( mkQ(queueDepth, ldMaxUnackedSegs) ),
-  inpQ_          ( mkQ(queueDepth, ldMaxUnackedSegs) ),
+  outQ_          ( mkQ(outQDepth, ldMaxUnackedSegs)  ),
+  inpQ_          ( mkQ(inpQDepth, ldMaxUnackedSegs)  ),
 
   state_         ( &stateCLOSED                      ),
   timerUnits_    ( UNIT_US                           ),
