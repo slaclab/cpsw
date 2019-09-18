@@ -387,7 +387,6 @@ RssiSynHeader synHdr( b->getPayload(), b->getAvail(), false, RssiHeader::SET );
 uint8_t       flags = RssiHeader::FLG_SYN;
 
 int           maxSegSize;
-int           acceptNegotiated = 1; // FIXME
 
 	if ( doAck ) {
 		flags |= RssiHeader::FLG_ACK;
@@ -436,27 +435,17 @@ if ( cpsw_rssi_debug > 0 ) {
 
 	synHdr.setSgsMX( maxSegSize           );
 	synHdr.setOsaMX( 0                    );
-
-	if ( isServer_ && acceptNegotiated ) {
-printf("Accepting negotiated %lld\n", rexTO_.getUs());
-		synHdr.setRexTO( rexTO_.getUs()/units_  );
-		synHdr.setCakTO( cakTO_.getUs()/units_  );
-		synHdr.setNulTO( getNulTimeout()/units_ );
-		synHdr.setRexMX( rexMX_                 );
-		synHdr.setCakMX( cakMX_                 );
-		synHdr.setUnits( unitExp_               );
-	} else {
-printf("Proposing negotiated %lld\n", rexTODfltUS_);
-		synHdr.setRexTO( rexTODfltUS_/UNIT_US   );
-		synHdr.setCakTO( cakTODfltUS_/UNIT_US   );
-		synHdr.setNulTO( nulTODfltUS_/UNIT_US   );
-		synHdr.setRexMX( rexMXDflt_             );
-		synHdr.setCakMX( cakMXDflt_             );
-		synHdr.setUnits( UNIT_US_EXP            );
-	}
-
-
 	synHdr.setConID( conID_               );
+
+	// these are either the defaults or were accepted
+	// by the received SYN -- if the server was
+	// configured accordingly.
+	synHdr.setRexTO( rexTO_.getUs()/units_  );
+	synHdr.setCakTO( cakTO_.getUs()/units_  );
+	synHdr.setNulTO( getNulTimeout()/units_ );
+	synHdr.setRexMX( rexMX_                 );
+	synHdr.setCakMX( cakMX_                 );
+	synHdr.setUnits( unitExp_               );
 
 	unAckedSegs_.seed( lastSeqSent_ );
 
@@ -674,6 +663,10 @@ uint8_t     unitExp;
 unsigned i, u;
 uint64_t    nullTOUS;
 
+	if ( ! isServer_ ) {
+		acceptNegotiated = true;
+	}
+
 	peerOssMX_      = synHdr.getOssMX();
 
 #ifdef RSSI_DEBUG
@@ -720,6 +713,7 @@ uint64_t    nullTOUS;
 
 #ifdef RSSI_DEBUG
 	if ( cpsw_rssi_debug > 0 || 1 ) {
+		fprintf(stderr, "RSSI Negotiated parms      : %s\n", acceptNegotiated ? "proposed by peer" : "enforced by us" );
 		fprintf(stderr, "RSSI units                 : %dus\n", u);
 		fprintf(stderr, "RSSI retransmission timeout: %" PRIu64 "us\n", rexTO_.getUs());
 		fprintf(stderr, "RSSI cumulative ACK timeout: %" PRIu64 "us\n", cakTO_.getUs());

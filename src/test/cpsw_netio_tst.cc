@@ -122,6 +122,8 @@ const char *use_yaml =  0;
 const char *dmp_yaml =  0;
 int      depack2     =  0;
 
+	setCPSWVerbosity("rssi",1);
+
 	for ( int opt; (opt = getopt(argc, argv, "a:V:p:rt:bY:y:R:2")) > 0; ) {
 		i_p = 0;
 		switch ( opt ) {

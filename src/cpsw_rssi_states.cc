@@ -323,7 +323,7 @@ void CRssi::SERV_WAIT_SYN_ACK::handleRxEvent(CRssi *context, IIntEventSource *sr
 
 void CRssi::WAIT_SYN::extractConnectionParams(CRssi *context, RssiSynHeader &synHdr)
 {
-bool acceptNegotiated = true;
+bool acceptNegotiated = false;
 
 	context->extractConnectionParams( synHdr, acceptNegotiated );
 }
