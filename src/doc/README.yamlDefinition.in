@@ -453,7 +453,7 @@ of this class, e.g.,:
             YAML_KEY_offset:    <int>     # optional
             # optional timeout for *read*
             # operations (in micro-seconds).
-            YAML_KEY_timeoutUs: <int>     # optional
+            YAML_KEY_timeoutUS: <int>     # optional
       
 
 ### 2.4 The 'SequenceCommand' Class
@@ -535,7 +535,7 @@ choices:
               -
                 - YAML_KEY_entry: "system(echo running choice two)"
                   YAML_KEY_value: 0
-            YAML_KEY_enum:
+            YAML_KEY_enums:
               - YAML_KEY_name:  "Choice One"
                 YAML_KEY_value: 0
               - YAML_KEY_name:  "Choice Two"
@@ -974,6 +974,78 @@ deliberately to use maps so that merge keys work across all levels).
             #
             # Default: 0
           YAML_KEY_threadPriority: <int>
+
+            # log2 of the max. number of unacknowledged
+            # segments the peer may send to us.
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default: 4
+          YAML_KEY_ldMaxUnackedSegs: <int>
+
+            # Depth or RSS output queue.
+            #
+            # Default: 0 (a suitable value is chosen)
+          YAML_KEY_outQueueDepth: <int>
+
+            # Depth or RSS input queue.
+            #
+            # Default: 0 (a suitable value is chosen;
+            # should be >= 2**YAML_KEY_ldMaxUnackedSegs)
+          YAML_KEY_inpQueueDepth: <int>
+
+            # Retransmission timeout (proposed to
+            # negotiation process)
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default: 100000us
+          YAML_KEY_retransmissionTimeoutUS: <int>
+
+            # Cumulative ACK timeout (proposed to
+            # negotiation process)
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default:  50000us (should be less than
+            # YAML_KEY_retransmissionTimeoutUS)
+          YAML_KEY_ackTimeoutUS: <int>
+
+            # NULL timeout (proposed to
+            # negotiation process)
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default:  3000000us
+          YAML_KEY_nullTimeoutUS: <int>
+
+            # Max. number of retransmissions before
+            # the connection is considered dead
+            # (proposed to negotiation process).
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default:  15
+          YAML_KEY_maxRetransmissions: <int>
+
+            # Max. number of segments that are accepted
+            # without sending ACK (``cumulative ACK'';
+            # proposed to negotiation process).
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default:  2
+          YAML_KEY_maxCumulativeAcks: <int>
+
+            # Max. segment size we can receive
+            # without sending ACK (``cumulative ACK'')
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default:  suitable value chosen by
+            #           MTU discovery. When overriding
+            #           the default, MAKE SURE NOT TO
+            #           EXCEED YOUR CONNECTION'S MTU!
+          YAML_KEY_maxSegmentSize: <int>
 
             # The presence of this key indicates
             # that 'depack' shall be used. Its absence
