@@ -712,7 +712,7 @@ uint64_t    nullTOUS;
 	}
 
 #ifdef RSSI_DEBUG
-	if ( cpsw_rssi_debug > 0 || 1 ) {
+	if ( cpsw_rssi_debug > 0 ) {
 		fprintf(stderr, "RSSI Negotiated parms      : %s\n", acceptNegotiated ? "proposed by peer" : "enforced by us" );
 		fprintf(stderr, "RSSI units                 : %dus\n", u);
 		fprintf(stderr, "RSSI retransmission timeout: %" PRIu64 "us\n", rexTO_.getUs());
