@@ -197,6 +197,11 @@ $(addsuffix /,$(SRCDIR))pyyaml_cpp.cc: yaml_cpp.pyx yaml_cpp.pxd
 
 doc/README.yamlDefinition.md:doc/README.yamlDefinition.in
 	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
+	if grep 'YAML_KEY_' $@; then \
+		echo 'ERROR: Some YAML_KEY_ tags not expanded (ill-spelled?)' ; \
+		$(RM) $@ ; \
+		exit 1; \
+	fi
 
 %.html: %.md
 	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@
