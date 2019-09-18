@@ -400,9 +400,9 @@ int           maxSegSize;
 	if ( addChecksum_ )
 		flags |= RssiSynHeader::XFL_CHK;
 
-	synHdr.setXflgs( flags );
+	synHdr.setXflgs( flags                         );
 	synHdr.setVersn( RssiSynHeader::RSSI_VERSION_1 );
-	synHdr.setOssMX( MAX_UNACKED_SEGS );
+	synHdr.setOssMX( maxUnackedSegs_               );
 
 	if ( mtuQuerier_ ) {
 		maxSegSize  = mtuQuerier_->getRxMTU();

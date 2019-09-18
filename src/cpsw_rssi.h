@@ -143,7 +143,6 @@ public:
 	 * (some of them) are negotiated with the peer (as per RUDP spec).
 	 */
 	static const uint8_t  LD_MAX_UNACKED_SEGS = 4;
-	static const uint8_t  MAX_UNACKED_SEGS = 1<<LD_MAX_UNACKED_SEGS; // must be power of two
 	static const uint16_t MAX_SEGMENT_SIZE = 1500 - 20 - 8 - 8; // - IP - UDP - RSSI
 	static const uint16_t RETRANSMIT_TIMEO = 10;            // ms ?
 	static const uint16_t CUMLTD_ACK_TIMEO =  5;            // < rexmit TO
@@ -165,6 +164,8 @@ protected:
 
 public:
 
+	// Note: the max. segment size can be set by providing an
+	// appropriate MTU querier.
 	CRssi(bool         isServer,
 	      int          threadPrio       = DFLT_PRIORITY,
 	      IMTUQuerier *mtuQuerier       = 0,
