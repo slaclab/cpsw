@@ -47,41 +47,32 @@ mkQ(unsigned desiredDepth, unsigned ldMaxUnackedSegs)
 }
 	
 CRssi::CRssi(
-	bool         isServer,
-	int          threadPrio,
-	IMTUQuerier *mtuQuerier,
-	uint8_t      ldMaxUnackedSegs,
-	unsigned     outQDepth,
-	unsigned     inpQDepth,
-	uint64_t     rexTimeoutUS,
-	uint64_t     cumAckTimeoutUS,
-	uint64_t     nulTimeoutUS,
-	uint8_t      rexMax,
-	uint8_t      cumAckMax
+	bool                     isServer,
+	int                      threadPrio,
+	IMTUQuerier             *mtuQuerier,
+	const CRssiConfigParams *defaults
 )
 : CRunnable      ("RSSI Thread", threadPrio),
   IRexTimer      ( &timers_ ),
   IAckTimer      ( &timers_ ),
   INulTimer      ( &timers_ ),
+
+
+  defaults_      ( defaults ? *defaults : CRssiConfigParams() ),
   isServer_      ( isServer ),
 
   name_          ( isServer ? "S" : "C"              ),
   mtuQuerier_    ( mtuQuerier                        ),
-  outQ_          ( mkQ(outQDepth, ldMaxUnackedSegs)  ),
-  inpQ_          ( mkQ(inpQDepth, ldMaxUnackedSegs)  ),
-
+  outQ_          ( mkQ(defaults_.outQueueDepth_,
+                       defaults_.ldMaxUnackedSegs_)  ),
+  inpQ_          ( mkQ(defaults_.inpQueueDepth_,
+                       defaults_.ldMaxUnackedSegs_)  ),
   state_         ( &stateCLOSED                      ),
   timerUnits_    ( UNIT_US                           ),
   timerUnitExp_  ( UNIT_US_EXP                       ),
-  maxUnackedSegs_( (1<<ldMaxUnackedSegs)             ),
-  rexTODfltUS_   ( rexTimeoutUS                      ),
-  cakTODfltUS_   ( cumAckTimeoutUS                   ),
-  nulTODfltUS_   ( nulTimeoutUS                      ),
-  rexMXDflt_     ( rexMax                            ),
-  cakMXDflt_     ( cumAckMax                         ),
-
-  unAckedSegs_   ( ldMaxUnackedSegs                  ),
-  unOrderedSegs_ ( ldMaxUnackedSegs                  )
+  maxUnackedSegs_( (1<<defaults_.ldMaxUnackedSegs_)  ),
+  unAckedSegs_   ( defaults_.ldMaxUnackedSegs_       ),
+  unOrderedSegs_ ( defaults_.ldMaxUnackedSegs_       )
 {
 	conID_ = (uint32_t)time(NULL);
 	::memset( &stats_, 0, sizeof(stats_) );
@@ -160,11 +151,11 @@ void CRssi::resetNegotiableParams()
 {
 	units_   = timerUnits_;
 	unitExp_ = timerUnitExp_;
-	rexTO_   = CTimeout( rexTODfltUS_ );
-	cakTO_   = CTimeout( cakTODfltUS_ );
-	setNulTimeout( nulTODfltUS_ );
-	rexMX_   = rexMXDflt_;
-	cakMX_   = cakMXDflt_;
+	rexTO_   = CTimeout( defaults_.rexTimeoutUS_    );
+	cakTO_   = CTimeout( defaults_.cumAckTimeoutUS_ );
+	setNulTimeout( defaults_.nulTimeoutUS_ );
+	rexMX_   = defaults_.rexMax_;
+	cakMX_   = defaults_.cumAckMax_;
 }
 
 void CRssi::close()
@@ -403,7 +394,14 @@ int           maxSegSize;
 	synHdr.setVersn( RssiSynHeader::RSSI_VERSION_1 );
 	synHdr.setOssMX( maxUnackedSegs_               );
 
-	if ( mtuQuerier_ ) {
+	if ( defaults_.forcedSegsMax_ ) {
+		maxSegSize = defaults_.forcedSegsMax_;
+#ifdef RSSI_DEBUG
+if ( cpsw_rssi_debug > 0 ) {
+	fprintf(stderr, "RSSI max. segment size (forced by YAML/constructor) %d\n", maxSegSize);
+}
+#endif
+	} else if ( mtuQuerier_ ) {
 		maxSegSize  = mtuQuerier_->getRxMTU();
 		maxSegSize -= RssiHeader::getHSize( RssiHeader::getSupportedVersion() );
 #ifdef RSSI_DEBUG
@@ -411,14 +409,6 @@ if ( cpsw_rssi_debug > 0 ) {
 	fprintf(stderr, "RSSI max. segment size from querier %d\n", maxSegSize);
 }
 #endif
-		if ( maxSegSize <= 0 ) {
-			maxSegSize = MAX_SEGMENT_SIZE;
-#ifdef RSSI_DEBUG
-if ( cpsw_rssi_debug > 0 ) {
-	fprintf(stderr,"RSSI max. segment size from querier (hard override) %d\n", maxSegSize);
-}
-#endif
-		}
 	} else {
 		maxSegSize = MAX_SEGMENT_SIZE;
 #ifdef RSSI_DEBUG
@@ -427,11 +417,17 @@ if ( cpsw_rssi_debug > 0 ) {
 }
 #endif
 	}
+	if ( maxSegSize <= 0 ) {
+		maxSegSize = MAX_SEGMENT_SIZE;
 #ifdef RSSI_DEBUG
 if ( cpsw_rssi_debug > 0 ) {
-	fprintf(stderr, "RSSI max. segment size (clip) %d\n", maxSegSize);
+	fprintf(stderr,
+	        "RSSI max. segment size from %s (hard override) %d\n",
+	        defaults_.forcedSegsMax_ ? "CONSTRUCTOR" : "MTU QUERIER",
+	        maxSegSize);
 }
 #endif
+	}
 
 	synHdr.setSgsMX( maxSegSize           );
 	synHdr.setOsaMX( 0                    );

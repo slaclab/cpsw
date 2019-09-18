@@ -16,54 +16,9 @@
 class CProtoModRssi;
 typedef shared_ptr<CProtoModRssi> ProtoModRssi;
 
-struct CRssiConfigParams {
-	static const uint8_t  LD_MAX_UNACKED_SEGS_DFLT = CRssi::LD_MAX_UNACKED_SEGS;
-	static const unsigned         QUEUE_DEPTH_DFLT = 0;
-	static const uint64_t      REX_TIMEOUT_US_DFLT = CRssi::RETRANSMIT_TIMEO * CRssi::UNIT_US;
-	static const uint64_t      CAK_TIMEOUT_US_DFLT = CRssi::CUMLTD_ACK_TIMEO * CRssi::UNIT_US;
-	static const uint64_t      NUL_TIMEOUT_US_DFLT = CRssi::NUL_SEGMEN_TIMEO * CRssi::UNIT_US;
-	static const uint8_t              REX_MAX_DFLT = CRssi::MAX_RETRANSMIT_N;
-	static const uint8_t              CAK_MAX_DFLT = CRssi::MAX_CUMLTD_ACK_N;
-	static const unsigned             SGS_MAX_DFLT = 0;
-
-	uint8_t      ldMaxUnackedSegs_;
-	unsigned     outQueueDepth_;
-	unsigned     inpQueueDepth_;
-	uint64_t     rexTimeoutUS_;
-	uint64_t     cumAckTimeoutUS_;
-	uint64_t     nulTimeoutUS_;
-	uint8_t      rexMax_;
-	uint8_t      cumAckMax_;
-	unsigned     forcedSegsMax_;
-
-	CRssiConfigParams(
-		uint8_t      ldMaxUnackedSegs = LD_MAX_UNACKED_SEGS_DFLT,
-		unsigned     outQueueDepth    = QUEUE_DEPTH_DFLT,
-		unsigned     inpQueueDepth    = QUEUE_DEPTH_DFLT,
-		uint64_t     rexTimeoutUS     = REX_TIMEOUT_US_DFLT,
-		uint64_t     cumAckTimeoutUS  = CAK_TIMEOUT_US_DFLT,
-		uint64_t     nulTimeoutUS     = NUL_TIMEOUT_US_DFLT,
-		uint8_t      rexMax           = REX_MAX_DFLT,
-		uint8_t      cumAckMax        = CAK_MAX_DFLT,
-		unsigned     forcedSegsMax    = SGS_MAX_DFLT
-	)
-	:
-		ldMaxUnackedSegs_( ldMaxUnackedSegs ),
-		outQueueDepth_   ( outQueueDepth    ),
-		inpQueueDepth_   ( inpQueueDepth    ),
-		rexTimeoutUS_    ( rexTimeoutUS     ),
-		cumAckTimeoutUS_ ( cumAckTimeoutUS  ),
-		nulTimeoutUS_    ( nulTimeoutUS     ),
-		rexMax_          ( rexMax           ),
-		cumAckMax_       ( cumAckMax        ),
-		forcedSegsMax_   ( forcedSegsMax    )
-	{}
-};
-
-class CProtoModRssi: public CShObj, private CRssiConfigParams, public IPortImpl, public CProtoModBase, public CRssi, public IMTUQuerier {
+class CProtoModRssi: public CShObj, public IPortImpl, public CProtoModBase, public CRssi, public IMTUQuerier {
 private:
 	ProtoDoor upstream_;
-	unsigned  forcedSegsMax_;
 
 protected:
 	virtual int           iMatch(ProtoPortMatchParams *cmp);
@@ -77,19 +32,11 @@ public:
 		const CRssiConfigParams *config = 0
 	)
 	: CShObj(k),
-	  CRssiConfigParams( config ? *config : CRssiConfigParams() ),
 	  CRssi(
 		false,
 		threadPriority,
 		this,
-		ldMaxUnackedSegs_,
-		outQueueDepth_,
-		inpQueueDepth_,
-		rexTimeoutUS_,
-		cumAckTimeoutUS_,
-		nulTimeoutUS_,
-		rexMax_,
-		cumAckMax_
+	    config
 	  )
 	{
 	}

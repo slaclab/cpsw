@@ -124,6 +124,55 @@ public:
 	virtual ~IMTUQuerier() {}
 };
 
+struct CRssiConfigParams {
+	/* Default values; these can be overridden by YAML and ultimately
+	 * (some of them) are negotiated with the peer (as per RUDP spec).
+	 */
+	static const uint8_t  LD_MAX_UNACKED_SEGS_DFLT =    4;
+	static const unsigned         QUEUE_DEPTH_DFLT =    0;
+	static const uint64_t      REX_TIMEOUT_US_DFLT =  100; // ms
+	static const uint64_t      CAK_TIMEOUT_US_DFLT =   40; // ms; < rex timeout
+	static const uint64_t      NUL_TIMEOUT_US_DFLT = 2000; // ms
+	static const uint8_t              REX_MAX_DFLT =   25;
+	static const uint8_t              CAK_MAX_DFLT =    2;
+	static const unsigned             SGS_MAX_DFLT =    0;
+	static const unsigned             UNIT_US_DFLT = 1000;
+	static const unsigned         UNIT_US_EXP_DFLT =    3; // value used by server; must match UNIT_US (i.e., UNIT_US = 10^-UNIT_US_EXP)
+
+	uint8_t      ldMaxUnackedSegs_;
+	unsigned     outQueueDepth_;
+	unsigned     inpQueueDepth_;
+	uint64_t     rexTimeoutUS_;
+	uint64_t     cumAckTimeoutUS_;
+	uint64_t     nulTimeoutUS_;
+	uint8_t      rexMax_;
+	uint8_t      cumAckMax_;
+	unsigned     forcedSegsMax_;
+
+	CRssiConfigParams(
+		uint8_t      ldMaxUnackedSegs = LD_MAX_UNACKED_SEGS_DFLT,
+		unsigned     outQueueDepth    = QUEUE_DEPTH_DFLT,
+		unsigned     inpQueueDepth    = QUEUE_DEPTH_DFLT,
+		uint64_t     rexTimeoutUS     = REX_TIMEOUT_US_DFLT,
+		uint64_t     cumAckTimeoutUS  = CAK_TIMEOUT_US_DFLT,
+		uint64_t     nulTimeoutUS     = NUL_TIMEOUT_US_DFLT,
+		uint8_t      rexMax           = REX_MAX_DFLT,
+		uint8_t      cumAckMax        = CAK_MAX_DFLT,
+		unsigned     forcedSegsMax    = SGS_MAX_DFLT
+	)
+	:
+		ldMaxUnackedSegs_( ldMaxUnackedSegs ),
+		outQueueDepth_   ( outQueueDepth    ),
+		inpQueueDepth_   ( inpQueueDepth    ),
+		rexTimeoutUS_    ( rexTimeoutUS     ),
+		cumAckTimeoutUS_ ( cumAckTimeoutUS  ),
+		nulTimeoutUS_    ( nulTimeoutUS     ),
+		rexMax_          ( rexMax           ),
+		cumAckMax_       ( cumAckMax        ),
+		forcedSegsMax_   ( forcedSegsMax    )
+	{}
+};
+
 
 class CRssi : public CRunnable,
               public IRxEventHandler,
@@ -141,22 +190,26 @@ class CRssi : public CRunnable,
 public:
 	/* Default values; these can be overridden by YAML and ultimately
 	 * (some of them) are negotiated with the peer (as per RUDP spec).
+
+	 * Duplicate constants here exist for legacy reasons.
 	 */
-	static const uint8_t  LD_MAX_UNACKED_SEGS = 4;
-	static const uint16_t MAX_SEGMENT_SIZE = 1500 - 20 - 8 - 8; // - IP - UDP - RSSI
-	static const uint16_t RETRANSMIT_TIMEO =  100;              // ms ?
-	static const uint16_t CUMLTD_ACK_TIMEO =   50;              // < rexmit TO
-	static const uint16_t NUL_SEGMEN_TIMEO = 2000;
-	static const uint8_t  MAX_RETRANSMIT_N = 15;
-	static const uint8_t  MAX_CUMLTD_ACK_N =  2;
-	static const unsigned UNIT_US          = 1000;
-	static const unsigned UNIT_US_EXP      =  3; // value used by server; must match UNIT_US (i.e., UNIT_US = 10^-UNIT_US_EXP)
+	static const uint8_t  LD_MAX_UNACKED_SEGS = CRssiConfigParams::LD_MAX_UNACKED_SEGS_DFLT;
+	static const uint16_t RETRANSMIT_TIMEO    = CRssiConfigParams::REX_TIMEOUT_US_DFLT;
+	static const uint16_t CUMLTD_ACK_TIMEO    = CRssiConfigParams::CAK_TIMEOUT_US_DFLT;
+	static const uint16_t NUL_SEGMEN_TIMEO    = CRssiConfigParams::NUL_TIMEOUT_US_DFLT;
+	static const uint8_t  MAX_RETRANSMIT_N    = CRssiConfigParams::REX_MAX_DFLT;
+	static const uint8_t  MAX_CUMLTD_ACK_N    = CRssiConfigParams::CAK_MAX_DFLT;
+	static const unsigned UNIT_US             = CRssiConfigParams::UNIT_US_DFLT;
+	static const unsigned UNIT_US_EXP         = CRssiConfigParams::UNIT_US_EXP_DFLT;
+
+	static const uint16_t MAX_SEGMENT_SIZE    = 1500 - 20 - 8 - 8; // - IP - UDP - RSSI
 
 private:
-	bool        isServer_;
-	const char  *name_;
-	EventSet    eventSet_;
-	IMTUQuerier *mtuQuerier_;
+	CRssiConfigParams defaults_;
+	bool              isServer_;
+	const char       *name_;
+	EventSet          eventSet_;
+	IMTUQuerier      *mtuQuerier_;
 
 protected:
 	BufQueue    outQ_;
@@ -166,17 +219,10 @@ public:
 
 	// Note: the max. segment size can be set by providing an
 	// appropriate MTU querier.
-	CRssi(bool         isServer,
-	      int          threadPrio       = DFLT_PRIORITY,
-	      IMTUQuerier *mtuQuerier       = 0,
-	      uint8_t      ldMaxUnackedSegs = LD_MAX_UNACKED_SEGS,
-	      unsigned     outQueueDepth    = 0,
-	      unsigned     inpQueueDepth    = 0,
-	      uint64_t     rexTimeoutUS     = RETRANSMIT_TIMEO * UNIT_US,
-	      uint64_t     cumAckTimeoutUS  = CUMLTD_ACK_TIMEO * UNIT_US,
-	      uint64_t     nulTimeoutUS     = NUL_SEGMEN_TIMEO * UNIT_US,
-	      uint8_t      rexMax           = MAX_RETRANSMIT_N,
-	      uint8_t      cumAckMax        = MAX_CUMLTD_ACK_N
+	CRssi(bool                     isServer,
+	      int                      threadPrio = DFLT_PRIORITY,
+	      IMTUQuerier             *mtuQuerier = 0,
+	      const CRssiConfigParams *defaults   = 0
 	);
 
 	virtual ~CRssi();
@@ -536,9 +582,6 @@ private:
 	unsigned units_;
 	unsigned unitExp_;
 	unsigned maxUnackedSegs_;
-	uint64_t rexTODfltUS_, cakTODfltUS_, nulTODfltUS_;
-	unsigned rexMXDflt_;
-	int      cakMXDflt_;
 
 	void     resetNegotiableParams();
 
@@ -619,6 +662,11 @@ protected:
 	IRexTimer              *rexTimer() { return (IRexTimer*) this; }
 	IAckTimer              *ackTimer() { return (IAckTimer*) this; }
 	INulTimer              *nulTimer() { return (INulTimer*) this; }
+
+	virtual const CRssiConfigParams *getConfigParams() const
+	{
+		return &defaults_;
+	}
 
 	virtual void attach(IEventSource*);
 
