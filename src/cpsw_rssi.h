@@ -139,6 +139,9 @@ class CRssi : public CRunnable,
 {
 
 public:
+	/* Default values; these can be overridden by YAML and ultimately
+	 * (some of them) are negotiated with the peer (as per RUDP spec).
+	 */
 	static const uint8_t  LD_MAX_UNACKED_SEGS = 4;
 	static const uint8_t  MAX_UNACKED_SEGS = 1<<LD_MAX_UNACKED_SEGS; // must be power of two
 	static const uint16_t MAX_SEGMENT_SIZE = 1500 - 20 - 8 - 8; // - IP - UDP - RSSI
@@ -150,7 +153,6 @@ public:
 	static const unsigned UNIT_US          = 1000;
 	static const unsigned UNIT_US_EXP      =  3; // value used by server; must match UNIT_US (i.e., UNIT_US = 10^-UNIT_US_EXP)
 
-
 private:
 	bool        isServer_;
 	const char  *name_;
@@ -161,13 +163,19 @@ protected:
 	BufQueue    outQ_;
 	BufQueue    inpQ_;
 
-private:
-	static const unsigned OQ_DEPTH = 8;
-	static const unsigned IQ_DEPTH = 4;
-
 public:
 
-	CRssi(bool isServer, int threadPrio = DFLT_PRIORITY, IMTUQuerier *mtuQuerier = 0);
+	CRssi(bool         isServer,
+	      int          threadPrio       = DFLT_PRIORITY,
+	      IMTUQuerier *mtuQuerier       = 0,
+	      uint8_t      ldMaxUnackedSegs = LD_MAX_UNACKED_SEGS,
+	      unsigned     queueDepth       = 0,
+	      uint64_t     rexTimeoutUS     = RETRANSMIT_TIMEO * UNIT_US,
+	      uint64_t     cumAckTimeoutUS  = CUMLTD_ACK_TIMEO * UNIT_US,
+	      uint64_t     nulTimeoutUS     = NUL_SEGMEN_TIMEO * UNIT_US,
+	      uint8_t      rexMax           = MAX_RETRANSMIT_N,
+	      uint8_t      cumAckMax        = MAX_CUMLTD_ACK_N
+	);
 
 	virtual ~CRssi();
 
@@ -356,9 +364,9 @@ protected:
 
 	public:
 		// capa is a power of two, limit is anything
-		ReassembleBuf(unsigned ld_capa, unsigned limit)
-		: BufBase(ld_capa),
-		  lim_(limit)
+		ReassembleBuf(unsigned ld_capa, unsigned limit = 0)
+		: BufBase( ld_capa                      ),
+		  lim_   ( limit ? limit : (1<<ld_capa) )
 		{}
 
 		bool canAccept(SeqNo seqNo)
@@ -521,10 +529,20 @@ protected:
 
 	unsigned timerUnits_;
 
+private:
+	unsigned units_;
+	unsigned maxUnackedSegs_;
+	uint64_t rexTODfltUS_, cakTODfltUS_, nulTODfltUS_;
+	unsigned rexMXDflt_;
+	int      cakMXDflt_;
+
+	void     resetNegotiableParams();
+
+protected:
+
 	CTimeout rexTO_, cakTO_, nulTO_;
 	unsigned rexMX_;
 	int      cakMX_;
-	unsigned units_;
 	uint32_t conID_;
 	unsigned peerOssMX_, peerSgsMX_;
 	unsigned numRex_;

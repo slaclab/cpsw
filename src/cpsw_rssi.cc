@@ -33,26 +33,54 @@ fprintf(stderr,"%s: upstream port queue created\n", "");
 }
 #endif
 }
+
+static BufQueue
+mkQ(unsigned desiredDepth, unsigned ldMaxUnackedSegs)
+{
+	if ( 0 == desiredDepth ) {
+		desiredDepth = (1<<ldMaxUnackedSegs) + 4;
+	}
+	return IBufQueue::create( desiredDepth );
+}
 	
-CRssi::CRssi(bool isServer, int threadPrio, IMTUQuerier *mtuQuerier)
-: CRunnable("RSSI Thread", threadPrio),
-  IRexTimer( &timers_ ),
-  IAckTimer( &timers_ ),
-  INulTimer( &timers_ ),
-  isServer_( isServer ),
+CRssi::CRssi(
+	bool         isServer,
+	int          threadPrio,
+	IMTUQuerier *mtuQuerier,
+	uint8_t      ldMaxUnackedSegs,
+	unsigned     queueDepth,
+	uint64_t     rexTimeoutUS,
+	uint64_t     cumAckTimeoutUS,
+	uint64_t     nulTimeoutUS,
+	uint8_t      rexMax,
+	uint8_t      cumAckMax
+)
+: CRunnable      ("RSSI Thread", threadPrio),
+  IRexTimer      ( &timers_ ),
+  IAckTimer      ( &timers_ ),
+  INulTimer      ( &timers_ ),
+  isServer_      ( isServer ),
 
-  name_      ( isServer ? "S" : "C"          ),
-  mtuQuerier_( mtuQuerier                    ),
-  outQ_      ( IBufQueue::create( OQ_DEPTH ) ),
-  inpQ_      ( IBufQueue::create( IQ_DEPTH ) ),
+  name_          ( isServer ? "S" : "C"              ),
+  mtuQuerier_    ( mtuQuerier                        ),
+  outQ_          ( mkQ(queueDepth, ldMaxUnackedSegs) ),
+  inpQ_          ( mkQ(queueDepth, ldMaxUnackedSegs) ),
 
-  state_( &stateCLOSED ),
-  timerUnits_( UNIT_US ),
-  unAckedSegs_( LD_MAX_UNACKED_SEGS ),
-  unOrderedSegs_( LD_MAX_UNACKED_SEGS, MAX_UNACKED_SEGS )
+  state_         ( &stateCLOSED                      ),
+  timerUnits_    ( UNIT_US                           ),
+  maxUnackedSegs_( (1<<ldMaxUnackedSegs)             ),
+  rexTODfltUS_   ( rexTimeoutUS                      ),
+  cakTODfltUS_   ( cumAckTimeoutUS                   ),
+  nulTODfltUS_   ( nulTimeoutUS                      ),
+  rexMXDflt_     ( rexMax                            ),
+  cakMXDflt_     ( cumAckMax                         ),
+
+  unAckedSegs_   ( ldMaxUnackedSegs                  ),
+  unOrderedSegs_ ( ldMaxUnackedSegs                  )
 {
 	conID_ = (uint32_t)time(NULL);
 	::memset( &stats_, 0, sizeof(stats_) );
+
 
 	closedReopenDelay_.tv_nsec = 0;
 	closedReopenDelay_.tv_sec  = 0;
@@ -123,6 +151,17 @@ fprintf(stderr,"%s: USR Output Event (state %s)\n", getName(), state_->getName()
 	state_->handleUsrOutputEvent(this, src);
 }
 
+void CRssi::resetNegotiableParams()
+{
+	units_ = timerUnits_;
+
+	rexTO_ = CTimeout( rexTODfltUS_ );
+	cakTO_ = CTimeout( cakTODfltUS_ );
+	nulTO_ = CTimeout( nulTODfltUS_ );
+	rexMX_ = rexMXDflt_;
+	cakMX_ = cakMXDflt_;
+}
+
 void CRssi::close()
 {
 	outQ_->shutdown();
@@ -133,14 +172,8 @@ void CRssi::close()
 	nulTimer()->cancel();
 	rexTimer()->cancel();
 
-	units_ = UNIT_US;
-
 	// initial default values
-	rexTO_ = CTimeout(  RETRANSMIT_TIMEO * units_ );
-	cakTO_ = CTimeout(  CUMLTD_ACK_TIMEO * units_ );
-	nulTO_ = CTimeout( (NUL_SEGMEN_TIMEO * units_ ) / (isServer_ ? 1 : 3) );
-	rexMX_ = MAX_RETRANSMIT_N;
-	cakMX_ = MAX_CUMLTD_ACK_N;
+	resetNegotiableParams();
 
 	unAckedSegs_.purge();
 	unOrderedSegs_.purge();
@@ -155,7 +188,7 @@ void CRssi::close()
 	verifyChecksum_ = false;
 	addChecksum_    = true;
 
-	peerOssMX_      = MAX_UNACKED_SEGS;
+	peerOssMX_      = maxUnackedSegs_;
 	peerSgsMX_      = MAX_SEGMENT_SIZE;
 
 	conID_++;
@@ -402,14 +435,14 @@ if ( cpsw_rssi_debug > 0 ) {
 #endif
 
 	synHdr.setSgsMX( maxSegSize       );
-	synHdr.setRexTO( RETRANSMIT_TIMEO );
-	synHdr.setCakTO( CUMLTD_ACK_TIMEO );
-	synHdr.setNulTO( NUL_SEGMEN_TIMEO );
-	synHdr.setRexMX( MAX_RETRANSMIT_N );
-	synHdr.setCakMX( MAX_CUMLTD_ACK_N );
-	synHdr.setOsaMX( 0 );
-	synHdr.setUnits( UNIT_US_EXP );
-	synHdr.setConID( conID_ );
+	synHdr.setRexTO( rexTODfltUS_     );
+	synHdr.setCakTO( cakTODfltUS_     );
+	synHdr.setNulTO( nulTODfltUS_     );
+	synHdr.setRexMX( rexMXDflt_       );
+	synHdr.setCakMX( cakMXDflt_       );
+	synHdr.setOsaMX( 0                );
+	synHdr.setUnits( UNIT_US_EXP      );
+	synHdr.setConID( conID_           );
 
 	unAckedSegs_.seed( lastSeqSent_ );
 
