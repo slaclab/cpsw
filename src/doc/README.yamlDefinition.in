@@ -1008,7 +1008,7 @@ deliberately to use maps so that merge keys work across all levels).
             #
             # Default:  50000us (should be less than
             # YAML_KEY_retransmissionTimeoutUS)
-          YAML_KEY_ackTimeoutUS: <int>
+          YAML_KEY_cumulativeAckTimeoutUS: <int>
 
             # NULL timeout (proposed to
             # negotiation process)

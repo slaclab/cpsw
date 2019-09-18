@@ -156,7 +156,7 @@ bool     hasPayload;
 		hasPayload = b->getSize() > hdr.getHSize();
 
 #ifdef RSSI_DEBUG
-if (cpsw_rssi_debug > 0 )
+if (cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"RX: %s -- ", context->getName());
 hdr.dump( stderr, hasPayload ? 1 : 0 );
@@ -323,50 +323,14 @@ void CRssi::SERV_WAIT_SYN_ACK::handleRxEvent(CRssi *context, IIntEventSource *sr
 
 void CRssi::WAIT_SYN::extractConnectionParams(CRssi *context, RssiSynHeader &synHdr)
 {
-	context->peerOssMX_      = synHdr.getOssMX();
+bool acceptNegotiated = true;
 
-#ifdef RSSI_DEBUG
-if ( cpsw_rssi_debug > 0 ) {
-	fprintf(stderr, "RSSI Peer OSS Max: %d\n", synHdr.getOssMX());
-}
-#endif
-
-	context->peerSgsMX_      = synHdr.getSgsMX();
-
-#ifdef RSSI_DEBUG
-if ( cpsw_rssi_debug > 0 ) {
-	fprintf(stderr, "RSSI Peer SGS Max: %d\n", synHdr.getSgsMX());
-}
-#endif
-
-	if ( context->peerOssMX_ > context->unAckedSegs_.getCapa() )
-		context->unAckedSegs_.resize( context->peerOssMX_ );
+	context->extractConnectionParams( synHdr, acceptNegotiated );
 }
 
 void CRssi::CLNT_WAIT_SYN_ACK::extractConnectionParams(CRssi *context, RssiSynHeader &synHdr)
 {
-	WAIT_SYN::extractConnectionParams( context, synHdr );
-
-	uint8_t  unitExp;
-	unsigned i, u;
-
-	// accept server's parameters
-	context->verifyChecksum_ = context->addChecksum_ = !! (synHdr.getXflgs() & RssiSynHeader::XFL_CHK);
-
-	// our units are US
-	if ( (unitExp = synHdr.getUnits()) > 6 )
-		throw InternalError("Cannot handle time units less than 1us");
-
-	for ( i=0, u=1; i < (unsigned)6 - unitExp; i++ )
-		u *= 10;
-
-	context->units_ = u;
-
-	context->rexTO_ = CTimeout(  synHdr.getRexTO() * u );
-	context->cakTO_ = CTimeout(  synHdr.getCakTO() * u );
-	context->nulTO_ = CTimeout( (synHdr.getNulTO() * u ) / 3 );
-	context->rexMX_ = synHdr.getRexMX();
-	context->cakMX_ = synHdr.getCakMX();
+	context->extractConnectionParams( synHdr, true );
 }
 
 bool CRssi::NOTCLOSED::handleSYN(CRssi *context, RssiSynHeader &synHdr)

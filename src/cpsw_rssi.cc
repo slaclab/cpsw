@@ -7,6 +7,9 @@
  //@C No part of CPSW, including this file, may be copied, modified, propagated, or
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
+
 #include <cpsw_rssi.h>
 
 #include <vector>
@@ -69,6 +72,7 @@ CRssi::CRssi(
 
   state_         ( &stateCLOSED                      ),
   timerUnits_    ( UNIT_US                           ),
+  timerUnitExp_  ( UNIT_US_EXP                       ),
   maxUnackedSegs_( (1<<ldMaxUnackedSegs)             ),
   rexTODfltUS_   ( rexTimeoutUS                      ),
   cakTODfltUS_   ( cumAckTimeoutUS                   ),
@@ -154,13 +158,13 @@ fprintf(stderr,"%s: USR Output Event (state %s)\n", getName(), state_->getName()
 
 void CRssi::resetNegotiableParams()
 {
-	units_ = timerUnits_;
-
-	rexTO_ = CTimeout( rexTODfltUS_ );
-	cakTO_ = CTimeout( cakTODfltUS_ );
-	nulTO_ = CTimeout( nulTODfltUS_ );
-	rexMX_ = rexMXDflt_;
-	cakMX_ = cakMXDflt_;
+	units_   = timerUnits_;
+	unitExp_ = timerUnitExp_;
+	rexTO_   = CTimeout( rexTODfltUS_ );
+	cakTO_   = CTimeout( cakTODfltUS_ );
+	setNulTimeout( nulTODfltUS_ );
+	rexMX_   = rexMXDflt_;
+	cakMX_   = cakMXDflt_;
 }
 
 void CRssi::close()
@@ -222,7 +226,7 @@ void CRssi::sendBuf(BufChain bc, bool retrans)
 	hdr.setAckNo( lastSeqRecv_ );
 
 #ifdef RSSI_DEBUG
-if ( cpsw_rssi_debug > 0 )
+if ( cpsw_rssi_debug > 1 )
 {
 fprintf(stderr,"tX: %s -- ", getName());
 hdr.dump( stderr, b->getSize() > hdr.getHSize() ? 1 : 0 );
@@ -240,17 +244,11 @@ fprintf(stderr," (state %s) %s", state_->getName(), retrans ? "REX" : "");
 #ifdef RSSI_DEBUG
 if ( cpsw_rssi_debug > 0 )
 {
-fprintf(stderr," => No space in upstream queue!");
+fprintf(stderr," => No space in upstream queue!\n");
 }
 #endif
 		stats_.outgoingDropped_++;
 	}
-#ifdef RSSI_DEBUG
-if ( cpsw_rssi_debug > 0 )
-{
-fprintf(stderr,"\n");
-}
-#endif
 }
 
 void CRssi::armRexAndNulTimer()
@@ -389,6 +387,7 @@ RssiSynHeader synHdr( b->getPayload(), b->getAvail(), false, RssiHeader::SET );
 uint8_t       flags = RssiHeader::FLG_SYN;
 
 int           maxSegSize;
+int           acceptNegotiated = 1; // FIXME
 
 	if ( doAck ) {
 		flags |= RssiHeader::FLG_ACK;
@@ -435,15 +434,29 @@ if ( cpsw_rssi_debug > 0 ) {
 }
 #endif
 
-	synHdr.setSgsMX( maxSegSize       );
-	synHdr.setRexTO( rexTODfltUS_     );
-	synHdr.setCakTO( cakTODfltUS_     );
-	synHdr.setNulTO( nulTODfltUS_     );
-	synHdr.setRexMX( rexMXDflt_       );
-	synHdr.setCakMX( cakMXDflt_       );
-	synHdr.setOsaMX( 0                );
-	synHdr.setUnits( UNIT_US_EXP      );
-	synHdr.setConID( conID_           );
+	synHdr.setSgsMX( maxSegSize           );
+	synHdr.setOsaMX( 0                    );
+
+	if ( isServer_ && acceptNegotiated ) {
+printf("Accepting negotiated %lld\n", rexTO_.getUs());
+		synHdr.setRexTO( rexTO_.getUs()/units_  );
+		synHdr.setCakTO( cakTO_.getUs()/units_  );
+		synHdr.setNulTO( getNulTimeout()/units_ );
+		synHdr.setRexMX( rexMX_                 );
+		synHdr.setCakMX( cakMX_                 );
+		synHdr.setUnits( unitExp_               );
+	} else {
+printf("Proposing negotiated %lld\n", rexTODfltUS_);
+		synHdr.setRexTO( rexTODfltUS_/UNIT_US   );
+		synHdr.setCakTO( cakTODfltUS_/UNIT_US   );
+		synHdr.setNulTO( nulTODfltUS_/UNIT_US   );
+		synHdr.setRexMX( rexMXDflt_             );
+		synHdr.setCakMX( cakMXDflt_             );
+		synHdr.setUnits( UNIT_US_EXP            );
+	}
+
+
+	synHdr.setConID( conID_               );
 
 	unAckedSegs_.seed( lastSeqSent_ );
 
@@ -639,3 +652,83 @@ void CRssi::increaseReopenDelay()
 		closedReopenDelay_.tv_sec+=2;
 	}
 }
+
+void CRssi::setNulTimeout(uint64_t us)
+{
+	if ( isServer_ )
+		us *= 3;
+	nulTO_ = CTimeout( us );
+}
+
+uint64_t CRssi::getNulTimeout()
+{
+uint64_t us = nulTO_.getUs();
+	if ( isServer_ )
+		us /= 3;
+	return us;
+}
+
+void CRssi::extractConnectionParams(RssiSynHeader &synHdr, bool acceptNegotiated)
+{
+uint8_t     unitExp;
+unsigned i, u;
+uint64_t    nullTOUS;
+
+	peerOssMX_      = synHdr.getOssMX();
+
+#ifdef RSSI_DEBUG
+	if ( cpsw_rssi_debug > 0 ) {
+		fprintf(stderr, "RSSI Peer OSS Max: %d\n", synHdr.getOssMX());
+	}
+#endif
+
+	peerSgsMX_      = synHdr.getSgsMX();
+
+#ifdef RSSI_DEBUG
+	if ( cpsw_rssi_debug > 0 ) {
+		fprintf(stderr, "RSSI Peer SGS Max: %d\n", synHdr.getSgsMX());
+	}
+#endif
+
+	if ( peerOssMX_ > unAckedSegs_.getCapa() ) {
+		unAckedSegs_.resize( peerOssMX_ );
+	}
+
+	if ( acceptNegotiated ) {
+
+		// accept server's parameters
+		verifyChecksum_ = addChecksum_ = !! (synHdr.getXflgs() & RssiSynHeader::XFL_CHK);
+
+		// our units are US
+		if ( (unitExp = synHdr.getUnits()) > 6 )
+			throw InternalError("Cannot handle time units less than 1us");
+
+		for ( i=0, u=1; i < (unsigned)6 - unitExp; i++ )
+			u *= 10;
+
+		units_   = u;
+
+		nullTOUS = synHdr.getNulTO() * u;
+
+		rexTO_   = CTimeout(  synHdr.getRexTO() * u );
+		cakTO_   = CTimeout(  synHdr.getCakTO() * u );
+		setNulTimeout( nullTOUS );
+		rexMX_   = synHdr.getRexMX();
+		cakMX_   = synHdr.getCakMX();
+
+	}
+
+#ifdef RSSI_DEBUG
+	if ( cpsw_rssi_debug > 0 || 1 ) {
+		fprintf(stderr, "RSSI units                 : %dus\n", u);
+		fprintf(stderr, "RSSI retransmission timeout: %" PRIu64 "us\n", rexTO_.getUs());
+		fprintf(stderr, "RSSI cumulative ACK timeout: %" PRIu64 "us\n", cakTO_.getUs());
+		fprintf(stderr, "RSSI           NULL timeout: %" PRIu64 "us\n", nullTOUS               );
+		fprintf(stderr, "RSSI max. # retransmissions: %u\n"           , rexMX_        );
+		fprintf(stderr, "RSSI        cumulative ACKs: %u\n"           , cakMX_        );
+	}
+#endif
+
+}
+
+

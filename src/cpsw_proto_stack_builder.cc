@@ -73,6 +73,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		in_addr_t                  IPAddr_;
 		struct LibSocksProxy       socksProxy_;
 		in_addr_t                  rssiBridgeIPAddr_;
+		CRssiConfigParams          rssiConfig_;
 	public:
 		virtual void reset()
 		{
@@ -109,6 +110,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			IPAddr_                 = INADDR_NONE;
 			rssiBridgeIPAddr_       = INADDR_NONE;
 			socksProxy_.version     = SOCKS_VERSION_NONE;
+			rssiConfig_             = CRssiConfigParams();
 		}
 
 		CProtoStackBuilder()
@@ -589,11 +591,19 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			return hasTDestMux() ? TDestMuxThreadPriority_ : IProtoStackBuilder::NO_THREAD_PRIORITY;
 		}
 
-
+		virtual shared_ptr<CProtoStackBuilder> cloneInternal()
+		{
+			return cpsw::make_shared<CProtoStackBuilder>( *this );
+		}
 
 		virtual ProtoStackBuilder clone()
 		{
-			return cpsw::make_shared<CProtoStackBuilder>( *this );
+			return cloneInternal();
+		}
+
+		virtual const CRssiConfigParams *getRssiConfigParams()
+		{
+			return &rssiConfig_;
 		}
 
 		virtual ProtoPort build( std::vector<ProtoPort>& );
@@ -693,6 +703,15 @@ WriteMode                  writeMode;
 				setRssiThreadPriority( i );
 			if ( readNode(nn, YAML_KEY_instantiate, &b) )
 				useRssi( b );
+			readNode(nn, YAML_KEY_ldMaxUnackedSegs,        &rssiConfig_.ldMaxUnackedSegs_ );
+			readNode(nn, YAML_KEY_outQueueDepth,           &rssiConfig_.outQueueDepth_ );
+			readNode(nn, YAML_KEY_inpQueueDepth,           &rssiConfig_.inpQueueDepth_ );
+			readNode(nn, YAML_KEY_retransmissionTimeoutUS, &rssiConfig_.rexTimeoutUS_ );
+			readNode(nn, YAML_KEY_cumulativeAckTimeoutUS,  &rssiConfig_.cumAckTimeoutUS_  );
+			readNode(nn, YAML_KEY_nullTimeoutUS,           &rssiConfig_.nulTimeoutUS_ );
+			readNode(nn, YAML_KEY_maxRetransmissions,      &rssiConfig_.rexMax_ );
+			readNode(nn, YAML_KEY_maxCumulativeAcks,       &rssiConfig_.cumAckMax_ );
+			readNode(nn, YAML_KEY_maxSegmentSize,          &rssiConfig_.forcedSegsMax_ );
 		}
 	}
 	{
@@ -797,13 +816,13 @@ if ( cpsw_psbldr_debug > 1 ) {
 
 ProtoPort CProtoStackBuilder::build( std::vector<ProtoPort> &existingPorts )
 {
-ProtoPort            rval;
-ProtoPort            foundTDestPort;
-ProtoPortMatchParams cmp;
-ProtoMod             tDestMuxMod;
-ProtoModSRPMux       srpMuxMod;
-ProtoStackBuilder    bldr   = clone();
-bool                 hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVersion();
+ProtoPort                      rval;
+ProtoPort                      foundTDestPort;
+ProtoPortMatchParams           cmp;
+ProtoMod                       tDestMuxMod;
+ProtoModSRPMux                 srpMuxMod;
+shared_ptr<CProtoStackBuilder> bldr   = cloneInternal();
+bool                           hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVersion();
 
 #ifdef PSBLDR_DEBUG
 if ( cpsw_psbldr_debug > 1 ) {
@@ -1022,7 +1041,8 @@ if ( cpsw_psbldr_debug > 0 ) {
 }
 #endif
 			ProtoModRssi rssi = CShObj::create<ProtoModRssi>(
-			                                bldr->getRssiThreadPriority()
+			                                bldr->getRssiThreadPriority(),
+			                                bldr->getRssiConfigParams()
 			);
 			rval->addAtPort( rssi );
 			rval = rssi;

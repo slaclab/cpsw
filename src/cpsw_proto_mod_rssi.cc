@@ -70,11 +70,41 @@ bool rval;
 void
 CProtoModRssi::dumpYaml(YAML::Node &node) const
 {
-int prio = getPrio();
-YAML::Node parms(YAML::NodeType::Null);
+int               prio = getPrio();
+YAML::Node        parms(YAML::NodeType::Null);
+CRssiConfigParams deflts;
+
 	if ( prio != IProtoStackBuilder::DFLT_THREAD_PRIORITY ) {
 		writeNode(parms, YAML_KEY_threadPriority, prio);
 	}
+	if( deflts.ldMaxUnackedSegs_ != ldMaxUnackedSegs_ ) {
+		writeNode(parms, YAML_KEY_ldMaxUnackedSegs, ldMaxUnackedSegs_ );
+	}
+	if( deflts.outQueueDepth_    != outQueueDepth_    ) {
+		writeNode(parms, YAML_KEY_outQueueDepth, outQueueDepth_ );
+	}
+	if( deflts.inpQueueDepth_    != inpQueueDepth_    ) {
+		writeNode(parms, YAML_KEY_inpQueueDepth, inpQueueDepth_ );
+	}
+	if( deflts.rexTimeoutUS_     != rexTimeoutUS_     ) {
+		writeNode(parms, YAML_KEY_retransmissionTimeoutUS, rexTimeoutUS_ );
+	}
+	if( deflts.cumAckTimeoutUS_  != cumAckTimeoutUS_  ) {
+		writeNode(parms, YAML_KEY_cumulativeAckTimeoutUS, cumAckTimeoutUS_  );
+	}
+	if( deflts.nulTimeoutUS_     != nulTimeoutUS_     ) {
+		writeNode(parms, YAML_KEY_nullTimeoutUS, nulTimeoutUS_ );
+	}
+	if( deflts.rexMax_           != rexMax_           ) {
+		writeNode(parms, YAML_KEY_maxRetransmissions, rexMax_ );
+	}
+	if( deflts.cumAckMax_        != cumAckMax_        ) {
+		writeNode(parms, YAML_KEY_maxCumulativeAcks, cumAckMax_ );
+	}
+	if( deflts.forcedSegsMax_    != forcedSegsMax_    ) {
+		writeNode(parms, YAML_KEY_maxSegmentSize, forcedSegsMax_ );
+	}
+
 	writeNode(node, YAML_KEY_RSSI, parms );
 }
 
@@ -234,5 +264,8 @@ unsigned myMTU = peerSgsMX_;
 int
 CProtoModRssi::getRxMTU()
 {
+	if ( forcedSegsMax_ ) {
+		return forcedSegsMax_ + RssiHeader::getHSize( RssiHeader::getSupportedVersion() );
+	}
 	return getUpstreamDoor()->getMTU();
 }

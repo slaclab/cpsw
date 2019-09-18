@@ -146,7 +146,7 @@ public:
 	static const uint16_t MAX_SEGMENT_SIZE = 1500 - 20 - 8 - 8; // - IP - UDP - RSSI
 	static const uint16_t RETRANSMIT_TIMEO = 10;            // ms ?
 	static const uint16_t CUMLTD_ACK_TIMEO =  5;            // < rexmit TO
-	static const uint16_t NUL_SEGMEN_TIMEO = 3000;
+	static const uint16_t NUL_SEGMEN_TIMEO = 2000;
 	static const uint8_t  MAX_RETRANSMIT_N = 15;
 	static const uint8_t  MAX_CUMLTD_ACK_N =  2;
 	static const unsigned UNIT_US          = 1000;
@@ -530,9 +530,11 @@ protected:
 	bool  addChecksum_;
 
 	unsigned timerUnits_;
+	unsigned timerUnitExp_;
 
 private:
 	unsigned units_;
+	unsigned unitExp_;
 	unsigned maxUnackedSegs_;
 	uint64_t rexTODfltUS_, cakTODfltUS_, nulTODfltUS_;
 	unsigned rexMXDflt_;
@@ -577,6 +579,8 @@ protected:
 	bool sendNUL();
 	void sendRST();
 	void sendDAT(BufChain);
+
+	void extractConnectionParams(RssiSynHeader &synHdr, bool acceptNegotiated);
 
 	struct {
 		unsigned outgoingDropped_;
@@ -631,6 +635,9 @@ protected:
 	{
 		numCak_ = cakMX_;
 	}
+
+	virtual void     setNulTimeout(uint64_t us);
+	virtual uint64_t getNulTimeout();
 
 	virtual void * threadBody();
 
