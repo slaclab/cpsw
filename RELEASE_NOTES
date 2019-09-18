@@ -1,5 +1,9 @@
+    Changed default RSSI retransmission/cumulative-ack timeouts
+    from 10/5ms to 100/50ms. Seems to mitigate problems when multiple
+    RSSI connections share a network link/stack under heavy load.
+
     Made RSSI connection parameters (which are proposed to the server
-    for negotiation) configurable.
+    for negotiation) configurable (via YAML).
 
     Fixed RSSI reopen-delay. This was always reset to 0. FW does not
     like to be hammered with SYN requests -- it would just never respond.

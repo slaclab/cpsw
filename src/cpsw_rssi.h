@@ -144,8 +144,8 @@ public:
 	 */
 	static const uint8_t  LD_MAX_UNACKED_SEGS = 4;
 	static const uint16_t MAX_SEGMENT_SIZE = 1500 - 20 - 8 - 8; // - IP - UDP - RSSI
-	static const uint16_t RETRANSMIT_TIMEO = 10;            // ms ?
-	static const uint16_t CUMLTD_ACK_TIMEO =  5;            // < rexmit TO
+	static const uint16_t RETRANSMIT_TIMEO =  100;              // ms ?
+	static const uint16_t CUMLTD_ACK_TIMEO =   50;              // < rexmit TO
 	static const uint16_t NUL_SEGMEN_TIMEO = 2000;
 	static const uint8_t  MAX_RETRANSMIT_N = 15;
 	static const uint8_t  MAX_CUMLTD_ACK_N =  2;
