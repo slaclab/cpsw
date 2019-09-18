@@ -607,7 +607,11 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 shared_ptr<CProtoStackBuilder>
 CProtoStackBuilder::create(YamlState &node)
 {
-shared_ptr<CProtoStackBuilder> bldr( CProtoStackBuilder::create() );
+	return cpsw::make_shared<CProtoStackBuilder>( node );
+}
+
+CProtoStackBuilder::CProtoStackBuilder(YamlState &node)
+{
 unsigned                   u;
 uint64_t                   u64;
 bool                       b;
@@ -615,29 +619,31 @@ SRPProtoVersion            proto_vers;
 int                        i;
 WriteMode                  writeMode;
 
+	reset();
+
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_SRP) );
 		if ( !!nn && nn.IsMap() )
 		{
 			// initialize proto_vers to silence rhel compiler warning
 			// about potentially un-initialized 'proto_vers'
-			proto_vers = bldr->getSRPVersion();
+			proto_vers = getSRPVersion();
 			if ( readNode(nn, YAML_KEY_protocolVersion, &proto_vers) )
-				bldr->setSRPVersion( proto_vers );
+				setSRPVersion( proto_vers );
 			// initialize u64 to silence rhel compiler warning
 			// about potentially un-initialized 'u64'
-			u64 = bldr->getSRPTimeoutUS();
+			u64 = getSRPTimeoutUS();
 			if ( readNode(nn, YAML_KEY_timeoutUS, &u64) )
-				bldr->setSRPTimeoutUS( u64 );
+				setSRPTimeoutUS( u64 );
 			if ( readNode(nn, YAML_KEY_dynTimeout, &b) )
-				bldr->useSRPDynTimeout( b );
+				useSRPDynTimeout( b );
 			if ( readNode(nn, YAML_KEY_retryCount, &u) )
-				bldr->setSRPRetryCount( u );
+				setSRPRetryCount( u );
 			if ( readNode(nn, YAML_KEY_defaultWriteMode, &writeMode) )
 			{
-				if ( bldr->hasSRPMux_ < 0 || UNSP == bldr->SRPDefaultWriteMode_ ) {
+				if ( hasSRPMux_ < 0 || UNSP == SRPDefaultWriteMode_ ) {
 					/* SRPMux'es setting overrides what we find here.. */
-					bldr->setSRPDefaultWriteMode( writeMode );
+					setSRPDefaultWriteMode( writeMode );
 				}
 			}
 		}
@@ -648,11 +654,11 @@ WriteMode                  writeMode;
 		{
 			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
 				if ( readNode(nn, YAML_KEY_port, &u) )
-					bldr->setTcpPort( u );
+					setTcpPort( u );
 				if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
-					bldr->setTcpOutQueueDepth( u );
+					setTcpOutQueueDepth( u );
 				if ( readNode(nn, YAML_KEY_threadPriority, &i) )
-					bldr->setTcpThreadPriority( i );
+					setTcpThreadPriority( i );
 			}
 		}
 	}
@@ -662,31 +668,31 @@ WriteMode                  writeMode;
 		{
 			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
 				if ( readNode(nn, YAML_KEY_port, &u) )
-					bldr->setUdpPort( u );
+					setUdpPort( u );
 				if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
-					bldr->setUdpOutQueueDepth( u );
+					setUdpOutQueueDepth( u );
 				if ( readNode(nn, YAML_KEY_numRxThreads, &u) )
-					bldr->setUdpNumRxThreads( u );
+					setUdpNumRxThreads( u );
 				// initialize i to silence rhel compiler warning
 				// about potentially un-initialized 'i'
-				i = bldr->getUdpPollSecs();
+				i = getUdpPollSecs();
 				if ( readNode(nn, YAML_KEY_pollSecs, &i) )
-					bldr->setUdpPollSecs( i );
+					setUdpPollSecs( i );
 				if ( readNode(nn, YAML_KEY_threadPriority, &i) )
-					bldr->setUdpThreadPriority( i );
+					setUdpThreadPriority( i );
 			}
 		}
 	}
 	{
         const YAML::PNode &nn( node.lookup(YAML_KEY_RSSI) );
 
-        bldr->useRssi( !!nn );
+        useRssi( !!nn );
 
 		if ( !!nn && nn.IsMap() ) {
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
-				bldr->setRssiThreadPriority( i );
+				setRssiThreadPriority( i );
 			if ( readNode(nn, YAML_KEY_instantiate, &b) )
-				bldr->useRssi( b );
+				useRssi( b );
 		}
 	}
 	{
@@ -694,38 +700,38 @@ WriteMode                  writeMode;
 		if ( !!nn && nn.IsMap() )
 		{
 		DepackProtoVersion proto_vers = DEPACKETIZER_V0; // silence rhel g++ warning about un-initialized use (??)
-			bldr->useDepack( true );
+			useDepack( true );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
-				bldr->setDepackOutQueueDepth( u );
+				setDepackOutQueueDepth( u );
 			if ( readNode(nn, YAML_KEY_protocolVersion, &proto_vers) )
-				bldr->setDepackVersion( proto_vers );
+				setDepackVersion( proto_vers );
 			if ( readNode(nn, YAML_KEY_ldFrameWinSize, &u) )
-				bldr->setDepackLdFrameWinSize( u );
+				setDepackLdFrameWinSize( u );
 			if ( readNode(nn, YAML_KEY_ldFragWinSize, &u) )
-				bldr->setDepackLdFragWinSize( u );
+				setDepackLdFragWinSize( u );
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
-				bldr->setDepackThreadPriority( i );
+				setDepackThreadPriority( i );
 			if ( readNode(nn, YAML_KEY_instantiate, &b) )
-				bldr->useDepack( b );
+				useDepack( b );
 		}
 	}
 	{
 		const YAML::PNode &nn( node.lookup(YAML_KEY_SRPMux) );
 		if ( !!nn && nn.IsMap() )
 		{
-			bldr->useSRPMux( true );
+			useSRPMux( true );
 			if ( readNode(nn, YAML_KEY_virtualChannel, &u) )
-				bldr->setSRPMuxVirtualChannel( u );
+				setSRPMuxVirtualChannel( u );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
-				bldr->setSRPMuxOutQueueDepth( u );
+				setSRPMuxOutQueueDepth( u );
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
-				bldr->setSRPMuxThreadPriority( i );
+				setSRPMuxThreadPriority( i );
 			if ( readNode(nn, YAML_KEY_instantiate, &b) )
-				bldr->useSRPMux( b );
+				useSRPMux( b );
 			if ( readNode(nn, YAML_KEY_defaultWriteMode, &writeMode) )
 			{
 				// SRPMux overrides any setting SRP might have made
-				bldr->setSRPDefaultWriteMode( writeMode );
+				setSRPDefaultWriteMode( writeMode );
 			}
 		}
 	}
@@ -733,23 +739,21 @@ WriteMode                  writeMode;
 		const YAML::PNode &nn( node.lookup(YAML_KEY_TDESTMux) );
 		if ( !!nn && nn.IsMap() )
 		{
-			bldr->useTDestMux( true );
+			useTDestMux( true );
 			if ( readNode(nn, YAML_KEY_TDEST, &u) )
-				bldr->setTDestMuxTDEST( u );
+				setTDestMuxTDEST( u );
 			if ( readNode(nn, YAML_KEY_stripHeader, &b) )
-				bldr->setTDestMuxStripHeader( b );
+				setTDestMuxStripHeader( b );
 			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
-				bldr->setTDestMuxOutQueueDepth( u );
+				setTDestMuxOutQueueDepth( u );
 			if ( readNode(nn, YAML_KEY_inpQueueDepth, &u) )
-				bldr->setTDestMuxInpQueueDepth( u );
+				setTDestMuxInpQueueDepth( u );
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
-				bldr->setTDestMuxThreadPriority( i );
+				setTDestMuxThreadPriority( i );
 			if ( readNode(nn, YAML_KEY_instantiate, &b) )
-				bldr->useTDestMux( b );
+				useTDestMux( b );
 		}
 	}
-
-	return bldr;
 }
 
 ProtoStackBuilder
