@@ -699,19 +699,43 @@ WriteMode                  writeMode;
         useRssi( !!nn );
 
 		if ( !!nn && nn.IsMap() ) {
-			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) ) {
 				setRssiThreadPriority( i );
-			if ( readNode(nn, YAML_KEY_instantiate, &b) )
+			}
+			if ( readNode(nn, YAML_KEY_instantiate, &b) ) {
 				useRssi( b );
-			readNode(nn, YAML_KEY_ldMaxUnackedSegs,        &rssiConfig_.ldMaxUnackedSegs_ );
-			readNode(nn, YAML_KEY_outQueueDepth,           &rssiConfig_.outQueueDepth_ );
-			readNode(nn, YAML_KEY_inpQueueDepth,           &rssiConfig_.inpQueueDepth_ );
-			readNode(nn, YAML_KEY_retransmissionTimeoutUS, &rssiConfig_.rexTimeoutUS_ );
-			readNode(nn, YAML_KEY_cumulativeAckTimeoutUS,  &rssiConfig_.cumAckTimeoutUS_  );
-			readNode(nn, YAML_KEY_nullTimeoutUS,           &rssiConfig_.nulTimeoutUS_ );
-			readNode(nn, YAML_KEY_maxRetransmissions,      &rssiConfig_.rexMax_ );
-			readNode(nn, YAML_KEY_maxCumulativeAcks,       &rssiConfig_.cumAckMax_ );
-			readNode(nn, YAML_KEY_maxSegmentSize,          &rssiConfig_.forcedSegsMax_ );
+			}
+			/* Some of the members of 'rssiConfig' are uint8_t and yaml-cpp will try
+			 * to read as 'char'; i.e., number like '2' in YAML will be interpreted
+			 * as '2' and yield 52 (numerical ascii code of '2').
+			 */
+			if ( readNode(nn, YAML_KEY_ldMaxUnackedSegs,        &u) ) {
+				rssiConfig_.ldMaxUnackedSegs_  = u;
+			}
+			if ( readNode(nn, YAML_KEY_outQueueDepth,           &u) ) {
+				rssiConfig_.outQueueDepth_     = u;
+			}
+			if ( readNode(nn, YAML_KEY_inpQueueDepth,           &u) ) {
+				rssiConfig_.inpQueueDepth_     = u;
+			}
+			if ( readNode(nn, YAML_KEY_retransmissionTimeoutUS, &u) ) {
+				rssiConfig_.rexTimeoutUS_      = u;
+			}
+			if ( readNode(nn, YAML_KEY_cumulativeAckTimeoutUS,  &u) ) {
+				rssiConfig_.cumAckTimeoutUS_   = u;
+			}
+			if ( readNode(nn, YAML_KEY_nullTimeoutUS,           &u) ) {
+				rssiConfig_.nulTimeoutUS_      = u;
+			}
+			if ( readNode(nn, YAML_KEY_maxRetransmissions,      &u) ) {
+				rssiConfig_.rexMax_            = u;
+			}
+			if ( readNode(nn, YAML_KEY_maxCumulativeAcks,       &u) ) {
+				rssiConfig_.cumAckMax_         = u;
+			}
+			if ( readNode(nn, YAML_KEY_maxSegmentSize,          &u) ) {
+				rssiConfig_.forcedSegsMax_     = u;
+			}
 		}
 	}
 	{

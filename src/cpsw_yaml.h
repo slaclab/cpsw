@@ -428,6 +428,9 @@ template <typename T> static void mustReadNode(YamlState &node, const char *fld,
 	}
 }
 
+/* CAUTION: if 'T' is uint8_t then yaml-cpp will treat it as 'char'. I.e., the
+ *          65 is rendered as 'A' and '2' is read as 50!
+ */
 template <typename T> static bool readNode(YamlState &node, const char *fld, T *val)
 {
 	const YAML::Node &n( node.lookup(fld) );
