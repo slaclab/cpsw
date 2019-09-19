@@ -58,7 +58,7 @@ CRssi::CRssi(
   INulTimer      ( &timers_ ),
 
 
-  defaults_      ( defaults ? *defaults : CRssiConfigParams() ),
+  defaults_      ( defaults ? defaults->assertValid() : CRssiConfigParams() ),
   isServer_      ( isServer ),
 
   name_          ( isServer ? "S" : "C"              ),
@@ -76,7 +76,6 @@ CRssi::CRssi(
 {
 	conID_ = (uint32_t)time(NULL);
 	::memset( &stats_, 0, sizeof(stats_) );
-
 
 	closedReopenDelay_.tv_nsec = 0;
 	closedReopenDelay_.tv_sec  = 0;
@@ -721,4 +720,17 @@ uint64_t    nullTOUS;
 
 }
 
-
+const CRssiConfigParams & CRssiConfigParams::assertValid() const
+{
+	if ( ldMaxUnackedSegs_        >= 8     )
+		throw ConfigurationError("RSSI parameter 'ldMaxUnackedSegs' out too big");
+	if ( rexTimeoutUS_/UNIT_US_DFLT    >= 65536 )
+		throw ConfigurationError("RSSI parameter 'retransmissionTimeoutUS' out too big");
+	if ( cumAckTimeoutUS_/UNIT_US_DFLT >= 65536 )
+		throw ConfigurationError("RSSI parameter 'cumulativeAckTimeoutUS' out too big");
+	if ( nulTimeoutUS_/UNIT_US_DFLT    >= 65536 )
+		throw ConfigurationError("RSSI parameter 'nullTimeoutUS' out too big");
+	if ( forcedSegsMax_           >= 65536 )
+		throw ConfigurationError("RSSI parameter 'maxSegmentSize' out too big");
+	return *this;
+}

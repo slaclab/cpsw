@@ -171,6 +171,8 @@ struct CRssiConfigParams {
 		cumAckMax_       ( cumAckMax        ),
 		forcedSegsMax_   ( forcedSegsMax    )
 	{}
+
+	const CRssiConfigParams & assertValid() const;
 };
 
 
