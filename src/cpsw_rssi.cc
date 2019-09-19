@@ -657,7 +657,6 @@ void CRssi::extractConnectionParams(RssiSynHeader &synHdr, bool acceptNegotiated
 {
 uint8_t     unitExp;
 unsigned i, u;
-uint64_t    nullTOUS;
 
 	if ( ! isServer_ ) {
 		acceptNegotiated = true;
@@ -697,11 +696,9 @@ uint64_t    nullTOUS;
 
 		units_   = u;
 
-		nullTOUS = synHdr.getNulTO() * u;
-
-		rexTO_   = CTimeout(  synHdr.getRexTO() * u );
-		cakTO_   = CTimeout(  synHdr.getCakTO() * u );
-		setNulTimeout( nullTOUS );
+		rexTO_   = CTimeout( synHdr.getRexTO() * u );
+		cakTO_   = CTimeout( synHdr.getCakTO() * u );
+		setNulTimeout      ( synHdr.getNulTO() * u );
 		rexMX_   = synHdr.getRexMX();
 		cakMX_   = synHdr.getCakMX();
 
@@ -710,10 +707,10 @@ uint64_t    nullTOUS;
 #ifdef RSSI_DEBUG
 	if ( cpsw_rssi_debug > 0 ) {
 		fprintf(stderr, "RSSI Negotiated parms      : %s\n", acceptNegotiated ? "proposed by peer" : "enforced by us" );
-		fprintf(stderr, "RSSI units                 : %dus\n", u);
+		fprintf(stderr, "RSSI units                 : %dus\n", units_);
 		fprintf(stderr, "RSSI retransmission timeout: %" PRIu64 "us\n", rexTO_.getUs());
 		fprintf(stderr, "RSSI cumulative ACK timeout: %" PRIu64 "us\n", cakTO_.getUs());
-		fprintf(stderr, "RSSI           NULL timeout: %" PRIu64 "us\n", nullTOUS               );
+		fprintf(stderr, "RSSI           NULL timeout: %" PRIu64 "us\n", getNulTimeout());
 		fprintf(stderr, "RSSI max. # retransmissions: %u\n"           , rexMX_        );
 		fprintf(stderr, "RSSI        cumulative ACKs: %u\n"           , cakMX_        );
 	}
