@@ -639,16 +639,16 @@ void CRssi::increaseReopenDelay()
 
 void CRssi::setNulTimeout(uint64_t us)
 {
-	if ( isServer_ )
-		us *= 3;
+	if ( ! isServer_ )
+		us /= 3;
 	nulTO_ = CTimeout( us );
 }
 
 uint64_t CRssi::getNulTimeout()
 {
 uint64_t us = nulTO_.getUs();
-	if ( isServer_ )
-		us /= 3;
+	if ( ! isServer_ )
+		us *= 3;
 	return us;
 }
 

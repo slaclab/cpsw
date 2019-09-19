@@ -133,7 +133,7 @@ struct CRssiConfigParams {
 	static const unsigned             UNIT_US_DFLT = 1000;
 	static const uint64_t      REX_TIMEOUT_US_DFLT =  100*(uint64_t)UNIT_US_DFLT; // ms
 	static const uint64_t      CAK_TIMEOUT_US_DFLT =   50*(uint64_t)UNIT_US_DFLT; // ms; < rex timeout
-	static const uint64_t      NUL_TIMEOUT_US_DFLT = 2000*(uint64_t)UNIT_US_DFLT; // ms
+	static const uint64_t      NUL_TIMEOUT_US_DFLT = 3000*(uint64_t)UNIT_US_DFLT; // ms
 	static const uint8_t              REX_MAX_DFLT =   15;
 	static const uint8_t              CAK_MAX_DFLT =    5;
 	static const unsigned             SGS_MAX_DFLT =    0;
