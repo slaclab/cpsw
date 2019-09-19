@@ -130,13 +130,13 @@ struct CRssiConfigParams {
 	 */
 	static const uint8_t  LD_MAX_UNACKED_SEGS_DFLT =    4;
 	static const unsigned         QUEUE_DEPTH_DFLT =    0;
-	static const uint64_t      REX_TIMEOUT_US_DFLT =  100; // ms
-	static const uint64_t      CAK_TIMEOUT_US_DFLT =   40; // ms; < rex timeout
-	static const uint64_t      NUL_TIMEOUT_US_DFLT = 2000; // ms
-	static const uint8_t              REX_MAX_DFLT =   25;
-	static const uint8_t              CAK_MAX_DFLT =    2;
-	static const unsigned             SGS_MAX_DFLT =    0;
 	static const unsigned             UNIT_US_DFLT = 1000;
+	static const uint64_t      REX_TIMEOUT_US_DFLT =  100*(uint64_t)UNIT_US_DFLT; // ms
+	static const uint64_t      CAK_TIMEOUT_US_DFLT =   50*(uint64_t)UNIT_US_DFLT; // ms; < rex timeout
+	static const uint64_t      NUL_TIMEOUT_US_DFLT = 2000*(uint64_t)UNIT_US_DFLT; // ms
+	static const uint8_t              REX_MAX_DFLT =   15;
+	static const uint8_t              CAK_MAX_DFLT =    5;
+	static const unsigned             SGS_MAX_DFLT =    0;
 	static const unsigned         UNIT_US_EXP_DFLT =    3; // value used by server; must match UNIT_US (i.e., UNIT_US = 10^-UNIT_US_EXP)
 
 	uint8_t      ldMaxUnackedSegs_;
@@ -195,14 +195,17 @@ public:
 
 	 * Duplicate constants here exist for legacy reasons.
 	 */
-	static const uint8_t  LD_MAX_UNACKED_SEGS = CRssiConfigParams::LD_MAX_UNACKED_SEGS_DFLT;
-	static const uint16_t RETRANSMIT_TIMEO    = CRssiConfigParams::REX_TIMEOUT_US_DFLT;
-	static const uint16_t CUMLTD_ACK_TIMEO    = CRssiConfigParams::CAK_TIMEOUT_US_DFLT;
-	static const uint16_t NUL_SEGMEN_TIMEO    = CRssiConfigParams::NUL_TIMEOUT_US_DFLT;
-	static const uint8_t  MAX_RETRANSMIT_N    = CRssiConfigParams::REX_MAX_DFLT;
-	static const uint8_t  MAX_CUMLTD_ACK_N    = CRssiConfigParams::CAK_MAX_DFLT;
 	static const unsigned UNIT_US             = CRssiConfigParams::UNIT_US_DFLT;
 	static const unsigned UNIT_US_EXP         = CRssiConfigParams::UNIT_US_EXP_DFLT;
+	static const uint8_t  LD_MAX_UNACKED_SEGS = CRssiConfigParams::LD_MAX_UNACKED_SEGS_DFLT;
+	/*
+	 * Legacy timeout constants are in 'units'
+	 */
+	static const uint16_t RETRANSMIT_TIMEO    = CRssiConfigParams::REX_TIMEOUT_US_DFLT/UNIT_US;
+	static const uint16_t CUMLTD_ACK_TIMEO    = CRssiConfigParams::CAK_TIMEOUT_US_DFLT/UNIT_US;
+	static const uint16_t NUL_SEGMEN_TIMEO    = CRssiConfigParams::NUL_TIMEOUT_US_DFLT/UNIT_US;
+	static const uint8_t  MAX_RETRANSMIT_N    = CRssiConfigParams::REX_MAX_DFLT;
+	static const uint8_t  MAX_CUMLTD_ACK_N    = CRssiConfigParams::CAK_MAX_DFLT;
 
 	static const uint16_t MAX_SEGMENT_SIZE    = 1500 - 20 - 8 - 8; // - IP - UDP - RSSI
 
