@@ -453,7 +453,7 @@ of this class, e.g.,:
             offset:    <int>     # optional
             # optional timeout for *read*
             # operations (in micro-seconds).
-            YAML_KEY_timeoutUs: <int>     # optional
+            timeoutUS: <int>     # optional
       
 
 ### 2.4 The 'SequenceCommand' Class
@@ -535,7 +535,7 @@ choices:
               -
                 - entry: "system(echo running choice two)"
                   value: 0
-            YAML_KEY_enum:
+            enums:
               - name:  "Choice One"
                 value: 0
               - name:  "Choice Two"
@@ -974,6 +974,78 @@ deliberately to use maps so that merge keys work across all levels).
             #
             # Default: 0
           threadPriority: <int>
+
+            # log2 of the max. number of unacknowledged
+            # segments the peer may send to us.
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default: 4
+          ldMaxUnackedSegs: <int>
+
+            # Depth or RSS output queue.
+            #
+            # Default: 0 (a suitable value is chosen)
+          outQueueDepth: <int>
+
+            # Depth or RSS input queue.
+            #
+            # Default: 0 (a suitable value is chosen;
+            # should be >= 2**ldMaxUnackedSegs)
+          inpQueueDepth: <int>
+
+            # Retransmission timeout (proposed to
+            # negotiation process)
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default: 100000us
+          retransmissionTimeoutUS: <int>
+
+            # Cumulative ACK timeout (proposed to
+            # negotiation process)
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default:  50000us (should be less than
+            # retransmissionTimeoutUS)
+          cumulativeAckTimeoutUS: <int>
+
+            # NULL timeout (proposed to
+            # negotiation process)
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default:  3000000us
+          nullTimeoutUS: <int>
+
+            # Max. number of retransmissions before
+            # the connection is considered dead
+            # (proposed to negotiation process).
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default:  15
+          maxRetransmissions: <int>
+
+            # Max. number of segments that are accepted
+            # without sending ACK (``cumulative ACK'';
+            # proposed to negotiation process).
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default:  2
+          maxCumulativeAcks: <int>
+
+            # Max. segment size we can receive
+            # without sending ACK (``cumulative ACK'')
+            #
+            # (See RSSI/RUDP spec for more information)
+            #
+            # Default:  suitable value chosen by
+            #           MTU discovery. When overriding
+            #           the default, MAKE SURE NOT TO
+            #           EXCEED YOUR CONNECTION'S MTU!
+          maxSegmentSize: <int>
 
             # The presence of this key indicates
             # that 'depack' shall be used. Its absence
