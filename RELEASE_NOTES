@@ -1,3 +1,5 @@
+R4.2.0:
+
     Changed default RSSI retransmission/cumulative-ack timeouts
     from 10/5ms to 100/50ms. Seems to mitigate problems when multiple
     RSSI connections share a network link/stack under heavy load.
