@@ -73,6 +73,25 @@ Return the suggested polling interval for this Entry.
     """
     return self.cptr.get().getPollSecs()
 
+  def dump(self, str fileName=None):
+    """
+Print information about this Entry to a file (stdout if 'None').
+    """
+    cdef FILE *f
+
+    if None == fileName:
+      f = stdout
+    else:
+      f = fopen( fileName, "w+" );
+      if f == NULL:
+        raise RuntimeError("Unable to open file: " + fileName);
+    try:
+      self.cptr.get().dump( f )
+    finally:
+      if f != stdout:
+        fclose( f )
+
+
   def isHub(self):
     """
 Test if this Entry is a Hub and return a reference.
@@ -996,7 +1015,6 @@ Convert this Path to a string representation.
     """
 Print information about this Path to a file (stdout if 'None').
     """
-    cdef string cfnam
     cdef FILE *f
 
     if None == fileName:

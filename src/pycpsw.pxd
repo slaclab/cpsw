@@ -139,7 +139,8 @@ cdef extern from "cpsw_api_user.h":
     uint64_t    getSize()        except+handleException
     const char *getDescription() except+handleException
     double      getPollSecs()    except+handleException
-    cc_ConstHub      isHub()          except+handleException
+    void        dump(FILE*)      except+handleException
+    cc_ConstHub      isHub()     except+handleException
 
   cdef cppclass IChild(IEntry):
     cc_ConstHub getOwner()       except+handleException

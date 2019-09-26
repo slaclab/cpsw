@@ -33,7 +33,7 @@ struct CpswPyExcO_MultipleInstantiationError;
 struct CpswPyExcO_BadSchemaVersionError;
 struct CpswPyExcO_TimeoutError;
 
-/* "pycpsw.pyx":770
+/* "pycpsw.pyx":789
  *     self.callback( pyResult, pyStatus )
  * 
  * cdef public class YamlFixup[type CpswPyWrapT_YamlFixup, object CpswPyWrapO_YamlFixup]:             # <<<<<<<<<<<<<<
@@ -45,7 +45,7 @@ struct CpswPyWrapO_YamlFixup {
   cpsw_python::CYamlFixup cc_YamlFixup;
 };
 
-/* "pycpsw.pyx":808
+/* "pycpsw.pyx":827
  *     return n
  * 
  * cdef public class PathVisitor[type CpswPyWrapT_PathVisitor, object CpswPyWrapO_PathVisitor]:             # <<<<<<<<<<<<<<
@@ -58,7 +58,7 @@ struct CpswPyWrapO_PathVisitor {
   cpsw_python::CPathVisitor cc_PathVisitor;
 };
 
-/* "pycpsw.pyx":851
+/* "pycpsw.pyx":870
  *     pass
  * 
  * cdef public class AsyncIO[type CpswPyWrapT_AsyncIO, object CpswPyWrapO_AsyncIO]:             # <<<<<<<<<<<<<<
@@ -70,7 +70,7 @@ struct CpswPyWrapO_AsyncIO {
   cpsw_python::CAsyncIO c_AsyncIO;
 };
 
-/* "pycpsw.pyx":1277
+/* "pycpsw.pyx":1295
  *   return c_setCPSWVerbosity( cstr, level )
  * 
  * cdef public class CPSWError(Exception)[type CpswPyExcT_CPSWError, object CpswPyExcO_CPSWError]:             # <<<<<<<<<<<<<<
@@ -81,7 +81,7 @@ struct CpswPyExcO_CPSWError {
   PyBaseExceptionObject __pyx_base;
 };
 
-/* "pycpsw.pyx":1286
+/* "pycpsw.pyx":1304
  *     return self._msg
  * 
  * cdef public class ErrnoError(CPSWError)[type CpswPyExcT_ErrnoError, object CpswPyExcO_ErrnoError]:             # <<<<<<<<<<<<<<
@@ -92,7 +92,7 @@ struct CpswPyExcO_ErrnoError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1291
+/* "pycpsw.pyx":1309
  *     self._msg = foo.get().what()
  * 
  * cdef public class IOError(ErrnoError)[type CpswPyExcT_IOError, object CpswPyExcO_IOError]:             # <<<<<<<<<<<<<<
@@ -103,7 +103,7 @@ struct CpswPyExcO_IOError {
   struct CpswPyExcO_ErrnoError __pyx_base;
 };
 
-/* "pycpsw.pyx":1296
+/* "pycpsw.pyx":1314
  *     self._msg = foo.get().what()
  * 
  * cdef public class InternalError(ErrnoError)[type CpswPyExcT_InternalError, object CpswPyExcO_InternalError]:             # <<<<<<<<<<<<<<
@@ -114,7 +114,7 @@ struct CpswPyExcO_InternalError {
   struct CpswPyExcO_ErrnoError __pyx_base;
 };
 
-/* "pycpsw.pyx":1301
+/* "pycpsw.pyx":1319
  *     self._msg = foo.get().what()
  * 
  * cdef public class DuplicateNameError(CPSWError)[type CpswPyExcT_DuplicateNameError, object CpswPyExcO_DuplicateNameError]:             # <<<<<<<<<<<<<<
@@ -125,7 +125,7 @@ struct CpswPyExcO_DuplicateNameError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1306
+/* "pycpsw.pyx":1324
  *     self._msg = foo.get().what()
  * 
  * cdef public class NotDevError(CPSWError)[type CpswPyExcT_NotDevError, object CpswPyExcO_NotDevError]:             # <<<<<<<<<<<<<<
@@ -136,7 +136,7 @@ struct CpswPyExcO_NotDevError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1311
+/* "pycpsw.pyx":1329
  *     self._msg = foo.get().what()
  * 
  * cdef public class NotFoundError(CPSWError)[type CpswPyExcT_NotFoundError, object CpswPyExcO_NotFoundError]:             # <<<<<<<<<<<<<<
@@ -147,7 +147,7 @@ struct CpswPyExcO_NotFoundError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1316
+/* "pycpsw.pyx":1334
  *     self._msg = foo.get().what()
  * 
  * cdef public class InvalidPathError(CPSWError)[type CpswPyExcT_InvalidPathError, object CpswPyExcO_InvalidPathError]:             # <<<<<<<<<<<<<<
@@ -158,7 +158,7 @@ struct CpswPyExcO_InvalidPathError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1321
+/* "pycpsw.pyx":1339
  *     self._msg = foo.get().what()
  * 
  * cdef public class InvalidIdentError(CPSWError)[type CpswPyExcT_InvalidIdentError, object CpswPyExcO_InvalidIdentError]:             # <<<<<<<<<<<<<<
@@ -169,7 +169,7 @@ struct CpswPyExcO_InvalidIdentError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1326
+/* "pycpsw.pyx":1344
  *     self._msg = foo.get().what()
  * 
  * cdef public class InvalidArgError(CPSWError)[type CpswPyExcT_InvalidArgError, object CpswPyExcO_InvalidArgError]:             # <<<<<<<<<<<<<<
@@ -180,7 +180,7 @@ struct CpswPyExcO_InvalidArgError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1331
+/* "pycpsw.pyx":1349
  *     self._msg = foo.get().what()
  * 
  * cdef public class AddressAlreadyAttachedError(CPSWError)[type CpswPyExcT_AddressAlreadyAttachedError, object CpswPyExcO_AddressAlreadyAttachedError]:             # <<<<<<<<<<<<<<
@@ -191,7 +191,7 @@ struct CpswPyExcO_AddressAlreadyAttachedError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1336
+/* "pycpsw.pyx":1354
  *     self._msg = foo.get().what()
  * 
  * cdef public class ConfigurationError(CPSWError)[type CpswPyExcT_ConfigurationError, object CpswPyExcO_ConfigurationError]:             # <<<<<<<<<<<<<<
@@ -202,7 +202,7 @@ struct CpswPyExcO_ConfigurationError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1341
+/* "pycpsw.pyx":1359
  *     self._msg = foo.get().what()
  * 
  * cdef public class AddrOutOfRangeError(CPSWError)[type CpswPyExcT_AddrOutOfRangeError, object CpswPyExcO_AddrOutOfRangeError]:             # <<<<<<<<<<<<<<
@@ -213,7 +213,7 @@ struct CpswPyExcO_AddrOutOfRangeError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1346
+/* "pycpsw.pyx":1364
  *     self._msg = foo.get().what()
  * 
  * cdef public class ConversionError(CPSWError)[type CpswPyExcT_ConversionError, object CpswPyExcO_ConversionError]:             # <<<<<<<<<<<<<<
@@ -224,7 +224,7 @@ struct CpswPyExcO_ConversionError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1351
+/* "pycpsw.pyx":1369
  *     self._msg = foo.get().what()
  * 
  * cdef public class InterfaceNotImplementedError(CPSWError)[type CpswPyExcT_InterfaceNotImplementedError, object CpswPyExcO_InterfaceNotImplementedError]:             # <<<<<<<<<<<<<<
@@ -235,7 +235,7 @@ struct CpswPyExcO_InterfaceNotImplementedError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1356
+/* "pycpsw.pyx":1374
  *     self._msg = foo.get().what()
  * 
  * cdef public class BadStatusError(CPSWError)[type CpswPyExcT_BadStatusError, object CpswPyExcO_BadStatusError]:             # <<<<<<<<<<<<<<
@@ -246,7 +246,7 @@ struct CpswPyExcO_BadStatusError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1361
+/* "pycpsw.pyx":1379
  *     self._msg = foo.get().what()
  * 
  * cdef public class IntrError(CPSWError)[type CpswPyExcT_IntrError, object CpswPyExcO_IntrError]:             # <<<<<<<<<<<<<<
@@ -257,7 +257,7 @@ struct CpswPyExcO_IntrError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1366
+/* "pycpsw.pyx":1384
  *     self._msg = foo.get().what()
  * 
  * cdef public class StreamDoneError(CPSWError)[type CpswPyExcT_StreamDoneError, object CpswPyExcO_StreamDoneError]:             # <<<<<<<<<<<<<<
@@ -268,7 +268,7 @@ struct CpswPyExcO_StreamDoneError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1371
+/* "pycpsw.pyx":1389
  *     self._msg = foo.get().what()
  * 
  * cdef public class FailedStreamError(CPSWError)[type CpswPyExcT_FailedStreamError, object CpswPyExcO_FailedStreamError]:             # <<<<<<<<<<<<<<
@@ -279,7 +279,7 @@ struct CpswPyExcO_FailedStreamError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1376
+/* "pycpsw.pyx":1394
  *     self._msg = foo.get().what()
  * 
  * cdef public class MissingOnceTagError(CPSWError)[type CpswPyExcT_MissingOnceTagError, object CpswPyExcO_MissingOnceTagError]:             # <<<<<<<<<<<<<<
@@ -290,7 +290,7 @@ struct CpswPyExcO_MissingOnceTagError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1381
+/* "pycpsw.pyx":1399
  *     self._msg = foo.get().what()
  * 
  * cdef public class MissingIncludeFileNameError(CPSWError)[type CpswPyExcT_MissingIncludeFileNameError, object CpswPyExcO_MissingIncludeFileNameError]:             # <<<<<<<<<<<<<<
@@ -301,7 +301,7 @@ struct CpswPyExcO_MissingIncludeFileNameError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1386
+/* "pycpsw.pyx":1404
  *     self._msg = foo.get().what()
  * 
  * cdef public class NoYAMLSupportError(CPSWError)[type CpswPyExcT_NoYAMLSupportError, object CpswPyExcO_NoYAMLSupportError]:             # <<<<<<<<<<<<<<
@@ -312,7 +312,7 @@ struct CpswPyExcO_NoYAMLSupportError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1391
+/* "pycpsw.pyx":1409
  *     self._msg = foo.get().what()
  * 
  * cdef public class NoError(CPSWError)[type CpswPyExcT_NoError, object CpswPyExcO_NoError]:             # <<<<<<<<<<<<<<
@@ -323,7 +323,7 @@ struct CpswPyExcO_NoError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1396
+/* "pycpsw.pyx":1414
  *     self._msg = foo.get().what()
  * 
  * cdef public class MultipleInstantiationError(CPSWError)[type CpswPyExcT_MultipleInstantiationError, object CpswPyExcO_MultipleInstantiationError]:             # <<<<<<<<<<<<<<
@@ -334,7 +334,7 @@ struct CpswPyExcO_MultipleInstantiationError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1401
+/* "pycpsw.pyx":1419
  *     self._msg = foo.get().what()
  * 
  * cdef public class BadSchemaVersionError(CPSWError)[type CpswPyExcT_BadSchemaVersionError, object CpswPyExcO_BadSchemaVersionError]:             # <<<<<<<<<<<<<<
@@ -345,7 +345,7 @@ struct CpswPyExcO_BadSchemaVersionError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1406
+/* "pycpsw.pyx":1424
  *     self._msg = foo.get().what()
  * 
  * cdef public class TimeoutError(CPSWError)[type CpswPyExcT_TimeoutError, object CpswPyExcO_TimeoutError]:             # <<<<<<<<<<<<<<
