@@ -18,13 +18,13 @@ static void usage(const char *nm)
 	fprintf(stderr,"          program does not cross the boundary of the map-in-map hierarchy:\n");
 	fprintf(stderr,"\n");
 	fprintf(stderr,"              top:                  \n");
-	fprintf(stderr,"                <<: &map1           \n");
+	fprintf(stderr,"                <<: *map1           \n");
 	fprintf(stderr,"                  k1:               \n");
-	fprintf(stderr,"                    <<: &map2       \n");
+	fprintf(stderr,"                    <<: *map2       \n");
 	fprintf(stderr,"                      k2: v2        \n");
 	fprintf(stderr,"                      k3:           \n");
 	fprintf(stderr,"                       -            \n");
-	fprintf(stderr,"                        <<: &map3   \n");
+	fprintf(stderr,"                        <<: *map3   \n");
 	fprintf(stderr,"                          k4: v4    \n");
 	fprintf(stderr,"\n");
 	fprintf(stderr,"          the maps 'map1' and 'map2' would be merged but not 'map3'\n");
