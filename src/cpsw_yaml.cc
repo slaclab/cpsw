@@ -478,17 +478,13 @@ YAML::Node versNode( node[ YAML_KEY_schemaVersionMajor ] );
 }
 
 static YAML::Node
-loadPreprocessedYamlStream(StreamMuxBuf::Stream top_stream, const char *yaml_dir, bool resolveMergeKeys)
+loadYaml(YamlPreprocessor *preprocessor, StreamMuxBuf *muxer, bool resolveMergeKeys)
 {
-StreamMuxBuf         muxer;
-
-YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
-
 	try {
 
-		preprocessor.process();
+		preprocessor->process();
 
-		std::istream top_preprocessed_stream( &muxer );
+		std::istream top_preprocessed_stream( muxer );
 
 		YAML::Node rootNode( YAML::Load( top_preprocessed_stream ) );
 
@@ -497,15 +493,15 @@ YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
 		}
 
 		int vers;
-		if ( (vers = preprocessor.getSchemaVersionMajor()) >= 0 ) {
+		if ( (vers = preprocessor->getSchemaVersionMajor()) >= 0 ) {
 			rootNode[ YAML_KEY_schemaVersionMajor ] = vers;
 		}
 
-		if ( (vers = preprocessor.getSchemaVersionMinor()) >= 0 ) {
+		if ( (vers = preprocessor->getSchemaVersionMinor()) >= 0 ) {
 			rootNode[ YAML_KEY_schemaVersionMinor ] = vers;
 		}
 
-		if ( (vers = preprocessor.getSchemaVersionRevision()) >= 0 ) {
+		if ( (vers = preprocessor->getSchemaVersionRevision()) >= 0 ) {
 			rootNode[ YAML_KEY_schemaVersionRevision ] = vers;
 		}
 
@@ -514,12 +510,20 @@ YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
 
 	} catch (YAML::Exception &err) {
 		// line number is 1-based; but our calculations are zero-based.
-		unsigned line = err.mark.line - muxer.getOtherScopeLines() + 1;
+		unsigned line = err.mark.line - muxer->getOtherScopeLines() + 1;
 		fprintf(stderr,"ERROR: %s\n", err.what());
-		fprintf(stderr,"Current file: %s: %u\n", muxer.getFileName(), line);
+		fprintf(stderr,"Current file: %s: %u\n", muxer->getFileName(), line);
 		throw;
 	}
+}
 
+static YAML::Node
+loadPreprocessedYamlStream(StreamMuxBuf::Stream top_stream, const char *yaml_dir, bool resolveMergeKeys)
+{
+StreamMuxBuf         muxer;
+YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
+
+	return loadYaml( &preprocessor, &muxer, resolveMergeKeys );
 }
 
 class NoOpDeletor {
@@ -549,14 +553,10 @@ std::stringstream sstrm( str );
 YAML::Node
 CYamlFieldFactoryBase::loadPreprocessedYamlFile(const char *file_name, const char *yaml_dir, bool resolveMergeKeys)
 {
-const char  *sep;
-std::string  main_dir;
-	if ( ! yaml_dir && (sep = ::strrchr(file_name,'/')) ) {
-		main_dir = std::string(file_name);
-		main_dir.resize(sep - file_name);
-		yaml_dir = main_dir.c_str();
-	}
-	return loadPreprocessedYamlStream( StreamMuxBuf::mkstrm( file_name ), yaml_dir, resolveMergeKeys );
+StreamMuxBuf         muxer;
+YamlPreprocessor     preprocessor( file_name, &muxer, yaml_dir );
+
+	return loadYaml( &preprocessor, &muxer, resolveMergeKeys );
 }
 
 void
