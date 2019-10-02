@@ -18,12 +18,24 @@
 class FLookup {
 private:
 	typedef std::list<std::string> L;
-	L l_;
+	L    l_;
+	bool tryAll_;
 public:
 	// construct initial list (':' separated paths).
 	// NOTE: a NULL pathList is legal (empty list);
 	//       useful when submitting getenv("XXX")...
-	FLookup(const char *pathList);
+	//
+	// If 'tryAllNames' is true then even relative pathnames
+	// containing a '/' are searched in the path list.
+	FLookup(const char *pathList, bool tryAllNames = false);
+
+	//
+	FLookup &
+	setTryAllNames(bool val)
+	{
+		tryAll_ = val;
+		return *this;
+	}
 
 	// append a path to the list
 	// RETURNS: reference to this object; useful for chaining
@@ -45,6 +57,12 @@ public:
 	//          NotFoundError() if the file does not exist
 	std::string
 	lookup(const char *fileName, int mode = R_OK);
+
+	std::string
+	lookup(const std::string &fileName, int mode = R_OK)
+	{
+		return lookup( fileName.c_str() );
+	}
 
 	void
 	dump(FILE *f = stdout);

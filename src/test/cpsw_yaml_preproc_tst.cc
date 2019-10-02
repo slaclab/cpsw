@@ -150,6 +150,7 @@ try {
 		fprintf(stderr,"Reading top should fail\n");		
 		throw TestFailed();
 	} catch (FailedStreamError &e) {
+	} catch (NotFoundError     &e) {
 	}
 
 	wrf(topyaml, TOP);

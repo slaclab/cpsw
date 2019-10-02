@@ -16,6 +16,8 @@
 #include <sstream>
 #include <string.h>
 
+#define YAML_PATH "YAML_PATH"
+
 StreamMuxBuf::StreamEl::StreamEl(Stream stream, const std::string *name, unsigned hdrLns)
 : stream       ( stream                       ),
   name         ( name ? *name : std::string() ),
@@ -149,52 +151,71 @@ std::stringstream *p = new std::stringstream( contents );
 	return Stream( p );
 }
 
-static void
-set_path(std::string *dst, const char *yaml_dir)
-{
-size_t l = yaml_dir ? strlen(yaml_dir) : 0;
-	if ( l > 0 ) {
-		std::string sep;
-		*dst = std::string(yaml_dir);
-		if ( yaml_dir[l-1] != '/' )
-			*dst += std::string("/");
-	}
-}
-
 YamlPreprocessor::YamlPreprocessor(StreamMuxBuf::Stream inp, StreamMuxBuf *mux, const char *yaml_dir)
-: main_(inp),
-  mainName_("<stream>"),
-  mux_(mux),
-  versionSet_(false),
-  major_(-1),
-  minor_(-1),
-  revision_(-1),
-  verbose_(false)
+: paths_     ( getenv( YAML_PATH ) ),
+  mainName_  ( "<stream>"          ),
+  main_      ( inp                 ),
+  mux_       ( mux                 ),
+  versionSet_( false               ),
+  major_     ( -1                  ),
+  minor_     ( -1                  ),
+  revision_  ( -1                  ),
+  verbose_   ( false               )
 {
-	set_path( &path_, yaml_dir );
 	if ( inp->fail() ) {
 		throw FailedStreamError("YamlPreprocessor: main stream has 'failed' status");
 	}
+	if ( ! yaml_dir && ! getenv( YAML_PATH ) ) {
+		yaml_dir = "./";
+	}
+	paths_.appendPath( yaml_dir );
+	// search for relative include files, e.g., include/blah.yaml
+	// in YAML_PATH
+	paths_.setTryAllNames( true );
+}
+
+static std::string
+buildMainName(const char *nm)
+{
+std::string rval( nm );
+	// if YAML_PATH is unset and the name contains no '/' then prepend './'
+	if ( ! strchr( nm, '/' ) && ! getenv( YAML_PATH ) ) {
+		return std::string( "./" ) + rval;
+	}
+	return rval;
 }
 
 YamlPreprocessor::YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, const char *yaml_dir)
-: main_( StreamMuxBuf::mkstrm( main_name ) ),
-  mainName_( main_name ),
-  mux_(mux),
-  versionSet_(false),
-  major_(-1),
-  minor_(-1),
-  revision_(-1),
-  verbose_(false)
+: paths_     ( getenv( YAML_PATH )                         ),
+  mainName_  ( paths_.lookup( buildMainName( main_name ) ) ),
+  main_      ( StreamMuxBuf::mkstrm( mainName_.c_str() )   ),
+  mux_       ( mux                                         ),
+  versionSet_( false                                       ),
+  major_     ( -1                                          ),
+  minor_     ( -1                                          ),
+  revision_  ( -1                                          ),
+  verbose_   ( false                                       )
 {
 const char  *sep;
 std::string  main_dir;
-	if ( ! yaml_dir && (sep = ::strrchr(main_name,'/')) ) {
-		main_dir = std::string(main_name);
-		main_dir.resize(sep - main_name);
-		yaml_dir = main_dir.c_str();
+	if ( ! yaml_dir ) {
+		if ( (sep = ::strrchr(main_name,'/')) ) {
+			main_dir = std::string(main_name);
+			main_dir.resize(sep - main_name);
+			yaml_dir = main_dir.c_str();
+		} else {
+			// Traditionally, the search path for files was './' if yaml_dir
+			// was empty. Switch this behavior off if YAML_PATH is set (user
+			// has to provide explicit settings).
+			if ( ! getenv( YAML_PATH ) ) {
+				yaml_dir = "./";
+			}
+		}
 	}
-	set_path( &path_, yaml_dir );
+	paths_.appendPath( yaml_dir );
+	// search for relative include files, e.g., include/blah.yaml
+	// in YAML_PATH
+	paths_.setTryAllNames( true );
 }
 
 bool
@@ -278,9 +299,8 @@ unsigned headerLines = 0;
 				len -= beg;
 
 			// recursively process included file
-			bool absPath = (0 == line.compare(beg ,1, "/"));
 
-			std::string incFnam( absPath ? line.substr(beg, len) : path_ + line.substr(beg, len) );
+			std::string incFnam( paths_.lookup( line.substr(beg, len).c_str() ) );
 
 			process( StreamMuxBuf::mkstrm( incFnam.c_str() ), incFnam );
 

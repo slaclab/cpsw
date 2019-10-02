@@ -11,7 +11,8 @@
 #include <string.h>
 #include <cpsw_error.h>
 
-FLookup::FLookup(const char *pathList)
+FLookup::FLookup(const char *pathList, bool tryAll)
+: tryAll_( tryAll )
 {
 char  *s = 0;
 char *col;
@@ -47,7 +48,7 @@ char *b;
 	free( s );
 }
 
-Flookup &
+FLookup &
 FLookup::appendPath(const char *path)
 {
 	if ( path && *path ) {
@@ -60,7 +61,7 @@ FLookup::appendPath(const char *path)
 	return *this;
 }
 
-Flookup &
+FLookup &
 FLookup::prependPath(const char *path)
 {
 	if ( path && *path ) {
@@ -86,7 +87,7 @@ L::const_iterator it;
 std::string
 FLookup::lookup(const char *fileName, int mode)
 {
-	if ( strchr( fileName, '/' ) ) {
+	if ( '/' == *fileName || (!tryAll_  && strchr( fileName, '/' )) ) {
 		/* don't consult the list */
 		if ( access( fileName, mode ) ) {
 			if ( ENOENT != errno ) {

@@ -17,6 +17,7 @@
 #include <string>
 
 #include <cpsw_compat.h>
+#include <cpsw_flookup.h>
 #include <cpsw_error.h>
 
 using std::streambuf;
@@ -89,11 +90,11 @@ public:
 class YamlPreprocessor {
 private:
 	typedef cpsw::unordered_set<std::string>  Map;
-	StreamMuxBuf::Stream                      main_;
+	FLookup                                   paths_;
 	std::string                               mainName_;
+	StreamMuxBuf::Stream                      main_;
 	StreamMuxBuf                             *mux_;
 	Map                                       tags_;
-	std::string                               path_;
 	bool                                      versionSet_;
 	int                                       major_;
 	int                                       minor_;
