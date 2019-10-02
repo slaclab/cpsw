@@ -26,11 +26,15 @@ public:
 	FLookup(const char *pathList);
 
 	// append a path to the list
-	void
+	// RETURNS: reference to this object; useful for chaining
+	//          appendPath("x").appendPath("y") ...
+	FLookup &
 	appendPath(const char *path);
 
 	// prepend a path to the list
-	void
+	// RETURNS: reference to this object; useful for chaining
+	//          prependPath("x").prependPath("y") ...
+	FLookup &
 	prependPath(const char *path);
 
 	// find a file in the list of paths and verify

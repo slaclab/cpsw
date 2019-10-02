@@ -47,30 +47,30 @@ char *b;
 	free( s );
 }
 
-void
+Flookup &
 FLookup::appendPath(const char *path)
 {
-	if ( ! *path )
-		return;
-
-	if ( path[strlen(path) - 1] != '/' ) {
-		l_.push_back( std::string( path ) + "/" );
-	} else {
-		l_.push_back( path );
+	if ( path && *path ) {
+		if ( path[strlen(path) - 1] != '/' ) {
+			l_.push_back( std::string( path ) + "/" );
+		} else {
+			l_.push_back( path );
+		}
 	}
+	return *this;
 }
 
-void
+Flookup &
 FLookup::prependPath(const char *path)
 {
-	if ( ! *path )
-		return;
-
-	if ( path[strlen(path) - 1] != '/' ) {
-		l_.push_front( std::string( path ) + "/" );
-	} else {
-		l_.push_front( path );
+	if ( path && *path ) {
+		if ( path[strlen(path) - 1] != '/' ) {
+			l_.push_front( std::string( path ) + "/" );
+		} else {
+			l_.push_front( path );
+		}
 	}
+	return *this;
 }
 
 void
