@@ -9,19 +9,17 @@
 
 #include <cpsw_flookup.h>
 #include <string.h>
-#include <stdlib.h>
 #include <cpsw_error.h>
 
-FLookup::FLookup(const char *envVarName)
+FLookup::FLookup(const char *pathList)
 {
-const char *so;
 char  *s = 0;
 char *col;
 char *b;
 
-	if ( (so = getenv( envVarName )) ) {
-		s = strdup( so );
-		for ( b = s; col = strchr(b, ':'); b = col+1 ) {
+	if ( pathList && *pathList ) {
+		s = strdup( pathList );
+		for ( b = s; (col = strchr(b, ':')); b = col+1 ) {
 			if ( col == b ) {
 				/* initial ':' or '::' */
 				appendPath( "." );
@@ -37,12 +35,12 @@ char *b;
 		} else {
 			/* A trailing colon leads to 'b' pointing at the
 			 * terminating "NUL" -- unless 's' had been empty
-			 * in the first place!
+			 * in the first place; this case is caught by
+			 * the initial test (*pathList) above.
 			 */
-			if ( b != s ) {
-				// trailing colon
-				appendPath( "." );
-			}
+
+			// trailing colon
+			appendPath( "." );
 		}
 	}
 
@@ -103,7 +101,7 @@ FLookup::lookup(const char *fileName, int mode)
 			if ( 0 == access( rval.c_str(), mode ) ) {
 				return rval;
 			} else if ( ENOENT != errno ) {
-				throw ErrnoError( std::string("FLookup: unable to access '") + fileName + "'" );
+				throw ErrnoError( std::string("FLookup: unable to access '") + rval + "'" );
 			}
 		}	
 	}

@@ -20,8 +20,10 @@ private:
 	typedef std::list<std::string> L;
 	L l_;
 public:
-	// construct initial list (':' separated paths in 'envVarName')
-	FLookup(const char *envVarName);
+	// construct initial list (':' separated paths).
+	// NOTE: a NULL pathList is legal (empty list);
+	//       useful when submitting getenv("XXX")...
+	FLookup(const char *pathList);
 
 	// append a path to the list
 	void

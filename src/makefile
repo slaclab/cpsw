@@ -75,6 +75,7 @@ cpsw_SRCS+= rpcMapLookup.c
 cpsw_SRCS+= prot_xdr.c
 cpsw_SRCS+= cpsw_fs_addr.cc
 cpsw_SRCS+= cpsw_yaml_merge.cc
+cpsw_SRCS+= cpsw_flookup.cc
 
 DEP_HEADERS  = $(HEADERS)
 DEP_HEADERS += cpsw_address.h
@@ -127,7 +128,8 @@ DEP_HEADERS += cpsw_python.h
 DEP_HEADERS += cpsw_cython.h
 DEP_HEADERS += cpsw_aligned_mmio.h
 DEP_HEADERS += cpsw_fs_addr.h
-DEP_HEADERA += cpsw_yaml_merge.h
+DEP_HEADERS += cpsw_yaml_merge.h
+DEP_HEADERS += cpsw_flookup.h
 
 STATIC_LIBRARIES_YES+=cpsw
 SHARED_LIBRARIES_YES+=cpsw
