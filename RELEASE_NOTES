@@ -1,3 +1,11 @@
+    Support for a YAML_PATH env-var. This can list multiple
+    directories where to look for YAML files. Useful, e.g., 
+    to locate files provided by user or globally which do not
+    reside in FW directory.
+
+    Added IEntry::dump() to python wrapper. Print useful info,
+    (in particular about networking in case of the root node).
+ 
 R4.2.0:
 
     Changed default RSSI retransmission/cumulative-ack timeouts
