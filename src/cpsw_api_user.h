@@ -333,6 +333,13 @@ public:
 	 * where *all* yaml files reside. NULL (or empty) instructs the
 	 * method to use the same directory where 'fileName' resides.
 	 *
+	 * If the environment variable YAML_PATH is set then it
+	 * is expected to contain a colon-separated list of paths
+	 * that are searched for yaml files. Note that these
+	 * paths take precedence over 'yamlDir', i.e., if the
+	 * same file is present in 'yamlDir' and one of the directories
+	 * listed in YAML_PATH then the latter one is used.
+	 *
 	 * The directory is relevant for included YAML files.
 	 *
 	 * RETURNS: Root path of the device hierarchy.
@@ -350,6 +357,9 @@ public:
 	 *
 	 * Optionally, 'yamlDir' may be passed which identifies a directory
 	 * where *all* yaml files reside. NULL (or empty) denotes CWD.
+	 * 
+	 * See 'loadYamlFile()' for additional locations defined in the
+	 * YAML_PATH environment variable.
 	 *
 	 * The directory is relevant for included YAML files.
 	 *
@@ -365,6 +375,9 @@ public:
 	/*!
 	 * Convenience wrapper which converts a C-style string into
 	 * std::istream and uses the overloaded method (see above).
+	 *
+	 * See 'loadYamlFile()' for additional locations defined in the
+	 * YAML_PATH environment variable.
 	 *
 	 * RETURNS: Root path of the device hierarchy.
 	 */
