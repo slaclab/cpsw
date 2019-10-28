@@ -1,3 +1,7 @@
+R4.3.1:
+
+    pycpsw.stamp had not been updated
+
 R4.3.0:
 
     Support for a YAML_PATH env-var. This can list multiple
