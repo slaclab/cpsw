@@ -81,276 +81,276 @@ struct CpswPyExcO_CPSWError {
   PyBaseExceptionObject __pyx_base;
 };
 
-/* "pycpsw.pyx":1304
+/* "pycpsw.pyx":1303
  *     return self._msg
  * 
  * cdef public class ErrnoError(CPSWError)[type CpswPyExcT_ErrnoError, object CpswPyExcO_ErrnoError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ErrnoError] foo = make_shared[cc_ErrnoError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_ErrnoError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1309
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1307
+ *     self._msg = msg
  * 
  * cdef public class IOError(ErrnoError)[type CpswPyExcT_IOError, object CpswPyExcO_IOError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_IOError] foo = make_shared[cc_IOError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_IOError {
   struct CpswPyExcO_ErrnoError __pyx_base;
 };
 
-/* "pycpsw.pyx":1314
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1311
+ *     self._msg = msg
  * 
  * cdef public class InternalError(ErrnoError)[type CpswPyExcT_InternalError, object CpswPyExcO_InternalError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InternalError] foo = make_shared[cc_InternalError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_InternalError {
   struct CpswPyExcO_ErrnoError __pyx_base;
 };
 
-/* "pycpsw.pyx":1319
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1315
+ *     self._msg = msg
  * 
  * cdef public class DuplicateNameError(CPSWError)[type CpswPyExcT_DuplicateNameError, object CpswPyExcO_DuplicateNameError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_DuplicateNameError] foo = make_shared[cc_DuplicateNameError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_DuplicateNameError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1324
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1319
+ *     self._msg = msg
  * 
  * cdef public class NotDevError(CPSWError)[type CpswPyExcT_NotDevError, object CpswPyExcO_NotDevError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_NotDevError] foo = make_shared[cc_NotDevError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_NotDevError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1329
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1323
+ *     self._msg = msg
  * 
  * cdef public class NotFoundError(CPSWError)[type CpswPyExcT_NotFoundError, object CpswPyExcO_NotFoundError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_NotFoundError] foo = make_shared[cc_NotFoundError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_NotFoundError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1334
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1327
+ *     self._msg = msg
  * 
  * cdef public class InvalidPathError(CPSWError)[type CpswPyExcT_InvalidPathError, object CpswPyExcO_InvalidPathError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidPathError] foo = make_shared[cc_InvalidPathError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_InvalidPathError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1339
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1331
+ *     self._msg = msg
  * 
  * cdef public class InvalidIdentError(CPSWError)[type CpswPyExcT_InvalidIdentError, object CpswPyExcO_InvalidIdentError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidIdentError] foo = make_shared[cc_InvalidIdentError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_InvalidIdentError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1344
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1335
+ *     self._msg = msg
  * 
  * cdef public class InvalidArgError(CPSWError)[type CpswPyExcT_InvalidArgError, object CpswPyExcO_InvalidArgError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidArgError] foo = make_shared[cc_InvalidArgError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_InvalidArgError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1349
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1339
+ *     self._msg = msg
  * 
  * cdef public class AddressAlreadyAttachedError(CPSWError)[type CpswPyExcT_AddressAlreadyAttachedError, object CpswPyExcO_AddressAlreadyAttachedError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_AddressAlreadyAttachedError] foo = make_shared[cc_AddressAlreadyAttachedError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_AddressAlreadyAttachedError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1354
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1343
+ *     self._msg = msg
  * 
  * cdef public class ConfigurationError(CPSWError)[type CpswPyExcT_ConfigurationError, object CpswPyExcO_ConfigurationError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ConfigurationError] foo = make_shared[cc_ConfigurationError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_ConfigurationError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1359
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1347
+ *     self._msg = msg
  * 
  * cdef public class AddrOutOfRangeError(CPSWError)[type CpswPyExcT_AddrOutOfRangeError, object CpswPyExcO_AddrOutOfRangeError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_AddrOutOfRangeError] foo = make_shared[cc_AddrOutOfRangeError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_AddrOutOfRangeError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1364
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1351
+ *     self._msg = msg
  * 
  * cdef public class ConversionError(CPSWError)[type CpswPyExcT_ConversionError, object CpswPyExcO_ConversionError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ConversionError] foo = make_shared[cc_ConversionError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_ConversionError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1369
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1355
+ *     self._msg = msg
  * 
  * cdef public class InterfaceNotImplementedError(CPSWError)[type CpswPyExcT_InterfaceNotImplementedError, object CpswPyExcO_InterfaceNotImplementedError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InterfaceNotImplementedError] foo = make_shared[cc_InterfaceNotImplementedError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_InterfaceNotImplementedError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1374
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1359
+ *     self._msg = msg
  * 
  * cdef public class BadStatusError(CPSWError)[type CpswPyExcT_BadStatusError, object CpswPyExcO_BadStatusError]:             # <<<<<<<<<<<<<<
- *   def __init__(self, str msg, int status):
- *     cdef shared_ptr[cc_BadStatusError] foo = make_shared[cc_BadStatusError]( msg, status )
+ *   def __init__(self, str msg):
+ *     self._msg = msg
  */
 struct CpswPyExcO_BadStatusError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1379
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1363
+ *     self._msg = msg
  * 
  * cdef public class IntrError(CPSWError)[type CpswPyExcT_IntrError, object CpswPyExcO_IntrError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_IntrError] foo = make_shared[cc_IntrError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_IntrError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1384
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1367
+ *     self._msg = msg
  * 
  * cdef public class StreamDoneError(CPSWError)[type CpswPyExcT_StreamDoneError, object CpswPyExcO_StreamDoneError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_StreamDoneError] foo = make_shared[cc_StreamDoneError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_StreamDoneError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1389
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1371
+ *     self._msg = msg
  * 
  * cdef public class FailedStreamError(CPSWError)[type CpswPyExcT_FailedStreamError, object CpswPyExcO_FailedStreamError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_FailedStreamError] foo = make_shared[cc_FailedStreamError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_FailedStreamError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1394
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1375
+ *     self._msg = msg
  * 
  * cdef public class MissingOnceTagError(CPSWError)[type CpswPyExcT_MissingOnceTagError, object CpswPyExcO_MissingOnceTagError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MissingOnceTagError] foo = make_shared[cc_MissingOnceTagError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_MissingOnceTagError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1399
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1379
+ *     self._msg = msg
  * 
  * cdef public class MissingIncludeFileNameError(CPSWError)[type CpswPyExcT_MissingIncludeFileNameError, object CpswPyExcO_MissingIncludeFileNameError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MissingIncludeFileNameError] foo = make_shared[cc_MissingIncludeFileNameError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_MissingIncludeFileNameError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1404
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1383
+ *     self._msg = msg
  * 
  * cdef public class NoYAMLSupportError(CPSWError)[type CpswPyExcT_NoYAMLSupportError, object CpswPyExcO_NoYAMLSupportError]:             # <<<<<<<<<<<<<<
- *   def __init__(self):
- *     cdef shared_ptr[cc_NoYAMLSupportError] foo = make_shared[cc_NoYAMLSupportError]()
+ *   def __init__(self, str msg):
+ *     self._msg = msg
  */
 struct CpswPyExcO_NoYAMLSupportError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1409
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1387
+ *     self._msg = msg
  * 
  * cdef public class NoError(CPSWError)[type CpswPyExcT_NoError, object CpswPyExcO_NoError]:             # <<<<<<<<<<<<<<
- *   def __init__(self):
- *     cdef shared_ptr[cc_NoError] foo = make_shared[cc_NoError]()
+ *   def __init__(self, str msg):
+ *     self._msg = msg
  */
 struct CpswPyExcO_NoError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1414
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1391
+ *     self._msg = msg
  * 
  * cdef public class MultipleInstantiationError(CPSWError)[type CpswPyExcT_MultipleInstantiationError, object CpswPyExcO_MultipleInstantiationError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MultipleInstantiationError] foo = make_shared[cc_MultipleInstantiationError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_MultipleInstantiationError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1419
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1395
+ *     self._msg = msg
  * 
  * cdef public class BadSchemaVersionError(CPSWError)[type CpswPyExcT_BadSchemaVersionError, object CpswPyExcO_BadSchemaVersionError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_BadSchemaVersionError] foo = make_shared[cc_BadSchemaVersionError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_BadSchemaVersionError {
   struct CpswPyExcO_CPSWError __pyx_base;
 };
 
-/* "pycpsw.pyx":1424
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1399
+ *     self._msg = msg
  * 
  * cdef public class TimeoutError(CPSWError)[type CpswPyExcT_TimeoutError, object CpswPyExcO_TimeoutError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_TimeoutError] foo = make_shared[cc_TimeoutError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_TimeoutError {
   struct CpswPyExcO_CPSWError __pyx_base;

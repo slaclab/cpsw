@@ -1392,12 +1392,12 @@ struct CpswPyExcO_CPSWError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_CPSWError;
 
-/* "pycpsw.pyx":1304
+/* "pycpsw.pyx":1303
  *     return self._msg
  * 
  * cdef public class ErrnoError(CPSWError)[type CpswPyExcT_ErrnoError, object CpswPyExcO_ErrnoError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ErrnoError] foo = make_shared[cc_ErrnoError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_ErrnoError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1405,12 +1405,12 @@ struct CpswPyExcO_ErrnoError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_ErrnoError;
 
-/* "pycpsw.pyx":1309
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1307
+ *     self._msg = msg
  * 
  * cdef public class IOError(ErrnoError)[type CpswPyExcT_IOError, object CpswPyExcO_IOError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_IOError] foo = make_shared[cc_IOError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_IOError {
   struct CpswPyExcO_ErrnoError __pyx_base;
@@ -1418,12 +1418,12 @@ struct CpswPyExcO_IOError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_IOError;
 
-/* "pycpsw.pyx":1314
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1311
+ *     self._msg = msg
  * 
  * cdef public class InternalError(ErrnoError)[type CpswPyExcT_InternalError, object CpswPyExcO_InternalError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InternalError] foo = make_shared[cc_InternalError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_InternalError {
   struct CpswPyExcO_ErrnoError __pyx_base;
@@ -1431,12 +1431,12 @@ struct CpswPyExcO_InternalError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_InternalError;
 
-/* "pycpsw.pyx":1319
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1315
+ *     self._msg = msg
  * 
  * cdef public class DuplicateNameError(CPSWError)[type CpswPyExcT_DuplicateNameError, object CpswPyExcO_DuplicateNameError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_DuplicateNameError] foo = make_shared[cc_DuplicateNameError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_DuplicateNameError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1444,12 +1444,12 @@ struct CpswPyExcO_DuplicateNameError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_DuplicateNameError;
 
-/* "pycpsw.pyx":1324
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1319
+ *     self._msg = msg
  * 
  * cdef public class NotDevError(CPSWError)[type CpswPyExcT_NotDevError, object CpswPyExcO_NotDevError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_NotDevError] foo = make_shared[cc_NotDevError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_NotDevError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1457,12 +1457,12 @@ struct CpswPyExcO_NotDevError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_NotDevError;
 
-/* "pycpsw.pyx":1329
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1323
+ *     self._msg = msg
  * 
  * cdef public class NotFoundError(CPSWError)[type CpswPyExcT_NotFoundError, object CpswPyExcO_NotFoundError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_NotFoundError] foo = make_shared[cc_NotFoundError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_NotFoundError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1470,12 +1470,12 @@ struct CpswPyExcO_NotFoundError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_NotFoundError;
 
-/* "pycpsw.pyx":1334
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1327
+ *     self._msg = msg
  * 
  * cdef public class InvalidPathError(CPSWError)[type CpswPyExcT_InvalidPathError, object CpswPyExcO_InvalidPathError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidPathError] foo = make_shared[cc_InvalidPathError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_InvalidPathError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1483,12 +1483,12 @@ struct CpswPyExcO_InvalidPathError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_InvalidPathError;
 
-/* "pycpsw.pyx":1339
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1331
+ *     self._msg = msg
  * 
  * cdef public class InvalidIdentError(CPSWError)[type CpswPyExcT_InvalidIdentError, object CpswPyExcO_InvalidIdentError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidIdentError] foo = make_shared[cc_InvalidIdentError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_InvalidIdentError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1496,12 +1496,12 @@ struct CpswPyExcO_InvalidIdentError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_InvalidIdentError;
 
-/* "pycpsw.pyx":1344
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1335
+ *     self._msg = msg
  * 
  * cdef public class InvalidArgError(CPSWError)[type CpswPyExcT_InvalidArgError, object CpswPyExcO_InvalidArgError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidArgError] foo = make_shared[cc_InvalidArgError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_InvalidArgError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1509,12 +1509,12 @@ struct CpswPyExcO_InvalidArgError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_InvalidArgError;
 
-/* "pycpsw.pyx":1349
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1339
+ *     self._msg = msg
  * 
  * cdef public class AddressAlreadyAttachedError(CPSWError)[type CpswPyExcT_AddressAlreadyAttachedError, object CpswPyExcO_AddressAlreadyAttachedError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_AddressAlreadyAttachedError] foo = make_shared[cc_AddressAlreadyAttachedError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_AddressAlreadyAttachedError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1522,12 +1522,12 @@ struct CpswPyExcO_AddressAlreadyAttachedError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_AddressAlreadyAttachedError;
 
-/* "pycpsw.pyx":1354
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1343
+ *     self._msg = msg
  * 
  * cdef public class ConfigurationError(CPSWError)[type CpswPyExcT_ConfigurationError, object CpswPyExcO_ConfigurationError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ConfigurationError] foo = make_shared[cc_ConfigurationError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_ConfigurationError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1535,12 +1535,12 @@ struct CpswPyExcO_ConfigurationError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_ConfigurationError;
 
-/* "pycpsw.pyx":1359
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1347
+ *     self._msg = msg
  * 
  * cdef public class AddrOutOfRangeError(CPSWError)[type CpswPyExcT_AddrOutOfRangeError, object CpswPyExcO_AddrOutOfRangeError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_AddrOutOfRangeError] foo = make_shared[cc_AddrOutOfRangeError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_AddrOutOfRangeError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1548,12 +1548,12 @@ struct CpswPyExcO_AddrOutOfRangeError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_AddrOutOfRangeError;
 
-/* "pycpsw.pyx":1364
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1351
+ *     self._msg = msg
  * 
  * cdef public class ConversionError(CPSWError)[type CpswPyExcT_ConversionError, object CpswPyExcO_ConversionError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ConversionError] foo = make_shared[cc_ConversionError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_ConversionError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1561,12 +1561,12 @@ struct CpswPyExcO_ConversionError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_ConversionError;
 
-/* "pycpsw.pyx":1369
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1355
+ *     self._msg = msg
  * 
  * cdef public class InterfaceNotImplementedError(CPSWError)[type CpswPyExcT_InterfaceNotImplementedError, object CpswPyExcO_InterfaceNotImplementedError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InterfaceNotImplementedError] foo = make_shared[cc_InterfaceNotImplementedError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_InterfaceNotImplementedError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1574,12 +1574,12 @@ struct CpswPyExcO_InterfaceNotImplementedError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_InterfaceNotImplementedError;
 
-/* "pycpsw.pyx":1374
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1359
+ *     self._msg = msg
  * 
  * cdef public class BadStatusError(CPSWError)[type CpswPyExcT_BadStatusError, object CpswPyExcO_BadStatusError]:             # <<<<<<<<<<<<<<
- *   def __init__(self, str msg, int status):
- *     cdef shared_ptr[cc_BadStatusError] foo = make_shared[cc_BadStatusError]( msg, status )
+ *   def __init__(self, str msg):
+ *     self._msg = msg
  */
 struct CpswPyExcO_BadStatusError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1587,12 +1587,12 @@ struct CpswPyExcO_BadStatusError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_BadStatusError;
 
-/* "pycpsw.pyx":1379
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1363
+ *     self._msg = msg
  * 
  * cdef public class IntrError(CPSWError)[type CpswPyExcT_IntrError, object CpswPyExcO_IntrError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_IntrError] foo = make_shared[cc_IntrError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_IntrError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1600,12 +1600,12 @@ struct CpswPyExcO_IntrError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_IntrError;
 
-/* "pycpsw.pyx":1384
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1367
+ *     self._msg = msg
  * 
  * cdef public class StreamDoneError(CPSWError)[type CpswPyExcT_StreamDoneError, object CpswPyExcO_StreamDoneError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_StreamDoneError] foo = make_shared[cc_StreamDoneError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_StreamDoneError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1613,12 +1613,12 @@ struct CpswPyExcO_StreamDoneError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_StreamDoneError;
 
-/* "pycpsw.pyx":1389
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1371
+ *     self._msg = msg
  * 
  * cdef public class FailedStreamError(CPSWError)[type CpswPyExcT_FailedStreamError, object CpswPyExcO_FailedStreamError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_FailedStreamError] foo = make_shared[cc_FailedStreamError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_FailedStreamError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1626,12 +1626,12 @@ struct CpswPyExcO_FailedStreamError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_FailedStreamError;
 
-/* "pycpsw.pyx":1394
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1375
+ *     self._msg = msg
  * 
  * cdef public class MissingOnceTagError(CPSWError)[type CpswPyExcT_MissingOnceTagError, object CpswPyExcO_MissingOnceTagError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MissingOnceTagError] foo = make_shared[cc_MissingOnceTagError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_MissingOnceTagError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1639,12 +1639,12 @@ struct CpswPyExcO_MissingOnceTagError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_MissingOnceTagError;
 
-/* "pycpsw.pyx":1399
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1379
+ *     self._msg = msg
  * 
  * cdef public class MissingIncludeFileNameError(CPSWError)[type CpswPyExcT_MissingIncludeFileNameError, object CpswPyExcO_MissingIncludeFileNameError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MissingIncludeFileNameError] foo = make_shared[cc_MissingIncludeFileNameError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_MissingIncludeFileNameError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1652,12 +1652,12 @@ struct CpswPyExcO_MissingIncludeFileNameError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_MissingIncludeFileNameError;
 
-/* "pycpsw.pyx":1404
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1383
+ *     self._msg = msg
  * 
  * cdef public class NoYAMLSupportError(CPSWError)[type CpswPyExcT_NoYAMLSupportError, object CpswPyExcO_NoYAMLSupportError]:             # <<<<<<<<<<<<<<
- *   def __init__(self):
- *     cdef shared_ptr[cc_NoYAMLSupportError] foo = make_shared[cc_NoYAMLSupportError]()
+ *   def __init__(self, str msg):
+ *     self._msg = msg
  */
 struct CpswPyExcO_NoYAMLSupportError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1665,12 +1665,12 @@ struct CpswPyExcO_NoYAMLSupportError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_NoYAMLSupportError;
 
-/* "pycpsw.pyx":1409
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1387
+ *     self._msg = msg
  * 
  * cdef public class NoError(CPSWError)[type CpswPyExcT_NoError, object CpswPyExcO_NoError]:             # <<<<<<<<<<<<<<
- *   def __init__(self):
- *     cdef shared_ptr[cc_NoError] foo = make_shared[cc_NoError]()
+ *   def __init__(self, str msg):
+ *     self._msg = msg
  */
 struct CpswPyExcO_NoError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1678,12 +1678,12 @@ struct CpswPyExcO_NoError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_NoError;
 
-/* "pycpsw.pyx":1414
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1391
+ *     self._msg = msg
  * 
  * cdef public class MultipleInstantiationError(CPSWError)[type CpswPyExcT_MultipleInstantiationError, object CpswPyExcO_MultipleInstantiationError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MultipleInstantiationError] foo = make_shared[cc_MultipleInstantiationError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_MultipleInstantiationError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1691,12 +1691,12 @@ struct CpswPyExcO_MultipleInstantiationError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_MultipleInstantiationError;
 
-/* "pycpsw.pyx":1419
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1395
+ *     self._msg = msg
  * 
  * cdef public class BadSchemaVersionError(CPSWError)[type CpswPyExcT_BadSchemaVersionError, object CpswPyExcO_BadSchemaVersionError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_BadSchemaVersionError] foo = make_shared[cc_BadSchemaVersionError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_BadSchemaVersionError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -1704,12 +1704,12 @@ struct CpswPyExcO_BadSchemaVersionError {
 
 __PYX_EXTERN_C DL_EXPORT(PyTypeObject) CpswPyExcT_BadSchemaVersionError;
 
-/* "pycpsw.pyx":1424
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1399
+ *     self._msg = msg
  * 
  * cdef public class TimeoutError(CPSWError)[type CpswPyExcT_TimeoutError, object CpswPyExcO_TimeoutError]:             # <<<<<<<<<<<<<<
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_TimeoutError] foo = make_shared[cc_TimeoutError]( msg )
+ *     self._msg = msg
  */
 struct CpswPyExcO_TimeoutError {
   struct CpswPyExcO_CPSWError __pyx_base;
@@ -2427,7 +2427,6 @@ static const char __pyx_k_offset[] = "offset";
 static const char __pyx_k_pickle[] = "pickle";
 static const char __pyx_k_pycpsw[] = "pycpsw";
 static const char __pyx_k_reduce[] = "__reduce__";
-static const char __pyx_k_status[] = "status";
 static const char __pyx_k_update[] = "update";
 static const char __pyx_k_values[] = "values";
 static const char __pyx_k_asyncIO[] = "asyncIO";
@@ -2616,7 +2615,6 @@ static PyObject *__pyx_n_s_setstate;
 static PyObject *__pyx_n_s_setstate_cython;
 static PyObject *__pyx_n_s_sobj;
 static PyObject *__pyx_n_s_staticmethod;
-static PyObject *__pyx_n_s_status;
 static PyObject *__pyx_kp_s_stringsource;
 static PyObject *__pyx_n_s_templFileName;
 static PyObject *__pyx_n_s_template;
@@ -2794,7 +2792,7 @@ static PyObject *__pyx_pf_6pycpsw_15ConversionError_4__setstate_cython__(struct 
 static int __pyx_pf_6pycpsw_28InterfaceNotImplementedError___init__(struct CpswPyExcO_InterfaceNotImplementedError *__pyx_v_self, PyObject *__pyx_v_msg); /* proto */
 static PyObject *__pyx_pf_6pycpsw_28InterfaceNotImplementedError_2__reduce_cython__(struct CpswPyExcO_InterfaceNotImplementedError *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_6pycpsw_28InterfaceNotImplementedError_4__setstate_cython__(struct CpswPyExcO_InterfaceNotImplementedError *__pyx_v_self, PyObject *__pyx_v___pyx_state); /* proto */
-static int __pyx_pf_6pycpsw_14BadStatusError___init__(struct CpswPyExcO_BadStatusError *__pyx_v_self, PyObject *__pyx_v_msg, int __pyx_v_status); /* proto */
+static int __pyx_pf_6pycpsw_14BadStatusError___init__(struct CpswPyExcO_BadStatusError *__pyx_v_self, PyObject *__pyx_v_msg); /* proto */
 static PyObject *__pyx_pf_6pycpsw_14BadStatusError_2__reduce_cython__(struct CpswPyExcO_BadStatusError *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_6pycpsw_14BadStatusError_4__setstate_cython__(struct CpswPyExcO_BadStatusError *__pyx_v_self, PyObject *__pyx_v___pyx_state); /* proto */
 static int __pyx_pf_6pycpsw_9IntrError___init__(struct CpswPyExcO_IntrError *__pyx_v_self, PyObject *__pyx_v_msg); /* proto */
@@ -2812,10 +2810,10 @@ static PyObject *__pyx_pf_6pycpsw_19MissingOnceTagError_4__setstate_cython__(str
 static int __pyx_pf_6pycpsw_27MissingIncludeFileNameError___init__(struct CpswPyExcO_MissingIncludeFileNameError *__pyx_v_self, PyObject *__pyx_v_msg); /* proto */
 static PyObject *__pyx_pf_6pycpsw_27MissingIncludeFileNameError_2__reduce_cython__(struct CpswPyExcO_MissingIncludeFileNameError *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_6pycpsw_27MissingIncludeFileNameError_4__setstate_cython__(struct CpswPyExcO_MissingIncludeFileNameError *__pyx_v_self, PyObject *__pyx_v___pyx_state); /* proto */
-static int __pyx_pf_6pycpsw_18NoYAMLSupportError___init__(struct CpswPyExcO_NoYAMLSupportError *__pyx_v_self); /* proto */
+static int __pyx_pf_6pycpsw_18NoYAMLSupportError___init__(struct CpswPyExcO_NoYAMLSupportError *__pyx_v_self, PyObject *__pyx_v_msg); /* proto */
 static PyObject *__pyx_pf_6pycpsw_18NoYAMLSupportError_2__reduce_cython__(struct CpswPyExcO_NoYAMLSupportError *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_6pycpsw_18NoYAMLSupportError_4__setstate_cython__(struct CpswPyExcO_NoYAMLSupportError *__pyx_v_self, PyObject *__pyx_v___pyx_state); /* proto */
-static int __pyx_pf_6pycpsw_7NoError___init__(struct CpswPyExcO_NoError *__pyx_v_self); /* proto */
+static int __pyx_pf_6pycpsw_7NoError___init__(struct CpswPyExcO_NoError *__pyx_v_self, PyObject *__pyx_v_msg); /* proto */
 static PyObject *__pyx_pf_6pycpsw_7NoError_2__reduce_cython__(struct CpswPyExcO_NoError *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_6pycpsw_7NoError_4__setstate_cython__(struct CpswPyExcO_NoError *__pyx_v_self, PyObject *__pyx_v___pyx_state); /* proto */
 static int __pyx_pf_6pycpsw_26MultipleInstantiationError___init__(struct CpswPyExcO_MultipleInstantiationError *__pyx_v_self, PyObject *__pyx_v_msg); /* proto */
@@ -15695,8 +15693,8 @@ static PyObject *__pyx_pf_6pycpsw_2setCPSWVerbosity(CYTHON_UNUSED PyObject *__py
  * cdef public class CPSWError(Exception)[type CpswPyExcT_CPSWError, object CpswPyExcO_CPSWError]:
  * 
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_CPSWError] foo = make_shared[cc_CPSWError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -15755,55 +15753,31 @@ static int __pyx_pw_6pycpsw_9CPSWError_1__init__(PyObject *__pyx_v_self, PyObjec
 }
 
 static int __pyx_pf_6pycpsw_9CPSWError___init__(struct CpswPyExcO_CPSWError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<CPSWError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<CPSWError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
   /* "pycpsw.pyx":1298
  * 
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_CPSWError] foo = make_shared[cc_CPSWError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1298, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<CPSWError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1298, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1299
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_CPSWError] foo = make_shared[cc_CPSWError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  *   def what(self):
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1299, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1299, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1298, __pyx_L1_error)
 
   /* "pycpsw.pyx":1297
  * cdef public class CPSWError(Exception)[type CpswPyExcT_CPSWError, object CpswPyExcO_CPSWError]:
  * 
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_CPSWError] foo = make_shared[cc_CPSWError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.CPSWError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -15811,8 +15785,8 @@ static int __pyx_pf_6pycpsw_9CPSWError___init__(struct CpswPyExcO_CPSWError *__p
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1301
- *     self._msg = foo.get().what()
+/* "pycpsw.pyx":1300
+ *     self._msg = msg
  * 
  *   def what(self):             # <<<<<<<<<<<<<<
  *     return self._msg
@@ -15839,7 +15813,7 @@ static PyObject *__pyx_pf_6pycpsw_9CPSWError_2what(struct CpswPyExcO_CPSWError *
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("what", 0);
 
-  /* "pycpsw.pyx":1302
+  /* "pycpsw.pyx":1301
  * 
  *   def what(self):
  *     return self._msg             # <<<<<<<<<<<<<<
@@ -15847,14 +15821,14 @@ static PyObject *__pyx_pf_6pycpsw_9CPSWError_2what(struct CpswPyExcO_CPSWError *
  * cdef public class ErrnoError(CPSWError)[type CpswPyExcT_ErrnoError, object CpswPyExcO_ErrnoError]:
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 1302, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 1301, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pycpsw.pyx":1301
- *     self._msg = foo.get().what()
+  /* "pycpsw.pyx":1300
+ *     self._msg = msg
  * 
  *   def what(self):             # <<<<<<<<<<<<<<
  *     return self._msg
@@ -16155,12 +16129,12 @@ static PyObject *__pyx_pf_6pycpsw_9CPSWError_6__setstate_cython__(struct CpswPyE
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1305
+/* "pycpsw.pyx":1304
  * 
  * cdef public class ErrnoError(CPSWError)[type CpswPyExcT_ErrnoError, object CpswPyExcO_ErrnoError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_ErrnoError] foo = make_shared[cc_ErrnoError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -16189,7 +16163,7 @@ static int __pyx_pw_6pycpsw_10ErrnoError_1__init__(PyObject *__pyx_v_self, PyObj
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1305, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1304, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -16200,13 +16174,13 @@ static int __pyx_pw_6pycpsw_10ErrnoError_1__init__(PyObject *__pyx_v_self, PyObj
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1305, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1304, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.ErrnoError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1305, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1304, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_10ErrnoError___init__(((struct CpswPyExcO_ErrnoError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -16219,55 +16193,31 @@ static int __pyx_pw_6pycpsw_10ErrnoError_1__init__(PyObject *__pyx_v_self, PyObj
 }
 
 static int __pyx_pf_6pycpsw_10ErrnoError___init__(struct CpswPyExcO_ErrnoError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<ErrnoError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<ErrnoError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1306
+  /* "pycpsw.pyx":1305
  * cdef public class ErrnoError(CPSWError)[type CpswPyExcT_ErrnoError, object CpswPyExcO_ErrnoError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ErrnoError] foo = make_shared[cc_ErrnoError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1306, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<ErrnoError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1306, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1307
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ErrnoError] foo = make_shared[cc_ErrnoError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class IOError(ErrnoError)[type CpswPyExcT_IOError, object CpswPyExcO_IOError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1307, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1307, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1305, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1305
+  /* "pycpsw.pyx":1304
  * 
  * cdef public class ErrnoError(CPSWError)[type CpswPyExcT_ErrnoError, object CpswPyExcO_ErrnoError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_ErrnoError] foo = make_shared[cc_ErrnoError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.ErrnoError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -16558,12 +16508,12 @@ static PyObject *__pyx_pf_6pycpsw_10ErrnoError_4__setstate_cython__(struct CpswP
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1310
+/* "pycpsw.pyx":1308
  * 
  * cdef public class IOError(ErrnoError)[type CpswPyExcT_IOError, object CpswPyExcO_IOError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_IOError] foo = make_shared[cc_IOError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -16592,7 +16542,7 @@ static int __pyx_pw_6pycpsw_7IOError_1__init__(PyObject *__pyx_v_self, PyObject 
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1310, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1308, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -16603,13 +16553,13 @@ static int __pyx_pw_6pycpsw_7IOError_1__init__(PyObject *__pyx_v_self, PyObject 
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1310, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1308, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.IOError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1310, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1308, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_7IOError___init__(((struct CpswPyExcO_IOError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -16622,55 +16572,31 @@ static int __pyx_pw_6pycpsw_7IOError_1__init__(PyObject *__pyx_v_self, PyObject 
 }
 
 static int __pyx_pf_6pycpsw_7IOError___init__(struct CpswPyExcO_IOError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<IOError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<IOError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1311
+  /* "pycpsw.pyx":1309
  * cdef public class IOError(ErrnoError)[type CpswPyExcT_IOError, object CpswPyExcO_IOError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_IOError] foo = make_shared[cc_IOError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1311, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<IOError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1311, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1312
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_IOError] foo = make_shared[cc_IOError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class InternalError(ErrnoError)[type CpswPyExcT_InternalError, object CpswPyExcO_InternalError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1312, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1312, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1309, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1310
+  /* "pycpsw.pyx":1308
  * 
  * cdef public class IOError(ErrnoError)[type CpswPyExcT_IOError, object CpswPyExcO_IOError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_IOError] foo = make_shared[cc_IOError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.IOError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -16961,12 +16887,12 @@ static PyObject *__pyx_pf_6pycpsw_7IOError_4__setstate_cython__(struct CpswPyExc
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1315
+/* "pycpsw.pyx":1312
  * 
  * cdef public class InternalError(ErrnoError)[type CpswPyExcT_InternalError, object CpswPyExcO_InternalError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_InternalError] foo = make_shared[cc_InternalError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -16995,7 +16921,7 @@ static int __pyx_pw_6pycpsw_13InternalError_1__init__(PyObject *__pyx_v_self, Py
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1315, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1312, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -17006,13 +16932,13 @@ static int __pyx_pw_6pycpsw_13InternalError_1__init__(PyObject *__pyx_v_self, Py
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1315, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1312, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.InternalError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1315, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1312, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_13InternalError___init__(((struct CpswPyExcO_InternalError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -17025,55 +16951,31 @@ static int __pyx_pw_6pycpsw_13InternalError_1__init__(PyObject *__pyx_v_self, Py
 }
 
 static int __pyx_pf_6pycpsw_13InternalError___init__(struct CpswPyExcO_InternalError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<InternalError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<InternalError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1316
+  /* "pycpsw.pyx":1313
  * cdef public class InternalError(ErrnoError)[type CpswPyExcT_InternalError, object CpswPyExcO_InternalError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InternalError] foo = make_shared[cc_InternalError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1316, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<InternalError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1316, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1317
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InternalError] foo = make_shared[cc_InternalError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class DuplicateNameError(CPSWError)[type CpswPyExcT_DuplicateNameError, object CpswPyExcO_DuplicateNameError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1317, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1317, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1313, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1315
+  /* "pycpsw.pyx":1312
  * 
  * cdef public class InternalError(ErrnoError)[type CpswPyExcT_InternalError, object CpswPyExcO_InternalError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_InternalError] foo = make_shared[cc_InternalError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.InternalError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -17364,12 +17266,12 @@ static PyObject *__pyx_pf_6pycpsw_13InternalError_4__setstate_cython__(struct Cp
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1320
+/* "pycpsw.pyx":1316
  * 
  * cdef public class DuplicateNameError(CPSWError)[type CpswPyExcT_DuplicateNameError, object CpswPyExcO_DuplicateNameError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_DuplicateNameError] foo = make_shared[cc_DuplicateNameError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -17398,7 +17300,7 @@ static int __pyx_pw_6pycpsw_18DuplicateNameError_1__init__(PyObject *__pyx_v_sel
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1320, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1316, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -17409,13 +17311,13 @@ static int __pyx_pw_6pycpsw_18DuplicateNameError_1__init__(PyObject *__pyx_v_sel
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1320, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1316, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.DuplicateNameError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1320, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1316, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_18DuplicateNameError___init__(((struct CpswPyExcO_DuplicateNameError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -17428,55 +17330,31 @@ static int __pyx_pw_6pycpsw_18DuplicateNameError_1__init__(PyObject *__pyx_v_sel
 }
 
 static int __pyx_pf_6pycpsw_18DuplicateNameError___init__(struct CpswPyExcO_DuplicateNameError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<DuplicateNameError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<DuplicateNameError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1321
+  /* "pycpsw.pyx":1317
  * cdef public class DuplicateNameError(CPSWError)[type CpswPyExcT_DuplicateNameError, object CpswPyExcO_DuplicateNameError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_DuplicateNameError] foo = make_shared[cc_DuplicateNameError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1321, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<DuplicateNameError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1321, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1322
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_DuplicateNameError] foo = make_shared[cc_DuplicateNameError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class NotDevError(CPSWError)[type CpswPyExcT_NotDevError, object CpswPyExcO_NotDevError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1322, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1322, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1317, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1320
+  /* "pycpsw.pyx":1316
  * 
  * cdef public class DuplicateNameError(CPSWError)[type CpswPyExcT_DuplicateNameError, object CpswPyExcO_DuplicateNameError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_DuplicateNameError] foo = make_shared[cc_DuplicateNameError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.DuplicateNameError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -17767,12 +17645,12 @@ static PyObject *__pyx_pf_6pycpsw_18DuplicateNameError_4__setstate_cython__(stru
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1325
+/* "pycpsw.pyx":1320
  * 
  * cdef public class NotDevError(CPSWError)[type CpswPyExcT_NotDevError, object CpswPyExcO_NotDevError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_NotDevError] foo = make_shared[cc_NotDevError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -17801,7 +17679,7 @@ static int __pyx_pw_6pycpsw_11NotDevError_1__init__(PyObject *__pyx_v_self, PyOb
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1325, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1320, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -17812,13 +17690,13 @@ static int __pyx_pw_6pycpsw_11NotDevError_1__init__(PyObject *__pyx_v_self, PyOb
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1325, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1320, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.NotDevError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1325, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1320, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_11NotDevError___init__(((struct CpswPyExcO_NotDevError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -17831,55 +17709,31 @@ static int __pyx_pw_6pycpsw_11NotDevError_1__init__(PyObject *__pyx_v_self, PyOb
 }
 
 static int __pyx_pf_6pycpsw_11NotDevError___init__(struct CpswPyExcO_NotDevError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<NotDevError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<NotDevError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1326
+  /* "pycpsw.pyx":1321
  * cdef public class NotDevError(CPSWError)[type CpswPyExcT_NotDevError, object CpswPyExcO_NotDevError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_NotDevError] foo = make_shared[cc_NotDevError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1326, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<NotDevError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1326, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1327
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_NotDevError] foo = make_shared[cc_NotDevError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class NotFoundError(CPSWError)[type CpswPyExcT_NotFoundError, object CpswPyExcO_NotFoundError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1327, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1327, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1321, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1325
+  /* "pycpsw.pyx":1320
  * 
  * cdef public class NotDevError(CPSWError)[type CpswPyExcT_NotDevError, object CpswPyExcO_NotDevError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_NotDevError] foo = make_shared[cc_NotDevError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.NotDevError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -18170,12 +18024,12 @@ static PyObject *__pyx_pf_6pycpsw_11NotDevError_4__setstate_cython__(struct Cpsw
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1330
+/* "pycpsw.pyx":1324
  * 
  * cdef public class NotFoundError(CPSWError)[type CpswPyExcT_NotFoundError, object CpswPyExcO_NotFoundError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_NotFoundError] foo = make_shared[cc_NotFoundError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -18204,7 +18058,7 @@ static int __pyx_pw_6pycpsw_13NotFoundError_1__init__(PyObject *__pyx_v_self, Py
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1330, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1324, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -18215,13 +18069,13 @@ static int __pyx_pw_6pycpsw_13NotFoundError_1__init__(PyObject *__pyx_v_self, Py
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1330, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1324, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.NotFoundError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1330, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1324, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_13NotFoundError___init__(((struct CpswPyExcO_NotFoundError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -18234,55 +18088,31 @@ static int __pyx_pw_6pycpsw_13NotFoundError_1__init__(PyObject *__pyx_v_self, Py
 }
 
 static int __pyx_pf_6pycpsw_13NotFoundError___init__(struct CpswPyExcO_NotFoundError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<NotFoundError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<NotFoundError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1331
+  /* "pycpsw.pyx":1325
  * cdef public class NotFoundError(CPSWError)[type CpswPyExcT_NotFoundError, object CpswPyExcO_NotFoundError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_NotFoundError] foo = make_shared[cc_NotFoundError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1331, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<NotFoundError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1331, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1332
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_NotFoundError] foo = make_shared[cc_NotFoundError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class InvalidPathError(CPSWError)[type CpswPyExcT_InvalidPathError, object CpswPyExcO_InvalidPathError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1332, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1332, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1325, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1330
+  /* "pycpsw.pyx":1324
  * 
  * cdef public class NotFoundError(CPSWError)[type CpswPyExcT_NotFoundError, object CpswPyExcO_NotFoundError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_NotFoundError] foo = make_shared[cc_NotFoundError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.NotFoundError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -18573,12 +18403,12 @@ static PyObject *__pyx_pf_6pycpsw_13NotFoundError_4__setstate_cython__(struct Cp
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1335
+/* "pycpsw.pyx":1328
  * 
  * cdef public class InvalidPathError(CPSWError)[type CpswPyExcT_InvalidPathError, object CpswPyExcO_InvalidPathError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_InvalidPathError] foo = make_shared[cc_InvalidPathError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -18607,7 +18437,7 @@ static int __pyx_pw_6pycpsw_16InvalidPathError_1__init__(PyObject *__pyx_v_self,
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1335, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1328, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -18618,13 +18448,13 @@ static int __pyx_pw_6pycpsw_16InvalidPathError_1__init__(PyObject *__pyx_v_self,
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1335, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1328, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.InvalidPathError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1335, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1328, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_16InvalidPathError___init__(((struct CpswPyExcO_InvalidPathError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -18637,55 +18467,31 @@ static int __pyx_pw_6pycpsw_16InvalidPathError_1__init__(PyObject *__pyx_v_self,
 }
 
 static int __pyx_pf_6pycpsw_16InvalidPathError___init__(struct CpswPyExcO_InvalidPathError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<InvalidPathError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<InvalidPathError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1336
+  /* "pycpsw.pyx":1329
  * cdef public class InvalidPathError(CPSWError)[type CpswPyExcT_InvalidPathError, object CpswPyExcO_InvalidPathError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidPathError] foo = make_shared[cc_InvalidPathError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1336, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<InvalidPathError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1336, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1337
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidPathError] foo = make_shared[cc_InvalidPathError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class InvalidIdentError(CPSWError)[type CpswPyExcT_InvalidIdentError, object CpswPyExcO_InvalidIdentError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1337, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1337, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1329, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1335
+  /* "pycpsw.pyx":1328
  * 
  * cdef public class InvalidPathError(CPSWError)[type CpswPyExcT_InvalidPathError, object CpswPyExcO_InvalidPathError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_InvalidPathError] foo = make_shared[cc_InvalidPathError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.InvalidPathError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -18976,12 +18782,12 @@ static PyObject *__pyx_pf_6pycpsw_16InvalidPathError_4__setstate_cython__(struct
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1340
+/* "pycpsw.pyx":1332
  * 
  * cdef public class InvalidIdentError(CPSWError)[type CpswPyExcT_InvalidIdentError, object CpswPyExcO_InvalidIdentError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_InvalidIdentError] foo = make_shared[cc_InvalidIdentError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -19010,7 +18816,7 @@ static int __pyx_pw_6pycpsw_17InvalidIdentError_1__init__(PyObject *__pyx_v_self
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1340, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1332, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -19021,13 +18827,13 @@ static int __pyx_pw_6pycpsw_17InvalidIdentError_1__init__(PyObject *__pyx_v_self
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1340, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1332, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.InvalidIdentError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1340, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1332, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_17InvalidIdentError___init__(((struct CpswPyExcO_InvalidIdentError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -19040,55 +18846,31 @@ static int __pyx_pw_6pycpsw_17InvalidIdentError_1__init__(PyObject *__pyx_v_self
 }
 
 static int __pyx_pf_6pycpsw_17InvalidIdentError___init__(struct CpswPyExcO_InvalidIdentError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<InvalidIdentError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<InvalidIdentError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1341
+  /* "pycpsw.pyx":1333
  * cdef public class InvalidIdentError(CPSWError)[type CpswPyExcT_InvalidIdentError, object CpswPyExcO_InvalidIdentError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidIdentError] foo = make_shared[cc_InvalidIdentError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1341, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<InvalidIdentError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1341, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1342
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidIdentError] foo = make_shared[cc_InvalidIdentError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class InvalidArgError(CPSWError)[type CpswPyExcT_InvalidArgError, object CpswPyExcO_InvalidArgError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1342, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1342, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1333, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1340
+  /* "pycpsw.pyx":1332
  * 
  * cdef public class InvalidIdentError(CPSWError)[type CpswPyExcT_InvalidIdentError, object CpswPyExcO_InvalidIdentError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_InvalidIdentError] foo = make_shared[cc_InvalidIdentError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.InvalidIdentError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -19379,12 +19161,12 @@ static PyObject *__pyx_pf_6pycpsw_17InvalidIdentError_4__setstate_cython__(struc
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1345
+/* "pycpsw.pyx":1336
  * 
  * cdef public class InvalidArgError(CPSWError)[type CpswPyExcT_InvalidArgError, object CpswPyExcO_InvalidArgError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_InvalidArgError] foo = make_shared[cc_InvalidArgError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -19413,7 +19195,7 @@ static int __pyx_pw_6pycpsw_15InvalidArgError_1__init__(PyObject *__pyx_v_self, 
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1345, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1336, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -19424,13 +19206,13 @@ static int __pyx_pw_6pycpsw_15InvalidArgError_1__init__(PyObject *__pyx_v_self, 
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1345, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1336, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.InvalidArgError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1345, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1336, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_15InvalidArgError___init__(((struct CpswPyExcO_InvalidArgError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -19443,55 +19225,31 @@ static int __pyx_pw_6pycpsw_15InvalidArgError_1__init__(PyObject *__pyx_v_self, 
 }
 
 static int __pyx_pf_6pycpsw_15InvalidArgError___init__(struct CpswPyExcO_InvalidArgError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<InvalidArgError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<InvalidArgError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1346
+  /* "pycpsw.pyx":1337
  * cdef public class InvalidArgError(CPSWError)[type CpswPyExcT_InvalidArgError, object CpswPyExcO_InvalidArgError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidArgError] foo = make_shared[cc_InvalidArgError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1346, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<InvalidArgError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1346, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1347
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InvalidArgError] foo = make_shared[cc_InvalidArgError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class AddressAlreadyAttachedError(CPSWError)[type CpswPyExcT_AddressAlreadyAttachedError, object CpswPyExcO_AddressAlreadyAttachedError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1347, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1347, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1337, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1345
+  /* "pycpsw.pyx":1336
  * 
  * cdef public class InvalidArgError(CPSWError)[type CpswPyExcT_InvalidArgError, object CpswPyExcO_InvalidArgError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_InvalidArgError] foo = make_shared[cc_InvalidArgError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.InvalidArgError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -19782,12 +19540,12 @@ static PyObject *__pyx_pf_6pycpsw_15InvalidArgError_4__setstate_cython__(struct 
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1350
+/* "pycpsw.pyx":1340
  * 
  * cdef public class AddressAlreadyAttachedError(CPSWError)[type CpswPyExcT_AddressAlreadyAttachedError, object CpswPyExcO_AddressAlreadyAttachedError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_AddressAlreadyAttachedError] foo = make_shared[cc_AddressAlreadyAttachedError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -19816,7 +19574,7 @@ static int __pyx_pw_6pycpsw_27AddressAlreadyAttachedError_1__init__(PyObject *__
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1350, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1340, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -19827,13 +19585,13 @@ static int __pyx_pw_6pycpsw_27AddressAlreadyAttachedError_1__init__(PyObject *__
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1350, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1340, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.AddressAlreadyAttachedError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1350, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1340, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_27AddressAlreadyAttachedError___init__(((struct CpswPyExcO_AddressAlreadyAttachedError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -19846,55 +19604,31 @@ static int __pyx_pw_6pycpsw_27AddressAlreadyAttachedError_1__init__(PyObject *__
 }
 
 static int __pyx_pf_6pycpsw_27AddressAlreadyAttachedError___init__(struct CpswPyExcO_AddressAlreadyAttachedError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<AddressAlreadyAttachedError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<AddressAlreadyAttachedError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1351
+  /* "pycpsw.pyx":1341
  * cdef public class AddressAlreadyAttachedError(CPSWError)[type CpswPyExcT_AddressAlreadyAttachedError, object CpswPyExcO_AddressAlreadyAttachedError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_AddressAlreadyAttachedError] foo = make_shared[cc_AddressAlreadyAttachedError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1351, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<AddressAlreadyAttachedError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1351, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1352
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_AddressAlreadyAttachedError] foo = make_shared[cc_AddressAlreadyAttachedError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class ConfigurationError(CPSWError)[type CpswPyExcT_ConfigurationError, object CpswPyExcO_ConfigurationError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1352, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1352, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1341, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1350
+  /* "pycpsw.pyx":1340
  * 
  * cdef public class AddressAlreadyAttachedError(CPSWError)[type CpswPyExcT_AddressAlreadyAttachedError, object CpswPyExcO_AddressAlreadyAttachedError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_AddressAlreadyAttachedError] foo = make_shared[cc_AddressAlreadyAttachedError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.AddressAlreadyAttachedError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -20185,12 +19919,12 @@ static PyObject *__pyx_pf_6pycpsw_27AddressAlreadyAttachedError_4__setstate_cyth
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1355
+/* "pycpsw.pyx":1344
  * 
  * cdef public class ConfigurationError(CPSWError)[type CpswPyExcT_ConfigurationError, object CpswPyExcO_ConfigurationError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_ConfigurationError] foo = make_shared[cc_ConfigurationError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -20219,7 +19953,7 @@ static int __pyx_pw_6pycpsw_18ConfigurationError_1__init__(PyObject *__pyx_v_sel
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1355, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1344, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -20230,13 +19964,13 @@ static int __pyx_pw_6pycpsw_18ConfigurationError_1__init__(PyObject *__pyx_v_sel
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1355, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1344, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.ConfigurationError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1355, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1344, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_18ConfigurationError___init__(((struct CpswPyExcO_ConfigurationError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -20249,55 +19983,31 @@ static int __pyx_pw_6pycpsw_18ConfigurationError_1__init__(PyObject *__pyx_v_sel
 }
 
 static int __pyx_pf_6pycpsw_18ConfigurationError___init__(struct CpswPyExcO_ConfigurationError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<ConfigurationError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<ConfigurationError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1356
+  /* "pycpsw.pyx":1345
  * cdef public class ConfigurationError(CPSWError)[type CpswPyExcT_ConfigurationError, object CpswPyExcO_ConfigurationError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ConfigurationError] foo = make_shared[cc_ConfigurationError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1356, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<ConfigurationError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1356, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1357
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ConfigurationError] foo = make_shared[cc_ConfigurationError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class AddrOutOfRangeError(CPSWError)[type CpswPyExcT_AddrOutOfRangeError, object CpswPyExcO_AddrOutOfRangeError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1357, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1357, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1345, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1355
+  /* "pycpsw.pyx":1344
  * 
  * cdef public class ConfigurationError(CPSWError)[type CpswPyExcT_ConfigurationError, object CpswPyExcO_ConfigurationError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_ConfigurationError] foo = make_shared[cc_ConfigurationError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.ConfigurationError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -20588,12 +20298,12 @@ static PyObject *__pyx_pf_6pycpsw_18ConfigurationError_4__setstate_cython__(stru
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1360
+/* "pycpsw.pyx":1348
  * 
  * cdef public class AddrOutOfRangeError(CPSWError)[type CpswPyExcT_AddrOutOfRangeError, object CpswPyExcO_AddrOutOfRangeError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_AddrOutOfRangeError] foo = make_shared[cc_AddrOutOfRangeError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -20622,7 +20332,7 @@ static int __pyx_pw_6pycpsw_19AddrOutOfRangeError_1__init__(PyObject *__pyx_v_se
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1360, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1348, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -20633,13 +20343,13 @@ static int __pyx_pw_6pycpsw_19AddrOutOfRangeError_1__init__(PyObject *__pyx_v_se
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1360, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1348, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.AddrOutOfRangeError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1360, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1348, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_19AddrOutOfRangeError___init__(((struct CpswPyExcO_AddrOutOfRangeError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -20652,55 +20362,31 @@ static int __pyx_pw_6pycpsw_19AddrOutOfRangeError_1__init__(PyObject *__pyx_v_se
 }
 
 static int __pyx_pf_6pycpsw_19AddrOutOfRangeError___init__(struct CpswPyExcO_AddrOutOfRangeError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<AddrOutOfRangeError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<AddrOutOfRangeError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1361
+  /* "pycpsw.pyx":1349
  * cdef public class AddrOutOfRangeError(CPSWError)[type CpswPyExcT_AddrOutOfRangeError, object CpswPyExcO_AddrOutOfRangeError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_AddrOutOfRangeError] foo = make_shared[cc_AddrOutOfRangeError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1361, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<AddrOutOfRangeError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1361, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1362
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_AddrOutOfRangeError] foo = make_shared[cc_AddrOutOfRangeError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class ConversionError(CPSWError)[type CpswPyExcT_ConversionError, object CpswPyExcO_ConversionError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1362, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1362, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1349, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1360
+  /* "pycpsw.pyx":1348
  * 
  * cdef public class AddrOutOfRangeError(CPSWError)[type CpswPyExcT_AddrOutOfRangeError, object CpswPyExcO_AddrOutOfRangeError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_AddrOutOfRangeError] foo = make_shared[cc_AddrOutOfRangeError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.AddrOutOfRangeError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -20991,12 +20677,12 @@ static PyObject *__pyx_pf_6pycpsw_19AddrOutOfRangeError_4__setstate_cython__(str
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1365
+/* "pycpsw.pyx":1352
  * 
  * cdef public class ConversionError(CPSWError)[type CpswPyExcT_ConversionError, object CpswPyExcO_ConversionError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_ConversionError] foo = make_shared[cc_ConversionError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -21025,7 +20711,7 @@ static int __pyx_pw_6pycpsw_15ConversionError_1__init__(PyObject *__pyx_v_self, 
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1365, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1352, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -21036,13 +20722,13 @@ static int __pyx_pw_6pycpsw_15ConversionError_1__init__(PyObject *__pyx_v_self, 
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1365, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1352, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.ConversionError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1365, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1352, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_15ConversionError___init__(((struct CpswPyExcO_ConversionError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -21055,55 +20741,31 @@ static int __pyx_pw_6pycpsw_15ConversionError_1__init__(PyObject *__pyx_v_self, 
 }
 
 static int __pyx_pf_6pycpsw_15ConversionError___init__(struct CpswPyExcO_ConversionError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<ConversionError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<ConversionError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1366
+  /* "pycpsw.pyx":1353
  * cdef public class ConversionError(CPSWError)[type CpswPyExcT_ConversionError, object CpswPyExcO_ConversionError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ConversionError] foo = make_shared[cc_ConversionError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1366, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<ConversionError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1366, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1367
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_ConversionError] foo = make_shared[cc_ConversionError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class InterfaceNotImplementedError(CPSWError)[type CpswPyExcT_InterfaceNotImplementedError, object CpswPyExcO_InterfaceNotImplementedError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1367, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1367, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1353, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1365
+  /* "pycpsw.pyx":1352
  * 
  * cdef public class ConversionError(CPSWError)[type CpswPyExcT_ConversionError, object CpswPyExcO_ConversionError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_ConversionError] foo = make_shared[cc_ConversionError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.ConversionError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -21394,12 +21056,12 @@ static PyObject *__pyx_pf_6pycpsw_15ConversionError_4__setstate_cython__(struct 
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1370
+/* "pycpsw.pyx":1356
  * 
  * cdef public class InterfaceNotImplementedError(CPSWError)[type CpswPyExcT_InterfaceNotImplementedError, object CpswPyExcO_InterfaceNotImplementedError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_InterfaceNotImplementedError] foo = make_shared[cc_InterfaceNotImplementedError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -21428,7 +21090,7 @@ static int __pyx_pw_6pycpsw_28InterfaceNotImplementedError_1__init__(PyObject *_
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1370, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1356, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -21439,13 +21101,13 @@ static int __pyx_pw_6pycpsw_28InterfaceNotImplementedError_1__init__(PyObject *_
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1370, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1356, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.InterfaceNotImplementedError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1370, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1356, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_28InterfaceNotImplementedError___init__(((struct CpswPyExcO_InterfaceNotImplementedError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -21458,55 +21120,31 @@ static int __pyx_pw_6pycpsw_28InterfaceNotImplementedError_1__init__(PyObject *_
 }
 
 static int __pyx_pf_6pycpsw_28InterfaceNotImplementedError___init__(struct CpswPyExcO_InterfaceNotImplementedError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<InterfaceNotImplementedError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<InterfaceNotImplementedError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1371
+  /* "pycpsw.pyx":1357
  * cdef public class InterfaceNotImplementedError(CPSWError)[type CpswPyExcT_InterfaceNotImplementedError, object CpswPyExcO_InterfaceNotImplementedError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InterfaceNotImplementedError] foo = make_shared[cc_InterfaceNotImplementedError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1371, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<InterfaceNotImplementedError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1371, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1372
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_InterfaceNotImplementedError] foo = make_shared[cc_InterfaceNotImplementedError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class BadStatusError(CPSWError)[type CpswPyExcT_BadStatusError, object CpswPyExcO_BadStatusError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1372, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1372, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1357, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1370
+  /* "pycpsw.pyx":1356
  * 
  * cdef public class InterfaceNotImplementedError(CPSWError)[type CpswPyExcT_InterfaceNotImplementedError, object CpswPyExcO_InterfaceNotImplementedError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_InterfaceNotImplementedError] foo = make_shared[cc_InterfaceNotImplementedError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.InterfaceNotImplementedError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -21797,31 +21435,28 @@ static PyObject *__pyx_pf_6pycpsw_28InterfaceNotImplementedError_4__setstate_cyt
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1375
+/* "pycpsw.pyx":1360
  * 
  * cdef public class BadStatusError(CPSWError)[type CpswPyExcT_BadStatusError, object CpswPyExcO_BadStatusError]:
- *   def __init__(self, str msg, int status):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_BadStatusError] foo = make_shared[cc_BadStatusError]( msg, status )
- *     self._msg = foo.get().what()
+ *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
 static int __pyx_pw_6pycpsw_14BadStatusError_1__init__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static int __pyx_pw_6pycpsw_14BadStatusError_1__init__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_msg = 0;
-  int __pyx_v_status;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__init__ (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_msg,&__pyx_n_s_status,0};
-    PyObject* values[2] = {0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_msg,0};
+    PyObject* values[1] = {0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        CYTHON_FALLTHROUGH;
         case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
         CYTHON_FALLTHROUGH;
         case  0: break;
@@ -21832,35 +21467,27 @@ static int __pyx_pw_6pycpsw_14BadStatusError_1__init__(PyObject *__pyx_v_self, P
         case  0:
         if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_msg)) != 0)) kw_args--;
         else goto __pyx_L5_argtuple_error;
-        CYTHON_FALLTHROUGH;
-        case  1:
-        if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_status)) != 0)) kw_args--;
-        else {
-          __Pyx_RaiseArgtupleInvalid("__init__", 1, 2, 2, 1); __PYX_ERR(0, 1375, __pyx_L3_error)
-        }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1375, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1360, __pyx_L3_error)
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
     __pyx_v_msg = ((PyObject*)values[0]);
-    __pyx_v_status = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_status == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 1375, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1375, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1360, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.BadStatusError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1375, __pyx_L1_error)
-  __pyx_r = __pyx_pf_6pycpsw_14BadStatusError___init__(((struct CpswPyExcO_BadStatusError *)__pyx_v_self), __pyx_v_msg, __pyx_v_status);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1360, __pyx_L1_error)
+  __pyx_r = __pyx_pf_6pycpsw_14BadStatusError___init__(((struct CpswPyExcO_BadStatusError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
   goto __pyx_L0;
@@ -21871,56 +21498,32 @@ static int __pyx_pw_6pycpsw_14BadStatusError_1__init__(PyObject *__pyx_v_self, P
   return __pyx_r;
 }
 
-static int __pyx_pf_6pycpsw_14BadStatusError___init__(struct CpswPyExcO_BadStatusError *__pyx_v_self, PyObject *__pyx_v_msg, int __pyx_v_status) {
-  shared_ptr<BadStatusError>  __pyx_v_foo;
+static int __pyx_pf_6pycpsw_14BadStatusError___init__(struct CpswPyExcO_BadStatusError *__pyx_v_self, PyObject *__pyx_v_msg) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<BadStatusError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1376
+  /* "pycpsw.pyx":1361
  * cdef public class BadStatusError(CPSWError)[type CpswPyExcT_BadStatusError, object CpswPyExcO_BadStatusError]:
- *   def __init__(self, str msg, int status):
- *     cdef shared_ptr[cc_BadStatusError] foo = make_shared[cc_BadStatusError]( msg, status )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1376, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<BadStatusError>(__pyx_t_1, __pyx_v_status);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1376, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1377
- *   def __init__(self, str msg, int status):
- *     cdef shared_ptr[cc_BadStatusError] foo = make_shared[cc_BadStatusError]( msg, status )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *   def __init__(self, str msg):
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class IntrError(CPSWError)[type CpswPyExcT_IntrError, object CpswPyExcO_IntrError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1377, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1377, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1361, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1375
+  /* "pycpsw.pyx":1360
  * 
  * cdef public class BadStatusError(CPSWError)[type CpswPyExcT_BadStatusError, object CpswPyExcO_BadStatusError]:
- *   def __init__(self, str msg, int status):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_BadStatusError] foo = make_shared[cc_BadStatusError]( msg, status )
- *     self._msg = foo.get().what()
+ *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.BadStatusError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -22211,12 +21814,12 @@ static PyObject *__pyx_pf_6pycpsw_14BadStatusError_4__setstate_cython__(struct C
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1380
+/* "pycpsw.pyx":1364
  * 
  * cdef public class IntrError(CPSWError)[type CpswPyExcT_IntrError, object CpswPyExcO_IntrError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_IntrError] foo = make_shared[cc_IntrError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -22245,7 +21848,7 @@ static int __pyx_pw_6pycpsw_9IntrError_1__init__(PyObject *__pyx_v_self, PyObjec
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1380, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1364, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -22256,13 +21859,13 @@ static int __pyx_pw_6pycpsw_9IntrError_1__init__(PyObject *__pyx_v_self, PyObjec
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1380, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1364, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.IntrError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1380, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1364, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_9IntrError___init__(((struct CpswPyExcO_IntrError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -22275,55 +21878,31 @@ static int __pyx_pw_6pycpsw_9IntrError_1__init__(PyObject *__pyx_v_self, PyObjec
 }
 
 static int __pyx_pf_6pycpsw_9IntrError___init__(struct CpswPyExcO_IntrError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<IntrError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<IntrError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1381
+  /* "pycpsw.pyx":1365
  * cdef public class IntrError(CPSWError)[type CpswPyExcT_IntrError, object CpswPyExcO_IntrError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_IntrError] foo = make_shared[cc_IntrError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1381, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<IntrError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1381, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1382
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_IntrError] foo = make_shared[cc_IntrError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class StreamDoneError(CPSWError)[type CpswPyExcT_StreamDoneError, object CpswPyExcO_StreamDoneError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1382, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1382, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1365, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1380
+  /* "pycpsw.pyx":1364
  * 
  * cdef public class IntrError(CPSWError)[type CpswPyExcT_IntrError, object CpswPyExcO_IntrError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_IntrError] foo = make_shared[cc_IntrError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.IntrError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -22614,12 +22193,12 @@ static PyObject *__pyx_pf_6pycpsw_9IntrError_4__setstate_cython__(struct CpswPyE
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1385
+/* "pycpsw.pyx":1368
  * 
  * cdef public class StreamDoneError(CPSWError)[type CpswPyExcT_StreamDoneError, object CpswPyExcO_StreamDoneError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_StreamDoneError] foo = make_shared[cc_StreamDoneError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -22648,7 +22227,7 @@ static int __pyx_pw_6pycpsw_15StreamDoneError_1__init__(PyObject *__pyx_v_self, 
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1385, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1368, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -22659,13 +22238,13 @@ static int __pyx_pw_6pycpsw_15StreamDoneError_1__init__(PyObject *__pyx_v_self, 
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1385, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1368, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.StreamDoneError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1385, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1368, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_15StreamDoneError___init__(((struct CpswPyExcO_StreamDoneError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -22678,55 +22257,31 @@ static int __pyx_pw_6pycpsw_15StreamDoneError_1__init__(PyObject *__pyx_v_self, 
 }
 
 static int __pyx_pf_6pycpsw_15StreamDoneError___init__(struct CpswPyExcO_StreamDoneError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<StreamDoneError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<StreamDoneError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1386
+  /* "pycpsw.pyx":1369
  * cdef public class StreamDoneError(CPSWError)[type CpswPyExcT_StreamDoneError, object CpswPyExcO_StreamDoneError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_StreamDoneError] foo = make_shared[cc_StreamDoneError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1386, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<StreamDoneError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1386, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1387
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_StreamDoneError] foo = make_shared[cc_StreamDoneError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class FailedStreamError(CPSWError)[type CpswPyExcT_FailedStreamError, object CpswPyExcO_FailedStreamError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1387, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1387, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1369, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1385
+  /* "pycpsw.pyx":1368
  * 
  * cdef public class StreamDoneError(CPSWError)[type CpswPyExcT_StreamDoneError, object CpswPyExcO_StreamDoneError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_StreamDoneError] foo = make_shared[cc_StreamDoneError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.StreamDoneError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -23017,12 +22572,12 @@ static PyObject *__pyx_pf_6pycpsw_15StreamDoneError_4__setstate_cython__(struct 
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1390
+/* "pycpsw.pyx":1372
  * 
  * cdef public class FailedStreamError(CPSWError)[type CpswPyExcT_FailedStreamError, object CpswPyExcO_FailedStreamError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_FailedStreamError] foo = make_shared[cc_FailedStreamError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -23051,7 +22606,7 @@ static int __pyx_pw_6pycpsw_17FailedStreamError_1__init__(PyObject *__pyx_v_self
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1390, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1372, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -23062,13 +22617,13 @@ static int __pyx_pw_6pycpsw_17FailedStreamError_1__init__(PyObject *__pyx_v_self
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1390, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1372, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.FailedStreamError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1390, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1372, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_17FailedStreamError___init__(((struct CpswPyExcO_FailedStreamError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -23081,55 +22636,31 @@ static int __pyx_pw_6pycpsw_17FailedStreamError_1__init__(PyObject *__pyx_v_self
 }
 
 static int __pyx_pf_6pycpsw_17FailedStreamError___init__(struct CpswPyExcO_FailedStreamError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<FailedStreamError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<FailedStreamError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1391
+  /* "pycpsw.pyx":1373
  * cdef public class FailedStreamError(CPSWError)[type CpswPyExcT_FailedStreamError, object CpswPyExcO_FailedStreamError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_FailedStreamError] foo = make_shared[cc_FailedStreamError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1391, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<FailedStreamError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1391, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1392
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_FailedStreamError] foo = make_shared[cc_FailedStreamError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class MissingOnceTagError(CPSWError)[type CpswPyExcT_MissingOnceTagError, object CpswPyExcO_MissingOnceTagError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1392, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1392, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1373, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1390
+  /* "pycpsw.pyx":1372
  * 
  * cdef public class FailedStreamError(CPSWError)[type CpswPyExcT_FailedStreamError, object CpswPyExcO_FailedStreamError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_FailedStreamError] foo = make_shared[cc_FailedStreamError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.FailedStreamError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -23420,12 +22951,12 @@ static PyObject *__pyx_pf_6pycpsw_17FailedStreamError_4__setstate_cython__(struc
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1395
+/* "pycpsw.pyx":1376
  * 
  * cdef public class MissingOnceTagError(CPSWError)[type CpswPyExcT_MissingOnceTagError, object CpswPyExcO_MissingOnceTagError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_MissingOnceTagError] foo = make_shared[cc_MissingOnceTagError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -23454,7 +22985,7 @@ static int __pyx_pw_6pycpsw_19MissingOnceTagError_1__init__(PyObject *__pyx_v_se
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1395, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1376, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -23465,13 +22996,13 @@ static int __pyx_pw_6pycpsw_19MissingOnceTagError_1__init__(PyObject *__pyx_v_se
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1395, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1376, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.MissingOnceTagError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1395, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1376, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_19MissingOnceTagError___init__(((struct CpswPyExcO_MissingOnceTagError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -23484,55 +23015,31 @@ static int __pyx_pw_6pycpsw_19MissingOnceTagError_1__init__(PyObject *__pyx_v_se
 }
 
 static int __pyx_pf_6pycpsw_19MissingOnceTagError___init__(struct CpswPyExcO_MissingOnceTagError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<MissingOnceTagError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<MissingOnceTagError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1396
+  /* "pycpsw.pyx":1377
  * cdef public class MissingOnceTagError(CPSWError)[type CpswPyExcT_MissingOnceTagError, object CpswPyExcO_MissingOnceTagError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MissingOnceTagError] foo = make_shared[cc_MissingOnceTagError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1396, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<MissingOnceTagError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1396, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1397
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MissingOnceTagError] foo = make_shared[cc_MissingOnceTagError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class MissingIncludeFileNameError(CPSWError)[type CpswPyExcT_MissingIncludeFileNameError, object CpswPyExcO_MissingIncludeFileNameError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1397, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1397, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1377, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1395
+  /* "pycpsw.pyx":1376
  * 
  * cdef public class MissingOnceTagError(CPSWError)[type CpswPyExcT_MissingOnceTagError, object CpswPyExcO_MissingOnceTagError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_MissingOnceTagError] foo = make_shared[cc_MissingOnceTagError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.MissingOnceTagError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -23823,12 +23330,12 @@ static PyObject *__pyx_pf_6pycpsw_19MissingOnceTagError_4__setstate_cython__(str
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1400
+/* "pycpsw.pyx":1380
  * 
  * cdef public class MissingIncludeFileNameError(CPSWError)[type CpswPyExcT_MissingIncludeFileNameError, object CpswPyExcO_MissingIncludeFileNameError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_MissingIncludeFileNameError] foo = make_shared[cc_MissingIncludeFileNameError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -23857,7 +23364,7 @@ static int __pyx_pw_6pycpsw_27MissingIncludeFileNameError_1__init__(PyObject *__
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1400, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1380, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -23868,13 +23375,13 @@ static int __pyx_pw_6pycpsw_27MissingIncludeFileNameError_1__init__(PyObject *__
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1400, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1380, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.MissingIncludeFileNameError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1400, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1380, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_27MissingIncludeFileNameError___init__(((struct CpswPyExcO_MissingIncludeFileNameError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -23887,55 +23394,31 @@ static int __pyx_pw_6pycpsw_27MissingIncludeFileNameError_1__init__(PyObject *__
 }
 
 static int __pyx_pf_6pycpsw_27MissingIncludeFileNameError___init__(struct CpswPyExcO_MissingIncludeFileNameError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<MissingIncludeFileNameError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<MissingIncludeFileNameError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1401
+  /* "pycpsw.pyx":1381
  * cdef public class MissingIncludeFileNameError(CPSWError)[type CpswPyExcT_MissingIncludeFileNameError, object CpswPyExcO_MissingIncludeFileNameError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MissingIncludeFileNameError] foo = make_shared[cc_MissingIncludeFileNameError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1401, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<MissingIncludeFileNameError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1401, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1402
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MissingIncludeFileNameError] foo = make_shared[cc_MissingIncludeFileNameError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class NoYAMLSupportError(CPSWError)[type CpswPyExcT_NoYAMLSupportError, object CpswPyExcO_NoYAMLSupportError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1402, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1402, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1381, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1400
+  /* "pycpsw.pyx":1380
  * 
  * cdef public class MissingIncludeFileNameError(CPSWError)[type CpswPyExcT_MissingIncludeFileNameError, object CpswPyExcO_MissingIncludeFileNameError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_MissingIncludeFileNameError] foo = make_shared[cc_MissingIncludeFileNameError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.MissingIncludeFileNameError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -24226,78 +23709,95 @@ static PyObject *__pyx_pf_6pycpsw_27MissingIncludeFileNameError_4__setstate_cyth
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1405
+/* "pycpsw.pyx":1384
  * 
  * cdef public class NoYAMLSupportError(CPSWError)[type CpswPyExcT_NoYAMLSupportError, object CpswPyExcO_NoYAMLSupportError]:
- *   def __init__(self):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_NoYAMLSupportError] foo = make_shared[cc_NoYAMLSupportError]()
- *     self._msg = foo.get().what()
+ *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
 static int __pyx_pw_6pycpsw_18NoYAMLSupportError_1__init__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static int __pyx_pw_6pycpsw_18NoYAMLSupportError_1__init__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  PyObject *__pyx_v_msg = 0;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__init__ (wrapper)", 0);
-  if (unlikely(PyTuple_GET_SIZE(__pyx_args) > 0)) {
-    __Pyx_RaiseArgtupleInvalid("__init__", 1, 0, 0, PyTuple_GET_SIZE(__pyx_args)); return -1;}
-  if (unlikely(__pyx_kwds) && unlikely(PyDict_Size(__pyx_kwds) > 0) && unlikely(!__Pyx_CheckKeywordStrings(__pyx_kwds, "__init__", 0))) return -1;
-  __pyx_r = __pyx_pf_6pycpsw_18NoYAMLSupportError___init__(((struct CpswPyExcO_NoYAMLSupportError *)__pyx_v_self));
+  {
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_msg,0};
+    PyObject* values[1] = {0};
+    if (unlikely(__pyx_kwds)) {
+      Py_ssize_t kw_args;
+      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
+      switch (pos_args) {
+        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+        CYTHON_FALLTHROUGH;
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = PyDict_Size(__pyx_kwds);
+      switch (pos_args) {
+        case  0:
+        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_msg)) != 0)) kw_args--;
+        else goto __pyx_L5_argtuple_error;
+      }
+      if (unlikely(kw_args > 0)) {
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1384, __pyx_L3_error)
+      }
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+    }
+    __pyx_v_msg = ((PyObject*)values[0]);
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1384, __pyx_L3_error)
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("pycpsw.NoYAMLSupportError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return -1;
+  __pyx_L4_argument_unpacking_done:;
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1384, __pyx_L1_error)
+  __pyx_r = __pyx_pf_6pycpsw_18NoYAMLSupportError___init__(((struct CpswPyExcO_NoYAMLSupportError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = -1;
+  __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_6pycpsw_18NoYAMLSupportError___init__(struct CpswPyExcO_NoYAMLSupportError *__pyx_v_self) {
-  shared_ptr<NoYAMLSupportError>  __pyx_v_foo;
+static int __pyx_pf_6pycpsw_18NoYAMLSupportError___init__(struct CpswPyExcO_NoYAMLSupportError *__pyx_v_self, PyObject *__pyx_v_msg) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  shared_ptr<NoYAMLSupportError>  __pyx_t_1;
-  PyObject *__pyx_t_2 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1406
+  /* "pycpsw.pyx":1385
  * cdef public class NoYAMLSupportError(CPSWError)[type CpswPyExcT_NoYAMLSupportError, object CpswPyExcO_NoYAMLSupportError]:
- *   def __init__(self):
- *     cdef shared_ptr[cc_NoYAMLSupportError] foo = make_shared[cc_NoYAMLSupportError]()             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  try {
-    __pyx_t_1 = cpsw::make_shared<NoYAMLSupportError>();
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1406, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_1;
-
-  /* "pycpsw.pyx":1407
- *   def __init__(self):
- *     cdef shared_ptr[cc_NoYAMLSupportError] foo = make_shared[cc_NoYAMLSupportError]()
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *   def __init__(self, str msg):
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class NoError(CPSWError)[type CpswPyExcT_NoError, object CpswPyExcO_NoError]:
  */
-  __pyx_t_2 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 1407, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_2) < 0) __PYX_ERR(0, 1407, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1385, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1405
+  /* "pycpsw.pyx":1384
  * 
  * cdef public class NoYAMLSupportError(CPSWError)[type CpswPyExcT_NoYAMLSupportError, object CpswPyExcO_NoYAMLSupportError]:
- *   def __init__(self):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_NoYAMLSupportError] foo = make_shared[cc_NoYAMLSupportError]()
- *     self._msg = foo.get().what()
+ *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_2);
   __Pyx_AddTraceback("pycpsw.NoYAMLSupportError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -24588,78 +24088,95 @@ static PyObject *__pyx_pf_6pycpsw_18NoYAMLSupportError_4__setstate_cython__(stru
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1410
+/* "pycpsw.pyx":1388
  * 
  * cdef public class NoError(CPSWError)[type CpswPyExcT_NoError, object CpswPyExcO_NoError]:
- *   def __init__(self):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_NoError] foo = make_shared[cc_NoError]()
- *     self._msg = foo.get().what()
+ *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
 static int __pyx_pw_6pycpsw_7NoError_1__init__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static int __pyx_pw_6pycpsw_7NoError_1__init__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  PyObject *__pyx_v_msg = 0;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__init__ (wrapper)", 0);
-  if (unlikely(PyTuple_GET_SIZE(__pyx_args) > 0)) {
-    __Pyx_RaiseArgtupleInvalid("__init__", 1, 0, 0, PyTuple_GET_SIZE(__pyx_args)); return -1;}
-  if (unlikely(__pyx_kwds) && unlikely(PyDict_Size(__pyx_kwds) > 0) && unlikely(!__Pyx_CheckKeywordStrings(__pyx_kwds, "__init__", 0))) return -1;
-  __pyx_r = __pyx_pf_6pycpsw_7NoError___init__(((struct CpswPyExcO_NoError *)__pyx_v_self));
+  {
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_msg,0};
+    PyObject* values[1] = {0};
+    if (unlikely(__pyx_kwds)) {
+      Py_ssize_t kw_args;
+      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
+      switch (pos_args) {
+        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+        CYTHON_FALLTHROUGH;
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = PyDict_Size(__pyx_kwds);
+      switch (pos_args) {
+        case  0:
+        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_msg)) != 0)) kw_args--;
+        else goto __pyx_L5_argtuple_error;
+      }
+      if (unlikely(kw_args > 0)) {
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1388, __pyx_L3_error)
+      }
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+    }
+    __pyx_v_msg = ((PyObject*)values[0]);
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1388, __pyx_L3_error)
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("pycpsw.NoError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return -1;
+  __pyx_L4_argument_unpacking_done:;
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1388, __pyx_L1_error)
+  __pyx_r = __pyx_pf_6pycpsw_7NoError___init__(((struct CpswPyExcO_NoError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = -1;
+  __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_6pycpsw_7NoError___init__(struct CpswPyExcO_NoError *__pyx_v_self) {
-  shared_ptr<NoError>  __pyx_v_foo;
+static int __pyx_pf_6pycpsw_7NoError___init__(struct CpswPyExcO_NoError *__pyx_v_self, PyObject *__pyx_v_msg) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  shared_ptr<NoError>  __pyx_t_1;
-  PyObject *__pyx_t_2 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1411
+  /* "pycpsw.pyx":1389
  * cdef public class NoError(CPSWError)[type CpswPyExcT_NoError, object CpswPyExcO_NoError]:
- *   def __init__(self):
- *     cdef shared_ptr[cc_NoError] foo = make_shared[cc_NoError]()             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  try {
-    __pyx_t_1 = cpsw::make_shared<NoError>();
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1411, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_1;
-
-  /* "pycpsw.pyx":1412
- *   def __init__(self):
- *     cdef shared_ptr[cc_NoError] foo = make_shared[cc_NoError]()
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *   def __init__(self, str msg):
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class MultipleInstantiationError(CPSWError)[type CpswPyExcT_MultipleInstantiationError, object CpswPyExcO_MultipleInstantiationError]:
  */
-  __pyx_t_2 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 1412, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_2) < 0) __PYX_ERR(0, 1412, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1389, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1410
+  /* "pycpsw.pyx":1388
  * 
  * cdef public class NoError(CPSWError)[type CpswPyExcT_NoError, object CpswPyExcO_NoError]:
- *   def __init__(self):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_NoError] foo = make_shared[cc_NoError]()
- *     self._msg = foo.get().what()
+ *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_2);
   __Pyx_AddTraceback("pycpsw.NoError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -24950,12 +24467,12 @@ static PyObject *__pyx_pf_6pycpsw_7NoError_4__setstate_cython__(struct CpswPyExc
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1415
+/* "pycpsw.pyx":1392
  * 
  * cdef public class MultipleInstantiationError(CPSWError)[type CpswPyExcT_MultipleInstantiationError, object CpswPyExcO_MultipleInstantiationError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_MultipleInstantiationError] foo = make_shared[cc_MultipleInstantiationError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -24984,7 +24501,7 @@ static int __pyx_pw_6pycpsw_26MultipleInstantiationError_1__init__(PyObject *__p
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1415, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1392, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -24995,13 +24512,13 @@ static int __pyx_pw_6pycpsw_26MultipleInstantiationError_1__init__(PyObject *__p
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1415, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1392, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.MultipleInstantiationError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1415, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1392, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_26MultipleInstantiationError___init__(((struct CpswPyExcO_MultipleInstantiationError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -25014,55 +24531,31 @@ static int __pyx_pw_6pycpsw_26MultipleInstantiationError_1__init__(PyObject *__p
 }
 
 static int __pyx_pf_6pycpsw_26MultipleInstantiationError___init__(struct CpswPyExcO_MultipleInstantiationError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<MultipleInstantiationError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<MultipleInstantiationError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1416
+  /* "pycpsw.pyx":1393
  * cdef public class MultipleInstantiationError(CPSWError)[type CpswPyExcT_MultipleInstantiationError, object CpswPyExcO_MultipleInstantiationError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MultipleInstantiationError] foo = make_shared[cc_MultipleInstantiationError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1416, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<MultipleInstantiationError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1416, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1417
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_MultipleInstantiationError] foo = make_shared[cc_MultipleInstantiationError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class BadSchemaVersionError(CPSWError)[type CpswPyExcT_BadSchemaVersionError, object CpswPyExcO_BadSchemaVersionError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1417, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1417, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1393, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1415
+  /* "pycpsw.pyx":1392
  * 
  * cdef public class MultipleInstantiationError(CPSWError)[type CpswPyExcT_MultipleInstantiationError, object CpswPyExcO_MultipleInstantiationError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_MultipleInstantiationError] foo = make_shared[cc_MultipleInstantiationError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.MultipleInstantiationError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -25353,12 +24846,12 @@ static PyObject *__pyx_pf_6pycpsw_26MultipleInstantiationError_4__setstate_cytho
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1420
+/* "pycpsw.pyx":1396
  * 
  * cdef public class BadSchemaVersionError(CPSWError)[type CpswPyExcT_BadSchemaVersionError, object CpswPyExcO_BadSchemaVersionError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_BadSchemaVersionError] foo = make_shared[cc_BadSchemaVersionError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
 /* Python wrapper */
@@ -25387,7 +24880,7 @@ static int __pyx_pw_6pycpsw_21BadSchemaVersionError_1__init__(PyObject *__pyx_v_
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1420, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1396, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -25398,13 +24891,13 @@ static int __pyx_pw_6pycpsw_21BadSchemaVersionError_1__init__(PyObject *__pyx_v_
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1420, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1396, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.BadSchemaVersionError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1420, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1396, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_21BadSchemaVersionError___init__(((struct CpswPyExcO_BadSchemaVersionError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -25417,55 +24910,31 @@ static int __pyx_pw_6pycpsw_21BadSchemaVersionError_1__init__(PyObject *__pyx_v_
 }
 
 static int __pyx_pf_6pycpsw_21BadSchemaVersionError___init__(struct CpswPyExcO_BadSchemaVersionError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<BadSchemaVersionError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<BadSchemaVersionError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1421
+  /* "pycpsw.pyx":1397
  * cdef public class BadSchemaVersionError(CPSWError)[type CpswPyExcT_BadSchemaVersionError, object CpswPyExcO_BadSchemaVersionError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_BadSchemaVersionError] foo = make_shared[cc_BadSchemaVersionError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
- * 
- */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1421, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<BadSchemaVersionError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1421, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
-
-  /* "pycpsw.pyx":1422
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_BadSchemaVersionError] foo = make_shared[cc_BadSchemaVersionError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  * 
  * cdef public class TimeoutError(CPSWError)[type CpswPyExcT_TimeoutError, object CpswPyExcO_TimeoutError]:
  */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1422, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1422, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1397, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1420
+  /* "pycpsw.pyx":1396
  * 
  * cdef public class BadSchemaVersionError(CPSWError)[type CpswPyExcT_BadSchemaVersionError, object CpswPyExcO_BadSchemaVersionError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_BadSchemaVersionError] foo = make_shared[cc_BadSchemaVersionError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
+ * 
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.BadSchemaVersionError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -25756,12 +25225,11 @@ static PyObject *__pyx_pf_6pycpsw_21BadSchemaVersionError_4__setstate_cython__(s
   return __pyx_r;
 }
 
-/* "pycpsw.pyx":1425
+/* "pycpsw.pyx":1400
  * 
  * cdef public class TimeoutError(CPSWError)[type CpswPyExcT_TimeoutError, object CpswPyExcO_TimeoutError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_TimeoutError] foo = make_shared[cc_TimeoutError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
  */
 
 /* Python wrapper */
@@ -25790,7 +25258,7 @@ static int __pyx_pw_6pycpsw_12TimeoutError_1__init__(PyObject *__pyx_v_self, PyO
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1425, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__init__") < 0)) __PYX_ERR(0, 1400, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -25801,13 +25269,13 @@ static int __pyx_pw_6pycpsw_12TimeoutError_1__init__(PyObject *__pyx_v_self, PyO
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1425, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__init__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1400, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pycpsw.TimeoutError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1425, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_msg), (&PyString_Type), 1, "msg", 1))) __PYX_ERR(0, 1400, __pyx_L1_error)
   __pyx_r = __pyx_pf_6pycpsw_12TimeoutError___init__(((struct CpswPyExcO_TimeoutError *)__pyx_v_self), __pyx_v_msg);
 
   /* function exit code */
@@ -25820,52 +25288,28 @@ static int __pyx_pw_6pycpsw_12TimeoutError_1__init__(PyObject *__pyx_v_self, PyO
 }
 
 static int __pyx_pf_6pycpsw_12TimeoutError___init__(struct CpswPyExcO_TimeoutError *__pyx_v_self, PyObject *__pyx_v_msg) {
-  shared_ptr<TimeoutError>  __pyx_v_foo;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  char *__pyx_t_1;
-  shared_ptr<TimeoutError>  __pyx_t_2;
-  PyObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("__init__", 0);
 
-  /* "pycpsw.pyx":1426
+  /* "pycpsw.pyx":1401
  * cdef public class TimeoutError(CPSWError)[type CpswPyExcT_TimeoutError, object CpswPyExcO_TimeoutError]:
  *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_TimeoutError] foo = make_shared[cc_TimeoutError]( msg )             # <<<<<<<<<<<<<<
- *     self._msg = foo.get().what()
+ *     self._msg = msg             # <<<<<<<<<<<<<<
  */
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_msg); if (unlikely((!__pyx_t_1) && PyErr_Occurred())) __PYX_ERR(0, 1426, __pyx_L1_error)
-  try {
-    __pyx_t_2 = cpsw::make_shared<TimeoutError>(__pyx_t_1);
-  } catch(...) {
-    __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 1426, __pyx_L1_error)
-  }
-  __pyx_v_foo = __pyx_t_2;
+  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_v_msg) < 0) __PYX_ERR(0, 1401, __pyx_L1_error)
 
-  /* "pycpsw.pyx":1427
- *   def __init__(self, str msg):
- *     cdef shared_ptr[cc_TimeoutError] foo = make_shared[cc_TimeoutError]( msg )
- *     self._msg = foo.get().what()             # <<<<<<<<<<<<<<
- */
-  __pyx_t_3 = __Pyx_PyStr_FromString(__pyx_v_foo.get()->what()); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1427, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_msg_2, __pyx_t_3) < 0) __PYX_ERR(0, 1427, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-
-  /* "pycpsw.pyx":1425
+  /* "pycpsw.pyx":1400
  * 
  * cdef public class TimeoutError(CPSWError)[type CpswPyExcT_TimeoutError, object CpswPyExcO_TimeoutError]:
  *   def __init__(self, str msg):             # <<<<<<<<<<<<<<
- *     cdef shared_ptr[cc_TimeoutError] foo = make_shared[cc_TimeoutError]( msg )
- *     self._msg = foo.get().what()
+ *     self._msg = msg
  */
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_AddTraceback("pycpsw.TimeoutError.__init__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
@@ -41076,7 +40520,7 @@ DL_EXPORT(PyTypeObject) CpswPyExcT_BadStatusError = {
   0, /*tp_setattro*/
   0, /*tp_as_buffer*/
   Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE|Py_TPFLAGS_HAVE_GC, /*tp_flags*/
-  "BadStatusError(str msg, int status)", /*tp_doc*/
+  "BadStatusError(str msg)", /*tp_doc*/
   __pyx_tp_traverse_6pycpsw_CPSWError, /*tp_traverse*/
   __pyx_tp_clear_6pycpsw_CPSWError, /*tp_clear*/
   0, /*tp_richcompare*/
@@ -41496,7 +40940,7 @@ DL_EXPORT(PyTypeObject) CpswPyExcT_NoYAMLSupportError = {
   0, /*tp_setattro*/
   0, /*tp_as_buffer*/
   Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE|Py_TPFLAGS_HAVE_GC, /*tp_flags*/
-  "NoYAMLSupportError()", /*tp_doc*/
+  "NoYAMLSupportError(str msg)", /*tp_doc*/
   __pyx_tp_traverse_6pycpsw_CPSWError, /*tp_traverse*/
   __pyx_tp_clear_6pycpsw_CPSWError, /*tp_clear*/
   0, /*tp_richcompare*/
@@ -41566,7 +41010,7 @@ DL_EXPORT(PyTypeObject) CpswPyExcT_NoError = {
   0, /*tp_setattro*/
   0, /*tp_as_buffer*/
   Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE|Py_TPFLAGS_HAVE_GC, /*tp_flags*/
-  "NoError()", /*tp_doc*/
+  "NoError(str msg)", /*tp_doc*/
   __pyx_tp_traverse_6pycpsw_CPSWError, /*tp_traverse*/
   __pyx_tp_clear_6pycpsw_CPSWError, /*tp_clear*/
   0, /*tp_richcompare*/
@@ -41947,7 +41391,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_setstate_cython, __pyx_k_setstate_cython, sizeof(__pyx_k_setstate_cython), 0, 0, 1, 1},
   {&__pyx_n_s_sobj, __pyx_k_sobj, sizeof(__pyx_k_sobj), 0, 0, 1, 1},
   {&__pyx_n_s_staticmethod, __pyx_k_staticmethod, sizeof(__pyx_k_staticmethod), 0, 0, 1, 1},
-  {&__pyx_n_s_status, __pyx_k_status, sizeof(__pyx_k_status), 0, 0, 1, 1},
   {&__pyx_kp_s_stringsource, __pyx_k_stringsource, sizeof(__pyx_k_stringsource), 0, 0, 1, 0},
   {&__pyx_n_s_templFileName, __pyx_k_templFileName, sizeof(__pyx_k_templFileName), 0, 0, 1, 1},
   {&__pyx_n_s_template, __pyx_k_template, sizeof(__pyx_k_template), 0, 0, 1, 1},
@@ -42939,229 +42382,229 @@ static int __Pyx_modinit_type_init_code(void) {
   if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_CPSWError) < 0) __PYX_ERR(0, 1295, __pyx_L1_error)
   __pyx_ptype_6pycpsw_CPSWError = &CpswPyExcT_CPSWError;
   CpswPyExcT_ErrnoError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_ErrnoError) < 0) __PYX_ERR(0, 1304, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_ErrnoError) < 0) __PYX_ERR(0, 1303, __pyx_L1_error)
   CpswPyExcT_ErrnoError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_ErrnoError.tp_dictoffset && CpswPyExcT_ErrnoError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_ErrnoError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "ErrnoError", (PyObject *)&CpswPyExcT_ErrnoError) < 0) __PYX_ERR(0, 1304, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_ErrnoError) < 0) __PYX_ERR(0, 1304, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "ErrnoError", (PyObject *)&CpswPyExcT_ErrnoError) < 0) __PYX_ERR(0, 1303, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_ErrnoError) < 0) __PYX_ERR(0, 1303, __pyx_L1_error)
   __pyx_ptype_6pycpsw_ErrnoError = &CpswPyExcT_ErrnoError;
   CpswPyExcT_IOError.tp_base = __pyx_ptype_6pycpsw_ErrnoError;
-  if (PyType_Ready(&CpswPyExcT_IOError) < 0) __PYX_ERR(0, 1309, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_IOError) < 0) __PYX_ERR(0, 1307, __pyx_L1_error)
   CpswPyExcT_IOError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_IOError.tp_dictoffset && CpswPyExcT_IOError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_IOError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "IOError", (PyObject *)&CpswPyExcT_IOError) < 0) __PYX_ERR(0, 1309, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_IOError) < 0) __PYX_ERR(0, 1309, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "IOError", (PyObject *)&CpswPyExcT_IOError) < 0) __PYX_ERR(0, 1307, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_IOError) < 0) __PYX_ERR(0, 1307, __pyx_L1_error)
   __pyx_ptype_6pycpsw_IOError = &CpswPyExcT_IOError;
   CpswPyExcT_InternalError.tp_base = __pyx_ptype_6pycpsw_ErrnoError;
-  if (PyType_Ready(&CpswPyExcT_InternalError) < 0) __PYX_ERR(0, 1314, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_InternalError) < 0) __PYX_ERR(0, 1311, __pyx_L1_error)
   CpswPyExcT_InternalError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_InternalError.tp_dictoffset && CpswPyExcT_InternalError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_InternalError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "InternalError", (PyObject *)&CpswPyExcT_InternalError) < 0) __PYX_ERR(0, 1314, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_InternalError) < 0) __PYX_ERR(0, 1314, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "InternalError", (PyObject *)&CpswPyExcT_InternalError) < 0) __PYX_ERR(0, 1311, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_InternalError) < 0) __PYX_ERR(0, 1311, __pyx_L1_error)
   __pyx_ptype_6pycpsw_InternalError = &CpswPyExcT_InternalError;
   CpswPyExcT_DuplicateNameError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_DuplicateNameError) < 0) __PYX_ERR(0, 1319, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_DuplicateNameError) < 0) __PYX_ERR(0, 1315, __pyx_L1_error)
   CpswPyExcT_DuplicateNameError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_DuplicateNameError.tp_dictoffset && CpswPyExcT_DuplicateNameError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_DuplicateNameError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "DuplicateNameError", (PyObject *)&CpswPyExcT_DuplicateNameError) < 0) __PYX_ERR(0, 1319, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_DuplicateNameError) < 0) __PYX_ERR(0, 1319, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "DuplicateNameError", (PyObject *)&CpswPyExcT_DuplicateNameError) < 0) __PYX_ERR(0, 1315, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_DuplicateNameError) < 0) __PYX_ERR(0, 1315, __pyx_L1_error)
   __pyx_ptype_6pycpsw_DuplicateNameError = &CpswPyExcT_DuplicateNameError;
   CpswPyExcT_NotDevError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_NotDevError) < 0) __PYX_ERR(0, 1324, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_NotDevError) < 0) __PYX_ERR(0, 1319, __pyx_L1_error)
   CpswPyExcT_NotDevError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_NotDevError.tp_dictoffset && CpswPyExcT_NotDevError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_NotDevError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "NotDevError", (PyObject *)&CpswPyExcT_NotDevError) < 0) __PYX_ERR(0, 1324, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_NotDevError) < 0) __PYX_ERR(0, 1324, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "NotDevError", (PyObject *)&CpswPyExcT_NotDevError) < 0) __PYX_ERR(0, 1319, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_NotDevError) < 0) __PYX_ERR(0, 1319, __pyx_L1_error)
   __pyx_ptype_6pycpsw_NotDevError = &CpswPyExcT_NotDevError;
   CpswPyExcT_NotFoundError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_NotFoundError) < 0) __PYX_ERR(0, 1329, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_NotFoundError) < 0) __PYX_ERR(0, 1323, __pyx_L1_error)
   CpswPyExcT_NotFoundError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_NotFoundError.tp_dictoffset && CpswPyExcT_NotFoundError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_NotFoundError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "NotFoundError", (PyObject *)&CpswPyExcT_NotFoundError) < 0) __PYX_ERR(0, 1329, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_NotFoundError) < 0) __PYX_ERR(0, 1329, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "NotFoundError", (PyObject *)&CpswPyExcT_NotFoundError) < 0) __PYX_ERR(0, 1323, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_NotFoundError) < 0) __PYX_ERR(0, 1323, __pyx_L1_error)
   __pyx_ptype_6pycpsw_NotFoundError = &CpswPyExcT_NotFoundError;
   CpswPyExcT_InvalidPathError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_InvalidPathError) < 0) __PYX_ERR(0, 1334, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_InvalidPathError) < 0) __PYX_ERR(0, 1327, __pyx_L1_error)
   CpswPyExcT_InvalidPathError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_InvalidPathError.tp_dictoffset && CpswPyExcT_InvalidPathError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_InvalidPathError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "InvalidPathError", (PyObject *)&CpswPyExcT_InvalidPathError) < 0) __PYX_ERR(0, 1334, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_InvalidPathError) < 0) __PYX_ERR(0, 1334, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "InvalidPathError", (PyObject *)&CpswPyExcT_InvalidPathError) < 0) __PYX_ERR(0, 1327, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_InvalidPathError) < 0) __PYX_ERR(0, 1327, __pyx_L1_error)
   __pyx_ptype_6pycpsw_InvalidPathError = &CpswPyExcT_InvalidPathError;
   CpswPyExcT_InvalidIdentError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_InvalidIdentError) < 0) __PYX_ERR(0, 1339, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_InvalidIdentError) < 0) __PYX_ERR(0, 1331, __pyx_L1_error)
   CpswPyExcT_InvalidIdentError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_InvalidIdentError.tp_dictoffset && CpswPyExcT_InvalidIdentError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_InvalidIdentError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "InvalidIdentError", (PyObject *)&CpswPyExcT_InvalidIdentError) < 0) __PYX_ERR(0, 1339, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_InvalidIdentError) < 0) __PYX_ERR(0, 1339, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "InvalidIdentError", (PyObject *)&CpswPyExcT_InvalidIdentError) < 0) __PYX_ERR(0, 1331, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_InvalidIdentError) < 0) __PYX_ERR(0, 1331, __pyx_L1_error)
   __pyx_ptype_6pycpsw_InvalidIdentError = &CpswPyExcT_InvalidIdentError;
   CpswPyExcT_InvalidArgError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_InvalidArgError) < 0) __PYX_ERR(0, 1344, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_InvalidArgError) < 0) __PYX_ERR(0, 1335, __pyx_L1_error)
   CpswPyExcT_InvalidArgError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_InvalidArgError.tp_dictoffset && CpswPyExcT_InvalidArgError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_InvalidArgError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "InvalidArgError", (PyObject *)&CpswPyExcT_InvalidArgError) < 0) __PYX_ERR(0, 1344, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_InvalidArgError) < 0) __PYX_ERR(0, 1344, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "InvalidArgError", (PyObject *)&CpswPyExcT_InvalidArgError) < 0) __PYX_ERR(0, 1335, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_InvalidArgError) < 0) __PYX_ERR(0, 1335, __pyx_L1_error)
   __pyx_ptype_6pycpsw_InvalidArgError = &CpswPyExcT_InvalidArgError;
   CpswPyExcT_AddressAlreadyAttachedError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_AddressAlreadyAttachedError) < 0) __PYX_ERR(0, 1349, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_AddressAlreadyAttachedError) < 0) __PYX_ERR(0, 1339, __pyx_L1_error)
   CpswPyExcT_AddressAlreadyAttachedError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_AddressAlreadyAttachedError.tp_dictoffset && CpswPyExcT_AddressAlreadyAttachedError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_AddressAlreadyAttachedError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "AddressAlreadyAttachedError", (PyObject *)&CpswPyExcT_AddressAlreadyAttachedError) < 0) __PYX_ERR(0, 1349, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_AddressAlreadyAttachedError) < 0) __PYX_ERR(0, 1349, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "AddressAlreadyAttachedError", (PyObject *)&CpswPyExcT_AddressAlreadyAttachedError) < 0) __PYX_ERR(0, 1339, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_AddressAlreadyAttachedError) < 0) __PYX_ERR(0, 1339, __pyx_L1_error)
   __pyx_ptype_6pycpsw_AddressAlreadyAttachedError = &CpswPyExcT_AddressAlreadyAttachedError;
   CpswPyExcT_ConfigurationError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_ConfigurationError) < 0) __PYX_ERR(0, 1354, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_ConfigurationError) < 0) __PYX_ERR(0, 1343, __pyx_L1_error)
   CpswPyExcT_ConfigurationError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_ConfigurationError.tp_dictoffset && CpswPyExcT_ConfigurationError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_ConfigurationError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "ConfigurationError", (PyObject *)&CpswPyExcT_ConfigurationError) < 0) __PYX_ERR(0, 1354, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_ConfigurationError) < 0) __PYX_ERR(0, 1354, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "ConfigurationError", (PyObject *)&CpswPyExcT_ConfigurationError) < 0) __PYX_ERR(0, 1343, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_ConfigurationError) < 0) __PYX_ERR(0, 1343, __pyx_L1_error)
   __pyx_ptype_6pycpsw_ConfigurationError = &CpswPyExcT_ConfigurationError;
   CpswPyExcT_AddrOutOfRangeError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_AddrOutOfRangeError) < 0) __PYX_ERR(0, 1359, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_AddrOutOfRangeError) < 0) __PYX_ERR(0, 1347, __pyx_L1_error)
   CpswPyExcT_AddrOutOfRangeError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_AddrOutOfRangeError.tp_dictoffset && CpswPyExcT_AddrOutOfRangeError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_AddrOutOfRangeError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "AddrOutOfRangeError", (PyObject *)&CpswPyExcT_AddrOutOfRangeError) < 0) __PYX_ERR(0, 1359, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_AddrOutOfRangeError) < 0) __PYX_ERR(0, 1359, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "AddrOutOfRangeError", (PyObject *)&CpswPyExcT_AddrOutOfRangeError) < 0) __PYX_ERR(0, 1347, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_AddrOutOfRangeError) < 0) __PYX_ERR(0, 1347, __pyx_L1_error)
   __pyx_ptype_6pycpsw_AddrOutOfRangeError = &CpswPyExcT_AddrOutOfRangeError;
   CpswPyExcT_ConversionError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_ConversionError) < 0) __PYX_ERR(0, 1364, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_ConversionError) < 0) __PYX_ERR(0, 1351, __pyx_L1_error)
   CpswPyExcT_ConversionError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_ConversionError.tp_dictoffset && CpswPyExcT_ConversionError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_ConversionError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "ConversionError", (PyObject *)&CpswPyExcT_ConversionError) < 0) __PYX_ERR(0, 1364, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_ConversionError) < 0) __PYX_ERR(0, 1364, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "ConversionError", (PyObject *)&CpswPyExcT_ConversionError) < 0) __PYX_ERR(0, 1351, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_ConversionError) < 0) __PYX_ERR(0, 1351, __pyx_L1_error)
   __pyx_ptype_6pycpsw_ConversionError = &CpswPyExcT_ConversionError;
   CpswPyExcT_InterfaceNotImplementedError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_InterfaceNotImplementedError) < 0) __PYX_ERR(0, 1369, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_InterfaceNotImplementedError) < 0) __PYX_ERR(0, 1355, __pyx_L1_error)
   CpswPyExcT_InterfaceNotImplementedError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_InterfaceNotImplementedError.tp_dictoffset && CpswPyExcT_InterfaceNotImplementedError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_InterfaceNotImplementedError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "InterfaceNotImplementedError", (PyObject *)&CpswPyExcT_InterfaceNotImplementedError) < 0) __PYX_ERR(0, 1369, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_InterfaceNotImplementedError) < 0) __PYX_ERR(0, 1369, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "InterfaceNotImplementedError", (PyObject *)&CpswPyExcT_InterfaceNotImplementedError) < 0) __PYX_ERR(0, 1355, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_InterfaceNotImplementedError) < 0) __PYX_ERR(0, 1355, __pyx_L1_error)
   __pyx_ptype_6pycpsw_InterfaceNotImplementedError = &CpswPyExcT_InterfaceNotImplementedError;
   CpswPyExcT_BadStatusError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_BadStatusError) < 0) __PYX_ERR(0, 1374, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_BadStatusError) < 0) __PYX_ERR(0, 1359, __pyx_L1_error)
   CpswPyExcT_BadStatusError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_BadStatusError.tp_dictoffset && CpswPyExcT_BadStatusError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_BadStatusError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "BadStatusError", (PyObject *)&CpswPyExcT_BadStatusError) < 0) __PYX_ERR(0, 1374, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_BadStatusError) < 0) __PYX_ERR(0, 1374, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "BadStatusError", (PyObject *)&CpswPyExcT_BadStatusError) < 0) __PYX_ERR(0, 1359, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_BadStatusError) < 0) __PYX_ERR(0, 1359, __pyx_L1_error)
   __pyx_ptype_6pycpsw_BadStatusError = &CpswPyExcT_BadStatusError;
   CpswPyExcT_IntrError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_IntrError) < 0) __PYX_ERR(0, 1379, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_IntrError) < 0) __PYX_ERR(0, 1363, __pyx_L1_error)
   CpswPyExcT_IntrError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_IntrError.tp_dictoffset && CpswPyExcT_IntrError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_IntrError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "IntrError", (PyObject *)&CpswPyExcT_IntrError) < 0) __PYX_ERR(0, 1379, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_IntrError) < 0) __PYX_ERR(0, 1379, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "IntrError", (PyObject *)&CpswPyExcT_IntrError) < 0) __PYX_ERR(0, 1363, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_IntrError) < 0) __PYX_ERR(0, 1363, __pyx_L1_error)
   __pyx_ptype_6pycpsw_IntrError = &CpswPyExcT_IntrError;
   CpswPyExcT_StreamDoneError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_StreamDoneError) < 0) __PYX_ERR(0, 1384, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_StreamDoneError) < 0) __PYX_ERR(0, 1367, __pyx_L1_error)
   CpswPyExcT_StreamDoneError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_StreamDoneError.tp_dictoffset && CpswPyExcT_StreamDoneError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_StreamDoneError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "StreamDoneError", (PyObject *)&CpswPyExcT_StreamDoneError) < 0) __PYX_ERR(0, 1384, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_StreamDoneError) < 0) __PYX_ERR(0, 1384, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "StreamDoneError", (PyObject *)&CpswPyExcT_StreamDoneError) < 0) __PYX_ERR(0, 1367, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_StreamDoneError) < 0) __PYX_ERR(0, 1367, __pyx_L1_error)
   __pyx_ptype_6pycpsw_StreamDoneError = &CpswPyExcT_StreamDoneError;
   CpswPyExcT_FailedStreamError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_FailedStreamError) < 0) __PYX_ERR(0, 1389, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_FailedStreamError) < 0) __PYX_ERR(0, 1371, __pyx_L1_error)
   CpswPyExcT_FailedStreamError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_FailedStreamError.tp_dictoffset && CpswPyExcT_FailedStreamError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_FailedStreamError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "FailedStreamError", (PyObject *)&CpswPyExcT_FailedStreamError) < 0) __PYX_ERR(0, 1389, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_FailedStreamError) < 0) __PYX_ERR(0, 1389, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "FailedStreamError", (PyObject *)&CpswPyExcT_FailedStreamError) < 0) __PYX_ERR(0, 1371, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_FailedStreamError) < 0) __PYX_ERR(0, 1371, __pyx_L1_error)
   __pyx_ptype_6pycpsw_FailedStreamError = &CpswPyExcT_FailedStreamError;
   CpswPyExcT_MissingOnceTagError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_MissingOnceTagError) < 0) __PYX_ERR(0, 1394, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_MissingOnceTagError) < 0) __PYX_ERR(0, 1375, __pyx_L1_error)
   CpswPyExcT_MissingOnceTagError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_MissingOnceTagError.tp_dictoffset && CpswPyExcT_MissingOnceTagError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_MissingOnceTagError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "MissingOnceTagError", (PyObject *)&CpswPyExcT_MissingOnceTagError) < 0) __PYX_ERR(0, 1394, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_MissingOnceTagError) < 0) __PYX_ERR(0, 1394, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "MissingOnceTagError", (PyObject *)&CpswPyExcT_MissingOnceTagError) < 0) __PYX_ERR(0, 1375, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_MissingOnceTagError) < 0) __PYX_ERR(0, 1375, __pyx_L1_error)
   __pyx_ptype_6pycpsw_MissingOnceTagError = &CpswPyExcT_MissingOnceTagError;
   CpswPyExcT_MissingIncludeFileNameError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_MissingIncludeFileNameError) < 0) __PYX_ERR(0, 1399, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_MissingIncludeFileNameError) < 0) __PYX_ERR(0, 1379, __pyx_L1_error)
   CpswPyExcT_MissingIncludeFileNameError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_MissingIncludeFileNameError.tp_dictoffset && CpswPyExcT_MissingIncludeFileNameError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_MissingIncludeFileNameError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "MissingIncludeFileNameError", (PyObject *)&CpswPyExcT_MissingIncludeFileNameError) < 0) __PYX_ERR(0, 1399, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_MissingIncludeFileNameError) < 0) __PYX_ERR(0, 1399, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "MissingIncludeFileNameError", (PyObject *)&CpswPyExcT_MissingIncludeFileNameError) < 0) __PYX_ERR(0, 1379, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_MissingIncludeFileNameError) < 0) __PYX_ERR(0, 1379, __pyx_L1_error)
   __pyx_ptype_6pycpsw_MissingIncludeFileNameError = &CpswPyExcT_MissingIncludeFileNameError;
   CpswPyExcT_NoYAMLSupportError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_NoYAMLSupportError) < 0) __PYX_ERR(0, 1404, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_NoYAMLSupportError) < 0) __PYX_ERR(0, 1383, __pyx_L1_error)
   CpswPyExcT_NoYAMLSupportError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_NoYAMLSupportError.tp_dictoffset && CpswPyExcT_NoYAMLSupportError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_NoYAMLSupportError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "NoYAMLSupportError", (PyObject *)&CpswPyExcT_NoYAMLSupportError) < 0) __PYX_ERR(0, 1404, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_NoYAMLSupportError) < 0) __PYX_ERR(0, 1404, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "NoYAMLSupportError", (PyObject *)&CpswPyExcT_NoYAMLSupportError) < 0) __PYX_ERR(0, 1383, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_NoYAMLSupportError) < 0) __PYX_ERR(0, 1383, __pyx_L1_error)
   __pyx_ptype_6pycpsw_NoYAMLSupportError = &CpswPyExcT_NoYAMLSupportError;
   CpswPyExcT_NoError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_NoError) < 0) __PYX_ERR(0, 1409, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_NoError) < 0) __PYX_ERR(0, 1387, __pyx_L1_error)
   CpswPyExcT_NoError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_NoError.tp_dictoffset && CpswPyExcT_NoError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_NoError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "NoError", (PyObject *)&CpswPyExcT_NoError) < 0) __PYX_ERR(0, 1409, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_NoError) < 0) __PYX_ERR(0, 1409, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "NoError", (PyObject *)&CpswPyExcT_NoError) < 0) __PYX_ERR(0, 1387, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_NoError) < 0) __PYX_ERR(0, 1387, __pyx_L1_error)
   __pyx_ptype_6pycpsw_NoError = &CpswPyExcT_NoError;
   CpswPyExcT_MultipleInstantiationError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_MultipleInstantiationError) < 0) __PYX_ERR(0, 1414, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_MultipleInstantiationError) < 0) __PYX_ERR(0, 1391, __pyx_L1_error)
   CpswPyExcT_MultipleInstantiationError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_MultipleInstantiationError.tp_dictoffset && CpswPyExcT_MultipleInstantiationError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_MultipleInstantiationError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "MultipleInstantiationError", (PyObject *)&CpswPyExcT_MultipleInstantiationError) < 0) __PYX_ERR(0, 1414, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_MultipleInstantiationError) < 0) __PYX_ERR(0, 1414, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "MultipleInstantiationError", (PyObject *)&CpswPyExcT_MultipleInstantiationError) < 0) __PYX_ERR(0, 1391, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_MultipleInstantiationError) < 0) __PYX_ERR(0, 1391, __pyx_L1_error)
   __pyx_ptype_6pycpsw_MultipleInstantiationError = &CpswPyExcT_MultipleInstantiationError;
   CpswPyExcT_BadSchemaVersionError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_BadSchemaVersionError) < 0) __PYX_ERR(0, 1419, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_BadSchemaVersionError) < 0) __PYX_ERR(0, 1395, __pyx_L1_error)
   CpswPyExcT_BadSchemaVersionError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_BadSchemaVersionError.tp_dictoffset && CpswPyExcT_BadSchemaVersionError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_BadSchemaVersionError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "BadSchemaVersionError", (PyObject *)&CpswPyExcT_BadSchemaVersionError) < 0) __PYX_ERR(0, 1419, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_BadSchemaVersionError) < 0) __PYX_ERR(0, 1419, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "BadSchemaVersionError", (PyObject *)&CpswPyExcT_BadSchemaVersionError) < 0) __PYX_ERR(0, 1395, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_BadSchemaVersionError) < 0) __PYX_ERR(0, 1395, __pyx_L1_error)
   __pyx_ptype_6pycpsw_BadSchemaVersionError = &CpswPyExcT_BadSchemaVersionError;
   CpswPyExcT_TimeoutError.tp_base = __pyx_ptype_6pycpsw_CPSWError;
-  if (PyType_Ready(&CpswPyExcT_TimeoutError) < 0) __PYX_ERR(0, 1424, __pyx_L1_error)
+  if (PyType_Ready(&CpswPyExcT_TimeoutError) < 0) __PYX_ERR(0, 1399, __pyx_L1_error)
   CpswPyExcT_TimeoutError.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!CpswPyExcT_TimeoutError.tp_dictoffset && CpswPyExcT_TimeoutError.tp_getattro == PyObject_GenericGetAttr)) {
     CpswPyExcT_TimeoutError.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "TimeoutError", (PyObject *)&CpswPyExcT_TimeoutError) < 0) __PYX_ERR(0, 1424, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_TimeoutError) < 0) __PYX_ERR(0, 1424, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "TimeoutError", (PyObject *)&CpswPyExcT_TimeoutError) < 0) __PYX_ERR(0, 1399, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&CpswPyExcT_TimeoutError) < 0) __PYX_ERR(0, 1399, __pyx_L1_error)
   __pyx_ptype_6pycpsw_TimeoutError = &CpswPyExcT_TimeoutError;
   __Pyx_RefNannyFinishContext();
   return 0;
