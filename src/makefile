@@ -11,6 +11,12 @@ CPSW_DIR=.
 
 include $(CPSW_DIR)/defs.mak
 
+# API version is the major version number...
+CPSW_API_VERSION:=$(shell echo '$(GIT_VERSION_STRING)' | sed -n -e 's/[ "]*R\([0-9]\+\).*/\1/p')
+
+# escape '#' and '$' for make
+CURRENT_API_PATTERN=\([ \t]*\#define[ \t]\+CPSW_API_VERSION\([ \t]\+\|$$\)\)\([0-9]\+\)\?\(.*$$\)
+
 POSTBUILD_SUBDIRS+=libTstAux
 POSTBUILD_SUBDIRS+=rssi_bridge
 POSTBUILD_SUBDIRS+=test
@@ -18,7 +24,7 @@ POSTBUILD_SUBDIRS+=test
 HEADERS        += cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h $(SHPTR_DIR_USE_CXX11)cpsw_shared_ptr.h
 DOCS           += doc/README.yamlDefinition.md doc/README.yamlDefinition.html doc/README.configData.html doc/INSTALL.html doc/README.html
 
-GENERATED_SRCS += git_version_string.h
+GENERATED_SRCS += cpsw_git_version_string.h
 GENERATED_SRCS += $(DOCS)
 
 VPATH+=:$(SRCDIR)/socks/
@@ -209,6 +215,14 @@ doc/README.yamlDefinition.md:doc/README.yamlDefinition.in
 %.html: %.md
 	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@
 
+cpsw_api_user.h: FORCE
+	CURRENT_API_VERSION=`sed -n -e 's/$(CURRENT_API_PATTERN)/\3/p' $@`; \
+	if  [ 0`sed -n -e 's/$(CURRENT_API_PATTERN)/\3/p' $@` -ne 0$(CPSW_API_VERSION) ] ; then \
+		sed -i -e 's/$(CURRENT_API_PATTERN)/\1$(CPSW_API_VERSION)\4/' $@ ; \
+		echo "Current: $${CURRENT_API_VERSION} GIT: $(CPSW_API_VERSION)" ; \
+		echo "API MISMATCH" ; \
+	fi
+
 .PHONY: foo
 foo:
-	echo $(SRCDIR)
+	echo $(CPSW_API_VERSION)

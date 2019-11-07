@@ -18,6 +18,8 @@
 
 #include <cpsw_shared_ptr.h>
 
+#define CPSW_API_VERSION 4
+
 class IEntry;
 class IHub;
 class IChild;

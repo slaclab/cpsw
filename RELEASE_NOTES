@@ -1,3 +1,9 @@
+    Enhanced (auto-generated) 'git_version_string.h':
+      - prefix all symbols as well as the header file name
+        itself with a package prefix (cpsw/CPSW in our case).
+      - define API version (= major version) in cpsw_api_user.h
+        header.
+
 R4.3.1:
 
     pycpsw.stamp had not been updated

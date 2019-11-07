@@ -8,9 +8,9 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 #include <cpsw_api_user.h>
 
-#include <git_version_string.h>
+#include <cpsw_git_version_string.h>
 
 const char *getCPSWVersionString()
 {
-	return GIT_VERSION_STRING;
+	return CPSW_GIT_VERSION_STRING;
 }

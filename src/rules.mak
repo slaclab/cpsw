@@ -351,15 +351,18 @@ uninstall: uninstall_local
 		rm -rfv $(addprefix $(INSTALL_DIR)/, $(ARCHES)) ;\
 	fi
 
-git_version_string.h: FORCE
+%_git_version_string.h: PKGPRFX=$(addsuffix _,$(shell echo '$(@:%_git_version_string.h=%)' | tr 'a-z.' 'A-Z_'))
+
+%_git_version_string.h: FORCE
 	@if grep '$(GIT_VERSION_STRING)' $@ > /dev/null 2>&1 ; then \
 		true ; \
 	else \
 		$(RM) $@ ; \
-		echo '#ifndef GIT_VERSION_STRING_H' >  $@ ;\
-		echo '#define GIT_VERSION_STRING_H' >> $@ ;\
-		echo '#define GIT_VERSION_STRING "'$(GIT_VERSION_STRING)'"' >> $@ ;\
-		echo '#endif' >> $@ ; \
+		echo '#ifndef $(addprefix $(PKGPRFX),GIT_VERSION_STRING_H)' >  $@ ;\
+		echo '#define $(addprefix $(PKGPRFX),GIT_VERSION_STRING_H)' >> $@ ;\
+		echo '#define $(addprefix $(PKGPRFX),GIT_VERSION_STRING) "'$(GIT_VERSION_STRING)'"' >> $@ ;\
+		echo '$(GIT_VERSION_STRING)' | sed -n -e 's/[ "]*R\([0-9]\+\)[.]\([0-9]\+\)[.]\([0-9]\+\)\([-]\([0-9]\+\)\)\?.*/#define $(addprefix $(PKGPRFX),MAJOR_VERSION) \1\n#define $(addprefix $(PKGPRFX),MINOR_VERSION) \2\n#define $(addprefix $(PKGPRFX),REVISION) \3\n#define $(addprefix $(PKGPRFX),DELTA_COMMIT) \5/p' >> $@ ;\
+		echo '#endif' >> $@ ;\
 	fi
 
 FORCE:
