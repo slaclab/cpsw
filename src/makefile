@@ -216,11 +216,11 @@ doc/README.yamlDefinition.md:doc/README.yamlDefinition.in
 	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@
 
 cpsw_api_user.h: FORCE
-	CURRENT_API_VERSION=`sed -n -e 's/$(CURRENT_API_PATTERN)/\3/p' $@`; \
+	@CURRENT_API_VERSION=`sed -n -e 's/$(CURRENT_API_PATTERN)/\3/p' $@`; \
 	if  [ 0`sed -n -e 's/$(CURRENT_API_PATTERN)/\3/p' $@` -ne 0$(CPSW_API_VERSION) ] ; then \
 		sed -i -e 's/$(CURRENT_API_PATTERN)/\1$(CPSW_API_VERSION)\4/' $@ ; \
 		echo "Current: $${CURRENT_API_VERSION} GIT: $(CPSW_API_VERSION)" ; \
-		echo "API MISMATCH" ; \
+		echo "API MISMATCH; fixing $@" ; \
 	fi
 
 .PHONY: foo
