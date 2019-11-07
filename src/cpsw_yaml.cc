@@ -53,6 +53,18 @@ PNode::dump() const
 	printf( "PNode key: %s, p: %p\n" , key_, parent_ );
 }
 
+class StartupVisitor : public IVisitor {
+public:
+	virtual void visit( Field f )
+	{
+	}
+
+	virtual void visit( Dev   d )
+	{
+		d->startUp();
+	}
+};
+
 
 #if 0
 // assign a new Node to this PNode while preserving parent/child/key
@@ -631,8 +643,8 @@ DECLARE_YAML_FIELD_FACTORY(MMIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(NetIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(SequenceCommandImpl);
 
-Path
-IPath::loadYamlFile(const char *file_name, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
+Dev
+IYamlSupport::buildHierarchy(const char *file_name, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
 {
 	YAML::Node top( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name, yaml_dir ) );
 
@@ -641,12 +653,27 @@ IPath::loadYamlFile(const char *file_name, const char *root_name, const char *ya
 		(*fixup)( root, top );
 	}
 
-	Hub rootHub( CYamlFieldFactoryBase::dispatchMakeField( top, root_name ) );
-	return IPath::create( rootHub );
+	return CYamlFieldFactoryBase::dispatchMakeField( top, root_name );
 }
 
 Path
-IPath::loadYamlStream(std::istream &in, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
+IPath::loadYamlFile(const char *file_name, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
+{
+	Dev rootHub = IYamlSupport::buildHierarchy( file_name, root_name, yaml_dir, fixup );
+	return IYamlSupport::startHierarchy( rootHub );
+}
+
+Path
+IYamlSupport::startHierarchy(Dev rootHub)
+{
+	StartupVisitor start;
+	rootHub->getSelf()->setLocked();
+	rootHub->accept( &start, IVisitable::RECURSE_DEPTH_FIRST );
+	return IPath::create( rootHub );
+}
+
+Dev
+IYamlSupport::buildHierarchy(std::istream &in, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
 {
 	YAML::Node top( CYamlFieldFactoryBase::loadPreprocessedYaml( in, yaml_dir ) );
 	if ( fixup ) {
@@ -654,8 +681,14 @@ IPath::loadYamlStream(std::istream &in, const char *root_name, const char *yaml_
 		(*fixup)( root, top );
 	}
 
-	Hub rootHub( CYamlFieldFactoryBase::dispatchMakeField( top, root_name ) );
-	return IPath::create( rootHub );
+	return CYamlFieldFactoryBase::dispatchMakeField( top, root_name );
+}
+
+Path
+IPath::loadYamlStream(std::istream &in, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
+{
+	Dev rootHub = IYamlSupport::buildHierarchy( in, root_name, yaml_dir, fixup );
+	return IYamlSupport::startHierarchy( rootHub );
 }
 
 Path

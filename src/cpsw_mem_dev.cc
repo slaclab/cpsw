@@ -31,10 +31,11 @@ read_func8(uint8_t *dst, uint8_t *src, size_t n);
 CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size, uint8_t *ext_buf)
 : CDevImpl(k, name, size),
   buf_    ( ext_buf ? ext_buf : 0  ),
-  isExt_  ( ext_buf ? true : false )
+  isExt_  ( ext_buf ? true : false ),
+  off_    ( 0                      )
 {
 	if ( ! buf_ && size ) {
-		buf_ = (uint8_t*)mmap( 0, getSize(), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0 );
+		buf_ = (uint8_t*)mmap( 0, getSize(), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, off_ );
 
 		if ( MAP_FAILED == buf_ ) {
 			throw InternalError("CMemDevImpl - Unable to map anonymous buffer", errno);
@@ -45,29 +46,14 @@ CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size, uint8_t *ext_b
 CMemDevImpl::CMemDevImpl(Key &key, YamlState &node)
 : CDevImpl( key, node ),
   buf_    ( 0         ),
-  isExt_  ( false     )
+  isExt_  ( false     ),
+  off_    ( 0         )
 {
-int   flg = MAP_PRIVATE | MAP_ANONYMOUS;
-int   fd  = -1;
-int   err;
-off_t off = 0;
 	if ( 0 == size_ ) {
 		throw InvalidArgError("'size' zero or unset");
 	}
 	if ( readNode( node, YAML_KEY_fileName, &fileName_ ) ) {
-        if ( (fd = open( fileName_.c_str(), O_RDWR )) < 0 ) {
-			throw ErrnoError( std::string("CMemDevImpl - Unable to open") + fileName_, errno );
-		}
-		flg = MAP_SHARED;
-		(void) readNode( node, YAML_KEY_offset, &off );
-	}
-	buf_ = (uint8_t*)mmap( 0, getSize(), PROT_READ | PROT_WRITE, flg, fd, off );
-    err  = errno;
-	if ( fd >= 0 ) {
-		close( fd );
-	}
-	if ( MAP_FAILED == buf_ ) {
-		throw ErrnoError("CMemDevImpl - Unable to map anonymous buffer", err);
+		(void) readNode( node, YAML_KEY_offset, &off_ );
 	}
 }
 
@@ -91,6 +77,35 @@ CMemDevImpl::~CMemDevImpl()
 	if ( ! isExt_ )
 		munmap( buf_, size_ );
 	/* let a shared mapping live on */
+}
+
+void CMemDevImpl::startUp()
+{
+int   flg = MAP_PRIVATE | MAP_ANONYMOUS;
+int   fd  = -1;
+int   err;
+
+	if ( ! isStarted() ) {
+		CDevImpl::startUp();
+
+		if ( fileName_.length() > 0 ) {
+			if ( (fd = open( fileName_.c_str(), O_RDWR )) < 0 ) {
+				throw ErrnoError( std::string("CMemDevImpl::startUp() - Unable to open") + fileName_, errno );
+			}
+			flg = MAP_SHARED;
+		}
+
+		buf_ = (uint8_t*)mmap( 0, getSize(), PROT_READ | PROT_WRITE, flg, fd, off_ );
+	    err  = errno;
+
+		if ( fd >= 0 ) {
+			close( fd );
+		}
+
+		if ( MAP_FAILED == buf_ ) {
+			throw ErrnoError("CMemDevImpl::startUp() - Unable to map memory", err);
+		}
+	}
 }
 
 void CMemDevImpl::addAtAddress(Field child, int align)

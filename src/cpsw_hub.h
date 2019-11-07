@@ -37,13 +37,15 @@ struct StrCmp {
 };
 
 class CDevImpl : public CEntryImpl, public virtual IDev {
+	private:
+		int      started_;
 	protected:
 		typedef  std::map<const char*, AddressImpl, StrCmp> MyChildren;
 		typedef  std::list<AddressImpl>                     PrioList;
 
 
 	private:
-		mutable  MyChildren children_;       // only by 'add' method
+		mutable  MyChildren children_;       // only by 'add' and 'startUp' methods
 		mutable  PrioList   configPrioList_; // order for dumping configuration fields
 
 	protected:
@@ -120,6 +122,13 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		{
 			return children_.end();
 		}
+
+		virtual int isStarted() const
+		{
+			return started_;
+		}
+
+		virtual void startUp();
 
 		virtual uint64_t processYamlConfig(Path p, YAML::Node &, bool) const;
 };

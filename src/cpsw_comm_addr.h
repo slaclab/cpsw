@@ -59,7 +59,9 @@ public:
 
 	virtual ~CCommAddressImpl();
 
-	virtual void startProtoStack();
+	virtual bool isRunning() const;
+
+	virtual void startUp();
 	virtual void shutdownProtoStack();
 	virtual void dumpYamlPart(YAML::Node &) const;
 };

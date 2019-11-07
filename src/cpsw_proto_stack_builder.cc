@@ -74,6 +74,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		struct LibSocksProxy       socksProxy_;
 		in_addr_t                  rssiBridgeIPAddr_;
 		CRssiConfigParams          rssiConfig_;
+		bool                       autoStart_;
 	public:
 		virtual void reset()
 		{
@@ -111,6 +112,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			rssiBridgeIPAddr_       = INADDR_NONE;
 			socksProxy_.version     = SOCKS_VERSION_NONE;
 			rssiConfig_             = CRssiConfigParams();
+			autoStart_              = true; // legacy behaviour
 		}
 
 		CProtoStackBuilder()
@@ -604,6 +606,16 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 		virtual const CRssiConfigParams *getRssiConfigParams()
 		{
 			return &rssiConfig_;
+		}
+
+		virtual bool getAutoStart()
+		{
+			return autoStart_;
+		}
+
+		virtual void setAutoStart(bool v)
+		{
+			autoStart_ = v;
 		}
 
 		virtual ProtoPort build( std::vector<ProtoPort>& );

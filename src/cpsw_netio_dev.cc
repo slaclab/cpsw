@@ -158,12 +158,24 @@ shared_ptr<CCommAddressImpl> addr;
 	}
 
 	add(addr, child);
-	addr->startProtoStack();
+
+	if ( bldr->getAutoStart() ) {
+		addr->startUp();
+	}
+}
+
+void CNetIODevImpl::startUp()
+{
+	if ( ! isStarted() ) {
+		CDevImpl::startUp();
+	}
 }
 
 void CNetIODevImpl::addAtAddress(Field child, YamlState &ypath)
 {
 ProtoStackBuilder bldr( IProtoStackBuilder::create( ypath ) );
+
+	bldr->setAutoStart( false );
 
 	if ( bldr->hasUdp() || bldr->hasTcp() ) {
 		addAtAddress(child, bldr);

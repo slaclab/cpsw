@@ -23,6 +23,7 @@ static void usage(const char *nm)
 	fprintf(stderr,"           -L <config_file>     : config load from file\n");
 	fprintf(stderr,"           -Y <yaml_file>       : load YAML definition from file\n");
 	fprintf(stderr,"           -r <root_node_name>  : node in input YAML file to use for the root node\n");
+	fprintf(stderr,"           -q                   : don't dump expanded YAML, just load.\n");
 	fprintf(stderr,"  Read YAML from stdin (or -Y file), build hierarchy and dump YAML on stdout\n");
 }
 
@@ -36,15 +37,16 @@ const char *confdnam = 0;
 const char *rootname = 0;
 const char *conflnam = 0;
 const char *defflnam = 0;
-	while ( (opt = getopt(argc, argv, "hcC:r:L:Y:")) > 0 ) {
+int            quiet = 0;
+	while ( (opt = getopt(argc, argv, "hcC:r:L:Y:q")) > 0 ) {
 		switch ( opt ) {
 			case 'c':
 				cd = 1;
 			break;
 
 			case 'C':
-				cd = 1;
-				confdnam=optarg;
+				cd       = 1;
+				confdnam = optarg;
 			break;
 
 			case 'L':
@@ -57,6 +59,10 @@ const char *defflnam = 0;
 			default:
 				usage(argv[0]);
 				return rval;
+
+			case 'q':
+				quiet    = 1;
+			break;
 
 			case 'r':
 				rootname = optarg;
@@ -72,7 +78,12 @@ const char *defflnam = 0;
 		return 1;
 	}
 	try {
-		Path p( defflnam ? IPath::loadYamlFile(defflnam, rootname) : IPath::loadYamlStream(std::cin, rootname) );
+		Dev r( defflnam ? IYamlSupport::buildHierarchy(defflnam, rootname) : IYamlSupport::buildHierarchy(std::cin, rootname) );
+		Path p;
+
+		if ( conflnam || cd ) {
+			p = IYamlSupport::startHierarchy( r );
+		}
 
 		if ( conflnam ) {
 			YAML::Node conf( YAML::LoadFile( conflnam ) );
@@ -90,13 +101,19 @@ const char *defflnam = 0;
 
 			std::cout << e.c_str() << "\n";
 		} else {
-		IYamlSupport::dumpYamlFile(
-				p->origin(),
-				0,
-				rootname);
+			if ( ! quiet ) {
+				IYamlSupport::dumpYamlFile(
+						r,
+						0,
+						rootname);
+			} else {
+				std::cout << "YAML Loaded without errors\n";
+			}
 		}
 	} catch ( CPSWError &e ) {
 		std::cerr << "CPSW Error: " << e.getInfo() << "\n";
+		if ( quiet )
+			return 1;
 		throw;
 	}
 	return 0;

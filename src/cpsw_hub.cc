@@ -389,21 +389,24 @@ MyChildren::const_iterator it( children_.find( name ) );
 }
 
 CDevImpl::CDevImpl(Key &k, const char *name, uint64_t size)
-: CEntryImpl(k, name, size)
+: CEntryImpl(k, name, size),
+  started_  (0            )
 {
 	// by default - mark containers as write-through cacheable; user may still override
 	setCacheable( WB_CACHEABLE );
 }
 
 CDevImpl::CDevImpl(Key &key, YamlState &ypath)
-: CEntryImpl(key, ypath)
+: CEntryImpl(key, ypath),
+  started_  (0         )
 {
 	setCacheable( WB_CACHEABLE ); // default for containers
 }
 
 
 CDevImpl::CDevImpl(const CDevImpl &orig, Key &k)
-: CEntryImpl(orig, k)
+: CEntryImpl(orig, k),
+  started_  (0      )
 {
 	setCacheable( WB_CACHEABLE );
 
@@ -672,4 +675,22 @@ uint64_t    rval = 0;
 		}
 	}
 	return rval;
+}
+
+void
+CDevImpl::startUp()
+{
+	if ( ! getLocked() ) {
+		throw InternalError("CDevImpl::startUp() called on unlocked Dev");
+	}
+	started_++;
+
+	MyChildren::iterator it ( children_.begin() );
+	MyChildren::iterator ite( children_.end()   );
+
+	while ( it != ite ) {
+		it->second->startUp();
+		++it;
+	}
+
 }

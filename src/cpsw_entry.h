@@ -85,6 +85,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 		mutable bool            locked_;
 		mutable CMtxLazy        uniqueListMtx_;
 		mutable CUniqueListHead uniqueListHead_;
+		mutable int             started_;
 
 		CEntryImpl(const CEntryImpl &);
 		CEntryImpl &operator=(const CEntryImpl&);

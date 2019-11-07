@@ -85,6 +85,10 @@ public:
 
 	static Dev create(const char *name, uint64_t size = DFLT_SIZE);
 
+	// initialize so that IO can be done
+	virtual void      startUp()                            = 0;
+	virtual int       isStarted()                    const = 0;
+
 	static Dev getRootDev();
 };
 
@@ -243,6 +247,9 @@ public:
 	virtual LibSocksProxyPtr   getSocksProxy()                     = 0;
 
 	virtual void               reset()                             = 0; // reset to defaults
+
+	virtual bool               getAutoStart()                      = 0;
+	virtual void               setAutoStart(bool)                  = 0;
 
 	virtual ProtoPort          build(std::vector<ProtoPort>&)      = 0;
 
@@ -454,5 +461,18 @@ namespace IYamlSupport {
 	//     top
 	//
 	void dumpYamlFile(Entry top, const char *filename, const char *root_entry_name);
+
+	// Load YAML but do not start I/O
+	Dev  buildHierarchy(const char *yaml_name,
+	                    const char *root_name  = "root", // compatibility with IPath::loadYamlFile
+	                    const char *yaml_dir   = 0,
+	                    IYamlFixup *fixup      = 0);
+
+	Dev  buildHierarchy(std::istream &in,
+	                    const char *root_name  = 0,      // compatibility with IPath::loadYamlFile
+	                    const char *yaml_dir   = 0,
+	                    IYamlFixup *fixup      = 0);
+
+	Path startHierarchy(Dev);
 };
 #endif

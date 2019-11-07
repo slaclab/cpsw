@@ -119,10 +119,15 @@ uint64_t rval;
 	return rval;
 }
 
-void CCommAddressImpl::startProtoStack()
+bool CCommAddressImpl::isRunning() const
+{
+	return running_;
+}
+
+void CCommAddressImpl::startUp()
 {
 	// start in reverse order
-	if ( protoStack_  && ! running_) {
+	if ( protoStack_  && ! isRunning() ) {
 		std::vector<ProtoMod> mods;
 		int                      i;
 
@@ -135,13 +140,13 @@ void CCommAddressImpl::startProtoStack()
 		for ( i = mods.size() - 1; i >= 0; i-- ) {
 			mods[i]->modStartupOnce();
 		}
+		mtu_ = protoStack_->open()->getMTU();
 	}
-	mtu_ = protoStack_->open()->getMTU();
 }
 
 void CCommAddressImpl::shutdownProtoStack()
 {
-	if ( protoStack_ && running_ ) {
+	if ( protoStack_ && isRunning() ) {
 		ProtoMod m;
 		for ( m = protoStack_->getProtoMod(); m; m=m->getUpstreamProtoMod() ) {
 			m->modShutdownOnce();

@@ -69,6 +69,8 @@ public:
 
 	virtual void addAtAddress(Field child, ProtoStackBuilder bldr);
 
+	virtual void startUp();
+
 	virtual void addAtAddress(Field child, ProtocolVersion version, unsigned dport, unsigned timeoutUs = 1000, unsigned retryCnt = 5, uint8_t vc = 0, bool useRssi = false, int tDest = -1);
 	virtual void addAtStream(Field child, unsigned dport, unsigned timeoutUs, unsigned inQDepth, unsigned outQDepth, unsigned ldFrameWinSize, unsigned ldFragWinSize, unsigned nUdpThreads, bool useRssi = false, int tDest = -1);
 

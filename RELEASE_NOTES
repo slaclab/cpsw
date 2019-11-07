@@ -1,3 +1,6 @@
+    Support loading YAML and building hierarchy without starting I/O.
+	Added new 'startUp()' member function.
+
     Enhanced (auto-generated) 'git_version_string.h':
       - prefix all symbols as well as the header file name
         itself with a package prefix (cpsw/CPSW in our case).

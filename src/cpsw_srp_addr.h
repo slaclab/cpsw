@@ -134,7 +134,7 @@ public:
 
 	virtual void dump(FILE *f) const;
 
-	virtual void startProtoStack();
+	virtual void startUp();
 
 	virtual unsigned getAlignment()                      const;
 

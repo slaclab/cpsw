@@ -59,6 +59,7 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 		uint8_t    *buf_;
 		bool        isExt_;
         std::string fileName_;
+		off_t       off_;
 
 	protected:
 		CMemDevImpl(const CMemDevImpl &orig, Key &k);
@@ -87,6 +88,8 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 		{
 			return new CMemDevImpl( *this, k );
 		}
+
+		virtual void startUp();
 
 		virtual ~CMemDevImpl();
 };

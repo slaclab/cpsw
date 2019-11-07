@@ -216,6 +216,10 @@ class CAddressImpl : public IAddress {
 
 		virtual void checkWriteAlignmentReqs(CWriteArgs *wargs) const;
 
+		virtual void startUp()
+		{
+		}
+
 	protected:
 		template <typename T> T getOwnerAs() const
 		{

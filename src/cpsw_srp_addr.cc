@@ -140,12 +140,16 @@ int                  nbits;
 }
 
 void
-CSRPAddressImpl::startProtoStack()
+CSRPAddressImpl::startUp()
 {
+	if ( isRunning() ) {
+		return;
+	}
+
 unsigned             maxwords;
 ProtoPort            stack = getProtoStack();
 
-	CCommAddressImpl::startProtoStack();
+	CCommAddressImpl::startUp();
 
 	// there seems to be a bug in either the depacketizer or SRP:
 	// weird things happen if fragment payload is not 8-byte
