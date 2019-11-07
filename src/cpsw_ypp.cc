@@ -11,6 +11,7 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <string.h>
+#include <yaml-cpp/yaml.h>
 
 static void usage(const char *nm)
 {
@@ -25,6 +26,8 @@ const char *justTheName = ::strrchr(nm, '/');
 	fprintf(stderr,"                  'dirname' of <yaml_file> if no -D given.\n");
 	fprintf(stderr,"  -v            : Enable verbose mode; comments are added indicating the start\n");
 	fprintf(stderr,"                  and end of included files as well as the schemaversion.\n");
+	fprintf(stderr,"  -p            : print YAML to stdout and parse it as well.\n");
+	fprintf(stderr,"                  Useful for catching syntax errors...\n");
 	fprintf(stderr,"  -h            : Print this message.\n");
 }
 
@@ -45,9 +48,10 @@ const char *yaml_dir = 0;
 const char *yaml_fil = 0;
 int             rval = 1;
 bool            verb = false;
+bool            pars = false;
 
-	while ( (opt = getopt(argc, argv, "D:Y:hv")) > 0 ) {
-		switch (opt) {	
+	while ( (opt = getopt(argc, argv, "D:Y:hvp")) > 0 ) {
+		switch (opt) {
 			case 'h':
 				rval = 0;
 			default:
@@ -55,6 +59,7 @@ bool            verb = false;
 				return rval;
 
 			case 'v': verb = true;       break;
+			case 'p': pars = true;       break;
 
 			case 'D': yaml_dir = optarg; break;
 			case 'Y': yaml_fil = optarg; break;
@@ -77,25 +82,40 @@ StreamMuxBuf::Stream top_strm;
 	}
 
 StreamMuxBuf     muxer;
+// Use an additional MuxBuf to ensure the final YAML submitted to
+// the parser is read from a single stream so that line numbers
+// printed in error messages are accurate...
+StreamMuxBuf     addHeader;
+
 YamlPreprocessor preprocessor( top_strm, &muxer, yaml_dir );
 
 	preprocessor.setVerbose( verb );
 
 	preprocessor.process();
 
-	std::istream preprocessed_stream( &muxer );
+	StreamMuxBuf::Stream preprocessedStream( new std::istream( &muxer ) );
 
 	if ( preprocessor.getSchemaVersionMajor() >= 0 ) {
-		std::cout << "#schemaversion "
-		          << preprocessor.getSchemaVersionMajor()
-		          << "."
-		          << preprocessor.getSchemaVersionMinor()
-		          << "."
-		          << preprocessor.getSchemaVersionRevision()
-		          << "\n";
+		char line[256];
+		snprintf( line, sizeof(line), "#schemaversion %d.%d.%d\n",
+		           preprocessor.getSchemaVersionMajor(),
+		           preprocessor.getSchemaVersionMinor(),
+		           preprocessor.getSchemaVersionRevision()
+		        );
+		addHeader.pushbuf( StreamMuxBuf::mkstrm( std::string( line ) ), NULL, 1 );
 	}
+	addHeader.pushbuf( preprocessedStream, NULL, 0 );
 
-	std::cout << preprocessed_stream.rdbuf();
+	std::istream streamWithHeader( &addHeader );
+
+	if ( pars ) {
+		std::stringstream tmp;
+		tmp << streamWithHeader.rdbuf();
+		std::cout << tmp.str();
+		YAML::Load( tmp );
+	} else {
+		std::cout << streamWithHeader.rdbuf();
+	}
 
 	return 0;
 }
