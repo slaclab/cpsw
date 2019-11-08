@@ -48,7 +48,7 @@ CAddressImpl::CAddressImpl(AKey owner, unsigned nelms, ByteOrder byteOrder)
 		this->byteOrder_ = hostByteOrder();
 }
 
-CAddressImpl::CAddressImpl(AKey owner, YamlState &ypath)
+CAddressImpl::CAddressImpl(AKey owner, YamlState *ypath)
 : owner_     ( owner                          ),
   child_     ( static_cast<CEntryImpl*>(NULL) ),
   nelms_     ( IDev::DFLT_NELMS               ),
@@ -397,7 +397,7 @@ CDevImpl::CDevImpl(Key &k, const char *name, uint64_t size)
 	setCacheable( WB_CACHEABLE );
 }
 
-CDevImpl::CDevImpl(Key &key, YamlState &ypath)
+CDevImpl::CDevImpl(Key &key, YamlState *ypath)
 : CEntryImpl(key, ypath),
   started_  (0         )
 {
@@ -451,7 +451,7 @@ CDevImpl::addAtAddress(Field child, unsigned nelms)
 }
 
 void
-CDevImpl::addAtAddress(Field child, YamlState &ypath)
+CDevImpl::addAtAddress(Field child, YamlState *ypath)
 {
 	try {
 		doAddAtAddress<CFSAddressImpl>( child, ypath );

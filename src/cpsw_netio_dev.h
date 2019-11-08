@@ -45,10 +45,10 @@ protected:
 public:
 	CNetIODevImpl(Key &key, const char *name, const char *ip);
 
-	CNetIODevImpl(Key &k, YamlState &n);
+	CNetIODevImpl(Key &k, YamlState *n);
 	virtual void dumpYamlPart(YAML::Node &) const;
 
-	virtual void addAtAddress(Field child, YamlState &n);
+	virtual void addAtAddress(Field child, YamlState *n);
 
 	static  const char *_getClassName()       { return "NetIODev";      }
 	virtual const char * getClassName() const { return _getClassName(); }

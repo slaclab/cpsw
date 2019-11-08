@@ -32,7 +32,7 @@ static void readTimeout (int fd, uint8_t *buf, unsigned n, const CTimeout *timeo
 static void writeTimeout(int fd, uint8_t *buf, unsigned n, const CTimeout *timeout);
 
 
-CFSAddressImpl::CFSAddressImpl(AKey key, YamlState &ypath)
+CFSAddressImpl::CFSAddressImpl(AKey key, YamlState *ypath)
 : CAddressImpl( key, ypath    ),
   fd_         ( -1            ),
   seekable_   ( DFLT_SEEKABLE ),

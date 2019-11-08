@@ -30,7 +30,7 @@ private:
 public:
 	CConstIntEntryImpl(Key &k, const char *name, bool isSigned = DFLT_IS_SIGNED, Enum enm = Enum());
 
-	CConstIntEntryImpl(Key &k, YamlState &n);
+	CConstIntEntryImpl(Key &k, YamlState *n);
 
 	static  const char *_getClassName()       { return "ConstIntField"; }
 	virtual const char * getClassName() const { return _getClassName(); }

@@ -99,7 +99,7 @@ public:
 
 		CCommandImpl(Key &k, const char* name);
 
-		CCommandImpl(Key  &k, YamlState &node)
+		CCommandImpl(Key  &k, YamlState *node)
 		: CEntryImpl(k, node)
 		{
 		}
@@ -191,7 +191,7 @@ public:
 	}
 
 	CSequenceCommandImpl(Key &k, const char *name, const Items *items_p);
-	CSequenceCommandImpl(Key &k, YamlState &node);
+	CSequenceCommandImpl(Key &k, YamlState *node);
 
 	virtual void executeCommand(CommandImplContext context                 ) const;
 	virtual void executeCommand(CommandImplContext context, int64_t     arg) const;

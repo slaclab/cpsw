@@ -58,7 +58,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 
 		CDevImpl(Key &k, const char *name, uint64_t size= 0);
 
-		CDevImpl(Key &k, YamlState &ypath);
+		CDevImpl(Key &k, YamlState *ypath);
 
 		virtual void dumpYamlPart(YAML::Node &node) const;
 
@@ -76,7 +76,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		virtual void addAtAddress(Field child, unsigned nelms);
 
 		template <typename T>
-		shared_ptr<T> doAddAtAddress(Field child, YamlState &ypath)
+		shared_ptr<T> doAddAtAddress(Field child, YamlState *ypath)
 		{
 			IAddress::AKey k = getAKey();
 			shared_ptr<T> rval( cpsw::make_shared<T>(k, ypath) );
@@ -85,7 +85,7 @@ class CDevImpl : public CEntryImpl, public virtual IDev {
 		}
 
 		virtual void
-		addAtAddress(Field child, YamlState &ypath);
+		addAtAddress(Field child, YamlState *ypath);
 
 		virtual Path findByName(const char *s) const;
 

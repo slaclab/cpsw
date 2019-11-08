@@ -143,7 +143,7 @@ class CAddressImpl : public IAddress {
 
 	public:
 		CAddressImpl(AKey owner, unsigned nelms = 1, ByteOrder byteOrder = UNKNOWN);
-		CAddressImpl(AKey owner, YamlState &ypath);
+		CAddressImpl(AKey owner, YamlState *ypath);
 
 		virtual ~CAddressImpl()
 		{

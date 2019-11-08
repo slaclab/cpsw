@@ -69,9 +69,9 @@ CEntryImpl::CEntryImpl(const CEntryImpl &ei, Key &k)
 	++ocnt();
 }
 
-CEntryImpl::CEntryImpl(Key &key, YamlState &ypath)
+CEntryImpl::CEntryImpl(Key &key, YamlState *ypath)
 : CShObj(key),
-  name_( ypath.n.getName() ),
+  name_( ypath->n.getName() ),
   singleInterfaceOnly_( false ),
   size_( DFLT_SIZE ),
   cacheable_( DFLT_CACHEABLE ),

@@ -200,7 +200,7 @@ void pushNode(YAML::Node &node, const char *fld, const YAML::Node &child)
 }
 
 
-void CYamlSupportBase::overrideNode(YamlState &node)
+void CYamlSupportBase::overrideNode(YamlState *node)
 {
 	// do nothing
 }
@@ -336,7 +336,7 @@ IRegistry::create(bool dynLoad)
 }
 
 template <typename T> bool
-CYamlTypeRegistry<T>::extractInstantiate(YamlState &node)
+CYamlTypeRegistry<T>::extractInstantiate(YamlState *node)
 {
 bool        instantiate    = true;
 
@@ -346,13 +346,13 @@ bool        instantiate    = true;
 }
 
 template <typename T> void
-CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlState &node)
+CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlState *node)
 {
-	YamlState class_node( &node, YAML_KEY_class );
+	YamlState class_node( node, YAML_KEY_class );
 	if ( ! class_node.n ) {
 		throw   NotFoundError( std::string("No property '")
 			  + std::string(YAML_KEY_class)
-			  + std::string("' in: ") + node.n.toString()
+			  + std::string("' in: ") + node->n.toString()
 			    );
 	} else {
 		if( class_node.n.IsSequence() ) {
@@ -365,7 +365,7 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 			throw   InvalidArgError( std::string("property '")
 				  + std::string(YAML_KEY_class)
 				  + std::string("' in: ")
-				  + node.n.toString()
+				  + node->n.toString()
 				  + std::string(" is not a Sequence nor Scalar")
 				    );
 		}
@@ -373,7 +373,7 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 }
 
 void
-CYamlFieldFactoryBase::addChildren(CEntryImpl &e, YamlState &node)
+CYamlFieldFactoryBase::addChildren(CEntryImpl &e, YamlState *node)
 {
 	// nothing to do for 'leaf' entries
 }
@@ -418,7 +418,7 @@ public:
 						fprintf( CPSW::fDbg(), "AddChildrenVisitor: trying to make child %s\n", k.c_str());
 					}
 #endif
-					Field c = registry_->makeItem( child );
+					Field c = registry_->makeItem( &child );
 					if ( c ) {
 						// if 'instantiate' is 'false' then
 						// makeItem() returns a NULL pointer
@@ -430,7 +430,7 @@ public:
 
 						YamlState child_address( &child, YAML_KEY_at );
 						if ( child_address.n ) {
-							d_->addAtAddress( c, child_address );
+							d_->addAtAddress( c, &child_address );
 						} else {
 							not_instantiated_.insert( k );
 							std::string errmsg =   std::string("Child '")
@@ -461,9 +461,9 @@ public:
 };
 
 void
-CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState &node)
+CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState *node)
 {
-YamlState           children( &node, YAML_KEY_children );
+YamlState           children( node, YAML_KEY_children );
 AddChildrenVisitor  visitor( &d, getRegistry() );
 
 #ifdef CPSW_YAML_DEBUG
@@ -512,7 +512,7 @@ YAML::Node versNode( node[ YAML_KEY_schemaVersionMajor ] );
 	}
 
 	/* Root node must be a Dev */
-	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry_()->makeItem( root ) );
+	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry_()->makeItem( &root ) );
 }
 
 static YAML::Node

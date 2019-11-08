@@ -68,19 +68,19 @@ AXIVers IAXIVers::create(const char *name)
 AXIVersImpl v = CShObj::create<AXIVersImpl>(name);
 Field f;
 	f = IIntField::create("FpgaVersion", 32, false, 0, IIntField::RO);
-	v->CMMIODevImpl::addAtAddress( f , 0x00 );
+	v->CMMIODevImpl::addAtAddress( f , 0x00, 1 );
 	f = IIntField::create("DeviceDna", 64, false, 0, IIntField::RO, 4);
-	v->CMMIODevImpl::addAtAddress( f , 0x08 );
+	v->CMMIODevImpl::addAtAddress( f , 0x08, 1 );
 	f = IIntField::create("FdSerial", 64, false, 0, IIntField::RO, 4);
-	v->CMMIODevImpl::addAtAddress( f, 0x10 );
+	v->CMMIODevImpl::addAtAddress( f, 0x10, 1 );
 	f = IIntField::create("UpTimeCnt",  32, false, 0, IIntField::RO);
-	v->CMMIODevImpl::addAtAddress( f, 0x24 );
+	v->CMMIODevImpl::addAtAddress( f, 0x24, 1 );
 	f = IIntField::create("BuildStamp",  8, false, 0, IIntField::RO);
 	v->CMMIODevImpl::addAtAddress( f, 0x800, VLEN  );
 	f = IIntField::create("ScratchPad",32,true,  0);
-	v->CMMIODevImpl::addAtAddress( f,   4 );
+	v->CMMIODevImpl::addAtAddress( f,   4, 1 );
 	f = IIntField::create("Bits",22,true, 4);
-	v->CMMIODevImpl::addAtAddress( f,   4 );
+	v->CMMIODevImpl::addAtAddress( f,   4, 1 );
 	return v;	
 }
 
@@ -120,27 +120,27 @@ PRBS IPRBS::create(const char *name)
 PRBSImpl v = CShObj::create<PRBSImpl>(name);
 Field f;
 	f = IIntField::create("AxiEn",        1, false, 0);
-	v->CMMIODevImpl::addAtAddress( f , 0x00 );
+	v->CMMIODevImpl::addAtAddress( f , 0x00, 1 );
 	f = IIntField::create("TxEn",         1, false, 1);
-	v->CMMIODevImpl::addAtAddress( f , 0x00 );
+	v->CMMIODevImpl::addAtAddress( f , 0x00, 1 );
 	f = IIntField::create("Busy",         1, false, 2, IIntField::RO);
-	v->CMMIODevImpl::addAtAddress( f , 0x00 );
+	v->CMMIODevImpl::addAtAddress( f , 0x00, 1 );
 	f = IIntField::create("Overflow",     1, false, 3, IIntField::RO);
-	v->CMMIODevImpl::addAtAddress( f , 0x00 );
+	v->CMMIODevImpl::addAtAddress( f , 0x00, 1 );
 	f = IIntField::create("OneShot",      1, false, 4);
-	v->CMMIODevImpl::addAtAddress( f , 0x00 );
+	v->CMMIODevImpl::addAtAddress( f , 0x00, 1 );
 	f = IIntField::create("OacketLength",32, false, 0);
-	v->CMMIODevImpl::addAtAddress( f , 0x04 );
+	v->CMMIODevImpl::addAtAddress( f , 0x04, 1 );
 	f = IIntField::create("tDest",        8, false, 0);
-	v->CMMIODevImpl::addAtAddress( f , 0x08 );
+	v->CMMIODevImpl::addAtAddress( f , 0x08, 1 );
 	f = IIntField::create("tId",          8, false, 0);
-	v->CMMIODevImpl::addAtAddress( f , 0x09 );
+	v->CMMIODevImpl::addAtAddress( f , 0x09, 1 );
 	f = IIntField::create("DataCount",   32, false, 0, IIntField::RO);
-	v->CMMIODevImpl::addAtAddress( f , 0x0c );
+	v->CMMIODevImpl::addAtAddress( f , 0x0c, 1 );
 	f = IIntField::create("EventCount",  32, false, 0, IIntField::RO);
-	v->CMMIODevImpl::addAtAddress( f , 0x10 );
+	v->CMMIODevImpl::addAtAddress( f , 0x10, 1 );
 	f = IIntField::create("RandomData",  32, false, 0, IIntField::RO);
-	v->CMMIODevImpl::addAtAddress( f , 0x14 );
+	v->CMMIODevImpl::addAtAddress( f , 0x14, 1 );
 
 	return v;
 }

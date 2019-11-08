@@ -28,7 +28,7 @@ class CFSAddressImpl : public CAddressImpl {
 		bool		hasTimeout_;        
 
 	public:
-		CFSAddressImpl(AKey key, YamlState &ypath);
+		CFSAddressImpl(AKey key, YamlState *ypath);
 
 		CFSAddressImpl(const CFSAddressImpl &orig, AKey k)
 		: CAddressImpl( orig,       k   ),

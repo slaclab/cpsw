@@ -31,7 +31,7 @@ CMMIOAddressImpl::CMMIOAddressImpl(
 {
 }
 
-CMMIOAddressImpl::CMMIOAddressImpl(AKey key, YamlState &ypath)
+CMMIOAddressImpl::CMMIOAddressImpl(AKey key, YamlState *ypath)
 : CAddressImpl( key, ypath            ),
   stride_     ( IMMIODev::DFLT_STRIDE )
 {
@@ -178,7 +178,7 @@ void CMMIODevImpl::addAtAddress(Field child, uint64_t offset, unsigned nelms, ui
 }
 
 void
-CMMIODevImpl::addAtAddress(Field child, YamlState &ypath)
+CMMIODevImpl::addAtAddress(Field child, YamlState *ypath)
 {
 uint64_t  offset;
 	if ( readNode(ypath, YAML_KEY_offset, &offset ) ) {
@@ -197,7 +197,7 @@ CMMIOAddressImpl::dumpYamlPart(YAML::Node &node) const
 	writeNode(node, YAML_KEY_stride, stride_);
 }
 
-CMMIODevImpl::CMMIODevImpl(Key &key, YamlState &ypath)
+CMMIODevImpl::CMMIODevImpl(Key &key, YamlState *ypath)
 : CDevImpl(key, ypath),
   byteOrder_(DFLT_BYTE_ORDER)
 {

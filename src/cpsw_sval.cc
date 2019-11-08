@@ -311,7 +311,7 @@ CIntEntryImpl::setEncoding(Encoding proposed)
 	encoding_ = proposed;
 }
 
-CIntEntryImpl::CIntEntryImpl(Key &key, YamlState &node)
+CIntEntryImpl::CIntEntryImpl(Key &key, YamlState *node)
 :CEntryImpl(key, node),
  isSigned_(DFLT_IS_SIGNED),
  lsBit_(DFLT_LS_BIT),
@@ -331,10 +331,10 @@ MutableEnum e;
 	readNode(node, YAML_KEY_encoding,   &encoding_  );
 	readNode(node, YAML_KEY_configBase, &configBase_);
 
-	YamlState enum_node( &node, YAML_KEY_enums );
+	YamlState enum_node( node, YAML_KEY_enums );
 
 	if ( enum_node.n ) {
-		enum_ = IMutableEnum::create( enum_node );
+		enum_ = IMutableEnum::create( &enum_node );
 	}
 }
 

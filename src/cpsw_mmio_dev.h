@@ -32,7 +32,7 @@ class CMMIOAddressImpl : public CAddressImpl {
 			uint64_t stride   = IMMIODev::STRIDE_AUTO,
 			ByteOrder byteOrder = UNKNOWN );
 
-		CMMIOAddressImpl(AKey key, YamlState &ypath);
+		CMMIOAddressImpl(AKey key, YamlState *ypath);
 
 		CMMIOAddressImpl(const CMMIOAddressImpl &orig, AKey k)
 		: CAddressImpl(orig, k),
@@ -72,9 +72,9 @@ class CMMIODevImpl : public CDevImpl, public virtual IMMIODev {
 		{
 		}
 
-		CMMIODevImpl(Key &k, YamlState &ypath);
+		CMMIODevImpl(Key &k, YamlState *ypath);
 
-		virtual void addAtAddress(Field child, YamlState &ypath);
+		virtual void addAtAddress(Field child, YamlState *ypath);
 
 		virtual void dumpYamlPart(YAML::Node &) const;
 
