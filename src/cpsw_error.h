@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <exception>
 #include <cpsw_shared_ptr.h>
+#include <cpsw_stdio.h>
 
 
 /* Use shared pointers if we have to hand error objects around */
@@ -300,8 +301,8 @@ class InternalError: public ErrnoError {
 protected:
 	void fatal()
 	{
-		fprintf(stderr,"%s\n", what());
-		fprintf(stderr,"ABORTING (so that the core-dump gets a stack trace from where this was thrown...)\n");
+		fprintf( CPSW::fErr(), "%s\n", what() );
+		fprintf( CPSW::fErr(), "ABORTING (so that the core-dump gets a stack trace from where this was thrown...)\n" );
 	}
 public:
 	InternalError()

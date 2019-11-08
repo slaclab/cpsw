@@ -11,6 +11,8 @@
 #define CPSW_API_BUILDER_H
 
 #include <cpsw_api_user.h>
+#include <iostream>
+#include <stdio.h>
 
 /*!************** BIG NOTE ****************
  *   The builder API is NOT THREAD SAFE.

@@ -9,13 +9,14 @@
 
 
 #include <cpsw_proto_mod.h>
+#include <cpsw_stdio.h>
 
-#undef PROTO_MOD_DEBUG
+//#define PROTO_MOD_DEBUG
 
 void
-ProtoPortMatchParams::MatchParam::dump()
+ProtoPortMatchParams::MatchParam::dump( FILE * f )
 {
-	printf("%s -- doMatch %d, exclude %d, matched by %s", getName(), doMatch_, exclude_, matchedBy_ ? matchedBy_->getProtoMod()->getName() : "<NONE>");
+	fprintf( f, "%s -- doMatch %d, exclude %d, matched by %s", getName(), doMatch_, exclude_, matchedBy_ ? matchedBy_->getProtoMod()->getName() : "<NONE>" );
 }
 
 IPortImpl::IPortImpl()
@@ -178,7 +179,7 @@ ProtoDoor rval( ProtoDoor(this, CloseManager()) );
 	if ( 0 == openCount_.fetch_add( 1, cpsw::memory_order_acq_rel ) ) {
 		forcedSelfReference_ = getSelfAsProtoPort();
 #ifdef PROTO_MOD_DEBUG
-		fprintf(stderr, "First Open %s\n", forcedSelfReference_->getProtoMod()->getName());
+		fprintf(CPSW::fDbg(), "First Open %s\n", forcedSelfReference_->getProtoMod()->getName());
 #endif
 	}
 
@@ -209,7 +210,7 @@ ProtoPort holdOnToAReference = impl->forcedSelfReference_;
 		/* spin */;
 	if ( 1 == impl->openCount_.fetch_sub( 1, cpsw::memory_order_acq_rel ) ) {
 #ifdef PROTO_MOD_DEBUG
-		fprintf(stderr, "Last Close %s\n", holdOnToAReference->getProtoMod()->getName());
+		fprintf(CPSW::fDbg(), "Last Close %s\n", holdOnToAReference->getProtoMod()->getName());
 #endif
 		impl->forcedSelfReference_.reset();
 	}

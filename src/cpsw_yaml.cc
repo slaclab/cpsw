@@ -31,6 +31,7 @@
 #include <cpsw_command.h>
 #include <cpsw_preproc.h>
 #include <cpsw_yaml_merge.h>
+#include <cpsw_debug.h>
 
 #include <dlfcn.h>
 
@@ -39,7 +40,6 @@ using cpsw::unordered_set;
 
 using YAML::PNode;
 using YAML::Node;
-using std::cout;
 
 #undef  CPSW_YAML_DEBUG
 
@@ -48,9 +48,9 @@ typedef unordered_set<std::string> StrSet;
 // PNode Implementation
 
 void
-PNode::dump() const
+PNode::dump( FILE *f ) const
 {
-	printf( "PNode key: %s, p: %p\n" , key_, parent_ );
+	fprintf( f, "PNode key: %s, p: %p\n" , key_, parent_ );
 }
 
 class StartupVisitor : public IVisitor {
@@ -160,9 +160,9 @@ void
 isd(PNode *pn)
 {
 if ( pn->IsDefined() )
-	cout << *pn << "\n";
+	CPSW::sDbg() << *pn << "\n";
 else
-	cout << "PN UNDEFINED?\n";
+	CPSW::sDbg() << "PN UNDEFINED?\n";
 }
 
 
@@ -170,7 +170,7 @@ static void pp(const PNode *p)
 {
 	if ( p ) {
 		pp(p->getParent());
-		fprintf(stderr,"/%s", p->getName());
+		fprintf( CPSW::fDbg(), "/%s", p->getName() );
 	}
 }
 #endif
@@ -238,7 +238,7 @@ public:
 	~RegistryImpl()
 	{
 #ifdef CPSW_YAML_DEBUG
-		fprintf(stderr,"Destroying a registry\n");
+		fprintf( CPSW::fDbg(), "Destroying a registry\n" );
 #endif
 	}
 
@@ -253,7 +253,7 @@ public:
 	virtual void  delItem(const char *name)
 	{
 #ifdef CPSW_YAML_DEBUG
-		fprintf(stderr,"Deleting a registry item: %s\n", name);
+		fprintf( CPSW::fDbg(), "Deleting a registry item: %s\n", name );
 #endif
 		map_.erase( name );
 	}
@@ -278,14 +278,14 @@ public:
 		if ( dlopen( nam.c_str(), RTLD_LAZY | RTLD_GLOBAL | RTLD_NOLOAD ) ) {
 			// This object is already loaded but did not register
 			// 'name' ??
-			std::cerr << "Warning: '" << nam <<"' already loaded but it didn't register '" << name << "'!\n";
+			CPSW::sErr() << "Warning: '" << nam <<"' already loaded but it didn't register '" << name << "'!\n";
 			goto bail;
 		}
 
 		// Now try for real
 
 		if ( ! dlopen( nam.c_str(), RTLD_LAZY | RTLD_GLOBAL ) ) {
-			std::cerr << "Warning: unable to load '" << nam <<"': " << dlerror() << "\n";
+			CPSW::sErr() << "Warning: unable to load '" << nam <<"': " << dlerror() << "\n";
 			goto bail;
 		}
 
@@ -294,7 +294,7 @@ public:
 			found = it->second;
 
 		if ( ! found ) {
-			std::cerr << "Warning: '" << nam <<"' loaded successfully but it didn't register '" << name << "'!\n";
+			CPSW::sErr() << "Warning: '" << nam <<"' loaded successfully but it didn't register '" << name << "'!\n";
 			goto bail;
 		}
 
@@ -305,12 +305,12 @@ public:
 		return found;
 	}
 
-	virtual void  dumpItems()
+	virtual void  dumpItems(std::ostream &os)
 	{
 	Map::iterator it( map_.begin() );
 	Map::iterator ie( map_.end()   );
 		while ( it != ie ) {
-			std::cout << it->first << "\n";
+			os << it->first << "\n";
 			++it;
 		}
 	}
@@ -402,14 +402,14 @@ public:
 				if ( ! d_->getChild( k.c_str() ) && 0 == not_instantiated_.count( k ) ) {
 					YamlState child( pnode, k.c_str(), v );
 #ifdef CPSW_YAML_DEBUG
-					fprintf(stderr,"AddChildrenVisitor: trying to make child %s\n", k.c_str());
+					fprintf( CPSW::fDbg(), "AddChildrenVisitor: trying to make child %s\n", k.c_str());
 #endif
 					Field c = registry_->makeItem( child );
 					if ( c ) {
 						// if 'instantiate' is 'false' then
 						// makeItem() returns a NULL pointer
 #ifdef CPSW_YAML_DEBUG
-						fprintf(stderr,"AddChildrenVisitor: adding child %s\n", k.c_str());
+						fprintf( CPSW::fDbg(), "AddChildrenVisitor: adding child %s\n", k.c_str());
 #endif
 
 						YamlState child_address( &child, YAML_KEY_at );
@@ -424,13 +424,13 @@ public:
 						}
 					} else {
 #ifdef CPSW_YAML_DEBUG
-						fprintf(stderr,"AddChildrenVisitor: adding child %s to 'not_instantiated' database\n", k.c_str());
+						fprintf( CPSW::fDbg(), "AddChildrenVisitor: adding child %s to 'not_instantiated' database\n", k.c_str());
 #endif
 						not_instantiated_.insert( k );
 					}
 				} else {
 #ifdef CPSW_YAML_DEBUG
-					fprintf(stderr,"AddChildrenVisitor: %s not instantiated\n", k.c_str());
+					fprintf( CPSW::fDbg(), "AddChildrenVisitor: %s not instantiated\n", k.c_str());
 #endif
 				}
 			}
@@ -447,19 +447,19 @@ YamlState           children( &node, YAML_KEY_children );
 AddChildrenVisitor  visitor( &d, getRegistry() );
 
 #ifdef CPSW_YAML_DEBUG
-	fprintf(stderr,"Entering addChildren of %s\n", d.getName());
+	fprintf( CPSW::fDbg(), "Entering addChildren of %s\n", d.getName());
 #endif
 
 	if ( children.n ) {
 #ifdef CPSW_YAML_DEBUG
-		fprintf(stderr,"Adding immediate children to %s\n", d.getName());
+		fprintf( CPSW::fDbg(), "Adding immediate children to %s\n", d.getName());
 #endif
 		// handle the 'children' node itself
 		visitor.visit( &children );
 	}
 
 #ifdef CPSW_YAML_DEBUG
-	fprintf(stderr,"Leaving addChildren of %s\n", d.getName());
+	fprintf( CPSW::fDbg(), "Leaving addChildren of %s\n", d.getName());
 #endif
 }
 
@@ -523,8 +523,8 @@ loadYaml(YamlPreprocessor *preprocessor, StreamMuxBuf *muxer, bool resolveMergeK
 	} catch (YAML::Exception &err) {
 		// line number is 1-based; but our calculations are zero-based.
 		unsigned line = err.mark.line - muxer->getOtherScopeLines() + 1;
-		fprintf(stderr,"ERROR: %s\n", err.what());
-		fprintf(stderr,"Current file: %s: %u\n", muxer->getFileName(), line);
+		fprintf( CPSW::fErr(), "ERROR: %s\n", err.what());
+		fprintf( CPSW::fErr(), "Current file: %s: %u\n", muxer->getFileName(), line);
 		throw;
 	}
 }
@@ -577,13 +577,12 @@ IYamlSupport::dumpYamlFile(Entry top, const char *file_name, const char *root_na
 shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const EntryImpl::element_type>(top) );
 
 	if ( ! topi ) {
-		std::cerr << "WARNING: 'top' not an EntryImpl?\n";
+		CPSW::sErr() << "WARNING: 'top' not an EntryImpl?\n";
 		return;
 	}
 
 	YAML::Node top_node;
 	topi->dumpYaml( top_node );
-
 
 	YAML::Emitter emit;
 
@@ -751,14 +750,14 @@ YAML::NodeFind(const YAML::Node &n, const YAML::Node &k)
 YamlState::YamlState( YamlState *parent, unsigned index )
 : n( &parent->n, index )
 {
-fprintf(stderr,"initSieve from index %d\n", index);
+fprintf( CPSW::fDbg(),"initSieve from index %d\n", index);
 //	initSieve();
 }
 
 YamlState::YamlState( YamlState *parent, const char *key )
 : n( &parent->n, key )
 {
-fprintf(stderr,"initSieve from key %s\n", key);
+fprintf( CPSW::fDbg(),"initSieve from key %s\n", key);
 	parent->keySeen( key );
 	initSieve();
 }
@@ -766,7 +765,7 @@ fprintf(stderr,"initSieve from key %s\n", key);
 YamlState::YamlState( YamlState *parent, const char *key, const YAML::Node &node )
 : n( (parent ? &parent->n : NULL), key, node )
 {
-fprintf(stderr,"initSieve from node + key %s\n", key);
+fprintf( CPSW::fDbg(),"initSieve from node + key %s\n", key);
 	if ( parent ) {
 		parent->keySeen( key );
 	}
@@ -779,7 +778,7 @@ YamlState::initSieve()
 	if ( n.IsMap() ) {
 		YAML::Node::const_iterator it;
 		for ( it = n.begin(); it != n.end(); ++it ) {
-fprintf(stderr,"Inserting %s/%s\n", n.toString().c_str(), it->first.Scalar().c_str());
+fprintf( CPSW::fDbg(), "Inserting %s/%s\n", n.toString().c_str(), it->first.Scalar().c_str());
 			unusedKeys.insert( it->first.Scalar().c_str() );
 		}
 	}
@@ -788,7 +787,7 @@ fprintf(stderr,"Inserting %s/%s\n", n.toString().c_str(), it->first.Scalar().c_s
 void
 YamlState::keySeen(const char *k)
 {
-fprintf(stderr,"Erasing %s/%s\n", n.toString().c_str(), k);
+fprintf( CPSW::fDbg(), "Erasing %s/%s\n", n.toString().c_str(), k);
 	unusedKeys.erase( k );
 }
 
@@ -797,6 +796,6 @@ YamlState::~YamlState()
 YamlState::Set::const_iterator it;	
 	for ( it = unusedKeys.begin(); it != unusedKeys.end(); ++it ) {
 		std::string s = n.toString() + std::string("/") + *it;
-		fprintf( stderr, "Warning -- unused YAML key: %s\n", s.c_str() );
+		fprintf( CPSW::fErr(), "Warning -- unused YAML key: %s\n", s.c_str() );
 	}
 }

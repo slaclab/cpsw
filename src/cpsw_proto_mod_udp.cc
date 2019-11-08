@@ -14,6 +14,7 @@
 #include <cpsw_error.h>
 
 #include <cpsw_proto_mod_udp.h>
+#include <cpsw_stdio.h>
 
 #include <errno.h>
 #include <sys/select.h>
@@ -64,7 +65,7 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 	while ( 1 ) {
 
 #ifdef UDP_DEBUG
-		printf("UDP -- waiting for data\n");
+		fprintf(CPSW::fDbg(), "UDP -- waiting for data\n");
 #endif
 		got = ::readv( sd_.getSd(), iov, niovs );
 		if ( got < 0 ) {
@@ -76,6 +77,11 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 		nOctets_.fetch_add(got, cpsw::memory_order_relaxed);
 
 		if ( got > 0 ) {
+#ifdef UDP_DEBUG
+#ifdef UDP_DEBUG_STRM
+			unsigned fram, frag;
+#endif
+#endif
 			BufChain bufch = IBufChain::create();
 
 			siz = got;
@@ -90,13 +96,13 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 					int      i;
 					uint8_t  *p = bufs[idx]->getPayload();
 #ifdef UDP_DEBUG_STRM
-					unsigned fram = (p[1]<<4) | (p[0]>>4);
-					unsigned frag = (p[4]<<16) | (p[3] << 8) | p[2];
+					fram = (p[1]<<4) | (p[0]>>4);
+					frag = (p[4]<<16) | (p[3] << 8) | p[2];
 #endif
-					printf("UDP data: ");
+					fprintf(CPSW::fDbg(), "UDP data: ");
 					for ( i=0; i< (got < 4 ? got : 4); i++ )
-						printf("%02x ", p[i]);
-					printf("\n");
+						fprintf(CPSW::fDbg(), "%02x ", p[i]);
+					fprintf(CPSW::fDbg(), "\n");
 				}
 #endif
 
@@ -119,14 +125,14 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 			owner_->pushDown( bufch, &TIMEOUT_NONE );
 
 #ifdef UDP_DEBUG
-			printf("UDP got %d", (int)got);
+			fprintf(CPSW::fDbg(), "UDP got %d", (int)got);
 #ifdef UDP_DEBUG_STRM
-			printf(" fram # %4d, frag # %4d", fram, frag);
+			fprintf(CPSW::fDbg(), " fram # %4d, frag # %4d", fram, frag);
 #endif
 			if ( st )
-				printf(" (pushdown SUCC)\n");
+				fprintf(CPSW::fDbg(), " (pushdown SUCC)\n");
 			else
-				printf(" (pushdown DROP)\n");
+				fprintf(CPSW::fDbg(), " (pushdown DROP)\n");
 #endif
 
 			if ( st ) {
@@ -135,7 +141,7 @@ void * CProtoModUdp::CUdpRxHandlerThread::threadBody()
 		}
 #ifdef UDP_DEBUG
 		else {
-			printf("UDP got ZERO\n");
+			fprintf(CPSW::fDbg(), "UDP got ZERO\n");
 		}
 #endif
 	}
@@ -330,7 +336,7 @@ unsigned i;
 void CProtoModUdp::dumpInfo(FILE *f)
 {
 	if ( ! f )
-		f = stdout;
+		throw InternalError("CProtoModUdp::dumpInfo now requires FILE argument");
 
 	fprintf(f,"CProtoModUdp:\n");
 	fprintf(f,"  Peer port : %15u\n",    getDestPort());
@@ -380,7 +386,7 @@ unsigned       nios;
 		}
 		if ( selres == 0 ) {
 #ifdef UDP_DEBUG
-			printf("UDP doPush -- pselect timeout\n");
+			fprintf(CPSW::fDbg(), "UDP doPush -- pselect timeout\n");
 #endif
 			// TIMEOUT
 			return false;
@@ -400,10 +406,10 @@ abort();
 	}
 
 #ifdef UDP_DEBUG
-	printf("UDP doPush -- wrote %d:", sndres);
+	fprintf(CPSW::fDbg(), "UDP doPush -- wrote %d:", sndres);
 	for ( unsigned i=0; i < (iov[0].iov_len < 4 ? iov[0].iov_len : 4); i++ )
-		printf(" %02x", ((unsigned char*)iov[0].iov_base)[i]);
-	printf("\n");
+		fprintf(CPSW::fDbg(), " %02x", ((unsigned char*)iov[0].iov_base)[i]);
+	fprintf(CPSW::fDbg(), "\n");
 #endif
 	return true;
 }
@@ -422,7 +428,7 @@ unsigned CProtoModUdp::getMTU()
 {
 int rval = tx_.getMTU();
 #ifdef UDP_DEBUG
-	printf("UDP SOCKET MTU: %d\n", rval);
+	fprintf(CPSW::fDbg(), "UDP SOCKET MTU: %d\n", rval);
 #endif
 	rval -= 60; /* max. IP header */
 	rval -=  8; /* UDP     header */
@@ -430,7 +436,7 @@ int rval = tx_.getMTU();
 		rval = 65536;
 	} else if ( 0 >= rval ) {
 		/* ??? unable to determine; use some default */
-		fprintf(stderr,"WARNING: cpsw_proto_mod_udp: unable to determine MTU\n");
+		fprintf(CPSW::fErr(), "WARNING: cpsw_proto_mod_udp: unable to determine MTU\n");
 		rval = 1024;
 	}
 	return rval;

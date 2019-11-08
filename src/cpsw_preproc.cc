@@ -8,8 +8,9 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 
-#include <cpsw_api_user.h>
+#include <cpsw_api_builder.h>
 #include <cpsw_preproc.h>
+#include <cpsw_stdio.h>
 
 #include <iostream>
 #include <fstream>
@@ -111,14 +112,14 @@ StreamMuxBuf::pushbuf(Stream s, const std::string *name, unsigned headerLines)
 }
 
 void
-StreamMuxBuf::dump()
+StreamMuxBuf::dump( std::ostream &os )
 {
 	std::istream ins( this );
 	while ( ins.good() ) {
 		char ch;
 
 		ins.get(ch);
-		std::cout.put(ch);
+		os.put(ch);
 	}
 }
 
@@ -259,7 +260,7 @@ unsigned headerLines = 0;
 			}
 
 			if ( onceHasNoTag ) {
-				std::cerr << "WARNING: (YamlPreprocessor) #once line lacks a 'tag' -- in : " + name + " (will use filename for now but future version escalates to ERROR) \n";
+				CPSW::sErr() << "WARNING: (YamlPreprocessor) #once line lacks a 'tag' -- in : " + name + " (will use filename for now but future version escalates to ERROR) \n";
 //				MissingOnceTagError e("YamlPreprocessor: #once line lacks a 'tag' -- in: ");
 //				e.append( name );
 //				throw e;

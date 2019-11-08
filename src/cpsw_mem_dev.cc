@@ -19,6 +19,7 @@
 #include <cpsw_yaml.h>
 #include <cpsw_aligned_mmio.h>
 #include <cpsw_fs_addr.h>
+#include <cpsw_stdio.h>
 
 //#define MEMDEV_DEBUG
 
@@ -187,7 +188,7 @@ uint64_t CMemAddressImpl::read(CReadArgs *args) const
 MemDevImpl owner( getOwnerAs<MemDevImpl>() );
 unsigned toget = args->nbytes_;
 #ifdef MEMDEV_DEBUG
-printf("off %llu, dbytes %lu, size %lu\n", (unsigned long long)args->off_, (unsigned long)args->nbytes_, (unsigned long)owner->getSize());
+fprintf(CPSW::fDbg(), "off %llu, dbytes %lu, size %lu\n", (unsigned long long)args->off_, (unsigned long)args->nbytes_, (unsigned long)owner->getSize());
 #endif
 	if ( args->off_ + toget > owner->getSize() ) {
 		throw ConfigurationError("MemAddress: read out of range");
@@ -201,9 +202,9 @@ printf("off %llu, dbytes %lu, size %lu\n", (unsigned long long)args->off_, (unsi
 	read_func_(args->dst_, owner->getBufp() + args->off_, toget);
 
 #ifdef MEMDEV_DEBUG
-printf("MemDev read from off %lli to %p:", (unsigned long long)args->off_, args->dst_);
-for ( unsigned ii=0; ii<args->nbytes_; ii++) { printf(" 0x%02x", args->dst_[ii]); }
-printf("\n");
+fprintf(CPSW::fDbg(), "MemDev read from off %lli to %p:", (unsigned long long)args->off_, args->dst_);
+for ( unsigned ii=0; ii<args->nbytes_; ii++) { fprintf(CPSW::fDbg(), " 0x%02x", args->dst_[ii]); }
+fprintf(CPSW::fDbg(), "\n");
 #endif
 
 	return toget;
@@ -263,9 +264,9 @@ uint8_t *src  = args->src_;
 	}
 
 #ifdef MEMDEV_DEBUG
-printf("MemDev write to off %lli from %p:", args->off_, args->src_);
-for ( unsigned ii=0; ii<args->nbytes_; ii++) { printf(" 0x%02x", args->src_[ii]); }
-printf("\n");
+fprintf(CPSW::fDbg(), "MemDev write to off %lli from %p:", (unsigned long long)args->off_, args->src_);
+for ( unsigned ii=0; ii<args->nbytes_; ii++) { fprintf(CPSW::fDbg(), " 0x%02x", args->src_[ii]); }
+fprintf(CPSW::fDbg(), "\n");
 #endif
 
 	rval = write_func_( buf + off, src, put, msk1, mskn );

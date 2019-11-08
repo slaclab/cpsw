@@ -10,6 +10,7 @@
 #include <cpsw_proto_mod_rssi.h>
 
 #include <cpsw_yaml.h>
+#include <cpsw_stdio.h>
 
 BufChain
 CProtoModRssi::pop(const CTimeout *timeout, bool abs_timeout)
@@ -162,9 +163,12 @@ CProtoModRssi::attach(ProtoDoor upstream)
 {
 IEventSource *src = upstream->getReadEventSource();
 	upstream_ = upstream;
-	if ( ! src )
-		printf("Upstream: %s has no event source\n", upstream->getProtoMod()->getName());
-	CRssi::attach( upstream->getReadEventSource() );
+	if ( ! src ) {
+		char buf[512];	
+		::snprintf( buf, sizeof(buf), "CProtoModRssi::attach(): Upstream '%s' has no event source\n", upstream->getProtoMod()->getName() );
+		throw InternalError( buf );
+	}
+	CRssi::attach( src );
 }
 
 ProtoPort
@@ -207,7 +211,7 @@ int              connOpen;
 		CTimeout abst(evSet->getAbsTimeout( &relt ));
 		connOpen = eh.receiveEvent( evSet, true, &abst );
 		if ( ! connOpen ) {
-			fprintf(stderr,"Warning RSSI connection could not be opened (timeout) -- I'll keep trying\n");
+			fprintf(CPSW::fErr(),"Warning RSSI connection could not be opened (timeout) -- I'll keep trying\n");
 //			throw IOError("RSSI connection could not be opened", ETIMEDOUT);
 			break;	
 		}

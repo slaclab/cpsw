@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <cpsw_stdio.h>
 
 #include <cpsw_yaml.h>
 
@@ -19,7 +20,7 @@
  * an arbitrary YAML file and explore the hierarchy etc.
  */
 
-#undef  NULLDEV_DEBUG
+//#define NULLDEV_DEBUG
 
 CNullDevImpl::CNullDevImpl(Key &k, const char *name, uint64_t size)
 : CDevImpl(k, name, size)
@@ -72,7 +73,7 @@ uint64_t CNullAddressImpl::read(CReadArgs *args) const
 NullDevImpl owner( getOwnerAs<NullDevImpl>() );
 unsigned toget = args->nbytes_;
 #ifdef NULLDEV_DEBUG
-printf("off %lu, dbytes %lu, size %lu\n", args->off_, args->nbytes_, owner->getSize());
+fprintf(CPSW::fDbg(), "off %llu, dbytes %u, size %lu\n", (unsigned long long)args->off_, args->nbytes_, owner->getSize());
 #endif
 	if ( owner->getSize() > 0 && args->off_ + toget > owner->getSize() ) {
 		throw ConfigurationError("NullAddress: read out of range");
@@ -81,8 +82,10 @@ printf("off %lu, dbytes %lu, size %lu\n", args->off_, args->nbytes_, owner->getS
 	::memset(args->dst_, 0, toget);
 
 #ifdef NULLDEV_DEBUG
-printf("NullDev read from off %lli to %p:", args->off_, args->dst_);
-for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->dst_[ii]); printf("\n");
+fprintf(CPSW::fDbg(), "NullDev read from off %lli to %p:", (unsigned long long)args->off_, args->dst_);
+for ( unsigned ii=0; ii<args->nbytes_; ii++)
+	fprintf(CPSW::fDbg(), " 0x%02x", args->dst_[ii]);
+fprintf(CPSW::fDbg(), "\n");
 #endif
 
 	return toget;
@@ -99,8 +102,10 @@ unsigned rval = put;
 	}
 
 #ifdef NULLDEV_DEBUG
-printf("NullDev write to off %lli from %p:", args->off_, args->src_);
-for ( unsigned ii=0; ii<args->nbytes_; ii++) printf(" 0x%02x", args->src_[ii]); printf("\n");
+fprintf(CPSW::fDbg(), "NullDev write to off %lli from %p:", (unsigned long long)args->off_, args->src_);
+for ( unsigned ii=0; ii<args->nbytes_; ii++)
+	fprintf(CPSW::fDbg(), " 0x%02x", args->src_[ii]);
+fprintf(CPSW::fDbg(), "\n");
 #endif
 
 	return rval;

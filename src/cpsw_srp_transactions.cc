@@ -198,7 +198,7 @@ SRPWord status;
 
 	if ( got != (int)sizeof(SRPWord)*(nWords_ + expected_) ) {
 		if ( got < (int)sizeof(SRPWord)*expected_ ) {
-			printf("got %i, nw %i, exp %i\n", got, nWords_, expected_);
+			fprintf(CPSW::fErr(), "got %i, nw %i, exp %i\n", got, nWords_, expected_);
 			throw IOError("Received message (write response) truncated");
 		} else {
 			rchn->extract( &status, got - sizeof(status), sizeof(status) );
@@ -275,28 +275,28 @@ int	     nWords   = getNWords();
 	}
 
 #ifdef SRPADDR_DEBUG
-	printf("got %i bytes, off 0x%"PRIx64", sbytes %i, nWords %i\n", got, off_, sbytes_, nWords );
-	printf("got %i bytes\n", got);
+	fprintf(CPSW::fDbg(), "got %i bytes, off 0x%" PRIx64 ", sbytes %i, nWords %i\n", got, off_, sbytes_, nWords );
+	fprintf(CPSW::fDbg(), "got %i bytes\n", got);
 	for (i=0; i<hdrWords_; i++ )
-		printf("header[%i]: %x\n", i, rHdrBuf_[i]);
+		fprintf(CPSW::fDbg(), "header[%i]: %x\n", i, rHdrBuf_[i]);
 	for ( i=0; i<headBytes_; i++ ) {
-		printf("headbyte[%i]: %x\n", i, ((uint8_t*)&rHdrBuf_[hdrWords_])[i]);
+		fprintf(CPSW::fDbg(), "headbyte[%i]: %x\n", i, ((uint8_t*)&rHdrBuf_[hdrWords_])[i]);
 	}
 
 #if SRPADDR_DEBUG > 1
 	for ( i=0; (unsigned)i<sbytes_; i++ ) {
-		printf("chr[%i]: %x %c\n", i, dst_[i], dst_[i]);
+		fprintf(CPSW::fDbg(), "chr[%i]: %x %c\n", i, dst_[i], dst_[i]);
 	}
 #endif
 
 	for ( i=0; i < tailBytes_; i++ ) {
-		printf("tailbyte[%i]: %x\n", i, rTailBuf_[i]);
+		fprintf(CPSW::fDbg(), "tailbyte[%i]: %x\n", i, rTailBuf_[i]);
 	}
 #endif
 
 	if ( got != (int)sizeof(rHdrBuf_[0])*(nWords + expected_) ) {
 		if ( got < (int)sizeof(rHdrBuf_[0])*expected_ ) {
-			printf("got %i, nw %i, exp %i\n", got, nWords, expected_);
+			fprintf(CPSW::fDbg(), "got %i, nw %i, exp %i\n", got, nWords, expected_);
 			throw IOError("Received message (read response) truncated");
 		} else {
 			rchn->extract( &srpStatus_, got - sizeof(srpStatus_), sizeof(srpStatus_) );
@@ -327,7 +327,7 @@ int	     nWords   = getNWords();
 				memcpy(tmp + headBytes_          , dst_     , hoff);
 			}
 #ifdef SRPADDR_DEBUG
-			for (i=0; i< sizeof(SRPWord); i++) printf("headbytes tmp[%i]: %x\n", i, tmp[i]);
+			for (i=0; i< sizeof(SRPWord); i++) fprintf(CPSW::fDbg(), "headbytes tmp[%i]: %x\n", i, tmp[i]);
 #endif
 			swpw( tmp );
 			memcpy(dst_, tmp+headBytes_, hoff);
@@ -340,13 +340,13 @@ int	     nWords   = getNWords();
 			memcpy(tmp, dst_ + hoff + j, sizeof(SRPWord) - tailBytes_);
 			memcpy(tmp + sizeof(SRPWord) - tailBytes_, rTailBuf_, tailBytes_);
 #ifdef SRPADDR_DEBUG
-			for (i=0; i< sizeof(SRPWord); i++) printf("tailbytes tmp[%i]: %"PRIx8"\n", i, tmp[i]);
+			for (i=0; i< sizeof(SRPWord); i++) fprintf(CPSW::fDbg(), "tailbytes tmp[%i]: %" PRIx8 "\n", i, tmp[i]);
 #endif
 			swpw( tmp );
 			memcpy(dst_ + hoff + j, tmp, sizeof(SRPWord) - tailBytes_);
 		}
 #ifdef SRPADDR_DEBUG
-		for ( i=0; i< sbytes_; i++ ) printf("swapped dst[%i]: %x\n", i, dst_[i]);
+		for ( i=0; i< sbytes_; i++ ) fprintf(CPSW::fDbg(), "swapped dst[%i]: %x\n", i, dst_[i]);
 #endif
 	}
 	if ( needsHdrSwap() ) {

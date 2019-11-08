@@ -10,6 +10,7 @@
 #include <yaml-cpp/yaml.h>
 #include <cpsw_yaml_merge.h>
 #include <cpsw_error.h>
+#include <cpsw_stdio.h>
 #include <string>
 
 #include <stdio.h>
@@ -17,7 +18,7 @@
 
 using cpsw::PNode;
 
-#undef  YAML_MERGE_DEBUG
+//#define YAML_MERGE_DEBUG
 
 namespace cpsw {
 
@@ -68,7 +69,7 @@ mergeInto(const PNode *p, YAML::Node n, YAML::Node m)
 		const YAML::Node &lkup( n );
 
 #ifdef YAML_MERGE_DEBUG
-		fprintf(stderr,"Looking for %s in %s\n", it->first.Scalar().c_str(), pps( p ).c_str());
+		fprintf(CPSW::fDbg(), "Looking for %s in %s\n", it->first.Scalar().c_str(), pps( p ).c_str());
 #endif
 
 		YAML::Node found( lkup[ it->first.Scalar() ] );
@@ -76,7 +77,7 @@ mergeInto(const PNode *p, YAML::Node n, YAML::Node m)
 		if ( ! found.IsDefined() ) {
 #ifdef YAML_MERGE_DEBUG
 			merges++;
-			fprintf(stderr,"merging %s into %s (defined %d)\n", it->first.Scalar().c_str(), pps( p ).c_str(), !!found.IsDefined());
+			fprintf(CPSW::fDbg(), "merging %s into %s (defined %d)\n", it->first.Scalar().c_str(), pps( p ).c_str(), !!found.IsDefined());
 #endif
 			n[ it->first ] = it->second;
 		} else {
@@ -91,10 +92,10 @@ mergeInto(const PNode *p, YAML::Node n, YAML::Node m)
 
 #ifdef YAML_MERGE_DEBUG
 	if ( merges > 0 ) {
-		fprintf(stderr,"After merging:\n");
-		fprintf(stderr,"%s\n", pps(p).c_str());
+		fprintf(CPSW::fDbg(), "After merging:\n");
+		fprintf(CPSW::fDbg(), "%s\n", pps(p).c_str());
 		for (it = n.begin(); it != n.end(); ++it) {
-			fprintf(stderr,"  '%s'\n", it->first.Scalar().c_str());
+			fprintf(CPSW::fDbg(), "  '%s'\n", it->first.Scalar().c_str());
 		}
 	}
 #endif
@@ -136,7 +137,7 @@ YAML::Node     resolved_val;
 				throw CPSWError( std::string("yaml_merge: merged node is not a map: " + pps( &here )) );
 			}
 #ifdef YAML_MERGE_DEBUG
-			fprintf(stderr, "Leaf found: %s\n", pps( &here ).c_str());
+			fprintf(CPSW::fDbg(), "Leaf found: %s\n", pps( &here ).c_str());
 #endif
 		}
 		++it;

@@ -543,10 +543,10 @@ Hub     r  = use_yaml ? build_yaml() : build();
 
 	printf("leaving\n");
 } catch (CPSWError e ) {
-	printf("CPSW Error: %s\n", e.getInfo().c_str());
+	fprintf(stderr, "CPSW Error: %s\n", e.getInfo().c_str());
 	throw;
 }
-	if ( CpswObjCounter::report() ) {
+	if ( CpswObjCounter::report(stderr) ) {
 		fprintf(stderr,"FAILED -- objects leaked\n");
 		throw TestFailed();
 	}

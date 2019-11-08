@@ -196,7 +196,7 @@ try {
 
 }
 
-	if ( ! quiet && CpswObjCounter::report() ) {
+	if ( ! quiet && CpswObjCounter::report(stderr) ) {
 		throw TestFailed("Unexpected object count (LEAK)\n");
 	}
 

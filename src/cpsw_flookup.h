@@ -65,7 +65,7 @@ public:
 	}
 
 	void
-	dump(FILE *f = stdout);
+	dump(FILE *f);
 };
 
 #endif

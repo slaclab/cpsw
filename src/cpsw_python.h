@@ -329,7 +329,6 @@ public:
 	virtual T complete(CPSWError *err)
 	{
 		if ( err ) {
-//		std::cerr << "CGetValWrapper -- exception in callback: " << err->getInfo() << "\n";
 			T rval;
 			return rval;
 		}

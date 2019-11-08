@@ -13,6 +13,7 @@
 
 #include <cpsw_thread.h>
 #include <cpsw_error.h>
+#include <cpsw_stdio.h>
 #include <unistd.h>
 #ifdef __linux__
 #include <sys/syscall.h>
@@ -78,14 +79,14 @@ void     *rval;
 
 #ifdef CPSW_THREAD_DEBUG
 if ( cpsw_thread_debug > 0 ) {
-	fprintf(stderr,"Starting up thread '%s'", me->getName().c_str());
+	fprintf(CPSW::fDbg(), "Starting up thread '%s'", me->getName().c_str());
 #ifdef __linux__
 	{
 		pid_t tid = syscall( SYS_gettid );
-		fprintf(stderr," (LWP %ld)", (long)tid);
+		fprintf(CPSW::fDbg(), " (LWP %ld)", (long)tid);
 	}
 #endif
-	fprintf(stderr," priority %d\n", me->getPrio());
+	fprintf(CPSW::fDbg(), " priority %d\n", me->getPrio());
 }
 #endif
 
@@ -93,7 +94,7 @@ if ( cpsw_thread_debug > 0 ) {
 		rval = me->threadBody();
 	} catch ( CPSWError e ) {
 		
-		fprintf(stderr,"Thread '%s' -- CPSW Error: %s\n", me->getName().c_str(), e.getInfo().c_str());
+		fprintf(CPSW::fErr(), "Thread '%s' -- CPSW Error: %s\n", me->getName().c_str(), e.getInfo().c_str());
 		throw;
 	}
 
@@ -132,7 +133,7 @@ int attempts;
 		if ( (err = pthread_create( &tid_, attr.getp(), wrapper, this )) ) {
 			if ( EPERM == err && prio_ > 0 ) {
 				ErrnoError warn(getName(), err);
-				fprintf(stderr,"WARNING: CRunnable::threadStart; unable to set priority for %s -- IGNORED\n", warn.what());
+				fprintf(CPSW::fErr(), "WARNING: CRunnable::threadStart; unable to set priority for %s -- IGNORED\n", warn.what());
 				// Try again with default priority
 				prio_ = 0;
 				continue;
@@ -198,7 +199,7 @@ int                pol;
 		if ( (err = pthread_setschedparam( tid_, pol, &param )) ) {
 			if ( EPERM == err ) {
 				ErrnoError warn(getName(), err);
-				fprintf(stderr,"WARNING: CRunnable::setPriority failed for %s", warn.what());
+				fprintf(CPSW::fErr(), "WARNING: CRunnable::setPriority failed for %s", warn.what());
 				if ( (err = pthread_getschedparam( tid_, &pol, &param )) ) {
 					throw InternalError("ERROR: pthread_getschedparam()", err);
 				}

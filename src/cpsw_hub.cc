@@ -17,6 +17,7 @@
 #include <stdio.h>
 
 #include <cpsw_yaml.h>
+#include <cpsw_stdio.h>
 
 #undef HUB_DEBUG
 
@@ -175,16 +176,16 @@ uint64_t  CAddressImpl::dispatchRead(CompositePathIterator *node, CReadArgs *arg
 	Address c;
 
 #ifdef HUB_DEBUG
-	printf("Reading %d bytes from %s (dispatching to parent)", args->nbytes_, getName());
+	fprintf( CPSW::fDbg(), "Reading %d bytes from %s (dispatching to parent)", args->nbytes_, getName() );
 	if ( getNelms() > 1 ) {
-		printf("[%i", (*node)->idxf_);
+		fprintf( CPSW::fDbg(), "[%i", (*node)->idxf_ );
 		if ( (*node)->idxt_ > (*node)->idxf_ )
-			printf("-%i", (*node)->idxt_);
-		printf("]");
+			fprintf( CPSW::fDbg(), "-%i", (*node)->idxt_ );
+		fprintf( CPSW::fDbg(), "]" );
 	}
-	printf(" @%"PRIx64, args->off_);
-	printf(" --> %p ", args->dst_);
-	dump(); printf("\n");
+	fprintf( CPSW::fDbg(), " @%"PRIx64, args->off_ );
+	fprintf( CPSW::fDbg(), " --> %p ", args->dst_ );
+	dump( CPSW::fDbg() ); fprintf( CPSW::fDbg(), "\n" );
 #endif
 
 	// chain through parent
@@ -209,16 +210,16 @@ uint64_t  rval = 0;
 uint64_t  got;
 
 #ifdef HUB_DEBUG
-	printf("Reading %d bytes from %s", args->nbytes_, getName());
+	fprintf( CPSW::fDbg(), "Reading %d bytes from %s", args->nbytes_, getName() );
 	if ( getNelms() > 1 ) {
-		printf("[%i", (*node)->idxf_);
+		fprintf( CPSW::fDbg(), "[%i", (*node)->idxf_ );
 		if ( (*node)->idxt_ > (*node)->idxf_ )
-			printf("-%i", (*node)->idxt_);
-		printf("]");
+			fprintf( CPSW::fDbg(), "-%i", (*node)->idxt_ );
+		fprintf( CPSW::fDbg(), "]" );
 	}
-	printf(" @%"PRIx64, args->off_);
-	printf(" --> %p ", args->dst_);
-	dump(); printf("\n");
+	fprintf( CPSW::fDbg(), " @%"PRIx64, args->off_ );
+	fprintf( CPSW::fDbg(), " --> %p ", args->dst_ );
+	dump( CPSW::fDbg() ); fprintf( CPSW::fDbg(), "\n" );
 #endif
 
 	nargs.off_ += f * args->nbytes_;
@@ -311,12 +312,12 @@ public:
 	}
 
 	virtual void visit(Field child) {
-//		printf("considering propagating atts to %s\n", child->getName());
+//		fprintf( CPSW::fDbg(), "considering propagating atts to %s\n", child->getName() );
 		if ( ! parent_ ) {
 			throw InternalError("InternalError: AddChildVisitor has no parent");
 		}
 		if ( IField::UNKNOWN_CACHEABLE != parent_->getCacheable() && IField::UNKNOWN_CACHEABLE == child->getCacheable() ) {
-//			printf("setting cacheable\n");
+//			fprintf( CPSW::fDbg(), "setting cacheable\n" );
 			child->setCacheable( parent_->getCacheable() );
 		}
 	}
@@ -325,7 +326,7 @@ public:
 		if ( IField::UNKNOWN_CACHEABLE == child->getCacheable() )
 			visit( static_pointer_cast<IField, IDev>( child ) );
 		parent_ = child;
-//		printf("setting parent to %s\n", child->getName());
+//		fprintf( CPSW::fDbg(), "setting parent to %s\n", child->getName() );
 	}
 
 };
@@ -336,14 +337,14 @@ EntryImpl e = child->getSelf();
 
 	if ( e->getLocked() ) {
 		child = e = CShObj::clone( e );
-fprintf(stderr, "Cloned child %s of %s\n", child->getName(), getName());
+fprintf( CPSW::fDbg(), "Cloned child %s of %s\n", child->getName(), getName() );
 	}
 
 int       prio;
 
 	AddChildVisitor propagateAttributes( getSelfAs<DevImpl>(), child );
 
-	e->setLocked(); //printf("locking %s\n", child->getName());
+	e->setLocked(); //fprintf( CPSW::fDbg(), "locking %s\n", child->getName() );
 	a->attach( e );
 	std::pair<MyChildren::iterator,bool> ret = children_.insert( std::pair<const char *, AddressImpl>(child->getName(), a) );
 	if ( ! ret.second ) {
@@ -630,11 +631,11 @@ uint64_t    rval = 0;
 				// a descendant of ours and a value which is to be interpreted
 				// by the descendant.
 				if ( ! child.IsMap() ) {
-					fprintf(stderr,"WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (Map expected) -- IGNORING\n", job, mrk.line, mrk.column);
+					fprintf( CPSW::fErr(), "WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (Map expected) -- IGNORING\n", job, mrk.line, mrk.column );
 					continue;
 				}
 				if ( child.size() != 1 ) {
-					fprintf(stderr,"WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (Map with more than 1 element) -- IGNORING\n", job, mrk.line, mrk.column);
+					fprintf( CPSW::fErr(), "WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (Map with more than 1 element) -- IGNORING\n", job, mrk.line, mrk.column );
 					continue;
 				}
 
@@ -663,7 +664,7 @@ uint64_t    rval = 0;
 
 				} catch ( NotFoundError e ) {
 					// descendant not found; not a big deal but spit out a warning
-					fprintf(stderr,"WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (key %s not found) -- IGNORING\n", job, mrk.line, mrk.column, key.c_str());
+					fprintf( CPSW::fErr(), "WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (key %s not found) -- IGNORING\n", job, mrk.line, mrk.column, key.c_str() );
 					child.remove( key );
 				}
 			}

@@ -13,6 +13,7 @@
 
 #include <cpsw_yaml.h>
 #include <cpsw_async_io.h>
+#include <cpsw_stdio.h>
 
 //#define MMIODEV_DEBUG
 
@@ -54,7 +55,7 @@ IndexRange singleElement(0); // IndexRange operates 'inside' the array bounds de
 IndexRange *range_p;
 
 #ifdef MMIODEV_DEBUG
-	printf("MMIO read; nelmsRight: %lld, nbytes_ %lld, stride %lld, idxf %lld, idxt %lld\n",
+	fprintf(CPSW::fDbg(), "MMIO read; nelmsRight: %lld, nbytes_ %lld, stride %lld, idxf %lld, idxt %lld\n",
 		(unsigned long long)node->getNelmsRight(),
 		(unsigned long long)args->nbytes_,
 		(unsigned long long)getStride(),
@@ -107,7 +108,7 @@ IndexRange singleElement(0); // IndexRange operates 'inside' the array bounds de
 IndexRange *range_p;
 
 #ifdef MMIODEV_DEBUG
-	printf("MMIO write; nelmsRight: %d, nbytes_ %d\n", node->getNelmsRight(), args->nbytes_);
+	fprintf(CPSW::fDbg(), "MMIO write; nelmsRight: %d, nbytes_ %d\n", node->getNelmsRight(), args->nbytes_);
 #endif
 
 CWriteArgs nargs = *args;
@@ -123,19 +124,19 @@ CWriteArgs nargs = *args;
 		to             = (*node)->idxf_;
 		range_p        = &singleElement;
 #ifdef MMIODEV_DEBUG
-		printf("MMIO write; collapsing range\n");
+		fprintf(CPSW::fDbg(), "MMIO write; collapsing range\n");
 #endif
 	} else {
 		to             = (*node)->idxt_;
 		range_p        = 0;
 #ifdef MMIODEV_DEBUG
-		printf("MMIO write; NOT collapsing range\n");
+		fprintf(CPSW::fDbg(), "MMIO write; NOT collapsing range\n");
 #endif
 	}
 	nargs.off_ += this->offset_ + (*node)->idxf_ * getStride();
 
 #ifdef MMIODEV_DEBUG
-	printf("MMIO write; iterating from %d -> %d\n", (*node)->idxf_, to);
+	fprintf(CPSW::fDbg(), "MMIO write; iterating from %d -> %d\n", (*node)->idxf_, to);
 #endif
 	for ( int i = (*node)->idxf_; i <= to; i++ ) {
 		SlicedPathIterator it( *node, range_p );
@@ -183,7 +184,7 @@ uint64_t  offset;
 	if ( readNode(ypath, YAML_KEY_offset, &offset ) ) {
 		doAddAtAddress<CMMIOAddressImpl>( child, ypath );
 	} else {
-		fprintf(stderr, "WARNING: no '" YAML_KEY_offset "' attribute found in YAML -- adding '%s' as an non-MMIO/unknown device\n", child->getName());
+		fprintf(CPSW::fErr(), "WARNING: no '" YAML_KEY_offset "' attribute found in YAML -- adding '%s' as an non-MMIO/unknown device\n", child->getName());
 		doAddAtAddress<CAddressImpl>( child, ypath );
 	}
 }

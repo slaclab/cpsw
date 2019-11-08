@@ -8,6 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 #include <cpsw_api_user.h>
 #include <cpsw_debug.h>
+#include <cpsw_stdio.h>
 #include <string.h>
 
 struct Component {
@@ -33,7 +34,7 @@ struct Component *c, *f = 0;
 		for ( c = components; c->name; ++c ) {
 			if ( strstr( c->name, component ) ) {
 				if ( f ) {
-					fprintf(stderr, "Requested name not specific enough\n");
+					fprintf(CPSW::fErr(), "Requested name not specific enough\n");
 					component = 0;
 					f         = 0;
 					break;
@@ -45,21 +46,21 @@ struct Component *c, *f = 0;
 
 	if ( f ) {
 		if ( ! f->valp ) {
-			fprintf(stderr, "Debugging messages for '%s' not compiled in, sorry.\n", f->name);
+			fprintf(CPSW::fErr(), "Debugging messages for '%s' not compiled in, sorry.\n", f->name);
 			return -1;
 		}
 		*f->valp = value;
 		return 0;
 	} else {
 		if ( component ) {
-			fprintf(stderr, "'%s' not found.\n", component);
+			fprintf(CPSW::fErr(), "'%s' not found.\n", component);
 			component = 0;
 		}
 	}
 
-	printf("setCPSWVerbosity -- known components are:\n");
+	fprintf(stdout, "setCPSWVerbosity -- known components are:\n");
 	for ( c = components; c->name; ++c ) {
-		printf("%s%s\n", c->name, c->valp ? "" : " (support not compiled in!)");
+		fprintf(stdout, "%s%s\n", c->name, c->valp ? "" : " (support not compiled in!)");
 	}
 	return 0;
 }

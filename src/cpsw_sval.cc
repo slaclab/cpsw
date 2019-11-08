@@ -16,12 +16,13 @@
 #include <cpsw_sval.h>
 #include <cpsw_address.h>
 #include <cpsw_async_io.h>
+#include <cpsw_stdio.h>
 
 #include <string>
 
 #include <cpsw_yaml.h>
 
-//#define SVAL_DEBUG
+//#define SVAL_DEBUG 0
 
 using std::string;
 
@@ -545,7 +546,7 @@ public:
 		int j           = signByte;
 
 #ifdef SVAL_DEBUG
-printf("SE signByte %i, signBit %x\n", signByte, signBit);
+		fprintf(CPSW::fDbg(), "SE signByte %i, signBit %x\n", signByte, signBit);
 #endif
 		if ( isSigned && (ibufp[signByte] & signBit) != 0 ) {
 			obufp[j] = ibufp[j] | ~signMsk;
@@ -562,7 +563,11 @@ printf("SE signByte %i, signBit %x\n", signByte, signBit);
 				j += jinc;
 			}
 		}
-		//for ( j=0; j <(int)dbytes; j++ ) printf("obuf[%i] 0x%02x ", j, obufp[j]);  printf("\n");
+#if SVAL_DEBUG > 0
+		for ( j=0; j <(int)dbytes; j++ )
+			fprintf(CPSW::fDbg(), "obuf[%i] 0x%02x ", j, obufp[j]);
+		fprintf(CPSW::fDbg(), "\n");
+#endif
 	}
 };
 
@@ -851,22 +856,33 @@ public:
 				}
 
 				if ( wlen  > 0 ) {
-					//printf("pre-wswap (nbytes %i, iidx %i): ", nbytes, iidx);
-					//for(j=0;j<sbytes;j++)
-					//	printf("%02x ", ibufp_[iidx+j]);
-					//printf("\n");
+#if SVAL_DEBUG > 0
+					fprintf(CPSW::fDbg(), "pre-wswap (nbytes %i, iidx %i): ", nbytes, iidx);
+					for(unsigned j=0; j<sbytes; j++)
+						fprintf(CPSW::fDbg(), "%02x ", ibufp_[iidx+j]);
+					fprintf(CPSW::fDbg(), "\n");
+#endif
 					wordSwap.work(ibufp_ + iidx + noff);
-					//printf("pst-wswap: ");
-					//for(j=0;j<sbytes;j++)
-					//	printf("%02x ", ibufp_[iidx+j]);
-					//printf("\n");
+#if SVAL_DEBUG > 0
+					fprintf(CPSW::fDbg(), "pst-wswap: ");
+					for(unsigned j=0; j<sbytes; j++)
+						fprintf(CPSW::fDbg(), "%02x ", ibufp_[iidx+j]);
+					fprintf(CPSW::fDbg(), "\n");
+#endif
 				}
 
-				//printf("TRUNC oidx %i, ooff %i,  iidx %i, ioff %i, dbytes %i, sbytes %i\n", oidx, ooff, iidx, ioff, dbytes, sbytes);
-				//for ( int j=0; j <sbytes; j++ ) printf("ibuf[%i] 0x%02x ", j, ibufp_[iidx+ioff+j]);  printf("\n");
+#if SVAL_DEBUG > 0
+				fprintf(CPSW::fDbg(), "TRUNC oidx %i, ooff %i,  iidx %i, ioff %i, dbytes %i, sbytes %i\n", oidx, ooff, iidx, ioff, dbytes_, sbytes);
+				for ( unsigned j=0; j <sbytes; j++ )
+					fprintf(CPSW::fDbg(), "ibuf[%i] 0x%02x ", j, ibufp_[iidx+ioff+j]);
+				fprintf(CPSW::fDbg(), "\n");
+#endif
 				memmove( obufp_ + oidx + ooff, ibufp_ + iidx + ioff, dbytes_ >= sbytes ? sbytes : dbytes_ );
-				//for ( int j=0; j <sbytes; j++ ) printf("obuf[%i] 0x%02x ", j, obufp_[oidx+ooff+j]);  printf("\n");
-
+#if SVAL_DEBUG > 0
+				for ( unsigned j=0; j <sbytes; j++ )
+					fprintf(CPSW::fDbg(), "obuf[%i] 0x%02x ", j, obufp_[oidx+ooff+j]);
+				fprintf(CPSW::fDbg(), "\n");
+#endif
 				// sign-extend
 				if ( sign_extend ) {
 					signExtend.work(obufp_+oidx, obufp_+oidx);
@@ -913,7 +929,7 @@ ByteOrder          targetEndian = cl->getByteOrder();
 	ctxt->getReadParms( &args );
 
 #ifdef SVAL_DEBUG
-	printf("READ PARMS: nbytes %u, nelms %u, off %llu, elsz %u\n", args.nbytes_, nelms, (unsigned long long)args.off_, elsz);
+	fprintf(CPSW::fDbg(), "READ PARMS: nbytes %u, nelms %u, off %llu, elsz %u\n", args.nbytes_, nelms, (unsigned long long)args.off_, elsz);
 #endif
 
 	cl->read( it, &args );
@@ -937,7 +953,7 @@ ByteOrder          targetEndian = cl->getByteOrder();
 	ctxt.getReadParms( &args );
 
 #ifdef SVAL_DEBUG
-	printf("READ PARMS: nbytes %u, nelms %u, off %llu, elsz %u\n", args.nbytes_, nelms, (unsigned long long)args.off_, elsz);
+	fprintf(CPSW::fDbg(), "READ PARMS: nbytes %u, nelms %u, off %llu, elsz %u\n", args.nbytes_, nelms, (unsigned long long)args.off_, elsz);
 #endif
 
 	cl->read( it, &args );
@@ -1154,11 +1170,11 @@ unsigned rval;
 #ifdef SVAL_DEBUG
 static void prib(const char *pre, uint8_t *b)
 {
-printf("%s - ", pre);
-for (int i=0; i<9; i++ ) {
-	printf("%02x ", b[i]);
-}
-	printf("\n");
+	fprintf(CPSW::fDbg(), "%s - ", pre);
+	for (int i=0; i<9; i++ ) {
+		fprintf(CPSW::fDbg(), "%02x ", b[i]);
+	}
+	fprintf(CPSW::fDbg(), "\n");
 }
 #endif
 
@@ -1245,43 +1261,43 @@ uint8_t          mskn     = 0x00;
 		}
 
 #ifdef SVAL_DEBUG
-printf("For NELMS %i, iinc %i, ioff %i, oinc %i, ooff %i, noff %i\n", nelms, iinc, ioff, oinc, ooff, noff);
+		fprintf(CPSW::fDbg(), "For NELMS %i, iinc %i, ioff %i, oinc %i, ooff %i, noff %i\n", nelms, iinc, ioff, oinc, ooff, noff);
 #endif
 		for ( n = nelms-1; n >= 0; n--, oidx += oinc, iidx += iinc ) {
 
 #ifdef SVAL_DEBUG
-prib("orig", ibufp+iidx);
+			prib("orig", ibufp+iidx);
 #endif
 			memcpy( obufp + oidx + ooff, ibufp + iidx + ioff, dbytes >= sbytes ? sbytes : dbytes );
 #ifdef SVAL_DEBUG
-prib("after memcpy", obufp + oidx);
+			prib("after memcpy", obufp + oidx);
 #endif
 
 			if ( sign_extend ) {
 				signExtend.work(obufp + oidx, obufp + oidx);
 #ifdef SVAL_DEBUG
-prib("sign-extended", obufp + oidx);
+				prib("sign-extended", obufp + oidx);
 #endif
 			}
 
 			if ( wlen  > 0 ) {
 				wordSwap.work( obufp + oidx + noff );
 #ifdef SVAL_DEBUG
-prib("word-swapped", obufp + oidx);
+				prib("word-swapped", obufp + oidx);
 #endif
 			}
 
 			if ( lsb != 0 ) {
 				bits.shiftLeft( obufp + oidx );
 #ifdef SVAL_DEBUG
-prib("shifted", obufp + oidx);
+				prib("shifted", obufp + oidx);
 #endif
 			}
 
 			if ( targetEndian != hostEndian ) {
 				byteSwap.work( obufp + oidx );
 #ifdef SVAL_DEBUG
-prib("byte-swapped", obufp + oidx);
+				prib("byte-swapped", obufp + oidx);
 #endif
 			}
 		}
@@ -1534,7 +1550,7 @@ unsigned nelms, i;
 	}
 
 	if ( nelms > nelmsFromPath ) {
-		fprintf(stderr,"WARNING: loadMyConfigFromYaml -- excess elements in YAML Node (%s); IGNORED\n", p->toString().c_str());
+		fprintf(CPSW::fErr(),"WARNING: loadMyConfigFromYaml -- excess elements in YAML Node (%s); IGNORED\n", p->toString().c_str());
 		nelms = nelmsFromPath;
 	}
 

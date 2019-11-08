@@ -14,6 +14,7 @@
 #include <cpsw_error.h>
 
 #include <cpsw_proto_mod_tcp.h>
+#include <cpsw_stdio.h>
 
 #include <errno.h>
 #include <sys/select.h>
@@ -76,7 +77,7 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 		uint8_t      *p;
 
 #ifdef TCP_DEBUG
-		printf("TCP -- waiting for data\n");
+		fprintf(CPSW::fDbg(), "TCP -- waiting for data\n");
 #endif
 
 		siz = sizeof(len);
@@ -91,7 +92,7 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 		len = ntohl(len);
 
 #ifdef TCP_DEBUG
-		printf("TCP RX -- got length: %" PRId32 "\n", len);
+		fprintf(CPSW::fDbg(), "TCP RX -- got length: %" PRId32 "\n", len);
 #endif
 
 		siz = len;
@@ -123,13 +124,13 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 #ifdef TCP_DEBUG_STRM
 				unsigned fram = (p[1]<<4) | (p[0]>>4);
 				unsigned frag = (p[4]<<16) | (p[3] << 8) | p[2];
-				printf("TCP: fram %d[%d]\n", fram, frag);
+				fprintf(CPSW::fDbg(), "TCP: fram %d[%d]\n", fram, frag);
 #else
 				int      i;
-				printf("TCP got %d data: ",(int)len);
+				fprintf(CPSW::fDbg(), "TCP got %d data: ",(int)len);
 				for ( i=0; i< (len < 20 ? len : 20); i++ )
-					printf("%02x ", p[i]);
-				printf("\n");
+					fprintf(CPSW::fDbg(), "%02x ", p[i]);
+				fprintf(CPSW::fDbg(), "\n");
 #endif
 			}
 #endif
@@ -150,9 +151,9 @@ void * CProtoModTcp::CRxHandlerThread::threadBody()
 
 #ifdef TCP_DEBUG
 			if ( st )
-				printf(" (pushdown SUCC)\n");
+				fprintf(CPSW::fDbg(), " (pushdown SUCC)\n");
 			else
-				printf(" (pushdown DROP)\n");
+				fprintf(CPSW::fDbg(), " (pushdown DROP)\n");
 #endif
 
 	}
@@ -263,8 +264,9 @@ CProtoModTcp::~CProtoModTcp()
 
 void CProtoModTcp::dumpInfo(FILE *f)
 {
-	if ( ! f )
-		f = stdout;
+	if ( ! f ) {
+		throw InternalError("CProtoModTCP::dumpInfo now requires FILE argument");
+	}
 
 	fprintf(f,"CProtoModTcp:\n");
 	fprintf(f,"  Peer port : %15u\n",    getDestPort());
@@ -320,13 +322,13 @@ unsigned       nios;
 	}
 
 #ifdef TCP_DEBUG
-	printf("TCP doPush -- wrote %ld\n", bc->getSize());
+	fprintf(CPSW::fDbg(), "TCP doPush -- wrote %ld\n", bc->getSize());
 	uint8_t dmp[40];
 	bc->extract(dmp, 0, sizeof(dmp));
 	for ( unsigned i=0; i<sizeof(dmp); i++ ) {
-		printf("%02x ", dmp[i]);
+		fprintf(CPSW::fDbg(), "%02x ", dmp[i]);
 	}
-	printf("\n");
+	fprintf(CPSW::fDbg(), "\n");
 #endif
 	return true;
 }

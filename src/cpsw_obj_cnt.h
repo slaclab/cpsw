@@ -13,6 +13,7 @@
 // count objects (for debugging)
 
 #include <cpsw_compat.h>
+#include <stdio.h>
 
 using cpsw::atomic;
 using cpsw::memory_order_relaxed;
@@ -90,7 +91,7 @@ public:
 
 	static unsigned getSum();
 
-	static unsigned report(bool verbose=false);
+	static unsigned report(FILE *f, bool verbose=false);
 };
 
 #define DECLARE_OBJ_COUNTER(name,module,static_objs) \

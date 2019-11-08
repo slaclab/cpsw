@@ -10,6 +10,7 @@
 #include <cpsw_obj_cnt.h>
 #include <cpsw_shared_obj.h>
 #include <stdio.h>
+#include <cpsw_stdio.h>
 
 CpswObjCounter::CpswObjCounter(const char *name, unsigned statics)
 : cnt_(0),
@@ -36,18 +37,18 @@ unsigned CpswObjCounter::getSum()
 	return rval;
 }
 
-unsigned CpswObjCounter::report(bool verbose)
+unsigned CpswObjCounter::report(FILE *f, bool verbose)
 {
 unsigned rval = 0;
 	CpswObjCounter *c;
 	for (c = lh(0); c; c = c->next_) {
 		unsigned d;
 		if ( (d = abs(c->get() - c->getStatics()) ) || verbose ) {
-			printf("Module '%s': remaining objects: %u, statics %u\n", c->getName(), c->get(), c->getStatics());
+			fprintf(f, "Module '%s': remaining objects: %u, statics %u\n", c->getName(), c->get(), c->getStatics());
 			rval += d;
 		}
 	}
-	printf("Object Counter: Total %u obj leaked\n", rval);
+	fprintf(f, "Object Counter: Total %u obj leaked\n", rval);
 	return rval;
 }
 

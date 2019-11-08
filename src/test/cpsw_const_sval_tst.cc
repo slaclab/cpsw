@@ -84,7 +84,7 @@ main(int argc, char **argv)
 
 	
 }
-	if ( CpswObjCounter::report(true) ) {
+	if ( CpswObjCounter::report(stderr, true) ) {
 		throw TestFailed();
 	}
 

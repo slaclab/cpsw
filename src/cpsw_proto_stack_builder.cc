@@ -19,10 +19,10 @@
 #include <cpsw_proto_mod_tdestmux.h>
 #include <cpsw_proto_mod_tdestmux2.h>
 #include <cpsw_proto_depack.h>
+#include <cpsw_stdio.h>
 
 #include <cpsw_yaml.h>
 #include <cpsw_debug.h>
-
 
 #include <socks/libSocks.h>
 #include <rssi_bridge/rpcMapService.h>
@@ -842,9 +842,9 @@ int                                    requestedMatches = cmp->requestedMatches(
 		if ( requestedMatches == (found = cmp->findMatches( *it )) )
 			return *it;
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 1 ) {
-		fprintf(stderr, "%s; requested %d, found %d\n", (*it)->getProtoMod()->getName(), requestedMatches, found);
-}
+		if ( cpsw_psbldr_debug > 1 ) {
+			fprintf(CPSW::fDbg(), "%s; requested %d, found %d\n", (*it)->getProtoMod()->getName(), requestedMatches, found);
+		}
 #endif
 	}
 	return ProtoPort();
@@ -861,9 +861,9 @@ shared_ptr<CProtoStackBuilder> bldr   = cloneInternal();
 bool                           hasSRP = IProtoStackBuilder::SRP_UDP_NONE != bldr->getSRPVersion();
 
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 1 ) {
-	fprintf(stderr, "makeProtoPort...entering\n");
-}
+	if ( cpsw_psbldr_debug > 1 ) {
+		fprintf(CPSW::fDbg(), "makeProtoPort...entering\n");
+	}
 #endif
 
 	// sanity checks
@@ -880,12 +880,12 @@ if ( cpsw_psbldr_debug > 1 ) {
 		cmp.tcpDestPort_ = bldr->getTcpPort();
 
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "makeProtoPort for %s port %d\n",
-		bldr->hasRssiBridge() ? "UDP (via bridge/TCP)" : (bldr->hasUdp() ? "UDP" : "TCP"),
-		bldr->hasUdp()        ? bldr->getUdpPort()     : bldr->getTcpPort()
-	);
-}
+	if ( cpsw_psbldr_debug > 0 ) {
+		fprintf(CPSW::fDbg(), "makeProtoPort for %s port %d\n",
+			bldr->hasRssiBridge() ? "UDP (via bridge/TCP)" : (bldr->hasUdp() ? "UDP" : "TCP"),
+			bldr->hasUdp()        ? bldr->getUdpPort()     : bldr->getTcpPort()
+		);
+	}
 #endif
 
 	if ( findProtoPort( &cmp, existingPorts ) ) {
@@ -895,27 +895,27 @@ if ( cpsw_psbldr_debug > 0 ) {
 		}
 
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "        found %s port %d\n",
-		bldr->hasRssiBridge() ? "UDP (via bridge/TCP)" : (bldr->hasUdp() ? "UDP" : "TCP"),
-		bldr->hasUdp()        ? bldr->getUdpPort()     : bldr->getTcpPort()
-	);
-}
+		if ( cpsw_psbldr_debug > 0 ) {
+			fprintf(CPSW::fDbg(), "        found %s port %d\n",
+				bldr->hasRssiBridge() ? "UDP (via bridge/TCP)" : (bldr->hasUdp() ? "UDP" : "TCP"),
+				bldr->hasUdp()        ? bldr->getUdpPort()     : bldr->getTcpPort()
+			);
+		}
 #endif
 
 		// existing RSSI configuration must match the requested one
 		if ( bldr->hasRssiAndUdp() ) {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  including RSSI\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  including RSSI\n");
+			}
 #endif
 			cmp.haveRssi_.include();
 		} else {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  excluding RSSI\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  excluding RSSI\n");
+			}
 #endif
 			cmp.haveRssi_.exclude();
 		}
@@ -925,16 +925,16 @@ if ( cpsw_psbldr_debug > 0 ) {
 			cmp.haveDepack_.include();
 			cmp.depackVersion_ = bldr->getDepackVersion();
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  including depack\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  including depack\n");
+			}
 #endif
 		} else {
 			cmp.haveDepack_.exclude();
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  excluding depack\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  excluding depack\n");
+			}
 #endif
 		}
 
@@ -942,24 +942,24 @@ if ( cpsw_psbldr_debug > 0 ) {
 			cmp.tDest_         = bldr->getTDestMuxTDEST();
 			cmp.depackVersion_ = bldr->getDepackVersion();
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  tdest %d\n", bldr->getTDestMuxTDEST());
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  tdest %d\n", bldr->getTDestMuxTDEST());
+			}
 #endif
 		} else {
 			cmp.tDest_.exclude();
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  tdest excluded\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  tdest excluded\n");
+			}
 #endif
 		}
 
 		if ( (foundTDestPort = findProtoPort( &cmp, existingPorts )) ) {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  tdest port FOUND\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  tdest port FOUND\n");
+			}
 #endif
 
 			// either no tdest demuxer or using an existing tdest port
@@ -994,7 +994,7 @@ if ( cpsw_psbldr_debug > 0 ) {
 			if ( bldr->hasTDestMux() ) {
 				cmp.tDest_.wildcard();
 				if ( ! findProtoPort( &cmp, existingPorts ) ) {
-					cmp.dump();
+					cmp.dump( CPSW::fErr() );
 					throw ConfigurationError("No TDEST Demultiplexer found");
 				}
 				tDestMuxMod  = cmp.tDest_.handledBy_;
@@ -1003,9 +1003,9 @@ if ( cpsw_psbldr_debug > 0 ) {
 					throw InternalError("No TDEST Demultiplexer (base-class pointer) - but there should be one");
 				}
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  using (existing) tdest MUX\n");
-}
+				if ( cpsw_psbldr_debug > 0 ) {
+					fprintf(CPSW::fDbg(), "  using (existing) tdest MUX\n");
+				}
 #endif
 			} else {
 				throw ConfigurationError("Unable to create new port on existing protocol modules");
@@ -1050,12 +1050,12 @@ if ( cpsw_psbldr_debug > 0 ) {
 				sock.init( &via, 0, false );
 
 				if ( rpcMapLookup( &via, dup( sock.getSd() ), dst.sin_addr.s_addr, map, nMaps, timeoutUS ) ) {
-					fprintf(stderr, "RPC Lookup failed for port %u @ %s -- maybe no rssi_bridge running?\n", map[0].reqPort, inet_ntoa( via.sin_addr ) );
+					fprintf(CPSW::fErr(), "RPC Lookup failed for port %u @ %s -- maybe no rssi_bridge running?\n", map[0].reqPort, inet_ntoa( via.sin_addr ) );
 					throw NotFoundError("RPC Lookup failed");
 				}
 
 				if ( 0 == map[0].actPort ) {
-					fprintf(stderr, "RPC Lookup for port %u @ %s produced no mapping (missing -p/-u on bridge?)\n", map[0].reqPort, inet_ntoa( via.sin_addr ) );
+					fprintf(CPSW::fErr(), "RPC Lookup for port %u @ %s produced no mapping (missing -p/-u on bridge?)\n", map[0].reqPort, inet_ntoa( via.sin_addr ) );
 					throw NotFoundError("RPC Lookup produced no mapping");
 				}
 
@@ -1072,9 +1072,9 @@ if ( cpsw_psbldr_debug > 0 ) {
 
 		if ( bldr->hasRssiAndUdp() ) {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  creating RSSI\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  creating RSSI\n");
+			}
 #endif
 			ProtoModRssi rssi = CShObj::create<ProtoModRssi>(
 			                                bldr->getRssiThreadPriority(),
@@ -1086,9 +1086,9 @@ if ( cpsw_psbldr_debug > 0 ) {
 
 		if ( bldr->hasDepack() && bldr->getDepackVersion() == DEPACKETIZER_V0 ) {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  creating depack\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  creating depack\n");
+			}
 #endif
 			ProtoModDepack depackMod  = CShObj::create< ProtoModDepack > (
 			                                bldr->getDepackOutQueueDepth(),
@@ -1103,9 +1103,9 @@ if ( cpsw_psbldr_debug > 0 ) {
 
 	if ( bldr->hasTDestMux()  && ! foundTDestPort ) {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  creating tdest port\n");
-}
+		if ( cpsw_psbldr_debug > 0 ) {
+			fprintf(CPSW::fDbg(), "  creating tdest port\n");
+		}
 #endif
 		ProtoModTDestMux  v0;
 		ProtoModTDestMux2 v2;
@@ -1113,17 +1113,17 @@ if ( cpsw_psbldr_debug > 0 ) {
 		if ( ! tDestMuxMod ) {
 			if ( bldr->getDepackVersion() == DEPACKETIZER_V2 ) {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "    creating new TDest Mux V2 module\n");
-}
+				if ( cpsw_psbldr_debug > 0 ) {
+					fprintf(CPSW::fDbg(), "    creating new TDest Mux V2 module\n");
+				}
 #endif
 				v2 = CShObj::create< ProtoModTDestMux2 >( bldr->getTDestMuxThreadPriority() );
 				rval->addAtPort( v2 );
 			} else {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "    creating new TDest Mux V0 module\n");
-}
+				if ( cpsw_psbldr_debug > 0 ) {
+					fprintf(CPSW::fDbg(), "    creating new TDest Mux V0 module\n");
+				}
 #endif
 				v0 = CShObj::create< ProtoModTDestMux  >( bldr->getTDestMuxThreadPriority() );
 				rval->addAtPort( v0 );
@@ -1131,9 +1131,9 @@ if ( cpsw_psbldr_debug > 0 ) {
 		} else {
 			if ( bldr->getDepackVersion() == DEPACKETIZER_V2 ) {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "    looking for existing TDest Mux V2 module\n");
-}
+				if ( cpsw_psbldr_debug > 0 ) {
+					fprintf(CPSW::fDbg(), "    looking for existing TDest Mux V2 module\n");
+				}
 #endif
 				v2 = dynamic_pointer_cast<ProtoModTDestMux2::element_type>( tDestMuxMod );
 				if ( ! v2 ) {
@@ -1141,9 +1141,9 @@ if ( cpsw_psbldr_debug > 0 ) {
 				}
 			} else {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "    looking for existing TDest Mux V0 module\n");
-}
+				if ( cpsw_psbldr_debug > 0 ) {
+					fprintf(CPSW::fDbg(), "    looking for existing TDest Mux V0 module\n");
+				}
 #endif
 				v0 = dynamic_pointer_cast<ProtoModTDestMux::element_type>( tDestMuxMod );
 				if ( ! v0 ) {
@@ -1153,9 +1153,9 @@ if ( cpsw_psbldr_debug > 0 ) {
 		}
 		if ( v2 ) {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  creating TDest Mux V2 port\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  creating TDest Mux V2 port\n");
+			}
 #endif
 			rval = v2->createPort(
 			                       bldr->getTDestMuxTDEST(),
@@ -1165,9 +1165,9 @@ if ( cpsw_psbldr_debug > 0 ) {
 			                     );
 		} else {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  creating TDest Mux V0 port\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  creating TDest Mux V0 port\n");
+			}
 #endif
 			rval = v0->createPort(
 			                       bldr->getTDestMuxTDEST(),
@@ -1180,9 +1180,9 @@ if ( cpsw_psbldr_debug > 0 ) {
 	if ( bldr->hasSRPMux() ) {
 		if ( ! srpMuxMod ) {
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  creating SRP mux module\n");
-}
+			if ( cpsw_psbldr_debug > 0 ) {
+				fprintf(CPSW::fDbg(), "  creating SRP mux module\n");
+			}
 #endif
 			srpMuxMod   = CShObj::create< ProtoModSRPMux >( bldr->getSRPVersion(), bldr->getSRPMuxThreadPriority() );
 			rval->addAtPort( srpMuxMod );
@@ -1192,9 +1192,9 @@ if ( cpsw_psbldr_debug > 0 ) {
 		unsigned retryCount = bldr->getSRPRetryCount() & 0xffff; // undocumented hack to test byte-resolution access
 		rval = srpMuxMod->createPort( bldr->getSRPMuxVirtualChannel(), 2 * (retryCount + 1) );
 #ifdef PSBLDR_DEBUG
-if ( cpsw_psbldr_debug > 0 ) {
-	fprintf(stderr, "  creating SRP mux port\n");
-}
+		if ( cpsw_psbldr_debug > 0 ) {
+			fprintf(CPSW::fDbg(), "  creating SRP mux port\n");
+		}
 #endif
 	}
 

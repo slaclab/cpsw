@@ -24,6 +24,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <cpsw_debug.h>
 
 using cpsw::static_pointer_cast;
 
@@ -120,19 +121,19 @@ public:
 		// (must be a subclass of PyErr_Exception)
 		excTypeObj_ = PyErr_NewException( qualifiedName, base, 0 );
 
-		//std::cout << qualifiedName << " typeObj_ refcnt " << Py_REFCNT( excTypeObj_ ) << "\n";
+		//CPSW::cdbg() << qualifiedName << " typeObj_ refcnt " << Py_REFCNT( excTypeObj_ ) << "\n";
 
 		// Register in the current scope
 		scope current;
 
 		current.attr(name_.c_str()) = object( handle<>( borrowed( excTypeObj_ ) ) ); \
 
-	//std::cout << "EXCEPTION TYPE REFCOUNT CRE " << Py_REFCNT(getTypeObj()) << "\n";
+	//CPSW::cdbg() << "EXCEPTION TYPE REFCOUNT CRE " << Py_REFCNT(getTypeObj()) << "\n";
 	}
 
 	~ExceptionTranslator()
 	{
-		//std::cout << "~" << name_ << " typeObj_ refcnt " << Py_REFCNT( getTypeObj() ) << "\n";
+		//CPSW::cdbg() << "~" << name_ << " typeObj_ refcnt " << Py_REFCNT( getTypeObj() ) << "\n";
 		if ( excTypeObj_ )
 			Py_DECREF( excTypeObj_ );
 	}
@@ -140,9 +141,9 @@ public:
 	// The actual translation
 	void operator() (const ECL &e) const
 	{
-	//std::cout << "EXCEPTION TYPE REFCOUNT PRE " << Py_REFCNT(getTypeObj()) << "\n";
+	//CPSW::cdbg() << "EXCEPTION TYPE REFCOUNT PRE " << Py_REFCNT(getTypeObj()) << "\n";
 		PyErr_SetString( getTypeObj(), e.what() );
-	//std::cout << "EXCEPTION TYPE REFCOUNT PST " << Py_REFCNT(getTypeObj()) << "\n";
+	//CPSW::cdbg() << "EXCEPTION TYPE REFCOUNT PST " << Py_REFCNT(getTypeObj()) << "\n";
 	}
 
 // Macros to save typing

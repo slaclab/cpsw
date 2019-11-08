@@ -15,6 +15,7 @@
 #include <cpsw_yaml_keydefs.h>
 
 #include <stdio.h>
+#include <iostream>
 
 #include <yaml-cpp/yaml.h>
 
@@ -35,7 +36,7 @@ namespace YAML {
 		PNode & operator=(const Node &orig_node);
 
 	public:
-		void dump() const;
+		void dump( FILE *f )  const;
 
 		const char *getName() const
 		{
@@ -490,7 +491,7 @@ public:
 	virtual void addFactory(const char *className, IYamlFactoryBase<T> *f) = 0;
 	virtual void delFactory(const char *className)                         = 0;
 
-	virtual void dumpClasses()                                             = 0;
+	virtual void dumpClasses(std::ostream &os)                             = 0;
 };
 
 class IRegistry {
@@ -499,7 +500,7 @@ public:
 	virtual void  delItem(const char *name)             = 0;
 	virtual void *getItem(const char *name)             = 0;
 
-	virtual void  dumpItems()                           = 0;
+	virtual void  dumpItems(std::ostream &os)           = 0;
 
 	virtual      ~IRegistry() {}
 
@@ -587,9 +588,9 @@ public:
 		throw NotFoundError(std::string("No factory for '") + str_no_factory + std::string("' found"));
 	}
 
-	virtual void dumpClasses()
+	virtual void dumpClasses(std::ostream &os)
 	{
-		registry_->dumpItems();
+		registry_->dumpItems( os );
 	}
 
 	virtual ~CYamlTypeRegistry()
@@ -620,7 +621,7 @@ class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 		static YAML::Node loadPreprocessedYaml    (const char *char_stream, const char *yaml_dir = 0, bool resolveMergeKeys = true);
 		static YAML::Node loadPreprocessedYamlFile(const char *file_name,   const char *yaml_dir = 0, bool resolveMergeKeys = true);
 
-		static void dumpClasses() { getFieldRegistry_()->dumpClasses(); }
+		static void dumpClasses(std::ostream &os) { getFieldRegistry_()->dumpClasses( os ); }
 };
 
 

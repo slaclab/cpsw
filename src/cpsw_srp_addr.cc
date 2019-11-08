@@ -17,6 +17,7 @@
 #include <cpsw_proto_mod_srpmux.h>
 
 #include <cpsw_mutex.h>
+#include <cpsw_stdio.h>
 
 #include <cpsw_yaml.h>
 
@@ -175,7 +176,7 @@ ProtoPort            stack = getProtoStack();
 	}
 
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP: MTU is %d; maxwords %d, TX: %d, RX: %d\n", mtu_, maxwords, maxWordsRx_, maxWordsTx_);
+	fprintf(CPSW::fDbg(), "SRP: MTU is %d; maxwords %d, TX: %d, RX: %d\n", mtu_, maxwords, maxWordsRx_, maxWordsTx_);
 #endif
 }
 
@@ -246,7 +247,7 @@ struct timespec now;
 	if ( attempt > 0 ) {
 		CTimeout xx(now);
 		xx -= CTimeout(*then);
-		fprintf(stderr, "%s -- retry (attempt %d) took %" PRId64 "us\n", pre, attempt, xx.getUs());
+		fprintf(CPSW::fDbg(), "%s -- retry (attempt %d) took %" PRId64 "us\n", pre, attempt, xx.getUs());
 	}
 	*then = now;
 }
@@ -300,7 +301,7 @@ struct timespec retry_then;
 #endif
 
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP readBlk_unlocked off %" PRIx64 "; sbytes %d, protoVersion %d\n", off, sbytes, protoVersion_);
+	fprintf(CPSW::fDbg(), "SRP readBlk_unlocked off %" PRIx64 "; sbytes %d, protoVersion %d\n", off, sbytes, protoVersion_);
 #endif
 
 	if ( sbytes == 0 )
@@ -372,7 +373,7 @@ int rval = CAddressImpl::open( node );
 		// open a second VC for asynchronous communication
 		asyncIOHandler_.threadStart( asyncIOPort_->open() );
 #ifdef SRPADDR_DEBUG
-		fprintf(stderr, "SRP Open\n");
+		fprintf(CPSW::fDbg(), "SRP Open\n");
 #endif
 	}
 
@@ -387,7 +388,7 @@ CMtx::lg guard( &doorMtx_ );
 int rval = CAddressImpl::close( node );
 	if ( 1 == rval ) {
 #ifdef SRPADDR_DEBUG
-		fprintf(stderr, "SRP Close\n");
+		fprintf(CPSW::fDbg(), "SRP Close\n");
 #endif
 		door_.reset();
 		asyncIOHandler_.threadStop();
@@ -518,7 +519,7 @@ int      posted   = (    POSTED        == defaultWriteMode_
 	nWords        = (totbytes + sizeof(SRPWord) - 1)/sizeof(SRPWord);
 
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP writeBlk_unlocked off %" PRIx64 "; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i, msk1 0x%02x, mskn 0x%02x\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords, msk1, mskn);
+	fprintf(CPSW::fDbg(), "SRP writeBlk_unlocked off %" PRIx64 "; dbytes %d, swapV1 %d, swap %d headbytes %i, totbytes %i, nWords %i, msk1 0x%02x, mskn 0x%02x\n", off, dbytes, doSwapV1, doSwap, headbytes, totbytes, nWords, msk1, mskn);
 #endif
 
 
@@ -671,7 +672,7 @@ int      posted   = (    POSTED        == defaultWriteMode_
 			toput -= last_byte;
 		}
 #ifdef SRPADDR_DEBUG
-		fprintf(stderr,"merge_last: last_byte %d, lastlen %d, toput %d, firstlen %d, byteres %d\n", last_byte, lastlen, toput, firstlen, byteResolution_);
+		fprintf(CPSW::fDbg(),"merge_last: last_byte %d, lastlen %d, toput %d, firstlen %d, byteres %d\n", last_byte, lastlen, toput, firstlen, byteResolution_);
 #endif
 		last_word[ last_byte  ] = (last_word[ last_byte ] & mskn) | (src[dbytes - 1] & ~mskn);
 	}
@@ -824,7 +825,7 @@ unsigned nWords;
 	CMtx::lg GUARD( &mutex_ );
 
 #ifdef SRPADDR_DEBUG
-	fprintf(stderr, "SRP writeBlk nWordsmaxWordsTx_ %d\n", maxWordsTx_);
+	fprintf(CPSW::fDbg(), "SRP writeBlk nWordsmaxWordsTx_ %d\n", maxWordsTx_);
 #endif
 	while ( nWords > maxWordsTx_ ) {
 		int nbytes = maxWordsTx_*4 - headbytes;
@@ -903,7 +904,7 @@ void DynTimeout::reset(const CTimeout &iniv)
 	avgRndTrip_ = iniv.getUs() << (AVG_SHFT - MARG_SHFT);
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	fprintf(stderr, "dynTimeout reset to %" PRId64 "\n", dynTimeout_.getUs());
+	fprintf(CPSW::fDbg(), "dynTimeout reset to %" PRId64 "\n", dynTimeout_.getUs());
 #endif
 }
 
@@ -915,7 +916,7 @@ void DynTimeout::relax()
 
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	fprintf(stderr, "RETRY (timeout %" PRId64 ")\n", dynTimeout_.getUs());
+	fprintf(CPSW::fDbg(), "RETRY (timeout %" PRId64 ")\n", dynTimeout_.getUs());
 #endif
 }
 
@@ -933,7 +934,7 @@ int64_t  diffus;
 
 	setLastUpdate();
 #ifdef TIMEOUT_DEBUG
-	fprintf(stderr, "dynTimeout update to %" PRId64 " (rnd %" PRId64 " -- diff %" PRId64 ", avg %" PRId64 " = 128*%" PRId64 ")\n",
+	fprintf(CPSW::fDbg(), "dynTimeout update to %" PRId64 " (rnd %" PRId64 " -- diff %" PRId64 ", avg %" PRId64 " = 128*%" PRId64 ")\n",
 		dynTimeout_.getUs(),
 		diff.getUs(),
 		diffus,

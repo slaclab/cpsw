@@ -377,7 +377,7 @@ uint64_t xxx;
 
 	}
 
-	if ( CpswObjCounter::report() ) {
+	if ( CpswObjCounter::report(stderr) ) {
 		printf("Leaked Objects!\n");
 		throw TestFailed();
 	}

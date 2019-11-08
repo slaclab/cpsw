@@ -639,15 +639,15 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 
 }
 
-	if ( CpswObjCounter::report(true) ) {
+	if ( CpswObjCounter::report(stderr, true) ) {
 		throw TestFailed("Unexpected object count");
 	}
 
 } catch ( CPSWError e ) {
-	printf("CPSW Error: %s\n", e.getInfo().c_str());
+	fprintf(stderr, "CPSW Error: %s\n", e.getInfo().c_str());
 	throw;
 } catch ( TestFailed e ) {
-	printf("Test failed -- because: %s\n", e.info);
+	fprintf(stderr, "Test failed -- because: %s\n", e.info);
 	throw;
 }
 

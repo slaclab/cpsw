@@ -11,6 +11,7 @@
 #include <cpsw_api_user.h>
 #include <cpsw_error.h>
 #include <cpsw_thread.h>
+#include <cpsw_stdio.h>
 
 #include <stdio.h>
 #include <errno.h>
@@ -176,7 +177,7 @@ void * CProtoModDepack::threadBody()
 		while ( 1 ) {
 			CFrame *frame  = CFrame::NO_FRAME == oldestFrame_ ? NULL : &frameWin_[ toFrameIdx( oldestFrame_ ) ];
 #ifdef DEPACK_DEBUG
-printf("depack: trying to pop\n");
+	fprintf(CPSW::fDbg(), "depack: trying to pop\n");
 #endif
 
 			// wait for new datagram
@@ -189,7 +190,7 @@ CTimeout del;
 	clock_gettime( CLOCK_REALTIME, &del.tv_ );
 	if ( frame && frame->running_ )
 		del -= frame->timeout_;
-printf("Depack input timeout (late: %ld.%ld)\n", del.tv_.tv_sec, del.tv_.tv_nsec/1000);
+	fprintf(CPSW::fDbg(), "Depack input timeout (late: %ld.%ld)\n", del.tv_.tv_sec, del.tv_.tv_nsec/1000);
 }
 #endif
 				// timeout
@@ -214,11 +215,11 @@ void CProtoModDepack::frameSync(CAxisFrameHeader *hdr_p)
 	if ( abs( hdr_p->signExtendFrameNo( hdr_p->getFrameNo() - oldestFrame_ ) ) > frameWinSize_ ) {
 		releaseFrames( false );
 #ifdef DEPACK_DEBUG
-printf("frameSync (frame %d, frag %d, oldest frame %d, winsz %d)\n",
-		hdr_p->getFrameNo(),
-		hdr_p->getFragNo(),
-		oldestFrame_,
-		frameWinSize_);
+		fprintf(CPSW::fDbg(), "frameSync (frame %d, frag %d, oldest frame %d, winsz %d)\n",
+			hdr_p->getFrameNo(),
+			hdr_p->getFragNo(),
+			oldestFrame_,
+			frameWinSize_);
 #endif
 		oldestFrame_ = CAxisFrameHeader::moduloFrameSz( hdr_p->getFrameNo() + 1 );
 	}
@@ -235,7 +236,7 @@ Buf bh = bc->getHead();
 	}
 
 #ifdef DEPACK_DEBUG
-printf("%s frame %d (frag %d; oldest %d)\n",
+	fprintf(CPSW::fDbg(), "%s frame %d (frag %d; oldest %d)\n",
 		hdr.getFrameNo() < oldestFrame_ && (CFrame::NO_FRAME != oldestFrame_ || 0 != hdr.getFragNo()) ? "Dropping" : "Accepting",
 		hdr.getFrameNo(),
 		hdr.getFragNo(),
@@ -267,13 +268,13 @@ printf("%s frame %d (frag %d; oldest %d)\n",
 			evictedFrames_++;
 			releaseOldestFrame( false );
 #ifdef DEPACK_DEBUG
-printf("Evict\n");
+			fprintf(CPSW::fDbg(), "Evict\n");
 #endif
 		} else {
 			newFrameDrops_++;
 			frameSync( &hdr );
 #ifdef DEPACK_DEBUG
-printf("Dropping new frame %d (frag %d; oldest %d, relOff %d)\n", hdr.getFrameNo(), hdr.getFragNo(), oldestFrame_, relOff);
+			fprintf(CPSW::fDbg(), "Dropping new frame %d (frag %d; oldest %d, relOff %d)\n", hdr.getFrameNo(), hdr.getFragNo(), oldestFrame_, relOff);
 #endif
 			return;
 		}
@@ -292,7 +293,7 @@ printf("Dropping new frame %d (frag %d; oldest %d, relOff %d)\n", hdr.getFrameNo
 		// outside of window -- drop
 		oldFragDrops_++;
 #ifdef DEPACK_DEBUG
-printf("Dropping old frag %d\n", hdr.getFragNo());
+		fprintf(CPSW::fDbg(), "Dropping old frag %d\n", hdr.getFragNo());
 #endif
 		return;
 	}
@@ -301,7 +302,7 @@ printf("Dropping old frag %d\n", hdr.getFragNo());
 		// outside of window -- drop
 		newFragDrops_++;
 #ifdef DEPACK_DEBUG
-printf("Dropping new frag %d\n", hdr.getFragNo());
+		fprintf(CPSW::fDbg(), "Dropping new frag %d\n", hdr.getFragNo());
 #endif
 		return;
 	}
@@ -314,7 +315,7 @@ printf("Dropping new frag %d\n", hdr.getFragNo());
 		frame->frameID_          = hdr.getFrameNo();
 
 #ifdef DEPACK_DEBUG
-printf("First frag (%d) of frame # %d\n", hdr.getFragNo(), frame->frameID_);
+		fprintf(CPSW::fDbg(), "First frag (%d) of frame # %d\n", hdr.getFragNo(), frame->frameID_);
 #endif
 
 		// make sure older frames (which may not yet have received any fragment)
@@ -326,7 +327,7 @@ printf("First frag (%d) of frame # %d\n", hdr.getFragNo(), frame->frameID_);
 		if ( frame->frameID_ != hdr.getFrameNo() ) {
 			// since frameID >= oldestFrame && frameID < oldestFrame + frameWinSize
 			// this should never happen.
-			fprintf(stderr,"working on frame %d -- but %d found in its slot!\n", hdr.getFrameNo(), frame->frameID_);
+			fprintf(CPSW::fErr(), "working on frame %d -- but %d found in its slot!\n", hdr.getFrameNo(), frame->frameID_);
 			throw InternalError("Frame ID window inconsistency!");
 		}
 		if ( frame->fragWin_[fragIdx] ) {
@@ -339,7 +340,7 @@ printf("First frag (%d) of frame # %d\n", hdr.getFragNo(), frame->frameID_);
 			return;
 		}
 #ifdef DEPACK_DEBUG
-printf("Frag %d of frame # %d\n", hdr.getFragNo(), frame->frameID_);
+		fprintf(CPSW::fDbg(), "Frag %d of frame # %d\n", hdr.getFragNo(), frame->frameID_);
 #endif
 	}
 
@@ -353,14 +354,14 @@ printf("Frag %d of frame # %d\n", hdr.getFragNo(), frame->frameID_);
 		if ( CFrame::NO_FRAG != frame->lastFrag_ ) {
 			duplicateLastSeen_++;
 #ifdef DEPACK_DEBUG
-printf("DuplicateLast\n");
+			fprintf(CPSW::fDbg(), "DuplicateLast\n");
 #endif
 		} else {
 			if ( CAxisFrameHeader::FRAG_MAX == (frame->lastFrag_ = hdr.getFragNo()) ) {
 				noLastSeen_++;
 			}
 #ifdef DEPACK_DEBUG
-printf("Last frag %d\n", frame->lastFrag_);
+			fprintf(CPSW::fDbg(), "Last frag %d\n", frame->lastFrag_);
 #endif
 		}
 	}
@@ -389,7 +390,7 @@ bool CProtoModDepack::releaseOldestFrame(bool onlyComplete)
 	CFrame  *frame         = &frameWin_[frameIdx];
 
 #ifdef DEPACK_DEBUG
-	printf("releaseOldestFrame onlyComplete %d, isComplete %d, running %d\n", onlyComplete, frame->isComplete(), frame->running_);
+	fprintf(CPSW::fDbg(), "releaseOldestFrame onlyComplete %d, isComplete %d, running %d\n", onlyComplete, frame->isComplete(), frame->running_);
 #endif
 
 	if ( ( onlyComplete && ! frame->isComplete() ) || ! frame->running_ )
@@ -405,17 +406,17 @@ bool CProtoModDepack::releaseOldestFrame(bool onlyComplete)
 
 	if ( isComplete ) {
 #ifdef DEPACK_DEBUG
-	printf("PUSHDOWN FRAME %d", frame->frameID_);
+		fprintf(CPSW::fDbg(), "PUSHDOWN FRAME %d", frame->frameID_);
 #endif
 		unsigned l = completeFrame->getLen();
 		if ( ! pushDown( completeFrame, &TIMEOUT_INDEFINITE ) ) {
 #ifdef DEPACK_DEBUG
-	printf(" => DROPPED\n");
+		fprintf(CPSW::fDbg(), " => DROPPED\n");
 #endif
 			oqueueFullDrops_++;
 		} else {
 #ifdef DEPACK_DEBUG
-	printf("\n");
+		fprintf(CPSW::fDbg(), "\n");
 #endif
 			fragsAccepted_  += l;
 			framesAccepted_ += 1;
@@ -430,7 +431,7 @@ bool CProtoModDepack::releaseOldestFrame(bool onlyComplete)
 	oldestFrame_ = CAxisFrameHeader::moduloFrameSz( oldestFrame_ + 1 );
 
 #ifdef DEPACK_DEBUG
-	printf("Updated oldest to %d (is complete %d, running %d)\n", oldestFrame_, isComplete, wasRunning);
+	fprintf(CPSW::fDbg(), "Updated oldest to %d (is complete %d, running %d)\n", oldestFrame_, isComplete, wasRunning);
 #endif
 
 	return true;
@@ -487,14 +488,14 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 
 #ifdef DEPACK_DEBUG
 	if ( fragNo >= 0 ) {
-		printf("Depack: fragmented output frame %d, frag %d, initial bc size %ld, len %d\n", hdr.getFrameNo(), fragNo, (long)bc->getSize(), bc->getLen());
+		fprintf(CPSW::fDbg(), "Depack: fragmented output frame %d, frag %d, initial bc size %ld, len %d\n", hdr.getFrameNo(), fragNo, (long)bc->getSize(), bc->getLen());
 	}
 #endif
 
 	if ( fitsInMTU( bc->getSize() ) ) {
 #ifdef DEPACK_DEBUG
 		if ( fragNo > 0 ) {
-			printf("Depack: fragmented output (tail); frag %d\n", fragNo);
+			fprintf(CPSW::fDbg(), "Depack: fragmented output (tail); frag %d\n", fragNo);
 		}
 #endif
 		appendTailByte( bc, true );
@@ -505,7 +506,7 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 		bsz = b->getSize();
 		res = IBufChain::create();
 #ifdef DEPACK_DEBUG
-		printf("Depack: next fragment size %ld\n", (long)bsz);
+		fprintf(CPSW::fDbg(), "Depack: next fragment size %ld\n", (long)bsz);
 #endif
 		while ( fitsInMTU( sz + bsz ) ) {
 			b->unlink();
@@ -514,7 +515,7 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 			b   = bc->getHead();
 			bsz = b->getSize();
 #ifdef DEPACK_DEBUG
-		printf("Depack: next fragment size %ld\n", (long)bsz);
+			fprintf(CPSW::fDbg(), "Depack: next fragment size %ld\n", (long)bsz);
 #endif
 		}
 
@@ -531,7 +532,7 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 
 		if ( ! b->adjPayload( -hdr1.getSize() ) ) {
 #ifdef DEPACK_DEBUG
-			printf("Depack: added new header for next fragment\n");
+			fprintf(CPSW::fDbg(), "Depack: added new header for next fragment\n");
 #endif
 			b = IBuf::getBuf( IBuf::CAPA_ETH_HDR );
 			bc->addAtHead( b );
@@ -542,8 +543,8 @@ CAxisFrameHeader hdr( b->getPayload(), b->getSize() );
 
 #ifdef DEPACK_DEBUG
 		if ( fragNo > 0 ) {
-			printf("Depack: fragmented output frame %d, frag %d, final bc size %ld, len %d\n", hdr1.getFrameNo(), hdr1.getFragNo(), (long)bc->getSize(), bc->getLen());
-			printf("Depack: fragmented output result size %ld, len %d\n", (long)res->getSize(), res->getLen());
+			fprintf(CPSW::fDbg(), "Depack: fragmented output frame %d, frag %d, final bc size %ld, len %d\n", hdr1.getFrameNo(), hdr1.getFragNo(), (long)bc->getSize(), bc->getLen());
+			fprintf(CPSW::fDbg(), "Depack: fragmented output result size %ld, len %d\n", (long)res->getSize(), res->getLen());
 		}
 #endif
 	}
@@ -636,8 +637,9 @@ bool rval = false;
 
 void CProtoModDepack::dumpInfo(FILE *f)
 {
-	if ( ! f )
-		f = stdout;
+	if ( ! f ) {
+		throw InternalError("CProtoModDepack::dumpInfo now requires FILE argument");
+	}
 	fprintf(f,"CProtoModDepack:\n");
 	fprintf(f,"  Frame Window Size: %4d, Frag Window Size: %4d\n", frameWinSize_, fragWinSize_);
 	fprintf(f,"  Timeout          : %4ld.%09lds\n", timeout_.tv_.tv_sec, timeout_.tv_.tv_nsec);

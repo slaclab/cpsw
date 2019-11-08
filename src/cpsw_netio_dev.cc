@@ -19,6 +19,7 @@
 #include <cpsw_srp_addr.h>
 
 #include <cpsw_yaml.h>
+#include <cpsw_stdio.h>
 
 #include <netdb.h>
 
@@ -50,7 +51,7 @@ int             err;
 	if ( readNode(ypath, YAML_KEY_ipAddr, &ip_str_) ) {
 		if ( (err = libSocksGetByName( ip_str_.c_str(), 0, &addr.sa )) ) {
 			std::string msg = std::string("ERROR: Invalid ipAddr value; getaddrinfo returned") + std::string( gai_strerror( err ) );
-			fprintf(stderr,"%s\n", msg.c_str());
+			fprintf(CPSW::fErr(), "%s\n", msg.c_str());
 			throw InvalidArgError( msg );
 		}
 		d_ip_ = addr.sin.sin_addr.s_addr;
@@ -139,7 +140,7 @@ shared_ptr<CCommAddressImpl> addr;
 	switch( bldr->getSRPVersion() ) {
 		case IProtoStackBuilder::SRP_UDP_NONE:
 #ifdef NETIO_DEBUG
-			fprintf(stderr,"Creating CCommAddress\n");
+			fprintf(CPSW::fDbg(), "Creating CCommAddress\n");
 #endif
 			addr = cpsw::make_shared<CCommAddressImpl>(key, port);
 		break;
@@ -148,7 +149,7 @@ shared_ptr<CCommAddressImpl> addr;
 		case IProtoStackBuilder::SRP_UDP_V2:
 		case IProtoStackBuilder::SRP_UDP_V3:
 #ifdef NETIO_DEBUG
-			fprintf(stderr,"Creating SRP address (V %d)\n", bldr->getSRPVersion());
+			fprintf(CPSW::fDbg(), "Creating SRP address (V %d)\n", bldr->getSRPVersion());
 #endif
 			addr = cpsw::make_shared<CSRPAddressImpl>(key, bldr, port);
 		break;

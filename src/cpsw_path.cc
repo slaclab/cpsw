@@ -17,11 +17,14 @@
 #include <limits.h>
 #include <iostream>
 
-#undef  PATH_DEBUG
+//#define PATH_DEBUG
+
+#ifdef PATH_DEBUG
+#include <cpsw_debug.h>
+#endif
 
 using cpsw::dynamic_pointer_cast;
 using cpsw::static_pointer_cast;
-using std::cout;
 
 typedef shared_ptr<const DevImpl::element_type> ConstDevImpl;
 
@@ -466,17 +469,17 @@ const char  *sl;
 shared_ptr<const EntryImpl::element_type> tailp;
 
 #ifdef PATH_DEBUG
-cout<<"checking: "<< s <<"\n";
+CPSW::sDbg() << "checking: "<< s <<"\n";
 #endif
 
 	if ( p->empty() ) {
 #ifdef PATH_DEBUG
-cout<<"using origin\n";
+CPSW::sDbg() << "using origin\n";
 #endif
 	} else {
 		found = p->back().c_p_;
 #ifdef PATH_DEBUG
-cout<<"starting at: "<<found->getName() << "\n";
+CPSW::sDbg() <<"starting at: "<<found->getName() << "\n";
 #endif
 	}
 
@@ -550,7 +553,7 @@ cout<<"starting at: "<<found->getName() << "\n";
 			std::string key(s, (op ? op - s : ( sl ? sl - s : strlen(s) ) ) );
 
 #ifdef PATH_DEBUG
-			cout<<"looking for: " << key << " in: " << h->getName() << "\n";
+			CPSW::sDbg() << "looking for: " << key << " in: " << h->getName() << "\n";
 #endif
 
 			found = h->getAddress( key.c_str() );

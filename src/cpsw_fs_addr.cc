@@ -8,6 +8,7 @@
  //@C distributed except according to the terms contained in the LICENSE.txt file.
 
 #include <cpsw_fs_addr.h>
+#include <cpsw_stdio.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -77,7 +78,7 @@ CMtx::lg guard( &mtx_ );
 
 		if ( 0 == rval ) {
 #ifdef CFS_DEBUG
-			fprintf(stderr,"CFSAddressImpl::open real open\n");
+			fprintf(CPSW::fDbg(), "CFSAddressImpl::open real open\n");
 #endif
 			fd_ = ::open( fileName_.c_str(), O_RDWR );
 			if ( fd_ <  0 ) {
@@ -105,7 +106,7 @@ CMtx::lg guard( &mtx_ );
 
 		if ( 1 == rval ) {
 #ifdef CFS_DEBUG
-			fprintf(stderr,"CFSAddressImpl::close real close\n");
+			fprintf(CPSW::fDbg(), "CFSAddressImpl::close real close\n");
 #endif
 			::close( fd_ );
 			fd_ = -1;
@@ -273,7 +274,7 @@ int    stat;
 int    got;
 
 #ifdef CFS_DEBUG
-	fprintf(stderr, "CFSAddressImpl::readTimeout %ld bytes\n", (unsigned long)n);
+	fprintf(CPSW::fDbg(), "CFSAddressImpl::readTimeout %ld bytes\n", (unsigned long)n);
 #endif
 
 	if ( n == 0 )
@@ -316,7 +317,7 @@ int    stat;
 int    put;
 
 #ifdef CFS_DEBUG
-	fprintf(stderr, "CFSAddressImpl::writeTimeout %ld bytes\n", (unsigned long)n);
+	fprintf(CPSW::fDbg(), "CFSAddressImpl::writeTimeout %ld bytes\n", (unsigned long)n);
 #endif
 
 	if ( n == 0 )
@@ -331,7 +332,7 @@ int    put;
 		stat = pselect( fd + 1, 0, &ofds, &efds, timeout->isIndefinite() ? 0 : &timeout->tv_, 0 );
 
 #ifdef CFS_DEBUG
-		fprintf(stderr, "CFSAddressImpl::writeTimeout select returned %i\n", stat);
+		fprintf(CPSW::fDbg(), "CFSAddressImpl::writeTimeout select returned %i\n", stat);
 #endif
 		if ( 0 >= stat ) {
 			if ( 0 == stat ) {

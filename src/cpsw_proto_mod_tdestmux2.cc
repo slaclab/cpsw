@@ -11,6 +11,7 @@
 #include <cpsw_proto_depack.h>
 
 #include <cpsw_yaml.h>
+#include <cpsw_stdio.h>
 #include <cpsw_crc32_le.h>
 
 // Support for SLAC Depacketizer V2 protocol.
@@ -22,7 +23,7 @@
 //       is that reliability and in-order delivery are to be
 //       provided by RSSI.
 
-#undef  TDESTMUX2_DEBUG
+//#define TDESTMUX2_DEBUG
 
 int CProtoModTDestMux2::extractDest(BufChain bc)
 {
@@ -84,19 +85,19 @@ unsigned added;
 		added = 0;
 		for ( Buf btmp = h; bc->getSize() + btmp->getSize() <= myMTUCached_; btmp = w.bc_->getHead() ) {
 #ifdef TDESTMUX2_DEBUG
-printf("It %u Chain size %ld, obcs %ld, bufsz %ld\n", added, bc->getSize(), w.bc_->getSize(), btmp->getSize());
+			fprintf(CPSW::fDbg(), "It %u Chain size %ld, obcs %ld, bufsz %ld\n", added, bc->getSize(), w.bc_->getSize(), btmp->getSize());
 #endif
 			btmp ->unlink();
 			bc->addAtTail( btmp );
 			added++;
 		}
 		if ( 0 == added ) {
-			fprintf(stderr,"TDestMux2: bufs %ld, MTU %d\n", (unsigned long)h->getSize(), myMTUCached_);
+			fprintf(CPSW::fErr(), "TDestMux2: bufs %ld, MTU %d\n", (unsigned long)h->getSize(), myMTUCached_);
 			throw InternalError("Unable to fragment individual buffers (bufs > MTU)");
 		}
 	}
 #ifdef TDESTMUX2_DEBUG
-printf("TDestMux2 sendFrag: %sfragment # %d, size %ld\n", eof ? "last " : "", w.fragNo_, (unsigned long)bc->getSize());
+	fprintf(CPSW::fDbg(), "TDestMux2 sendFrag: %sfragment # %d, size %ld\n", eof ? "last " : "", w.fragNo_, (unsigned long)bc->getSize());
 #endif
 
 	CDepack2Header hdr( w.fragNo_, w.tdest_ );
@@ -118,7 +119,7 @@ printf("TDestMux2 sendFrag: %sfragment # %d, size %ld\n", eof ? "last " : "", w.
 		}
 	} else {
 #ifdef TDESTMUX2_DEBUG
-		printf("TDestMux2 sendFrag: prepending header\n");
+		fprintf(CPSW::fDbg(), "TDestMux2 sendFrag: prepending header\n");
 #endif
 		h->adjPayload( - hdr.getSize() );
 	}
@@ -145,7 +146,7 @@ printf("TDestMux2 sendFrag: %sfragment # %d, size %ld\n", eof ? "last " : "", w.
 		newSz   += tailSz;
 
 #ifdef TDESTMUX2_DEBUG
-printf("TDestMux2 sendFrag: aligning by %d, newSz %u\n", algn, newSz);
+		fprintf(CPSW::fDbg(), "TDestMux2 sendFrag: aligning by %d, newSz %u\n", algn, newSz);
 #endif
 
 		numLanes = CDepack2Header::ALIGNMENT - algn;
@@ -201,7 +202,7 @@ printf("TDestMux2 sendFrag: aligning by %d, newSz %u\n", algn, newSz);
 		}
 
 #ifdef TDESTMUX2_DEBUG
-		printf("TDestMux2 sendFrag: crc over %ld octets\n", crcltot);
+		fprintf(CPSW::fDbg(), "TDestMux2 sendFrag: crc over %ld octets\n", crcltot);
 #endif
 
 		w.crc_   = crc32( w.crc_, crcb, crcl );
@@ -244,7 +245,7 @@ unsigned current     = 0;
 unsigned noWorkCount = 0;
 
 #ifdef TDESTMUX2_DEBUG
-	printf("CTDestPort2::muxer started\n");
+	fprintf(CPSW::fDbg(), "CTDestPort2::muxer started\n");
 #endif
 
 	{
@@ -261,12 +262,12 @@ unsigned noWorkCount = 0;
 		if ( noWorkCount == numWork_ ) {
 			/* found no work; wait for something */
 #ifdef TDESTMUX2_DEBUG
-			printf("TDestMux2:: going to sleep\n");
+			fprintf(CPSW::fDbg(), "TDestMux2:: going to sleep\n");
 #endif
 			while ( ! inputDataAvailable_->processEvent( true, NULL ) )
 				/* wait */;
 #ifdef TDESTMUX2_DEBUG
-			printf("TDestMux2:: woke up\n");
+			fprintf(CPSW::fDbg(), "TDestMux2:: woke up\n");
 #endif
 			noWorkCount = 0;
 		}
@@ -278,21 +279,21 @@ unsigned noWorkCount = 0;
 			sendFrag( current );
 			noWorkCount = 0;
 #ifdef TDESTMUX2_DEBUG
-		printf("TDestMux2::work done in slot %d\n", current);
+			fprintf(CPSW::fDbg(), "TDestMux2::work done in slot %d\n", current);
 #endif
 		} else {
 			TDestPort2 p = findPort( work_[current].tdest_ );
 			BufChain   bc;
 			if ( p && (bc = p->tryPopInputQueue()) ) {
 #ifdef TDESTMUX2_DEBUG
-				printf("TDestMux2::new work in slot %d (size %ld)\n", current, bc->getSize());
+				fprintf(CPSW::fDbg(), "TDestMux2::new work in slot %d (size %ld)\n", current, bc->getSize());
 #endif
 				work_[current].reset( bc );
 				sendFrag( current );
 				noWorkCount = 0;
 			} else {
 #ifdef TDESTMUX2_DEBUG
-				printf("TDestMux2::no work for slot %d\n", current);
+				fprintf(CPSW::fDbg(), "TDestMux2::no work for slot %d\n", current);
 #endif
 				noWorkCount++;
 			}
@@ -314,7 +315,7 @@ bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 			CDepack2Header hdr( pld, b->getSize() );
 
 #ifdef TDESTMUX2_DEBUG
-			printf("CTDestPort2::pushDownstream; TDEST: 0x%02x, frag %5d\n", hdr.getTDest(), hdr.getFragNo());
+			fprintf(CPSW::fDbg(), "CTDestPort2::pushDownstream; TDEST: 0x%02x, frag %5d\n", hdr.getTDest(), hdr.getFragNo());
 #endif
 
 			if ( hdr.getSize() + hdr.getTailSize() > bc->getSize() ) {
@@ -349,10 +350,10 @@ bool CTDestPort2::pushDownstream(BufChain bc, const CTimeout *rel_timeout)
 #ifdef TDESTMUX2_DEBUG
 				{
 					int i;
-					printf("TAIL: 0x");
+					fprintf(CPSW::fDbg(), "TAIL: 0x");
 					for ( i=7; i>=0; i--)
-						printf("%02x", tail[i]);
-					printf("\n");
+						fprintf(CPSW::fDbg(), "%02x", tail[i]);
+					fprintf(CPSW::fDbg(), "\n");
 				}
 #endif
 

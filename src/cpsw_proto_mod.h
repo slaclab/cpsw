@@ -132,7 +132,7 @@ public:
 			return name_;
 		}
 
-        void dump();
+        void dump(FILE *f);
 
 		void exclude()
 		{
@@ -175,13 +175,13 @@ public:
 			include();
 		}
 
-        void dump()
+        void dump(FILE *f)
 		{
-			MatchParam::dump();
+			MatchParam::dump( f );
             if ( any_ )
-              printf(", val: *");
+              fprintf(f, ", val: *");
 			else
-			  printf(", val: %d", val_);
+			  fprintf(f, ", val: %d", val_);
 		}
 
 		MatchParamUnsigned & operator=(unsigned val)
@@ -256,16 +256,16 @@ public:
 		return rval;
 	}
 
-    void dump()
+    void dump( FILE * f )
 	{
-		tcpDestPort_.dump();   fputc('\n', stdout);
-		udpDestPort_.dump();   fputc('\n', stdout);
-		srpVersion_.dump();    fputc('\n', stdout);
-		depackVersion_.dump(); fputc('\n', stdout);
-		srpVC_.dump();         fputc('\n', stdout);
-		tDest_.dump();         fputc('\n', stdout);
-		haveRssi_.dump();      fputc('\n', stdout);
-		haveDepack_.dump();    fputc('\n', stdout);
+		tcpDestPort_.dump( f );   fputc('\n', f);
+		udpDestPort_.dump( f );   fputc('\n', f);
+		srpVersion_.dump( f );    fputc('\n', f);
+		depackVersion_.dump( f ); fputc('\n', f);
+		srpVC_.dump( f );         fputc('\n', f);
+		tDest_.dump( f );         fputc('\n', f);
+		haveRssi_.dump( f );      fputc('\n', f);
+		haveDepack_.dump( f );    fputc('\n', f);
 	}
 
 	int excluded()

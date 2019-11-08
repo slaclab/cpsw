@@ -11,7 +11,7 @@
 #define CPSW_YAML_PREPROCESSOR_H
 
 #include <streambuf>
-#include <istream>
+#include <iostream>
 #include <vector>
 #include <list>
 #include <string>
@@ -19,6 +19,7 @@
 #include <cpsw_compat.h>
 #include <cpsw_flookup.h>
 #include <cpsw_error.h>
+
 
 using std::streambuf;
 
@@ -79,8 +80,8 @@ public:
 	// get the name of the current file
 	virtual const char *getFileName();
 
-	// for testing; dump concatenated streams to cout
-	virtual void dump();
+	// for testing; dump concatenated streams
+	virtual void dump( std::ostream & strm );
 
 	// create a Stream; throws FailedStreamException e.g., if file is not found
 	static Stream mkstrm(const char            *fnam);

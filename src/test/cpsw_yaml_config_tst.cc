@@ -241,7 +241,7 @@ std::cout << e.c_str() << "\n";
 	throw;
 }
 
-	if ( CpswObjCounter::report(true) ) {
+	if ( CpswObjCounter::report(stderr, true) ) {
 		throw TestFailed("Unexpected object count");
 	}
 

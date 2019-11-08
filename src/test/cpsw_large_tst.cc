@@ -160,7 +160,7 @@ uint64_t   uv;
 	printf("Name lookup:                        %8" PRIu64 "us\n", lkup_us);
 	printf("Reading (from memory pseudo device) %8" PRIu64 "us\n", read_us);
 
-	if ( CpswObjCounter::report() ) {
+	if ( CpswObjCounter::report(stderr) ) {
 		fprintf(stderr,"FAILED -- Objects leaked!\n");
 		throw TestFailed();
 	}

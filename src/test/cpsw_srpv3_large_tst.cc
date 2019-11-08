@@ -201,7 +201,7 @@ IProtoStackBuilder::SRPProtoVersion pvers;
 		throw e;
 	}
 	}
-	if ( CpswObjCounter::report() ) {
+	if ( CpswObjCounter::report(stderr) ) {
 		printf("Leaked Objects!\n");
 		throw TestFailed();
 	}
