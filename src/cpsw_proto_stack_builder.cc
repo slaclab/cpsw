@@ -644,8 +644,8 @@ WriteMode                  writeMode;
 	reset();
 
 	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_SRP) );
-		if ( !!nn && nn.IsMap() )
+		YamlState nn( &node.n, YAML_KEY_SRP );
+		if ( !!nn.n && nn.n.IsMap() )
 		{
 			// initialize proto_vers to silence rhel compiler warning
 			// about potentially un-initialized 'proto_vers'
@@ -671,8 +671,8 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_TCP) );
-		if ( !!nn && nn.IsMap() )
+		YamlState nn( &node.n, YAML_KEY_TCP );
+		if ( !!nn.n && nn.n.IsMap() )
 		{
 			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
 				if ( readNode(nn, YAML_KEY_port, &u) )
@@ -685,8 +685,8 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_UDP) );
-		if ( !!nn && nn.IsMap() )
+		YamlState nn( &node.n, YAML_KEY_UDP );
+		if ( !!nn.n && nn.n.IsMap() )
 		{
 			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
 				if ( readNode(nn, YAML_KEY_port, &u) )
@@ -706,11 +706,11 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-        const YAML::PNode &nn( node.lookup(YAML_KEY_RSSI) );
+        YamlState nn( &node.n, YAML_KEY_RSSI );
 
-        useRssi( !!nn );
+        useRssi( !!nn.n );
 
-		if ( !!nn && nn.IsMap() ) {
+		if ( !!nn.n && nn.n.IsMap() ) {
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) ) {
 				setRssiThreadPriority( i );
 			}
@@ -751,8 +751,8 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_depack) );
-		if ( !!nn && nn.IsMap() )
+		YamlState nn( &node.n, YAML_KEY_depack );
+		if ( !!nn.n && nn.n.IsMap() )
 		{
 		DepackProtoVersion proto_vers = DEPACKETIZER_V0; // silence rhel g++ warning about un-initialized use (??)
 			useDepack( true );
@@ -771,8 +771,8 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_SRPMux) );
-		if ( !!nn && nn.IsMap() )
+		YamlState nn( &node.n, YAML_KEY_SRPMux );
+		if ( !!nn.n && nn.n.IsMap() )
 		{
 			useSRPMux( true );
 			if ( readNode(nn, YAML_KEY_virtualChannel, &u) )
@@ -791,8 +791,8 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		const YAML::PNode &nn( node.lookup(YAML_KEY_TDESTMux) );
-		if ( !!nn && nn.IsMap() )
+		YamlState nn( &node.n, YAML_KEY_TDESTMux );
+		if ( !!nn.n && nn.n.IsMap() )
 		{
 			useTDestMux( true );
 			if ( readNode(nn, YAML_KEY_TDEST, &u) )

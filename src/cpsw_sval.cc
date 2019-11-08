@@ -330,9 +330,9 @@ MutableEnum e;
 	readNode(node, YAML_KEY_encoding,   &encoding_  );
 	readNode(node, YAML_KEY_configBase, &configBase_);
 
-	YamlState & enum_node( node.lookup( YAML_KEY_enums ) );
+	YamlState enum_node( &node.n, YAML_KEY_enums );
 
-	if ( enum_node ) {
+	if ( enum_node.n ) {
 		enum_ = IMutableEnum::create( enum_node );
 	}
 }

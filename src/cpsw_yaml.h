@@ -69,7 +69,24 @@ namespace YAML {
 	};
 };
 
-typedef const YAML::PNode YamlState;
+struct YamlState {
+	const YAML::PNode n;
+
+	YamlState( const YAML::PNode *parent, unsigned index )
+	: n( parent, index )
+	{
+	}
+
+	YamlState( const YAML::PNode *parent, const char *key )
+	: n( parent, key )
+	{
+	}
+
+	YamlState( const YAML::PNode *parent, const char *key, const YAML::Node &node )
+	: n( parent, key, node )
+	{
+	}
+};
 
 class CYamlSupportBase;
 typedef shared_ptr<CYamlSupportBase> YamlSupportBase;
@@ -411,13 +428,13 @@ namespace YAML {
 // helpers to read map entries
 static inline bool hasNode(YamlState &node, const char *fld)
 {
-const YAML::Node &n( node.lookup(fld) );
+const YAML::Node &n( node.n.lookup(fld) );
 	return ( !!n && ! n.IsNull() );
 }
 
 template <typename T> static void mustReadNode(YamlState &node, const char *fld, T *val)
 {
-	const YAML::Node &n( node.lookup(fld) );
+	const YAML::Node &n( node.n.lookup(fld) );
 	if ( ! n ) {
 		throw NotFoundError( std::string("property '") + std::string(fld) + std::string("'") );
 	} else {
@@ -433,7 +450,7 @@ template <typename T> static void mustReadNode(YamlState &node, const char *fld,
  */
 template <typename T> static bool readNode(YamlState &node, const char *fld, T *val)
 {
-	const YAML::Node &n( node.lookup(fld) );
+	const YAML::Node &n( node.n.lookup(fld) );
 	if ( n && ! n.IsNull() ) {
 		*val = n.as<T>();
 		return true;

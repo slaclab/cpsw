@@ -336,24 +336,24 @@ bool        instantiate    = true;
 template <typename T> void
 CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlState &node)
 {
-	const YAML::PNode &class_node( node.lookup(YAML_KEY_class) );
-	if ( ! class_node ) {
+	YamlState class_node( &node.n, YAML_KEY_class );
+	if ( ! class_node.n ) {
 		throw   NotFoundError( std::string("No property '")
 			  + std::string(YAML_KEY_class)
-			  + std::string("' in: ") + node.toString()
+			  + std::string("' in: ") + node.n.toString()
 			    );
 	} else {
-		if( class_node.IsSequence() ) {
-			for ( YAML::const_iterator it=class_node.begin(); it != class_node.end(); ++it ) {
+		if( class_node.n.IsSequence() ) {
+			for ( YAML::const_iterator it=class_node.n.begin(); it != class_node.n.end(); ++it ) {
 				svec_p->push_back( it->as<std::string>() );
 			}
-		} else if (class_node.IsScalar() ) {
-			svec_p->push_back( class_node.as<std::string>() );
+		} else if (class_node.n.IsScalar() ) {
+			svec_p->push_back( class_node.n.as<std::string>() );
 		} else {
 			throw   InvalidArgError( std::string("property '")
 				  + std::string(YAML_KEY_class)
 				  + std::string("' in: ")
-				  + node.toString()
+				  + node.n.toString()
 				  + std::string(" is not a Sequence nor Scalar")
 				    );
 		}
@@ -400,7 +400,7 @@ public:
 				throw ConfigurationError("YAML still contains merge key!");
 			} else {
 				if ( ! d_->getChild( k.c_str() ) && 0 == not_instantiated_.count( k ) ) {
-					const YAML::PNode child( pnode, k.c_str(), v );
+					YamlState child( pnode, k.c_str(), v );
 #ifdef CPSW_YAML_DEBUG
 					fprintf(stderr,"AddChildrenVisitor: trying to make child %s\n", k.c_str());
 #endif
@@ -412,13 +412,13 @@ public:
 						fprintf(stderr,"AddChildrenVisitor: adding child %s\n", k.c_str());
 #endif
 
-						const YAML::PNode & child_address( child.lookup(YAML_KEY_at) );
-						if ( child_address ) {
+						YamlState child_address( &child.n, YAML_KEY_at );
+						if ( child_address.n ) {
 							d_->addAtAddress( c, child_address );
 						} else {
 							not_instantiated_.insert( k );
 							std::string errmsg =   std::string("Child '")
-								+ child.toString()
+								+ child.n.toString()
 								+ std::string("' found but missing '" YAML_KEY_at "' key");
 							throw InvalidArgError(errmsg);
 						}
@@ -443,7 +443,7 @@ public:
 void
 CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState &node)
 {
-const YAML::PNode  &children( node.lookup(YAML_KEY_children) );
+const YAML::PNode  &children( node.n.lookup( YAML_KEY_children ) );
 AddChildrenVisitor  visitor( &d, getRegistry() );
 
 #ifdef CPSW_YAML_DEBUG

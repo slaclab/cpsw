@@ -42,6 +42,8 @@ namespace YAML {
 	class PNode;
 };
 
+struct YamlState;
+
 typedef enum ByteOrder { UNKNOWN = 0, LE = 12, BE = 21, NATIVE = 22 } ByteOrder;
 
 typedef enum WriteMode { POSTED = 0, SYNCHRONOUS = 1 } WriteMode;
@@ -256,7 +258,7 @@ public:
 	virtual ProtoStackBuilder    clone()                           = 0;
 
 	static ProtoStackBuilder create();
-	static ProtoStackBuilder create(const YAML::PNode &);
+	static ProtoStackBuilder create(YamlState &);
 };
 
 
@@ -372,7 +374,7 @@ public:
 
 	static MutableEnum create();
 
-	static MutableEnum create(const YAML::PNode &node);
+	static MutableEnum create(YamlState &node);
 };
 
 extern Enum const enumBool;
