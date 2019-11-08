@@ -32,7 +32,7 @@ extern "C" {
  * must exist on the socket descriptor 'sockfd'.
  * A connection to the destination (via the proxy) is established.
  *
- * RETURNS: 0 on success, nonzero on error (message printed to stdout)
+ * RETURNS: 0 on success, nonzero on error (message printed to stderr)
  */
 
 int
