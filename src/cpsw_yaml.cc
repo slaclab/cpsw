@@ -751,7 +751,7 @@ YamlState::YamlState( YamlState *parent, unsigned index )
 : n( &parent->n, index )
 {
 fprintf( CPSW::fDbg(),"initSieve from index %d\n", index);
-//	initSieve();
+	initSieve();
 }
 
 YamlState::YamlState( YamlState *parent, const char *key )

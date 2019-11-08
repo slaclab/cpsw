@@ -156,6 +156,11 @@ YamlState seq_node( &node, YAML_KEY_sequence );
 		YamlState item_node( &seq_node, i );
 
 		if ( ! item_node.n.IsSequence() ) {
+			// item_node *is* a map but we are not using it; instead,
+			// 'parseItems' creates a new one.
+			// Dispose of the unused keys in 'item_node'
+			item_node.purgeKeys();
+
 			if ( 0 == i ) {
 				// single sequence case; this also terminates the 'index_' if the sequence is empty
 				parseItems( &seq_node );
@@ -163,6 +168,7 @@ YamlState seq_node( &node, YAML_KEY_sequence );
 			}
 			throw ConfigurationError( std::string(getName()) + ": YAML node not a sequence of sequences" );
 		}
+
 		// A sequence of sequences, i.e., multiple commands
 		parseItems( &item_node );
 	}
