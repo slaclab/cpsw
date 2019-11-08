@@ -28,10 +28,10 @@ class CPSWError : public std::exception {
 private:
 	std::string name_;
 	std::string type_;
-	std::string msg_;
+	mutable std::string msg_;
 protected:
 	void
-	buildMsg()
+	buildMsg() const
 	{
 		msg_ = std::string("CPSW ") + type_ + std::string(": ") + name_;
 	}
@@ -41,7 +41,6 @@ protected:
 	: name_( s        ),
 	  type_( typeName )
 	{
-		buildMsg();
 	}
 
 public:
@@ -51,14 +50,12 @@ public:
 	: name_( s ),
 	  type_( typeName() )
 	{
-		buildMsg();
 	}
 
 	CPSWError(const char *s)
 	: name_( s ),
 	  type_( typeName() )
 	{
-		buildMsg();
 	}
 
 	// every subclass MUST implement 'clone'
@@ -80,6 +77,9 @@ public:
 
 	virtual const std::string &getInfo() const
 	{
+		if ( 0 == msg_.size() ) {
+			buildMsg();
+		}
 		return msg_;
 	}
 
