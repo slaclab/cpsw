@@ -1,3 +1,5 @@
+    yaml_cpp python wrapper: added YAML::Node::size()
+
     Support loading YAML and building hierarchy without starting I/O.
 	Added new 'startUp()' member function.
 

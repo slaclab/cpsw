@@ -1127,7 +1127,7 @@ typedef shared_ptr<IDoubleVal_RO>  __pyx_t_6pycpsw_cc_DoubleVal_RO;
  */
 typedef shared_ptr<IDoubleVal>  __pyx_t_6pycpsw_cc_DoubleVal;
 
-/* "yaml_cpp.pxd":61
+/* "yaml_cpp.pxd":62
  *     c_Node second;
  * 
  * cdef class Node:             # <<<<<<<<<<<<<<
@@ -1140,7 +1140,7 @@ struct __pyx_obj_8yaml_cpp_Node {
 };
 
 
-/* "yaml_cpp.pxd":64
+/* "yaml_cpp.pxd":65
  *   cdef c_Node         c_node
  * 
  * cdef class NodeIterator:             # <<<<<<<<<<<<<<
@@ -42624,8 +42624,8 @@ static int __Pyx_modinit_type_import_code(void) {
   sizeof(PyHeapTypeObject),
   #endif
   0); if (unlikely(!__pyx_ptype_7cpython_4type_type)) __PYX_ERR(2, 9, __pyx_L1_error)
-  __pyx_ptype_8yaml_cpp_Node = __Pyx_ImportType("yaml_cpp", "Node", sizeof(struct __pyx_obj_8yaml_cpp_Node), 1); if (unlikely(!__pyx_ptype_8yaml_cpp_Node)) __PYX_ERR(3, 61, __pyx_L1_error)
-  __pyx_ptype_8yaml_cpp_NodeIterator = __Pyx_ImportType("yaml_cpp", "NodeIterator", sizeof(struct __pyx_obj_8yaml_cpp_NodeIterator), 1); if (unlikely(!__pyx_ptype_8yaml_cpp_NodeIterator)) __PYX_ERR(3, 64, __pyx_L1_error)
+  __pyx_ptype_8yaml_cpp_Node = __Pyx_ImportType("yaml_cpp", "Node", sizeof(struct __pyx_obj_8yaml_cpp_Node), 1); if (unlikely(!__pyx_ptype_8yaml_cpp_Node)) __PYX_ERR(3, 62, __pyx_L1_error)
+  __pyx_ptype_8yaml_cpp_NodeIterator = __Pyx_ImportType("yaml_cpp", "NodeIterator", sizeof(struct __pyx_obj_8yaml_cpp_NodeIterator), 1); if (unlikely(!__pyx_ptype_8yaml_cpp_NodeIterator)) __PYX_ERR(3, 65, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;

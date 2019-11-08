@@ -48,6 +48,7 @@ cdef extern from "yaml-cpp/yaml.h" namespace "YAML":
     c_Node operator[](const c_Node&)  except+;
     c_Node operator[](const string&)  except+;
     c_Node operator[](long long)      except+;
+    size_t size()                     except+;
     const_iterator begin()            except+;
     const_iterator end()              except+;
 

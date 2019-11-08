@@ -804,7 +804,7 @@ struct __pyx_obj_8yaml_cpp_Node;
 struct __pyx_obj_8yaml_cpp_NodeIterator;
 struct __pyx_obj_8yaml_cpp_ValueType;
 
-/* "yaml_cpp.pxd":61
+/* "yaml_cpp.pxd":62
  *     c_Node second;
  * 
  * cdef class Node:             # <<<<<<<<<<<<<<
@@ -817,7 +817,7 @@ struct __pyx_obj_8yaml_cpp_Node {
 };
 
 
-/* "yaml_cpp.pxd":64
+/* "yaml_cpp.pxd":65
  *   cdef c_Node         c_node
  * 
  * cdef class NodeIterator:             # <<<<<<<<<<<<<<
@@ -831,7 +831,7 @@ struct __pyx_obj_8yaml_cpp_NodeIterator {
 };
 
 
-/* "yaml_cpp.pyx":169
+/* "yaml_cpp.pyx":172
  *     return NodeIterator( self )
  * 
  * cdef class ValueType:             # <<<<<<<<<<<<<<
@@ -1323,13 +1323,14 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_16remove(struct __pyx_obj_8yaml_cpp_No
 static PyObject *__pyx_pf_8yaml_cpp_4Node_18set(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, PyObject *__pyx_v_rhs); /* proto */
 static PyObject *__pyx_pf_8yaml_cpp_4Node_20push_back(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, struct __pyx_obj_8yaml_cpp_Node *__pyx_v_rhs); /* proto */
 static PyObject *__pyx_pf_8yaml_cpp_4Node_22getAs(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self); /* proto */
-static int __pyx_pf_8yaml_cpp_4Node_26__bool__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, PyObject *__pyx_v_key); /* proto */
-static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, PyObject *__pyx_v_key, PyObject *__pyx_v_val); /* proto */
-static PyObject *__pyx_pf_8yaml_cpp_4Node_32__iter__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_8yaml_cpp_4Node_34__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_8yaml_cpp_4Node_36__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
+static PyObject *__pyx_pf_8yaml_cpp_4Node_24size(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_8yaml_cpp_4Node_26__repr__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self); /* proto */
+static int __pyx_pf_8yaml_cpp_4Node_28__bool__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_8yaml_cpp_4Node_30__getitem__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, PyObject *__pyx_v_key); /* proto */
+static int __pyx_pf_8yaml_cpp_4Node_32__setitem__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, PyObject *__pyx_v_key, PyObject *__pyx_v_val); /* proto */
+static PyObject *__pyx_pf_8yaml_cpp_4Node_34__iter__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_8yaml_cpp_4Node_36__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_8yaml_cpp_4Node_38__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
 static int __pyx_pf_8yaml_cpp_9ValueType___cinit__(struct __pyx_obj_8yaml_cpp_ValueType *__pyx_v_self, struct __pyx_obj_8yaml_cpp_Node *__pyx_v_k, struct __pyx_obj_8yaml_cpp_Node *__pyx_v_v); /* proto */
 static PyObject *__pyx_pf_8yaml_cpp_9ValueType_5first___get__(struct __pyx_obj_8yaml_cpp_ValueType *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_8yaml_cpp_9ValueType_6second___get__(struct __pyx_obj_8yaml_cpp_ValueType *__pyx_v_self); /* proto */
@@ -2702,7 +2703,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_22getAs(struct __pyx_obj_8yaml_cpp_Nod
  *   def getAs(self):
  *     return self.c_node.as[string]()             # <<<<<<<<<<<<<<
  * 
- *   def __repr__(self):
+ *   def size(self):
  */
   __Pyx_XDECREF(__pyx_r);
   try {
@@ -2739,25 +2740,93 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_22getAs(struct __pyx_obj_8yaml_cpp_Nod
 /* "yaml_cpp.pyx":108
  *     return self.c_node.as[string]()
  * 
- *   def __repr__(self):             # <<<<<<<<<<<<<<
- *     if isinstance(self, Node) and self.IsScalar():
- *       return self.c_node.as[string]()
+ *   def size(self):             # <<<<<<<<<<<<<<
+ *     return self.c_node.size()
+ * 
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_8yaml_cpp_4Node_25__repr__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_8yaml_cpp_4Node_25__repr__(PyObject *__pyx_v_self) {
+static PyObject *__pyx_pw_8yaml_cpp_4Node_25size(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static char __pyx_doc_8yaml_cpp_4Node_24size[] = "Node.size(self)";
+static PyObject *__pyx_pw_8yaml_cpp_4Node_25size(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__repr__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_8yaml_cpp_4Node_24__repr__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self));
+  __Pyx_RefNannySetupContext("size (wrapper)", 0);
+  __pyx_r = __pyx_pf_8yaml_cpp_4Node_24size(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self) {
+static PyObject *__pyx_pf_8yaml_cpp_4Node_24size(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  size_t __pyx_t_1;
+  PyObject *__pyx_t_2 = NULL;
+  __Pyx_RefNannySetupContext("size", 0);
+
+  /* "yaml_cpp.pyx":109
+ * 
+ *   def size(self):
+ *     return self.c_node.size()             # <<<<<<<<<<<<<<
+ * 
+ *   def __repr__(self):
+ */
+  __Pyx_XDECREF(__pyx_r);
+  try {
+    __pyx_t_1 = __pyx_v_self->c_node.size();
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 109, __pyx_L1_error)
+  }
+  __pyx_t_2 = __Pyx_PyInt_FromSize_t(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 109, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_r = __pyx_t_2;
+  __pyx_t_2 = 0;
+  goto __pyx_L0;
+
+  /* "yaml_cpp.pyx":108
+ *     return self.c_node.as[string]()
+ * 
+ *   def size(self):             # <<<<<<<<<<<<<<
+ *     return self.c_node.size()
+ * 
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_AddTraceback("yaml_cpp.Node.size", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "yaml_cpp.pyx":111
+ *     return self.c_node.size()
+ * 
+ *   def __repr__(self):             # <<<<<<<<<<<<<<
+ *     if isinstance(self, Node) and self.IsScalar():
+ *       return self.c_node.as[string]()
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_8yaml_cpp_4Node_27__repr__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_8yaml_cpp_4Node_27__repr__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__repr__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_8yaml_cpp_4Node_26__repr__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_8yaml_cpp_4Node_26__repr__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -2770,7 +2839,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
   PyObject *__pyx_t_8 = NULL;
   __Pyx_RefNannySetupContext("__repr__", 0);
 
-  /* "yaml_cpp.pyx":109
+  /* "yaml_cpp.pyx":112
  * 
  *   def __repr__(self):
  *     if isinstance(self, Node) and self.IsScalar():             # <<<<<<<<<<<<<<
@@ -2784,7 +2853,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
     __pyx_t_1 = __pyx_t_3;
     goto __pyx_L4_bool_binop_done;
   }
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_IsScalar); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 109, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_IsScalar); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 112, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __pyx_t_6 = NULL;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_5))) {
@@ -2797,20 +2866,20 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
     }
   }
   if (__pyx_t_6) {
-    __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 109, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 112, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
   } else {
-    __pyx_t_4 = __Pyx_PyObject_CallNoArg(__pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 109, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_CallNoArg(__pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 112, __pyx_L1_error)
   }
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely(__pyx_t_3 < 0)) __PYX_ERR(0, 109, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely(__pyx_t_3 < 0)) __PYX_ERR(0, 112, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __pyx_t_1 = __pyx_t_3;
   __pyx_L4_bool_binop_done:;
   if (__pyx_t_1) {
 
-    /* "yaml_cpp.pyx":110
+    /* "yaml_cpp.pyx":113
  *   def __repr__(self):
  *     if isinstance(self, Node) and self.IsScalar():
  *       return self.c_node.as[string]()             # <<<<<<<<<<<<<<
@@ -2822,15 +2891,15 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
       __pyx_t_7 = __pyx_v_self->c_node.as<std::string>();
     } catch(...) {
       __Pyx_CppExn2PyErr();
-      __PYX_ERR(0, 110, __pyx_L1_error)
+      __PYX_ERR(0, 113, __pyx_L1_error)
     }
-    __pyx_t_4 = __pyx_convert_PyStr_string_to_py_std__in_string(__pyx_t_7); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 110, __pyx_L1_error)
+    __pyx_t_4 = __pyx_convert_PyStr_string_to_py_std__in_string(__pyx_t_7); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 113, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __pyx_r = __pyx_t_4;
     __pyx_t_4 = 0;
     goto __pyx_L0;
 
-    /* "yaml_cpp.pyx":109
+    /* "yaml_cpp.pyx":112
  * 
  *   def __repr__(self):
  *     if isinstance(self, Node) and self.IsScalar():             # <<<<<<<<<<<<<<
@@ -2839,7 +2908,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
  */
   }
 
-  /* "yaml_cpp.pyx":112
+  /* "yaml_cpp.pyx":115
  *       return self.c_node.as[string]()
  *     else:
  *       return object.__repr__(self)             # <<<<<<<<<<<<<<
@@ -2848,7 +2917,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
  */
   /*else*/ {
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_builtin_object, __pyx_n_s_repr); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 112, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_builtin_object, __pyx_n_s_repr); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 115, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __pyx_t_6 = NULL;
     if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_5))) {
@@ -2861,13 +2930,13 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
       }
     }
     if (!__pyx_t_6) {
-      __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_t_5, ((PyObject *)__pyx_v_self)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 112, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_t_5, ((PyObject *)__pyx_v_self)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 115, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
     } else {
       #if CYTHON_FAST_PYCALL
       if (PyFunction_Check(__pyx_t_5)) {
         PyObject *__pyx_temp[2] = {__pyx_t_6, ((PyObject *)__pyx_v_self)};
-        __pyx_t_4 = __Pyx_PyFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 112, __pyx_L1_error)
+        __pyx_t_4 = __Pyx_PyFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 115, __pyx_L1_error)
         __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
         __Pyx_GOTREF(__pyx_t_4);
       } else
@@ -2875,19 +2944,19 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
       #if CYTHON_FAST_PYCCALL
       if (__Pyx_PyFastCFunction_Check(__pyx_t_5)) {
         PyObject *__pyx_temp[2] = {__pyx_t_6, ((PyObject *)__pyx_v_self)};
-        __pyx_t_4 = __Pyx_PyCFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 112, __pyx_L1_error)
+        __pyx_t_4 = __Pyx_PyCFunction_FastCall(__pyx_t_5, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 115, __pyx_L1_error)
         __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
         __Pyx_GOTREF(__pyx_t_4);
       } else
       #endif
       {
-        __pyx_t_8 = PyTuple_New(1+1); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 112, __pyx_L1_error)
+        __pyx_t_8 = PyTuple_New(1+1); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 115, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_GIVEREF(__pyx_t_6); PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_6); __pyx_t_6 = NULL;
         __Pyx_INCREF(((PyObject *)__pyx_v_self));
         __Pyx_GIVEREF(((PyObject *)__pyx_v_self));
         PyTuple_SET_ITEM(__pyx_t_8, 0+1, ((PyObject *)__pyx_v_self));
-        __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_8, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 112, __pyx_L1_error)
+        __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_8, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 115, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
       }
@@ -2898,8 +2967,8 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
     goto __pyx_L0;
   }
 
-  /* "yaml_cpp.pyx":108
- *     return self.c_node.as[string]()
+  /* "yaml_cpp.pyx":111
+ *     return self.c_node.size()
  * 
  *   def __repr__(self):             # <<<<<<<<<<<<<<
  *     if isinstance(self, Node) and self.IsScalar():
@@ -2920,7 +2989,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":114
+/* "yaml_cpp.pyx":117
  *       return object.__repr__(self)
  * 
  *   def __bool__(self):             # <<<<<<<<<<<<<<
@@ -2929,25 +2998,25 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_24__repr__(struct __pyx_obj_8yaml_cpp_
  */
 
 /* Python wrapper */
-static int __pyx_pw_8yaml_cpp_4Node_27__bool__(PyObject *__pyx_v_self); /*proto*/
-static int __pyx_pw_8yaml_cpp_4Node_27__bool__(PyObject *__pyx_v_self) {
+static int __pyx_pw_8yaml_cpp_4Node_29__bool__(PyObject *__pyx_v_self); /*proto*/
+static int __pyx_pw_8yaml_cpp_4Node_29__bool__(PyObject *__pyx_v_self) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__bool__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_8yaml_cpp_4Node_26__bool__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self));
+  __pyx_r = __pyx_pf_8yaml_cpp_4Node_28__bool__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_8yaml_cpp_4Node_26__bool__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self) {
+static int __pyx_pf_8yaml_cpp_4Node_28__bool__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   bool __pyx_t_1;
   __Pyx_RefNannySetupContext("__bool__", 0);
 
-  /* "yaml_cpp.pyx":115
+  /* "yaml_cpp.pyx":118
  * 
  *   def __bool__(self):
  *     return boolNode( self.c_node )             # <<<<<<<<<<<<<<
@@ -2958,12 +3027,12 @@ static int __pyx_pf_8yaml_cpp_4Node_26__bool__(struct __pyx_obj_8yaml_cpp_Node *
     __pyx_t_1 = boolNode(__pyx_v_self->c_node);
   } catch(...) {
     __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 115, __pyx_L1_error)
+    __PYX_ERR(0, 118, __pyx_L1_error)
   }
   __pyx_r = __pyx_t_1;
   goto __pyx_L0;
 
-  /* "yaml_cpp.pyx":114
+  /* "yaml_cpp.pyx":117
  *       return object.__repr__(self)
  * 
  *   def __bool__(self):             # <<<<<<<<<<<<<<
@@ -2980,7 +3049,7 @@ static int __pyx_pf_8yaml_cpp_4Node_26__bool__(struct __pyx_obj_8yaml_cpp_Node *
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":117
+/* "yaml_cpp.pyx":120
  *     return boolNode( self.c_node )
  * 
  *   def __getitem__(self, key):             # <<<<<<<<<<<<<<
@@ -2989,19 +3058,19 @@ static int __pyx_pf_8yaml_cpp_4Node_26__bool__(struct __pyx_obj_8yaml_cpp_Node *
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_8yaml_cpp_4Node_29__getitem__(PyObject *__pyx_v_self, PyObject *__pyx_v_key); /*proto*/
-static PyObject *__pyx_pw_8yaml_cpp_4Node_29__getitem__(PyObject *__pyx_v_self, PyObject *__pyx_v_key) {
+static PyObject *__pyx_pw_8yaml_cpp_4Node_31__getitem__(PyObject *__pyx_v_self, PyObject *__pyx_v_key); /*proto*/
+static PyObject *__pyx_pw_8yaml_cpp_4Node_31__getitem__(PyObject *__pyx_v_self, PyObject *__pyx_v_key) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__getitem__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_8yaml_cpp_4Node_28__getitem__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self), ((PyObject *)__pyx_v_key));
+  __pyx_r = __pyx_pf_8yaml_cpp_4Node_30__getitem__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self), ((PyObject *)__pyx_v_key));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, PyObject *__pyx_v_key) {
+static PyObject *__pyx_pf_8yaml_cpp_4Node_30__getitem__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, PyObject *__pyx_v_key) {
   struct __pyx_obj_8yaml_cpp_Node *__pyx_v_knod = 0;
   __pyx_t_8yaml_cpp_longlong __pyx_v_kint;
   struct __pyx_obj_8yaml_cpp_Node *__pyx_v_rval = 0;
@@ -3015,19 +3084,19 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
   __pyx_t_8yaml_cpp_longlong __pyx_t_6;
   __Pyx_RefNannySetupContext("__getitem__", 0);
 
-  /* "yaml_cpp.pyx":120
+  /* "yaml_cpp.pyx":123
  *     cdef Node   knod
  *     cdef longlong kint
  *     cdef Node rval = Node()             # <<<<<<<<<<<<<<
  *     if isinstance(key, Node):
  *       knod = key
  */
-  __pyx_t_1 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_8yaml_cpp_Node)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 120, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_8yaml_cpp_Node)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 123, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v_rval = ((struct __pyx_obj_8yaml_cpp_Node *)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "yaml_cpp.pyx":121
+  /* "yaml_cpp.pyx":124
  *     cdef longlong kint
  *     cdef Node rval = Node()
  *     if isinstance(key, Node):             # <<<<<<<<<<<<<<
@@ -3038,20 +3107,20 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
   __pyx_t_3 = (__pyx_t_2 != 0);
   if (__pyx_t_3) {
 
-    /* "yaml_cpp.pyx":122
+    /* "yaml_cpp.pyx":125
  *     cdef Node rval = Node()
  *     if isinstance(key, Node):
  *       knod = key             # <<<<<<<<<<<<<<
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[c_Node](self.c_node, knod.c_node) )
  *     elif isinstance(key, str):
  */
-    if (!(likely(((__pyx_v_key) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_key, __pyx_ptype_8yaml_cpp_Node))))) __PYX_ERR(0, 122, __pyx_L1_error)
+    if (!(likely(((__pyx_v_key) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_key, __pyx_ptype_8yaml_cpp_Node))))) __PYX_ERR(0, 125, __pyx_L1_error)
     __pyx_t_1 = __pyx_v_key;
     __Pyx_INCREF(__pyx_t_1);
     __pyx_v_knod = ((struct __pyx_obj_8yaml_cpp_Node *)__pyx_t_1);
     __pyx_t_1 = 0;
 
-    /* "yaml_cpp.pyx":123
+    /* "yaml_cpp.pyx":126
  *     if isinstance(key, Node):
  *       knod = key
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[c_Node](self.c_node, knod.c_node) )             # <<<<<<<<<<<<<<
@@ -3062,16 +3131,16 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
       __pyx_t_4 = yamlNodeFind<YAML::Node>(__pyx_v_self->c_node, __pyx_v_knod->c_node);
     } catch(...) {
       __Pyx_CppExn2PyErr();
-      __PYX_ERR(0, 123, __pyx_L1_error)
+      __PYX_ERR(0, 126, __pyx_L1_error)
     }
     try {
       yamlNodeReset((&__pyx_v_rval->c_node), __pyx_t_4);
     } catch(...) {
       __Pyx_CppExn2PyErr();
-      __PYX_ERR(0, 123, __pyx_L1_error)
+      __PYX_ERR(0, 126, __pyx_L1_error)
     }
 
-    /* "yaml_cpp.pyx":121
+    /* "yaml_cpp.pyx":124
  *     cdef longlong kint
  *     cdef Node rval = Node()
  *     if isinstance(key, Node):             # <<<<<<<<<<<<<<
@@ -3081,7 +3150,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
     goto __pyx_L3;
   }
 
-  /* "yaml_cpp.pyx":124
+  /* "yaml_cpp.pyx":127
  *       knod = key
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[c_Node](self.c_node, knod.c_node) )
  *     elif isinstance(key, str):             # <<<<<<<<<<<<<<
@@ -3092,28 +3161,28 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
   __pyx_t_2 = (__pyx_t_3 != 0);
   if (__pyx_t_2) {
 
-    /* "yaml_cpp.pyx":125
+    /* "yaml_cpp.pyx":128
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[c_Node](self.c_node, knod.c_node) )
  *     elif isinstance(key, str):
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[string](self.c_node, key) )             # <<<<<<<<<<<<<<
  *     elif isinstance(key, int):
  *       kint = key
  */
-    __pyx_t_5 = __pyx_convert_string_from_py_std__in_string(__pyx_v_key); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 125, __pyx_L1_error)
+    __pyx_t_5 = __pyx_convert_string_from_py_std__in_string(__pyx_v_key); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 128, __pyx_L1_error)
     try {
       __pyx_t_4 = yamlNodeFind<std::string>(__pyx_v_self->c_node, __pyx_t_5);
     } catch(...) {
       __Pyx_CppExn2PyErr();
-      __PYX_ERR(0, 125, __pyx_L1_error)
+      __PYX_ERR(0, 128, __pyx_L1_error)
     }
     try {
       yamlNodeReset((&__pyx_v_rval->c_node), __pyx_t_4);
     } catch(...) {
       __Pyx_CppExn2PyErr();
-      __PYX_ERR(0, 125, __pyx_L1_error)
+      __PYX_ERR(0, 128, __pyx_L1_error)
     }
 
-    /* "yaml_cpp.pyx":124
+    /* "yaml_cpp.pyx":127
  *       knod = key
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[c_Node](self.c_node, knod.c_node) )
  *     elif isinstance(key, str):             # <<<<<<<<<<<<<<
@@ -3123,7 +3192,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
     goto __pyx_L3;
   }
 
-  /* "yaml_cpp.pyx":126
+  /* "yaml_cpp.pyx":129
  *     elif isinstance(key, str):
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[string](self.c_node, key) )
  *     elif isinstance(key, int):             # <<<<<<<<<<<<<<
@@ -3134,17 +3203,17 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
   __pyx_t_3 = (__pyx_t_2 != 0);
   if (likely(__pyx_t_3)) {
 
-    /* "yaml_cpp.pyx":127
+    /* "yaml_cpp.pyx":130
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[string](self.c_node, key) )
  *     elif isinstance(key, int):
  *       kint = key             # <<<<<<<<<<<<<<
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[longlong](self.c_node, kint) )
  *     else:
  */
-    __pyx_t_6 = __Pyx_PyInt_As_PY_LONG_LONG(__pyx_v_key); if (unlikely((__pyx_t_6 == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 127, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyInt_As_PY_LONG_LONG(__pyx_v_key); if (unlikely((__pyx_t_6 == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 130, __pyx_L1_error)
     __pyx_v_kint = __pyx_t_6;
 
-    /* "yaml_cpp.pyx":128
+    /* "yaml_cpp.pyx":131
  *     elif isinstance(key, int):
  *       kint = key
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[longlong](self.c_node, kint) )             # <<<<<<<<<<<<<<
@@ -3155,16 +3224,16 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
       __pyx_t_4 = yamlNodeFind<PY_LONG_LONG>(__pyx_v_self->c_node, __pyx_v_kint);
     } catch(...) {
       __Pyx_CppExn2PyErr();
-      __PYX_ERR(0, 128, __pyx_L1_error)
+      __PYX_ERR(0, 131, __pyx_L1_error)
     }
     try {
       yamlNodeReset((&__pyx_v_rval->c_node), __pyx_t_4);
     } catch(...) {
       __Pyx_CppExn2PyErr();
-      __PYX_ERR(0, 128, __pyx_L1_error)
+      __PYX_ERR(0, 131, __pyx_L1_error)
     }
 
-    /* "yaml_cpp.pyx":126
+    /* "yaml_cpp.pyx":129
  *     elif isinstance(key, str):
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[string](self.c_node, key) )
  *     elif isinstance(key, int):             # <<<<<<<<<<<<<<
@@ -3174,7 +3243,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
     goto __pyx_L3;
   }
 
-  /* "yaml_cpp.pyx":130
+  /* "yaml_cpp.pyx":133
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[longlong](self.c_node, kint) )
  *     else:
  *       raise TypeError("yaml_cpp::c_Node::__getitem__ unsupported key type")             # <<<<<<<<<<<<<<
@@ -3182,15 +3251,15 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
  * 
  */
   /*else*/ {
-    __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__3, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 130, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__3, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 133, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_Raise(__pyx_t_1, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __PYX_ERR(0, 130, __pyx_L1_error)
+    __PYX_ERR(0, 133, __pyx_L1_error)
   }
   __pyx_L3:;
 
-  /* "yaml_cpp.pyx":131
+  /* "yaml_cpp.pyx":134
  *     else:
  *       raise TypeError("yaml_cpp::c_Node::__getitem__ unsupported key type")
  *     return rval             # <<<<<<<<<<<<<<
@@ -3202,7 +3271,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
   __pyx_r = ((PyObject *)__pyx_v_rval);
   goto __pyx_L0;
 
-  /* "yaml_cpp.pyx":117
+  /* "yaml_cpp.pyx":120
  *     return boolNode( self.c_node )
  * 
  *   def __getitem__(self, key):             # <<<<<<<<<<<<<<
@@ -3223,7 +3292,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":133
+/* "yaml_cpp.pyx":136
  *     return rval
  * 
  *   def __setitem__(self, key, val):             # <<<<<<<<<<<<<<
@@ -3232,19 +3301,19 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_28__getitem__(struct __pyx_obj_8yaml_c
  */
 
 /* Python wrapper */
-static int __pyx_pw_8yaml_cpp_4Node_31__setitem__(PyObject *__pyx_v_self, PyObject *__pyx_v_key, PyObject *__pyx_v_val); /*proto*/
-static int __pyx_pw_8yaml_cpp_4Node_31__setitem__(PyObject *__pyx_v_self, PyObject *__pyx_v_key, PyObject *__pyx_v_val) {
+static int __pyx_pw_8yaml_cpp_4Node_33__setitem__(PyObject *__pyx_v_self, PyObject *__pyx_v_key, PyObject *__pyx_v_val); /*proto*/
+static int __pyx_pw_8yaml_cpp_4Node_33__setitem__(PyObject *__pyx_v_self, PyObject *__pyx_v_key, PyObject *__pyx_v_val) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__setitem__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_8yaml_cpp_4Node_30__setitem__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self), ((PyObject *)__pyx_v_key), ((PyObject *)__pyx_v_val));
+  __pyx_r = __pyx_pf_8yaml_cpp_4Node_32__setitem__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self), ((PyObject *)__pyx_v_key), ((PyObject *)__pyx_v_val));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, PyObject *__pyx_v_key, PyObject *__pyx_v_val) {
+static int __pyx_pf_8yaml_cpp_4Node_32__setitem__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, PyObject *__pyx_v_key, PyObject *__pyx_v_val) {
   struct __pyx_obj_8yaml_cpp_Node *__pyx_v_knod = 0;
   struct __pyx_obj_8yaml_cpp_Node *__pyx_v_vnod = 0;
   __pyx_t_8yaml_cpp_longlong __pyx_v_kint;
@@ -3258,7 +3327,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
   __pyx_t_8yaml_cpp_longlong __pyx_t_6;
   __Pyx_RefNannySetupContext("__setitem__", 0);
 
-  /* "yaml_cpp.pyx":137
+  /* "yaml_cpp.pyx":140
  *     cdef longlong kint
  * 
  *     if isinstance(key, str):             # <<<<<<<<<<<<<<
@@ -3269,7 +3338,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
   __pyx_t_2 = (__pyx_t_1 != 0);
   if (__pyx_t_2) {
 
-    /* "yaml_cpp.pyx":138
+    /* "yaml_cpp.pyx":141
  * 
  *     if isinstance(key, str):
  *       if isinstance(val, str):             # <<<<<<<<<<<<<<
@@ -3280,23 +3349,23 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
     __pyx_t_1 = (__pyx_t_2 != 0);
     if (__pyx_t_1) {
 
-      /* "yaml_cpp.pyx":139
+      /* "yaml_cpp.pyx":142
  *     if isinstance(key, str):
  *       if isinstance(val, str):
  *         yamlNodeSet[string, string](self.c_node, key, val)             # <<<<<<<<<<<<<<
  *       elif isinstance(val, Node):
  *         vnod = val
  */
-      __pyx_t_3 = __pyx_convert_string_from_py_std__in_string(__pyx_v_key); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 139, __pyx_L1_error)
-      __pyx_t_4 = __pyx_convert_string_from_py_std__in_string(__pyx_v_val); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 139, __pyx_L1_error)
+      __pyx_t_3 = __pyx_convert_string_from_py_std__in_string(__pyx_v_key); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 142, __pyx_L1_error)
+      __pyx_t_4 = __pyx_convert_string_from_py_std__in_string(__pyx_v_val); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 142, __pyx_L1_error)
       try {
         yamlNodeSet<std::string,std::string>(__pyx_v_self->c_node, __pyx_t_3, __pyx_t_4);
       } catch(...) {
         __Pyx_CppExn2PyErr();
-        __PYX_ERR(0, 139, __pyx_L1_error)
+        __PYX_ERR(0, 142, __pyx_L1_error)
       }
 
-      /* "yaml_cpp.pyx":138
+      /* "yaml_cpp.pyx":141
  * 
  *     if isinstance(key, str):
  *       if isinstance(val, str):             # <<<<<<<<<<<<<<
@@ -3306,7 +3375,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
       goto __pyx_L4;
     }
 
-    /* "yaml_cpp.pyx":140
+    /* "yaml_cpp.pyx":143
  *       if isinstance(val, str):
  *         yamlNodeSet[string, string](self.c_node, key, val)
  *       elif isinstance(val, Node):             # <<<<<<<<<<<<<<
@@ -3317,35 +3386,35 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
     __pyx_t_2 = (__pyx_t_1 != 0);
     if (likely(__pyx_t_2)) {
 
-      /* "yaml_cpp.pyx":141
+      /* "yaml_cpp.pyx":144
  *         yamlNodeSet[string, string](self.c_node, key, val)
  *       elif isinstance(val, Node):
  *         vnod = val             # <<<<<<<<<<<<<<
  *         yamlNodeSet[string, c_Node  ](self.c_node, key, vnod.c_node)
  *       else:
  */
-      if (!(likely(((__pyx_v_val) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_val, __pyx_ptype_8yaml_cpp_Node))))) __PYX_ERR(0, 141, __pyx_L1_error)
+      if (!(likely(((__pyx_v_val) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_val, __pyx_ptype_8yaml_cpp_Node))))) __PYX_ERR(0, 144, __pyx_L1_error)
       __pyx_t_5 = __pyx_v_val;
       __Pyx_INCREF(__pyx_t_5);
       __pyx_v_vnod = ((struct __pyx_obj_8yaml_cpp_Node *)__pyx_t_5);
       __pyx_t_5 = 0;
 
-      /* "yaml_cpp.pyx":142
+      /* "yaml_cpp.pyx":145
  *       elif isinstance(val, Node):
  *         vnod = val
  *         yamlNodeSet[string, c_Node  ](self.c_node, key, vnod.c_node)             # <<<<<<<<<<<<<<
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
  */
-      __pyx_t_4 = __pyx_convert_string_from_py_std__in_string(__pyx_v_key); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 142, __pyx_L1_error)
+      __pyx_t_4 = __pyx_convert_string_from_py_std__in_string(__pyx_v_key); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 145, __pyx_L1_error)
       try {
         yamlNodeSet<std::string,YAML::Node>(__pyx_v_self->c_node, __pyx_t_4, __pyx_v_vnod->c_node);
       } catch(...) {
         __Pyx_CppExn2PyErr();
-        __PYX_ERR(0, 142, __pyx_L1_error)
+        __PYX_ERR(0, 145, __pyx_L1_error)
       }
 
-      /* "yaml_cpp.pyx":140
+      /* "yaml_cpp.pyx":143
  *       if isinstance(val, str):
  *         yamlNodeSet[string, string](self.c_node, key, val)
  *       elif isinstance(val, Node):             # <<<<<<<<<<<<<<
@@ -3355,7 +3424,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
       goto __pyx_L4;
     }
 
-    /* "yaml_cpp.pyx":144
+    /* "yaml_cpp.pyx":147
  *         yamlNodeSet[string, c_Node  ](self.c_node, key, vnod.c_node)
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")             # <<<<<<<<<<<<<<
@@ -3363,15 +3432,15 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
  *       kint = key
  */
     /*else*/ {
-      __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__4, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 144, __pyx_L1_error)
+      __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__4, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 147, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_Raise(__pyx_t_5, 0, 0, 0);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __PYX_ERR(0, 144, __pyx_L1_error)
+      __PYX_ERR(0, 147, __pyx_L1_error)
     }
     __pyx_L4:;
 
-    /* "yaml_cpp.pyx":137
+    /* "yaml_cpp.pyx":140
  *     cdef longlong kint
  * 
  *     if isinstance(key, str):             # <<<<<<<<<<<<<<
@@ -3381,7 +3450,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
     goto __pyx_L3;
   }
 
-  /* "yaml_cpp.pyx":145
+  /* "yaml_cpp.pyx":148
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
  *     elif isinstance(key, int):             # <<<<<<<<<<<<<<
@@ -3392,17 +3461,17 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
   __pyx_t_1 = (__pyx_t_2 != 0);
   if (__pyx_t_1) {
 
-    /* "yaml_cpp.pyx":146
+    /* "yaml_cpp.pyx":149
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
  *     elif isinstance(key, int):
  *       kint = key             # <<<<<<<<<<<<<<
  *       if isinstance(val, str):
  *         yamlNodeSet[longlong, string](self.c_node, kint, val)
  */
-    __pyx_t_6 = __Pyx_PyInt_As_PY_LONG_LONG(__pyx_v_key); if (unlikely((__pyx_t_6 == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 146, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyInt_As_PY_LONG_LONG(__pyx_v_key); if (unlikely((__pyx_t_6 == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 149, __pyx_L1_error)
     __pyx_v_kint = __pyx_t_6;
 
-    /* "yaml_cpp.pyx":147
+    /* "yaml_cpp.pyx":150
  *     elif isinstance(key, int):
  *       kint = key
  *       if isinstance(val, str):             # <<<<<<<<<<<<<<
@@ -3413,22 +3482,22 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
     __pyx_t_2 = (__pyx_t_1 != 0);
     if (__pyx_t_2) {
 
-      /* "yaml_cpp.pyx":148
+      /* "yaml_cpp.pyx":151
  *       kint = key
  *       if isinstance(val, str):
  *         yamlNodeSet[longlong, string](self.c_node, kint, val)             # <<<<<<<<<<<<<<
  *       elif isinstance(val, Node):
  *         vnod = val
  */
-      __pyx_t_4 = __pyx_convert_string_from_py_std__in_string(__pyx_v_val); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 148, __pyx_L1_error)
+      __pyx_t_4 = __pyx_convert_string_from_py_std__in_string(__pyx_v_val); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 151, __pyx_L1_error)
       try {
         yamlNodeSet<PY_LONG_LONG,std::string>(__pyx_v_self->c_node, __pyx_v_kint, __pyx_t_4);
       } catch(...) {
         __Pyx_CppExn2PyErr();
-        __PYX_ERR(0, 148, __pyx_L1_error)
+        __PYX_ERR(0, 151, __pyx_L1_error)
       }
 
-      /* "yaml_cpp.pyx":147
+      /* "yaml_cpp.pyx":150
  *     elif isinstance(key, int):
  *       kint = key
  *       if isinstance(val, str):             # <<<<<<<<<<<<<<
@@ -3438,7 +3507,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
       goto __pyx_L5;
     }
 
-    /* "yaml_cpp.pyx":149
+    /* "yaml_cpp.pyx":152
  *       if isinstance(val, str):
  *         yamlNodeSet[longlong, string](self.c_node, kint, val)
  *       elif isinstance(val, Node):             # <<<<<<<<<<<<<<
@@ -3449,20 +3518,20 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
     __pyx_t_1 = (__pyx_t_2 != 0);
     if (likely(__pyx_t_1)) {
 
-      /* "yaml_cpp.pyx":150
+      /* "yaml_cpp.pyx":153
  *         yamlNodeSet[longlong, string](self.c_node, kint, val)
  *       elif isinstance(val, Node):
  *         vnod = val             # <<<<<<<<<<<<<<
  *         yamlNodeSet[longlong, c_Node  ](self.c_node, kint, vnod.c_node)
  *       else:
  */
-      if (!(likely(((__pyx_v_val) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_val, __pyx_ptype_8yaml_cpp_Node))))) __PYX_ERR(0, 150, __pyx_L1_error)
+      if (!(likely(((__pyx_v_val) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_val, __pyx_ptype_8yaml_cpp_Node))))) __PYX_ERR(0, 153, __pyx_L1_error)
       __pyx_t_5 = __pyx_v_val;
       __Pyx_INCREF(__pyx_t_5);
       __pyx_v_vnod = ((struct __pyx_obj_8yaml_cpp_Node *)__pyx_t_5);
       __pyx_t_5 = 0;
 
-      /* "yaml_cpp.pyx":151
+      /* "yaml_cpp.pyx":154
  *       elif isinstance(val, Node):
  *         vnod = val
  *         yamlNodeSet[longlong, c_Node  ](self.c_node, kint, vnod.c_node)             # <<<<<<<<<<<<<<
@@ -3473,10 +3542,10 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
         yamlNodeSet<PY_LONG_LONG,YAML::Node>(__pyx_v_self->c_node, __pyx_v_kint, __pyx_v_vnod->c_node);
       } catch(...) {
         __Pyx_CppExn2PyErr();
-        __PYX_ERR(0, 151, __pyx_L1_error)
+        __PYX_ERR(0, 154, __pyx_L1_error)
       }
 
-      /* "yaml_cpp.pyx":149
+      /* "yaml_cpp.pyx":152
  *       if isinstance(val, str):
  *         yamlNodeSet[longlong, string](self.c_node, kint, val)
  *       elif isinstance(val, Node):             # <<<<<<<<<<<<<<
@@ -3486,7 +3555,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
       goto __pyx_L5;
     }
 
-    /* "yaml_cpp.pyx":153
+    /* "yaml_cpp.pyx":156
  *         yamlNodeSet[longlong, c_Node  ](self.c_node, kint, vnod.c_node)
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")             # <<<<<<<<<<<<<<
@@ -3494,15 +3563,15 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
  *       knod = key
  */
     /*else*/ {
-      __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__5, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 153, __pyx_L1_error)
+      __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__5, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 156, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_Raise(__pyx_t_5, 0, 0, 0);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __PYX_ERR(0, 153, __pyx_L1_error)
+      __PYX_ERR(0, 156, __pyx_L1_error)
     }
     __pyx_L5:;
 
-    /* "yaml_cpp.pyx":145
+    /* "yaml_cpp.pyx":148
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
  *     elif isinstance(key, int):             # <<<<<<<<<<<<<<
@@ -3512,7 +3581,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
     goto __pyx_L3;
   }
 
-  /* "yaml_cpp.pyx":154
+  /* "yaml_cpp.pyx":157
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
  *     elif isinstance(key, Node):             # <<<<<<<<<<<<<<
@@ -3523,20 +3592,20 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
   __pyx_t_2 = (__pyx_t_1 != 0);
   if (likely(__pyx_t_2)) {
 
-    /* "yaml_cpp.pyx":155
+    /* "yaml_cpp.pyx":158
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
  *     elif isinstance(key, Node):
  *       knod = key             # <<<<<<<<<<<<<<
  *       if isinstance(val, str):
  *         yamlNodeSet[c_Node, string](self.c_node, knod.c_node, val)
  */
-    if (!(likely(((__pyx_v_key) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_key, __pyx_ptype_8yaml_cpp_Node))))) __PYX_ERR(0, 155, __pyx_L1_error)
+    if (!(likely(((__pyx_v_key) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_key, __pyx_ptype_8yaml_cpp_Node))))) __PYX_ERR(0, 158, __pyx_L1_error)
     __pyx_t_5 = __pyx_v_key;
     __Pyx_INCREF(__pyx_t_5);
     __pyx_v_knod = ((struct __pyx_obj_8yaml_cpp_Node *)__pyx_t_5);
     __pyx_t_5 = 0;
 
-    /* "yaml_cpp.pyx":156
+    /* "yaml_cpp.pyx":159
  *     elif isinstance(key, Node):
  *       knod = key
  *       if isinstance(val, str):             # <<<<<<<<<<<<<<
@@ -3547,22 +3616,22 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
     __pyx_t_1 = (__pyx_t_2 != 0);
     if (__pyx_t_1) {
 
-      /* "yaml_cpp.pyx":157
+      /* "yaml_cpp.pyx":160
  *       knod = key
  *       if isinstance(val, str):
  *         yamlNodeSet[c_Node, string](self.c_node, knod.c_node, val)             # <<<<<<<<<<<<<<
  *       elif isinstance(val, Node):
  *         vnod = val
  */
-      __pyx_t_4 = __pyx_convert_string_from_py_std__in_string(__pyx_v_val); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 157, __pyx_L1_error)
+      __pyx_t_4 = __pyx_convert_string_from_py_std__in_string(__pyx_v_val); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 160, __pyx_L1_error)
       try {
         yamlNodeSet<YAML::Node,std::string>(__pyx_v_self->c_node, __pyx_v_knod->c_node, __pyx_t_4);
       } catch(...) {
         __Pyx_CppExn2PyErr();
-        __PYX_ERR(0, 157, __pyx_L1_error)
+        __PYX_ERR(0, 160, __pyx_L1_error)
       }
 
-      /* "yaml_cpp.pyx":156
+      /* "yaml_cpp.pyx":159
  *     elif isinstance(key, Node):
  *       knod = key
  *       if isinstance(val, str):             # <<<<<<<<<<<<<<
@@ -3572,7 +3641,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
       goto __pyx_L6;
     }
 
-    /* "yaml_cpp.pyx":158
+    /* "yaml_cpp.pyx":161
  *       if isinstance(val, str):
  *         yamlNodeSet[c_Node, string](self.c_node, knod.c_node, val)
  *       elif isinstance(val, Node):             # <<<<<<<<<<<<<<
@@ -3583,20 +3652,20 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
     __pyx_t_2 = (__pyx_t_1 != 0);
     if (likely(__pyx_t_2)) {
 
-      /* "yaml_cpp.pyx":159
+      /* "yaml_cpp.pyx":162
  *         yamlNodeSet[c_Node, string](self.c_node, knod.c_node, val)
  *       elif isinstance(val, Node):
  *         vnod = val             # <<<<<<<<<<<<<<
  *         yamlNodeSet[c_Node, c_Node  ](self.c_node, knod.c_node, vnod.c_node)
  *       else:
  */
-      if (!(likely(((__pyx_v_val) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_val, __pyx_ptype_8yaml_cpp_Node))))) __PYX_ERR(0, 159, __pyx_L1_error)
+      if (!(likely(((__pyx_v_val) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_val, __pyx_ptype_8yaml_cpp_Node))))) __PYX_ERR(0, 162, __pyx_L1_error)
       __pyx_t_5 = __pyx_v_val;
       __Pyx_INCREF(__pyx_t_5);
       __pyx_v_vnod = ((struct __pyx_obj_8yaml_cpp_Node *)__pyx_t_5);
       __pyx_t_5 = 0;
 
-      /* "yaml_cpp.pyx":160
+      /* "yaml_cpp.pyx":163
  *       elif isinstance(val, Node):
  *         vnod = val
  *         yamlNodeSet[c_Node, c_Node  ](self.c_node, knod.c_node, vnod.c_node)             # <<<<<<<<<<<<<<
@@ -3607,10 +3676,10 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
         yamlNodeSet<YAML::Node,YAML::Node>(__pyx_v_self->c_node, __pyx_v_knod->c_node, __pyx_v_vnod->c_node);
       } catch(...) {
         __Pyx_CppExn2PyErr();
-        __PYX_ERR(0, 160, __pyx_L1_error)
+        __PYX_ERR(0, 163, __pyx_L1_error)
       }
 
-      /* "yaml_cpp.pyx":158
+      /* "yaml_cpp.pyx":161
  *       if isinstance(val, str):
  *         yamlNodeSet[c_Node, string](self.c_node, knod.c_node, val)
  *       elif isinstance(val, Node):             # <<<<<<<<<<<<<<
@@ -3620,7 +3689,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
       goto __pyx_L6;
     }
 
-    /* "yaml_cpp.pyx":162
+    /* "yaml_cpp.pyx":165
  *         yamlNodeSet[c_Node, c_Node  ](self.c_node, knod.c_node, vnod.c_node)
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")             # <<<<<<<<<<<<<<
@@ -3628,15 +3697,15 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
  *       raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported key type")
  */
     /*else*/ {
-      __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__6, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 162, __pyx_L1_error)
+      __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__6, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 165, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_Raise(__pyx_t_5, 0, 0, 0);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __PYX_ERR(0, 162, __pyx_L1_error)
+      __PYX_ERR(0, 165, __pyx_L1_error)
     }
     __pyx_L6:;
 
-    /* "yaml_cpp.pyx":154
+    /* "yaml_cpp.pyx":157
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
  *     elif isinstance(key, Node):             # <<<<<<<<<<<<<<
@@ -3646,7 +3715,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
     goto __pyx_L3;
   }
 
-  /* "yaml_cpp.pyx":164
+  /* "yaml_cpp.pyx":167
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
  *     else:
  *       raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported key type")             # <<<<<<<<<<<<<<
@@ -3654,15 +3723,15 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
  *   def __iter__(self):
  */
   /*else*/ {
-    __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__7, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 164, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_TypeError, __pyx_tuple__7, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 167, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_Raise(__pyx_t_5, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __PYX_ERR(0, 164, __pyx_L1_error)
+    __PYX_ERR(0, 167, __pyx_L1_error)
   }
   __pyx_L3:;
 
-  /* "yaml_cpp.pyx":133
+  /* "yaml_cpp.pyx":136
  *     return rval
  * 
  *   def __setitem__(self, key, val):             # <<<<<<<<<<<<<<
@@ -3684,7 +3753,7 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":166
+/* "yaml_cpp.pyx":169
  *       raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported key type")
  * 
  *   def __iter__(self):             # <<<<<<<<<<<<<<
@@ -3693,25 +3762,25 @@ static int __pyx_pf_8yaml_cpp_4Node_30__setitem__(struct __pyx_obj_8yaml_cpp_Nod
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_8yaml_cpp_4Node_33__iter__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_8yaml_cpp_4Node_33__iter__(PyObject *__pyx_v_self) {
+static PyObject *__pyx_pw_8yaml_cpp_4Node_35__iter__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_8yaml_cpp_4Node_35__iter__(PyObject *__pyx_v_self) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__iter__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_8yaml_cpp_4Node_32__iter__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self));
+  __pyx_r = __pyx_pf_8yaml_cpp_4Node_34__iter__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_8yaml_cpp_4Node_32__iter__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self) {
+static PyObject *__pyx_pf_8yaml_cpp_4Node_34__iter__(struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("__iter__", 0);
 
-  /* "yaml_cpp.pyx":167
+  /* "yaml_cpp.pyx":170
  * 
  *   def __iter__(self):
  *     return NodeIterator( self )             # <<<<<<<<<<<<<<
@@ -3719,13 +3788,13 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_32__iter__(struct __pyx_obj_8yaml_cpp_
  * cdef class ValueType:
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyObject_CallOneArg(((PyObject *)__pyx_ptype_8yaml_cpp_NodeIterator), ((PyObject *)__pyx_v_self)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 167, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_CallOneArg(((PyObject *)__pyx_ptype_8yaml_cpp_NodeIterator), ((PyObject *)__pyx_v_self)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 170, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "yaml_cpp.pyx":166
+  /* "yaml_cpp.pyx":169
  *       raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported key type")
  * 
  *   def __iter__(self):             # <<<<<<<<<<<<<<
@@ -3751,20 +3820,20 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_32__iter__(struct __pyx_obj_8yaml_cpp_
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_8yaml_cpp_4Node_35__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static char __pyx_doc_8yaml_cpp_4Node_34__reduce_cython__[] = "Node.__reduce_cython__(self)";
-static PyObject *__pyx_pw_8yaml_cpp_4Node_35__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+static PyObject *__pyx_pw_8yaml_cpp_4Node_37__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static char __pyx_doc_8yaml_cpp_4Node_36__reduce_cython__[] = "Node.__reduce_cython__(self)";
+static PyObject *__pyx_pw_8yaml_cpp_4Node_37__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__reduce_cython__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_8yaml_cpp_4Node_34__reduce_cython__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self));
+  __pyx_r = __pyx_pf_8yaml_cpp_4Node_36__reduce_cython__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_8yaml_cpp_4Node_34__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self) {
+static PyObject *__pyx_pf_8yaml_cpp_4Node_36__reduce_cython__(CYTHON_UNUSED struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -3806,20 +3875,20 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_34__reduce_cython__(CYTHON_UNUSED stru
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_8yaml_cpp_4Node_37__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state); /*proto*/
-static char __pyx_doc_8yaml_cpp_4Node_36__setstate_cython__[] = "Node.__setstate_cython__(self, __pyx_state)";
-static PyObject *__pyx_pw_8yaml_cpp_4Node_37__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
+static PyObject *__pyx_pw_8yaml_cpp_4Node_39__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state); /*proto*/
+static char __pyx_doc_8yaml_cpp_4Node_38__setstate_cython__[] = "Node.__setstate_cython__(self, __pyx_state)";
+static PyObject *__pyx_pw_8yaml_cpp_4Node_39__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__setstate_cython__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_8yaml_cpp_4Node_36__setstate_cython__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self), ((PyObject *)__pyx_v___pyx_state));
+  __pyx_r = __pyx_pf_8yaml_cpp_4Node_38__setstate_cython__(((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_self), ((PyObject *)__pyx_v___pyx_state));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_8yaml_cpp_4Node_36__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state) {
+static PyObject *__pyx_pf_8yaml_cpp_4Node_38__setstate_cython__(CYTHON_UNUSED struct __pyx_obj_8yaml_cpp_Node *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -3853,7 +3922,7 @@ static PyObject *__pyx_pf_8yaml_cpp_4Node_36__setstate_cython__(CYTHON_UNUSED st
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":172
+/* "yaml_cpp.pyx":175
  *   cdef readonly Node first
  *   cdef readonly Node second
  *   def __cinit__(self, Node k, Node v):             # <<<<<<<<<<<<<<
@@ -3892,11 +3961,11 @@ static int __pyx_pw_8yaml_cpp_9ValueType_1__cinit__(PyObject *__pyx_v_self, PyOb
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_v)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); __PYX_ERR(0, 172, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); __PYX_ERR(0, 175, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(0, 172, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(0, 175, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -3909,14 +3978,14 @@ static int __pyx_pw_8yaml_cpp_9ValueType_1__cinit__(PyObject *__pyx_v_self, PyOb
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 172, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 175, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("yaml_cpp.ValueType.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_k), __pyx_ptype_8yaml_cpp_Node, 1, "k", 0))) __PYX_ERR(0, 172, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_v), __pyx_ptype_8yaml_cpp_Node, 1, "v", 0))) __PYX_ERR(0, 172, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_k), __pyx_ptype_8yaml_cpp_Node, 1, "k", 0))) __PYX_ERR(0, 175, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_v), __pyx_ptype_8yaml_cpp_Node, 1, "v", 0))) __PYX_ERR(0, 175, __pyx_L1_error)
   __pyx_r = __pyx_pf_8yaml_cpp_9ValueType___cinit__(((struct __pyx_obj_8yaml_cpp_ValueType *)__pyx_v_self), __pyx_v_k, __pyx_v_v);
 
   /* function exit code */
@@ -3933,7 +4002,7 @@ static int __pyx_pf_8yaml_cpp_9ValueType___cinit__(struct __pyx_obj_8yaml_cpp_Va
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "yaml_cpp.pyx":173
+  /* "yaml_cpp.pyx":176
  *   cdef readonly Node second
  *   def __cinit__(self, Node k, Node v):
  *     self.first  = k             # <<<<<<<<<<<<<<
@@ -3946,7 +4015,7 @@ static int __pyx_pf_8yaml_cpp_9ValueType___cinit__(struct __pyx_obj_8yaml_cpp_Va
   __Pyx_DECREF(((PyObject *)__pyx_v_self->first));
   __pyx_v_self->first = __pyx_v_k;
 
-  /* "yaml_cpp.pyx":174
+  /* "yaml_cpp.pyx":177
  *   def __cinit__(self, Node k, Node v):
  *     self.first  = k
  *     self.second = v             # <<<<<<<<<<<<<<
@@ -3959,7 +4028,7 @@ static int __pyx_pf_8yaml_cpp_9ValueType___cinit__(struct __pyx_obj_8yaml_cpp_Va
   __Pyx_DECREF(((PyObject *)__pyx_v_self->second));
   __pyx_v_self->second = __pyx_v_v;
 
-  /* "yaml_cpp.pyx":172
+  /* "yaml_cpp.pyx":175
  *   cdef readonly Node first
  *   cdef readonly Node second
  *   def __cinit__(self, Node k, Node v):             # <<<<<<<<<<<<<<
@@ -3973,7 +4042,7 @@ static int __pyx_pf_8yaml_cpp_9ValueType___cinit__(struct __pyx_obj_8yaml_cpp_Va
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":170
+/* "yaml_cpp.pyx":173
  * 
  * cdef class ValueType:
  *   cdef readonly Node first             # <<<<<<<<<<<<<<
@@ -4010,7 +4079,7 @@ static PyObject *__pyx_pf_8yaml_cpp_9ValueType_5first___get__(struct __pyx_obj_8
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":171
+/* "yaml_cpp.pyx":174
  * cdef class ValueType:
  *   cdef readonly Node first
  *   cdef readonly Node second             # <<<<<<<<<<<<<<
@@ -4156,7 +4225,7 @@ static PyObject *__pyx_pf_8yaml_cpp_9ValueType_4__setstate_cython__(CYTHON_UNUSE
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":178
+/* "yaml_cpp.pyx":181
  * cdef class NodeIterator:
  * 
  *   def __cinit__(self, Node nod):             # <<<<<<<<<<<<<<
@@ -4190,7 +4259,7 @@ static int __pyx_pw_8yaml_cpp_12NodeIterator_1__cinit__(PyObject *__pyx_v_self, 
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(0, 178, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(0, 181, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -4201,13 +4270,13 @@ static int __pyx_pw_8yaml_cpp_12NodeIterator_1__cinit__(PyObject *__pyx_v_self, 
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 178, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 181, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("yaml_cpp.NodeIterator.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_nod), __pyx_ptype_8yaml_cpp_Node, 1, "nod", 0))) __PYX_ERR(0, 178, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_nod), __pyx_ptype_8yaml_cpp_Node, 1, "nod", 0))) __PYX_ERR(0, 181, __pyx_L1_error)
   __pyx_r = __pyx_pf_8yaml_cpp_12NodeIterator___cinit__(((struct __pyx_obj_8yaml_cpp_NodeIterator *)__pyx_v_self), __pyx_v_nod);
 
   /* function exit code */
@@ -4225,7 +4294,7 @@ static int __pyx_pf_8yaml_cpp_12NodeIterator___cinit__(struct __pyx_obj_8yaml_cp
   YAML::const_iterator __pyx_t_1;
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "yaml_cpp.pyx":179
+  /* "yaml_cpp.pyx":182
  * 
  *   def __cinit__(self, Node nod):
  *     yamlNodeReset( &self.c_node, &nod.c_node )             # <<<<<<<<<<<<<<
@@ -4236,10 +4305,10 @@ static int __pyx_pf_8yaml_cpp_12NodeIterator___cinit__(struct __pyx_obj_8yaml_cp
     yamlNodeReset((&__pyx_v_self->c_node), (&__pyx_v_nod->c_node));
   } catch(...) {
     __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 179, __pyx_L1_error)
+    __PYX_ERR(0, 182, __pyx_L1_error)
   }
 
-  /* "yaml_cpp.pyx":180
+  /* "yaml_cpp.pyx":183
  *   def __cinit__(self, Node nod):
  *     yamlNodeReset( &self.c_node, &nod.c_node )
  *     self.c_it   = nod.c_node.begin()             # <<<<<<<<<<<<<<
@@ -4250,11 +4319,11 @@ static int __pyx_pf_8yaml_cpp_12NodeIterator___cinit__(struct __pyx_obj_8yaml_cp
     __pyx_t_1 = __pyx_v_nod->c_node.begin();
   } catch(...) {
     __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 180, __pyx_L1_error)
+    __PYX_ERR(0, 183, __pyx_L1_error)
   }
   __pyx_v_self->c_it = __pyx_t_1;
 
-  /* "yaml_cpp.pyx":178
+  /* "yaml_cpp.pyx":181
  * cdef class NodeIterator:
  * 
  *   def __cinit__(self, Node nod):             # <<<<<<<<<<<<<<
@@ -4273,7 +4342,7 @@ static int __pyx_pf_8yaml_cpp_12NodeIterator___cinit__(struct __pyx_obj_8yaml_cp
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":182
+/* "yaml_cpp.pyx":185
  *     self.c_it   = nod.c_node.begin()
  * 
  *   def __next__(self):             # <<<<<<<<<<<<<<
@@ -4306,7 +4375,7 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
   PyObject *__pyx_t_5 = NULL;
   __Pyx_RefNannySetupContext("__next__", 0);
 
-  /* "yaml_cpp.pyx":183
+  /* "yaml_cpp.pyx":186
  * 
  *   def __next__(self):
  *     if self.c_it == self.c_node.end():             # <<<<<<<<<<<<<<
@@ -4317,25 +4386,25 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
     __pyx_t_1 = __pyx_v_self->c_node.end();
   } catch(...) {
     __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 183, __pyx_L1_error)
+    __PYX_ERR(0, 186, __pyx_L1_error)
   }
   __pyx_t_2 = ((__pyx_v_self->c_it == __pyx_t_1) != 0);
   if (unlikely(__pyx_t_2)) {
 
-    /* "yaml_cpp.pyx":184
+    /* "yaml_cpp.pyx":187
  *   def __next__(self):
  *     if self.c_it == self.c_node.end():
  *       raise StopIteration()             # <<<<<<<<<<<<<<
  *     n1 = Node()
  *     n2 = Node()
  */
-    __pyx_t_3 = __Pyx_PyObject_CallNoArg(__pyx_builtin_StopIteration); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 184, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_CallNoArg(__pyx_builtin_StopIteration); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 187, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_Raise(__pyx_t_3, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __PYX_ERR(0, 184, __pyx_L1_error)
+    __PYX_ERR(0, 187, __pyx_L1_error)
 
-    /* "yaml_cpp.pyx":183
+    /* "yaml_cpp.pyx":186
  * 
  *   def __next__(self):
  *     if self.c_it == self.c_node.end():             # <<<<<<<<<<<<<<
@@ -4344,31 +4413,31 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
  */
   }
 
-  /* "yaml_cpp.pyx":185
+  /* "yaml_cpp.pyx":188
  *     if self.c_it == self.c_node.end():
  *       raise StopIteration()
  *     n1 = Node()             # <<<<<<<<<<<<<<
  *     n2 = Node()
  *     if handleIterator( &n1.c_node, &n2.c_node, &self.c_it ) == 1:
  */
-  __pyx_t_3 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_8yaml_cpp_Node)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 185, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_8yaml_cpp_Node)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 188, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_v_n1 = ((struct __pyx_obj_8yaml_cpp_Node *)__pyx_t_3);
   __pyx_t_3 = 0;
 
-  /* "yaml_cpp.pyx":186
+  /* "yaml_cpp.pyx":189
  *       raise StopIteration()
  *     n1 = Node()
  *     n2 = Node()             # <<<<<<<<<<<<<<
  *     if handleIterator( &n1.c_node, &n2.c_node, &self.c_it ) == 1:
  *       incr( self.c_it )
  */
-  __pyx_t_3 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_8yaml_cpp_Node)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 186, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_8yaml_cpp_Node)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 189, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_v_n2 = ((struct __pyx_obj_8yaml_cpp_Node *)__pyx_t_3);
   __pyx_t_3 = 0;
 
-  /* "yaml_cpp.pyx":187
+  /* "yaml_cpp.pyx":190
  *     n1 = Node()
  *     n2 = Node()
  *     if handleIterator( &n1.c_node, &n2.c_node, &self.c_it ) == 1:             # <<<<<<<<<<<<<<
@@ -4379,12 +4448,12 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
     __pyx_t_4 = handleIterator((&__pyx_v_n1->c_node), (&__pyx_v_n2->c_node), (&__pyx_v_self->c_it));
   } catch(...) {
     __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 187, __pyx_L1_error)
+    __PYX_ERR(0, 190, __pyx_L1_error)
   }
   __pyx_t_2 = ((__pyx_t_4 == 1) != 0);
   if (__pyx_t_2) {
 
-    /* "yaml_cpp.pyx":188
+    /* "yaml_cpp.pyx":191
  *     n2 = Node()
  *     if handleIterator( &n1.c_node, &n2.c_node, &self.c_it ) == 1:
  *       incr( self.c_it )             # <<<<<<<<<<<<<<
@@ -4393,7 +4462,7 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
  */
     (void)((++__pyx_v_self->c_it));
 
-    /* "yaml_cpp.pyx":189
+    /* "yaml_cpp.pyx":192
  *     if handleIterator( &n1.c_node, &n2.c_node, &self.c_it ) == 1:
  *       incr( self.c_it )
  *       return n1             # <<<<<<<<<<<<<<
@@ -4405,7 +4474,7 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
     __pyx_r = ((PyObject *)__pyx_v_n1);
     goto __pyx_L0;
 
-    /* "yaml_cpp.pyx":187
+    /* "yaml_cpp.pyx":190
  *     n1 = Node()
  *     n2 = Node()
  *     if handleIterator( &n1.c_node, &n2.c_node, &self.c_it ) == 1:             # <<<<<<<<<<<<<<
@@ -4414,7 +4483,7 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
  */
   }
 
-  /* "yaml_cpp.pyx":191
+  /* "yaml_cpp.pyx":194
  *       return n1
  *     else:
  *       incr( self.c_it )             # <<<<<<<<<<<<<<
@@ -4424,7 +4493,7 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
   /*else*/ {
     (void)((++__pyx_v_self->c_it));
 
-    /* "yaml_cpp.pyx":192
+    /* "yaml_cpp.pyx":195
  *     else:
  *       incr( self.c_it )
  *       return ValueType(n1, n2)             # <<<<<<<<<<<<<<
@@ -4432,7 +4501,7 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
  * 
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 192, __pyx_L1_error)
+    __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 195, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_INCREF(((PyObject *)__pyx_v_n1));
     __Pyx_GIVEREF(((PyObject *)__pyx_v_n1));
@@ -4440,7 +4509,7 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
     __Pyx_INCREF(((PyObject *)__pyx_v_n2));
     __Pyx_GIVEREF(((PyObject *)__pyx_v_n2));
     PyTuple_SET_ITEM(__pyx_t_3, 1, ((PyObject *)__pyx_v_n2));
-    __pyx_t_5 = __Pyx_PyObject_Call(((PyObject *)__pyx_ptype_8yaml_cpp_ValueType), __pyx_t_3, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 192, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_Call(((PyObject *)__pyx_ptype_8yaml_cpp_ValueType), __pyx_t_3, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 195, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __pyx_r = __pyx_t_5;
@@ -4448,7 +4517,7 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_2__next__(struct __pyx_obj_8y
     goto __pyx_L0;
   }
 
-  /* "yaml_cpp.pyx":182
+  /* "yaml_cpp.pyx":185
  *     self.c_it   = nod.c_node.begin()
  * 
  *   def __next__(self):             # <<<<<<<<<<<<<<
@@ -4579,7 +4648,7 @@ static PyObject *__pyx_pf_8yaml_cpp_12NodeIterator_6__setstate_cython__(CYTHON_U
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":195
+/* "yaml_cpp.pyx":198
  * 
  * 
  * def LoadFile(str filename):             # <<<<<<<<<<<<<<
@@ -4595,7 +4664,7 @@ static PyObject *__pyx_pw_8yaml_cpp_1LoadFile(PyObject *__pyx_self, PyObject *__
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("LoadFile (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_filename), (&PyString_Type), 1, "filename", 1))) __PYX_ERR(0, 195, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_filename), (&PyString_Type), 1, "filename", 1))) __PYX_ERR(0, 198, __pyx_L1_error)
   __pyx_r = __pyx_pf_8yaml_cpp_LoadFile(__pyx_self, ((PyObject*)__pyx_v_filename));
 
   /* function exit code */
@@ -4616,35 +4685,35 @@ static PyObject *__pyx_pf_8yaml_cpp_LoadFile(CYTHON_UNUSED PyObject *__pyx_self,
   YAML::Node __pyx_t_3;
   __Pyx_RefNannySetupContext("LoadFile", 0);
 
-  /* "yaml_cpp.pyx":196
+  /* "yaml_cpp.pyx":199
  * 
  * def LoadFile(str filename):
  *   cdef Node   rval = Node()             # <<<<<<<<<<<<<<
  *   rval.c_node = c_LoadFile( filename )
  *   return rval
  */
-  __pyx_t_1 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_8yaml_cpp_Node)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 196, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_8yaml_cpp_Node)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 199, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v_rval = ((struct __pyx_obj_8yaml_cpp_Node *)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "yaml_cpp.pyx":197
+  /* "yaml_cpp.pyx":200
  * def LoadFile(str filename):
  *   cdef Node   rval = Node()
  *   rval.c_node = c_LoadFile( filename )             # <<<<<<<<<<<<<<
  *   return rval
  * 
  */
-  __pyx_t_2 = __pyx_convert_string_from_py_std__in_string(__pyx_v_filename); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 197, __pyx_L1_error)
+  __pyx_t_2 = __pyx_convert_string_from_py_std__in_string(__pyx_v_filename); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 200, __pyx_L1_error)
   try {
     __pyx_t_3 = YAML::LoadFile(__pyx_t_2);
   } catch(...) {
     __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 197, __pyx_L1_error)
+    __PYX_ERR(0, 200, __pyx_L1_error)
   }
   __pyx_v_rval->c_node = __pyx_t_3;
 
-  /* "yaml_cpp.pyx":198
+  /* "yaml_cpp.pyx":201
  *   cdef Node   rval = Node()
  *   rval.c_node = c_LoadFile( filename )
  *   return rval             # <<<<<<<<<<<<<<
@@ -4656,7 +4725,7 @@ static PyObject *__pyx_pf_8yaml_cpp_LoadFile(CYTHON_UNUSED PyObject *__pyx_self,
   __pyx_r = ((PyObject *)__pyx_v_rval);
   goto __pyx_L0;
 
-  /* "yaml_cpp.pyx":195
+  /* "yaml_cpp.pyx":198
  * 
  * 
  * def LoadFile(str filename):             # <<<<<<<<<<<<<<
@@ -4676,7 +4745,7 @@ static PyObject *__pyx_pf_8yaml_cpp_LoadFile(CYTHON_UNUSED PyObject *__pyx_self,
   return __pyx_r;
 }
 
-/* "yaml_cpp.pyx":200
+/* "yaml_cpp.pyx":203
  *   return rval
  * 
  * def emitNode(Node node):             # <<<<<<<<<<<<<<
@@ -4691,7 +4760,7 @@ static PyObject *__pyx_pw_8yaml_cpp_3emitNode(PyObject *__pyx_self, PyObject *__
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("emitNode (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_node), __pyx_ptype_8yaml_cpp_Node, 1, "node", 0))) __PYX_ERR(0, 200, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_node), __pyx_ptype_8yaml_cpp_Node, 1, "node", 0))) __PYX_ERR(0, 203, __pyx_L1_error)
   __pyx_r = __pyx_pf_8yaml_cpp_2emitNode(__pyx_self, ((struct __pyx_obj_8yaml_cpp_Node *)__pyx_v_node));
 
   /* function exit code */
@@ -4710,7 +4779,7 @@ static PyObject *__pyx_pf_8yaml_cpp_2emitNode(CYTHON_UNUSED PyObject *__pyx_self
   PyObject *__pyx_t_2 = NULL;
   __Pyx_RefNannySetupContext("emitNode", 0);
 
-  /* "yaml_cpp.pyx":201
+  /* "yaml_cpp.pyx":204
  * 
  * def emitNode(Node node):
  *   return c_emitNode( node.c_node )             # <<<<<<<<<<<<<<
@@ -4720,15 +4789,15 @@ static PyObject *__pyx_pf_8yaml_cpp_2emitNode(CYTHON_UNUSED PyObject *__pyx_self
     __pyx_t_1 = emitNode(__pyx_v_node->c_node);
   } catch(...) {
     __Pyx_CppExn2PyErr();
-    __PYX_ERR(0, 201, __pyx_L1_error)
+    __PYX_ERR(0, 204, __pyx_L1_error)
   }
-  __pyx_t_2 = __pyx_convert_PyStr_string_to_py_std__in_string(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 201, __pyx_L1_error)
+  __pyx_t_2 = __pyx_convert_PyStr_string_to_py_std__in_string(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 204, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
   goto __pyx_L0;
 
-  /* "yaml_cpp.pyx":200
+  /* "yaml_cpp.pyx":203
  *   return rval
  * 
  * def emitNode(Node node):             # <<<<<<<<<<<<<<
@@ -5071,7 +5140,7 @@ static PyObject *__pyx_sq_item_8yaml_cpp_Node(PyObject *o, Py_ssize_t i) {
 
 static int __pyx_mp_ass_subscript_8yaml_cpp_Node(PyObject *o, PyObject *i, PyObject *v) {
   if (v) {
-    return __pyx_pw_8yaml_cpp_4Node_31__setitem__(o, i, v);
+    return __pyx_pw_8yaml_cpp_4Node_33__setitem__(o, i, v);
   }
   else {
     PyErr_Format(PyExc_NotImplementedError,
@@ -5092,8 +5161,9 @@ static PyMethodDef __pyx_methods_8yaml_cpp_Node[] = {
   {"set", (PyCFunction)__pyx_pw_8yaml_cpp_4Node_19set, METH_O, __pyx_doc_8yaml_cpp_4Node_18set},
   {"push_back", (PyCFunction)__pyx_pw_8yaml_cpp_4Node_21push_back, METH_O, __pyx_doc_8yaml_cpp_4Node_20push_back},
   {"getAs", (PyCFunction)__pyx_pw_8yaml_cpp_4Node_23getAs, METH_NOARGS, __pyx_doc_8yaml_cpp_4Node_22getAs},
-  {"__reduce_cython__", (PyCFunction)__pyx_pw_8yaml_cpp_4Node_35__reduce_cython__, METH_NOARGS, __pyx_doc_8yaml_cpp_4Node_34__reduce_cython__},
-  {"__setstate_cython__", (PyCFunction)__pyx_pw_8yaml_cpp_4Node_37__setstate_cython__, METH_O, __pyx_doc_8yaml_cpp_4Node_36__setstate_cython__},
+  {"size", (PyCFunction)__pyx_pw_8yaml_cpp_4Node_25size, METH_NOARGS, __pyx_doc_8yaml_cpp_4Node_24size},
+  {"__reduce_cython__", (PyCFunction)__pyx_pw_8yaml_cpp_4Node_37__reduce_cython__, METH_NOARGS, __pyx_doc_8yaml_cpp_4Node_36__reduce_cython__},
+  {"__setstate_cython__", (PyCFunction)__pyx_pw_8yaml_cpp_4Node_39__setstate_cython__, METH_O, __pyx_doc_8yaml_cpp_4Node_38__setstate_cython__},
   {0, 0, 0, 0}
 };
 
@@ -5110,7 +5180,7 @@ static PyNumberMethods __pyx_tp_as_number_Node = {
   0, /*nb_negative*/
   0, /*nb_positive*/
   0, /*nb_absolute*/
-  __pyx_pw_8yaml_cpp_4Node_27__bool__, /*nb_nonzero*/
+  __pyx_pw_8yaml_cpp_4Node_29__bool__, /*nb_nonzero*/
   0, /*nb_invert*/
   0, /*nb_lshift*/
   0, /*nb_rshift*/
@@ -5174,7 +5244,7 @@ static PySequenceMethods __pyx_tp_as_sequence_Node = {
 
 static PyMappingMethods __pyx_tp_as_mapping_Node = {
   0, /*mp_length*/
-  __pyx_pw_8yaml_cpp_4Node_29__getitem__, /*mp_subscript*/
+  __pyx_pw_8yaml_cpp_4Node_31__getitem__, /*mp_subscript*/
   __pyx_mp_ass_subscript_8yaml_cpp_Node, /*mp_ass_subscript*/
 };
 
@@ -5193,7 +5263,7 @@ static PyTypeObject __pyx_type_8yaml_cpp_Node = {
   #if PY_MAJOR_VERSION >= 3
   0, /*tp_as_async*/
   #endif
-  __pyx_pw_8yaml_cpp_4Node_25__repr__, /*tp_repr*/
+  __pyx_pw_8yaml_cpp_4Node_27__repr__, /*tp_repr*/
   &__pyx_tp_as_number_Node, /*tp_as_number*/
   &__pyx_tp_as_sequence_Node, /*tp_as_sequence*/
   &__pyx_tp_as_mapping_Node, /*tp_as_mapping*/
@@ -5209,7 +5279,7 @@ static PyTypeObject __pyx_type_8yaml_cpp_Node = {
   0, /*tp_clear*/
   0, /*tp_richcompare*/
   0, /*tp_weaklistoffset*/
-  __pyx_pw_8yaml_cpp_4Node_33__iter__, /*tp_iter*/
+  __pyx_pw_8yaml_cpp_4Node_35__iter__, /*tp_iter*/
   0, /*tp_iternext*/
   __pyx_methods_8yaml_cpp_Node, /*tp_methods*/
   0, /*tp_members*/
@@ -5553,8 +5623,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
 };
 static int __Pyx_InitCachedBuiltins(void) {
   __pyx_builtin_TypeError = __Pyx_GetBuiltinName(__pyx_n_s_TypeError); if (!__pyx_builtin_TypeError) __PYX_ERR(0, 89, __pyx_L1_error)
-  __pyx_builtin_object = __Pyx_GetBuiltinName(__pyx_n_s_object); if (!__pyx_builtin_object) __PYX_ERR(0, 112, __pyx_L1_error)
-  __pyx_builtin_StopIteration = __Pyx_GetBuiltinName(__pyx_n_s_StopIteration); if (!__pyx_builtin_StopIteration) __PYX_ERR(0, 184, __pyx_L1_error)
+  __pyx_builtin_object = __Pyx_GetBuiltinName(__pyx_n_s_object); if (!__pyx_builtin_object) __PYX_ERR(0, 115, __pyx_L1_error)
+  __pyx_builtin_StopIteration = __Pyx_GetBuiltinName(__pyx_n_s_StopIteration); if (!__pyx_builtin_StopIteration) __PYX_ERR(0, 187, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
   return -1;
@@ -5586,58 +5656,58 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__2);
   __Pyx_GIVEREF(__pyx_tuple__2);
 
-  /* "yaml_cpp.pyx":130
+  /* "yaml_cpp.pyx":133
  *       yamlNodeReset( &rval.c_node, yamlNodeFind[longlong](self.c_node, kint) )
  *     else:
  *       raise TypeError("yaml_cpp::c_Node::__getitem__ unsupported key type")             # <<<<<<<<<<<<<<
  *     return rval
  * 
  */
-  __pyx_tuple__3 = PyTuple_Pack(1, __pyx_kp_s_yaml_cpp_c_Node___getitem___unsu); if (unlikely(!__pyx_tuple__3)) __PYX_ERR(0, 130, __pyx_L1_error)
+  __pyx_tuple__3 = PyTuple_Pack(1, __pyx_kp_s_yaml_cpp_c_Node___getitem___unsu); if (unlikely(!__pyx_tuple__3)) __PYX_ERR(0, 133, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__3);
   __Pyx_GIVEREF(__pyx_tuple__3);
 
-  /* "yaml_cpp.pyx":144
+  /* "yaml_cpp.pyx":147
  *         yamlNodeSet[string, c_Node  ](self.c_node, key, vnod.c_node)
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")             # <<<<<<<<<<<<<<
  *     elif isinstance(key, int):
  *       kint = key
  */
-  __pyx_tuple__4 = PyTuple_Pack(1, __pyx_kp_s_yaml_cpp_c_Node___setitem___unsu); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 144, __pyx_L1_error)
+  __pyx_tuple__4 = PyTuple_Pack(1, __pyx_kp_s_yaml_cpp_c_Node___setitem___unsu); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 147, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__4);
   __Pyx_GIVEREF(__pyx_tuple__4);
 
-  /* "yaml_cpp.pyx":153
+  /* "yaml_cpp.pyx":156
  *         yamlNodeSet[longlong, c_Node  ](self.c_node, kint, vnod.c_node)
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")             # <<<<<<<<<<<<<<
  *     elif isinstance(key, Node):
  *       knod = key
  */
-  __pyx_tuple__5 = PyTuple_Pack(1, __pyx_kp_s_yaml_cpp_c_Node___setitem___unsu); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(0, 153, __pyx_L1_error)
+  __pyx_tuple__5 = PyTuple_Pack(1, __pyx_kp_s_yaml_cpp_c_Node___setitem___unsu); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(0, 156, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__5);
   __Pyx_GIVEREF(__pyx_tuple__5);
 
-  /* "yaml_cpp.pyx":162
+  /* "yaml_cpp.pyx":165
  *         yamlNodeSet[c_Node, c_Node  ](self.c_node, knod.c_node, vnod.c_node)
  *       else:
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")             # <<<<<<<<<<<<<<
  *     else:
  *       raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported key type")
  */
-  __pyx_tuple__6 = PyTuple_Pack(1, __pyx_kp_s_yaml_cpp_c_Node___setitem___unsu); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(0, 162, __pyx_L1_error)
+  __pyx_tuple__6 = PyTuple_Pack(1, __pyx_kp_s_yaml_cpp_c_Node___setitem___unsu); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(0, 165, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__6);
   __Pyx_GIVEREF(__pyx_tuple__6);
 
-  /* "yaml_cpp.pyx":164
+  /* "yaml_cpp.pyx":167
  *         raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported value type")
  *     else:
  *       raise TypeError("yaml_cpp::c_Node::__setitem__ unsupported key type")             # <<<<<<<<<<<<<<
  * 
  *   def __iter__(self):
  */
-  __pyx_tuple__7 = PyTuple_Pack(1, __pyx_kp_s_yaml_cpp_c_Node___setitem___unsu_2); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(0, 164, __pyx_L1_error)
+  __pyx_tuple__7 = PyTuple_Pack(1, __pyx_kp_s_yaml_cpp_c_Node___setitem___unsu_2); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(0, 167, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__7);
   __Pyx_GIVEREF(__pyx_tuple__7);
 
@@ -5698,28 +5768,28 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__13);
   __Pyx_GIVEREF(__pyx_tuple__13);
 
-  /* "yaml_cpp.pyx":195
+  /* "yaml_cpp.pyx":198
  * 
  * 
  * def LoadFile(str filename):             # <<<<<<<<<<<<<<
  *   cdef Node   rval = Node()
  *   rval.c_node = c_LoadFile( filename )
  */
-  __pyx_tuple__14 = PyTuple_Pack(2, __pyx_n_s_filename, __pyx_n_s_rval); if (unlikely(!__pyx_tuple__14)) __PYX_ERR(0, 195, __pyx_L1_error)
+  __pyx_tuple__14 = PyTuple_Pack(2, __pyx_n_s_filename, __pyx_n_s_rval); if (unlikely(!__pyx_tuple__14)) __PYX_ERR(0, 198, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__14);
   __Pyx_GIVEREF(__pyx_tuple__14);
-  __pyx_codeobj__15 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__14, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_till_lcls_lcls2_cpsw_work, __pyx_n_s_LoadFile, 195, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__15)) __PYX_ERR(0, 195, __pyx_L1_error)
+  __pyx_codeobj__15 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__14, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_till_lcls_lcls2_cpsw_work, __pyx_n_s_LoadFile, 198, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__15)) __PYX_ERR(0, 198, __pyx_L1_error)
 
-  /* "yaml_cpp.pyx":200
+  /* "yaml_cpp.pyx":203
  *   return rval
  * 
  * def emitNode(Node node):             # <<<<<<<<<<<<<<
  *   return c_emitNode( node.c_node )
  */
-  __pyx_tuple__16 = PyTuple_Pack(1, __pyx_n_s_node); if (unlikely(!__pyx_tuple__16)) __PYX_ERR(0, 200, __pyx_L1_error)
+  __pyx_tuple__16 = PyTuple_Pack(1, __pyx_n_s_node); if (unlikely(!__pyx_tuple__16)) __PYX_ERR(0, 203, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__16);
   __Pyx_GIVEREF(__pyx_tuple__16);
-  __pyx_codeobj__17 = (PyObject*)__Pyx_PyCode_New(1, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__16, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_till_lcls_lcls2_cpsw_work, __pyx_n_s_emitNode, 200, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__17)) __PYX_ERR(0, 200, __pyx_L1_error)
+  __pyx_codeobj__17 = (PyObject*)__Pyx_PyCode_New(1, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__16, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_till_lcls_lcls2_cpsw_work, __pyx_n_s_emitNode, 203, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__17)) __PYX_ERR(0, 203, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -5778,21 +5848,21 @@ static int __Pyx_modinit_type_init_code(void) {
   if (PyObject_SetAttrString(__pyx_m, "Node", (PyObject *)&__pyx_type_8yaml_cpp_Node) < 0) __PYX_ERR(0, 46, __pyx_L1_error)
   if (__Pyx_setup_reduce((PyObject*)&__pyx_type_8yaml_cpp_Node) < 0) __PYX_ERR(0, 46, __pyx_L1_error)
   __pyx_ptype_8yaml_cpp_Node = &__pyx_type_8yaml_cpp_Node;
-  if (PyType_Ready(&__pyx_type_8yaml_cpp_NodeIterator) < 0) __PYX_ERR(0, 176, __pyx_L1_error)
+  if (PyType_Ready(&__pyx_type_8yaml_cpp_NodeIterator) < 0) __PYX_ERR(0, 179, __pyx_L1_error)
   __pyx_type_8yaml_cpp_NodeIterator.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!__pyx_type_8yaml_cpp_NodeIterator.tp_dictoffset && __pyx_type_8yaml_cpp_NodeIterator.tp_getattro == PyObject_GenericGetAttr)) {
     __pyx_type_8yaml_cpp_NodeIterator.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "NodeIterator", (PyObject *)&__pyx_type_8yaml_cpp_NodeIterator) < 0) __PYX_ERR(0, 176, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&__pyx_type_8yaml_cpp_NodeIterator) < 0) __PYX_ERR(0, 176, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "NodeIterator", (PyObject *)&__pyx_type_8yaml_cpp_NodeIterator) < 0) __PYX_ERR(0, 179, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&__pyx_type_8yaml_cpp_NodeIterator) < 0) __PYX_ERR(0, 179, __pyx_L1_error)
   __pyx_ptype_8yaml_cpp_NodeIterator = &__pyx_type_8yaml_cpp_NodeIterator;
-  if (PyType_Ready(&__pyx_type_8yaml_cpp_ValueType) < 0) __PYX_ERR(0, 169, __pyx_L1_error)
+  if (PyType_Ready(&__pyx_type_8yaml_cpp_ValueType) < 0) __PYX_ERR(0, 172, __pyx_L1_error)
   __pyx_type_8yaml_cpp_ValueType.tp_print = 0;
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!__pyx_type_8yaml_cpp_ValueType.tp_dictoffset && __pyx_type_8yaml_cpp_ValueType.tp_getattro == PyObject_GenericGetAttr)) {
     __pyx_type_8yaml_cpp_ValueType.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttrString(__pyx_m, "ValueType", (PyObject *)&__pyx_type_8yaml_cpp_ValueType) < 0) __PYX_ERR(0, 169, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&__pyx_type_8yaml_cpp_ValueType) < 0) __PYX_ERR(0, 169, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "ValueType", (PyObject *)&__pyx_type_8yaml_cpp_ValueType) < 0) __PYX_ERR(0, 172, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&__pyx_type_8yaml_cpp_ValueType) < 0) __PYX_ERR(0, 172, __pyx_L1_error)
   __pyx_ptype_8yaml_cpp_ValueType = &__pyx_type_8yaml_cpp_ValueType;
   __Pyx_RefNannyFinishContext();
   return 0;
@@ -6116,27 +6186,27 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "yaml_cpp.pyx":195
+  /* "yaml_cpp.pyx":198
  * 
  * 
  * def LoadFile(str filename):             # <<<<<<<<<<<<<<
  *   cdef Node   rval = Node()
  *   rval.c_node = c_LoadFile( filename )
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_8yaml_cpp_1LoadFile, NULL, __pyx_n_s_yaml_cpp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 195, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_8yaml_cpp_1LoadFile, NULL, __pyx_n_s_yaml_cpp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 198, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_LoadFile, __pyx_t_1) < 0) __PYX_ERR(0, 195, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_LoadFile, __pyx_t_1) < 0) __PYX_ERR(0, 198, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "yaml_cpp.pyx":200
+  /* "yaml_cpp.pyx":203
  *   return rval
  * 
  * def emitNode(Node node):             # <<<<<<<<<<<<<<
  *   return c_emitNode( node.c_node )
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_8yaml_cpp_3emitNode, NULL, __pyx_n_s_yaml_cpp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 200, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_8yaml_cpp_3emitNode, NULL, __pyx_n_s_yaml_cpp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 203, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_emitNode, __pyx_t_1) < 0) __PYX_ERR(0, 200, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_emitNode, __pyx_t_1) < 0) __PYX_ERR(0, 203, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "yaml_cpp.pyx":1

@@ -105,6 +105,9 @@ cdef class Node:
   def getAs(self):
     return self.c_node.as[string]()
 
+  def size(self):
+    return self.c_node.size()
+
   def __repr__(self):
     if isinstance(self, Node) and self.IsScalar():
       return self.c_node.as[string]()
