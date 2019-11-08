@@ -24,9 +24,11 @@ const char *justTheName = ::strrchr(nm, '/');
 	fprintf(stderr,"  -Y <yaml_file>: Preprocess YAML file <yaml_file> (or stdin if no -Y given).\n");
 	fprintf(stderr,"  -D <yaml_dir> : Included files are searched for in <yaml_dir> or in the\n");
 	fprintf(stderr,"                  'dirname' of <yaml_file> if no -D given.\n");
+	fprintf(stderr,"                  In addition, directories listed in the environment variable\n");
+	fprintf(stderr,"                  YAML_PATH are searched.\n");
 	fprintf(stderr,"  -v            : Enable verbose mode; comments are added indicating the start\n");
 	fprintf(stderr,"                  and end of included files as well as the schemaversion.\n");
-	fprintf(stderr,"  -p            : print YAML to stdout and parse it as well.\n");
+	fprintf(stderr,"  -p            : print preprocessed YAML to stdout and parse it as well.\n");
 	fprintf(stderr,"                  Useful for catching syntax errors...\n");
 	fprintf(stderr,"  -h            : Print this message.\n");
 }

@@ -336,7 +336,7 @@ bool        instantiate    = true;
 template <typename T> void
 CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlState &node)
 {
-	YamlState class_node( &node.n, YAML_KEY_class );
+	YamlState class_node( &node, YAML_KEY_class );
 	if ( ! class_node.n ) {
 		throw   NotFoundError( std::string("No property '")
 			  + std::string(YAML_KEY_class)
@@ -384,11 +384,11 @@ public:
 	{
 	}
 
-	virtual bool visit(const PNode *pnode)
+	virtual bool visit(YamlState *pnode)
 	{
 
-		YAML::const_iterator it ( pnode->begin() );
-		YAML::const_iterator ite( pnode->end()   );
+		YAML::const_iterator it ( pnode->n.begin() );
+		YAML::const_iterator ite( pnode->n.end()   );
 
 		while ( it != ite ) {
 			const std::string &k = it->first.as<std::string>();
@@ -412,7 +412,7 @@ public:
 						fprintf(stderr,"AddChildrenVisitor: adding child %s\n", k.c_str());
 #endif
 
-						YamlState child_address( &child.n, YAML_KEY_at );
+						YamlState child_address( &child, YAML_KEY_at );
 						if ( child_address.n ) {
 							d_->addAtAddress( c, child_address );
 						} else {
@@ -443,14 +443,14 @@ public:
 void
 CYamlFieldFactoryBase::addChildren(CDevImpl &d, YamlState &node)
 {
-const YAML::PNode  &children( node.n.lookup( YAML_KEY_children ) );
+YamlState           children( &node, YAML_KEY_children );
 AddChildrenVisitor  visitor( &d, getRegistry() );
 
 #ifdef CPSW_YAML_DEBUG
 	fprintf(stderr,"Entering addChildren of %s\n", d.getName());
 #endif
 
-	if ( children ) {
+	if ( children.n ) {
 #ifdef CPSW_YAML_DEBUG
 		fprintf(stderr,"Adding immediate children to %s\n", d.getName());
 #endif
@@ -748,4 +748,55 @@ YAML::NodeFind(const YAML::Node &n, const YAML::Node &k)
 	return static_cast<const YAML::Node>(n)[k];
 }
 
+YamlState::YamlState( YamlState *parent, unsigned index )
+: n( &parent->n, index )
+{
+fprintf(stderr,"initSieve from index %d\n", index);
+//	initSieve();
+}
 
+YamlState::YamlState( YamlState *parent, const char *key )
+: n( &parent->n, key )
+{
+fprintf(stderr,"initSieve from key %s\n", key);
+	parent->keySeen( key );
+	initSieve();
+}
+
+YamlState::YamlState( YamlState *parent, const char *key, const YAML::Node &node )
+: n( (parent ? &parent->n : NULL), key, node )
+{
+fprintf(stderr,"initSieve from node + key %s\n", key);
+	if ( parent ) {
+		parent->keySeen( key );
+	}
+	initSieve();
+}
+
+void
+YamlState::initSieve()
+{
+	if ( n.IsMap() ) {
+		YAML::Node::const_iterator it;
+		for ( it = n.begin(); it != n.end(); ++it ) {
+fprintf(stderr,"Inserting %s/%s\n", n.toString().c_str(), it->first.Scalar().c_str());
+			unusedKeys.insert( it->first.Scalar().c_str() );
+		}
+	}
+}
+
+void
+YamlState::keySeen(const char *k)
+{
+fprintf(stderr,"Erasing %s/%s\n", n.toString().c_str(), k);
+	unusedKeys.erase( k );
+}
+
+YamlState::~YamlState()
+{
+YamlState::Set::const_iterator it;	
+	for ( it = unusedKeys.begin(); it != unusedKeys.end(); ++it ) {
+		std::string s = n.toString() + std::string("/") + *it;
+		fprintf( stderr, "Warning -- unused YAML key: %s\n", s.c_str() );
+	}
+}

@@ -70,22 +70,26 @@ namespace YAML {
 };
 
 struct YamlState {
+private:
+	YamlState(const YamlState &orig);
+	YamlState &operator=(const YamlState *);
+public:
+
+	typedef std::set<const char *, StrCmp> Set;
+
 	const YAML::PNode n;
+	Set               unusedKeys;
 
-	YamlState( const YAML::PNode *parent, unsigned index )
-	: n( parent, index )
-	{
-	}
+	void initSieve();
 
-	YamlState( const YAML::PNode *parent, const char *key )
-	: n( parent, key )
-	{
-	}
+	void keySeen(const char *);
 
-	YamlState( const YAML::PNode *parent, const char *key, const YAML::Node &node )
-	: n( parent, key, node )
-	{
-	}
+	~YamlState();
+
+	YamlState( YamlState *parent, unsigned index );
+	YamlState( YamlState *parent, const char *key );
+	YamlState( YamlState *parent, const char *key, const YAML::Node &node );
+
 };
 
 class CYamlSupportBase;
@@ -428,13 +432,15 @@ namespace YAML {
 // helpers to read map entries
 static inline bool hasNode(YamlState &node, const char *fld)
 {
-const YAML::Node &n( node.n.lookup(fld) );
+	const YAML::Node &n( node.n.lookup(fld) );
+	node.keySeen( fld );
 	return ( !!n && ! n.IsNull() );
 }
 
 template <typename T> static void mustReadNode(YamlState &node, const char *fld, T *val)
 {
 	const YAML::Node &n( node.n.lookup(fld) );
+	node.keySeen( fld );
 	if ( ! n ) {
 		throw NotFoundError( std::string("property '") + std::string(fld) + std::string("'") );
 	} else {
@@ -451,6 +457,7 @@ template <typename T> static void mustReadNode(YamlState &node, const char *fld,
 template <typename T> static bool readNode(YamlState &node, const char *fld, T *val)
 {
 	const YAML::Node &n( node.n.lookup(fld) );
+	node.keySeen( fld );
 	if ( n && ! n.IsNull() ) {
 		*val = n.as<T>();
 		return true;

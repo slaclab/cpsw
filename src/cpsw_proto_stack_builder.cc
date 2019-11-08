@@ -644,7 +644,7 @@ WriteMode                  writeMode;
 	reset();
 
 	{
-		YamlState nn( &node.n, YAML_KEY_SRP );
+		YamlState nn( &node, YAML_KEY_SRP );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
 			// initialize proto_vers to silence rhel compiler warning
@@ -671,7 +671,7 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		YamlState nn( &node.n, YAML_KEY_TCP );
+		YamlState nn( &node, YAML_KEY_TCP );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
 			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
@@ -685,7 +685,7 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		YamlState nn( &node.n, YAML_KEY_UDP );
+		YamlState nn( &node, YAML_KEY_UDP );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
 			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
@@ -706,7 +706,7 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-        YamlState nn( &node.n, YAML_KEY_RSSI );
+        YamlState nn( &node, YAML_KEY_RSSI );
 
         useRssi( !!nn.n );
 
@@ -751,7 +751,7 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		YamlState nn( &node.n, YAML_KEY_depack );
+		YamlState nn( &node, YAML_KEY_depack );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
 		DepackProtoVersion proto_vers = DEPACKETIZER_V0; // silence rhel g++ warning about un-initialized use (??)
@@ -771,7 +771,7 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		YamlState nn( &node.n, YAML_KEY_SRPMux );
+		YamlState nn( &node, YAML_KEY_SRPMux );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
 			useSRPMux( true );
@@ -791,7 +791,7 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		YamlState nn( &node.n, YAML_KEY_TDESTMux );
+		YamlState nn( &node, YAML_KEY_TDESTMux );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
 			useTDestMux( true );

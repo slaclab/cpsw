@@ -163,7 +163,7 @@ CEnumImpl::CTransformFuncImpl::makeItem(YamlState &node)
 MutableEnum enm = IMutableEnum::create(this, 0);
 unsigned    i;
 	for ( i=0; i<node.n.size(); i++ ) {
-		YamlState node_item( &node.n, i );
+		YamlState node_item( &node, i );
 		std::string nam;
 		uint64_t    val;
 

@@ -44,6 +44,12 @@ namespace YAML {
 
 struct YamlState;
 
+struct StrCmp {
+	bool operator () (const char *a, const char *b ) const {
+		return strcmp(a , b) < 0 ? true : false;
+	}
+};
+
 typedef enum ByteOrder { UNKNOWN = 0, LE = 12, BE = 21, NATIVE = 22 } ByteOrder;
 
 typedef enum WriteMode { POSTED = 0, SYNCHRONOUS = 1 } WriteMode;
