@@ -799,3 +799,9 @@ YamlState::Set::const_iterator it;
 		fprintf( CPSW::fErr(), "Warning -- unused YAML key: %s\n", s.c_str() );
 	}
 }
+
+void
+YamlState::purgeKeys()
+{
+	unusedKeys.clear();
+}

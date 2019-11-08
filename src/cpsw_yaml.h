@@ -85,12 +85,14 @@ public:
 
 	void keySeen(const char *);
 
-	~YamlState();
+	void purgeKeys();
+
 
 	YamlState( YamlState *parent, unsigned index );
 	YamlState( YamlState *parent, const char *key );
 	YamlState( YamlState *parent, const char *key, const YAML::Node &node );
 
+	~YamlState();
 };
 
 class CYamlSupportBase;
