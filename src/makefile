@@ -145,8 +145,10 @@ SHARED_LIBRARIES_YES+=cpsw
 cpsw_yaml_xpand_SRCS += cpsw_yaml_xpand.cc
 cpsw_yaml_xpand_LIBS += $(CPSW_LIBS)
 
-cpsw_ypp_SRCS        += cpsw_ypp.cc cpsw_preproc.cc cpsw_flookup.cc cpsw_stdio.cc
-cpsw_ypp_LIBS        += yaml-cpp
+cpsw_ypp_SRCS        += cpsw_ypp.cc
+cpsw_ypp_LIBS_YES    += $(CPSW_STATIC_LIBS)
+cpsw_ypp_LIBS_NO     += $(CPSW_LIBS)
+cpsw_ypp_LIBS        += $(cpsw_ypp_LIBS_$(WITH_STATIC_LIBRARIES))
 
 cpsw_yaml_merge_SRCS += cpsw_yaml_merge.cc cpsw_yaml_merge_main.cc cpsw_stdio.cc
 cpsw_yaml_merge_LIBS += yaml-cpp

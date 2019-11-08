@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <yaml-cpp/yaml.h>
+#include <cpsw_api_user.h>
 
 static void usage(const char *nm)
 {
@@ -20,7 +21,7 @@ const char *justTheName = ::strrchr(nm, '/');
 		justTheName = nm;
 	else
 		justTheName++;
-	fprintf(stderr,"usage: %s [-D <yaml_dir>] [-Y <yaml_file>] [-vh]\n", justTheName);
+	fprintf(stderr,"usage: %s [-D <yaml_dir>] [-Y <yaml_file>] [-vhV]\n", justTheName);
 	fprintf(stderr,"  -Y <yaml_file>: Preprocess YAML file <yaml_file> (or stdin if no -Y given).\n");
 	fprintf(stderr,"  -D <yaml_dir> : Included files are searched for in <yaml_dir> or in the\n");
 	fprintf(stderr,"                  'dirname' of <yaml_file> if no -D given.\n");
@@ -31,6 +32,7 @@ const char *justTheName = ::strrchr(nm, '/');
 	fprintf(stderr,"  -p            : print preprocessed YAML to stdout and parse it as well.\n");
 	fprintf(stderr,"                  Useful for catching syntax errors...\n");
 	fprintf(stderr,"  -h            : Print this message.\n");
+	fprintf(stderr,"  -V            : Print version info and exit\n");
 }
 
 class NoOpDeletor {
@@ -52,7 +54,7 @@ int             rval = 1;
 bool            verb = false;
 bool            pars = false;
 
-	while ( (opt = getopt(argc, argv, "D:Y:hvp")) > 0 ) {
+	while ( (opt = getopt(argc, argv, "D:Y:hvpV")) > 0 ) {
 		switch (opt) {
 			case 'h':
 				rval = 0;
@@ -65,6 +67,10 @@ bool            pars = false;
 
 			case 'D': yaml_dir = optarg; break;
 			case 'Y': yaml_fil = optarg; break;
+
+			case 'V':
+				fprintf(stdout, "%s using CPSW version: %s\n", argv[0], getCPSWVersionString());
+				return 0;
 		}
 	}
 
