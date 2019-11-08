@@ -215,7 +215,7 @@ doc/README.yamlDefinition.md:doc/README.yamlDefinition.in
 %.html: %.md
 	sed -e 's/&/\&amp/g' -e 's/</\&lt/g' -e 's/>/\&gt/g' $< | sed -e '/THECONTENT/{r /dev/stdin' -e 'd}' tmpl.html > $@
 
-cpsw_api_user.h: FORCE
+../cpsw_api_user.h: FORCE
 	@CURRENT_API_VERSION=`sed -n -e 's/$(CURRENT_API_PATTERN)/\3/p' $@`; \
 	if  [ 0`sed -n -e 's/$(CURRENT_API_PATTERN)/\3/p' $@` -ne 0$(CPSW_API_VERSION) ] ; then \
 		sed -i -e 's/$(CURRENT_API_PATTERN)/\1$(CPSW_API_VERSION)\4/' $@ ; \
