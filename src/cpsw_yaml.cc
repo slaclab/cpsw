@@ -41,7 +41,15 @@ using cpsw::unordered_set;
 using YAML::PNode;
 using YAML::Node;
 
-#undef  CPSW_YAML_DEBUG
+#define CPSW_YAML_DEBUG_TRACK   (1<<0) /* track unused keys */
+//#define CPSW_YAML_DEBUG_TRACKER (1<<8)
+#define CPSW_YAML_DEBUG_BUILD   (1<<9)
+
+#define CPSW_YAML_DEBUG 0
+
+#ifdef CPSW_YAML_DEBUG
+int cpsw_yaml_debug = CPSW_YAML_DEBUG;
+#endif
 
 typedef unordered_set<std::string> StrSet;
 
@@ -238,7 +246,9 @@ public:
 	~RegistryImpl()
 	{
 #ifdef CPSW_YAML_DEBUG
-		fprintf( CPSW::fDbg(), "Destroying a registry\n" );
+		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
+			fprintf( CPSW::fDbg(), "Destroying a registry\n" );
+		}
 #endif
 	}
 
@@ -253,7 +263,9 @@ public:
 	virtual void  delItem(const char *name)
 	{
 #ifdef CPSW_YAML_DEBUG
-		fprintf( CPSW::fDbg(), "Deleting a registry item: %s\n", name );
+		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
+			fprintf( CPSW::fDbg(), "Deleting a registry item: %s\n", name );
+		}
 #endif
 		map_.erase( name );
 	}
@@ -402,14 +414,18 @@ public:
 				if ( ! d_->getChild( k.c_str() ) && 0 == not_instantiated_.count( k ) ) {
 					YamlState child( pnode, k.c_str(), v );
 #ifdef CPSW_YAML_DEBUG
-					fprintf( CPSW::fDbg(), "AddChildrenVisitor: trying to make child %s\n", k.c_str());
+					if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
+						fprintf( CPSW::fDbg(), "AddChildrenVisitor: trying to make child %s\n", k.c_str());
+					}
 #endif
 					Field c = registry_->makeItem( child );
 					if ( c ) {
 						// if 'instantiate' is 'false' then
 						// makeItem() returns a NULL pointer
 #ifdef CPSW_YAML_DEBUG
-						fprintf( CPSW::fDbg(), "AddChildrenVisitor: adding child %s\n", k.c_str());
+						if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
+							fprintf( CPSW::fDbg(), "AddChildrenVisitor: adding child %s\n", k.c_str());
+						}
 #endif
 
 						YamlState child_address( &child, YAML_KEY_at );
@@ -424,13 +440,17 @@ public:
 						}
 					} else {
 #ifdef CPSW_YAML_DEBUG
-						fprintf( CPSW::fDbg(), "AddChildrenVisitor: adding child %s to 'not_instantiated' database\n", k.c_str());
+						if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
+							fprintf( CPSW::fDbg(), "AddChildrenVisitor: adding child %s to 'not_instantiated' database\n", k.c_str());
+						}
 #endif
 						not_instantiated_.insert( k );
 					}
 				} else {
 #ifdef CPSW_YAML_DEBUG
-					fprintf( CPSW::fDbg(), "AddChildrenVisitor: %s not instantiated\n", k.c_str());
+					if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
+						fprintf( CPSW::fDbg(), "AddChildrenVisitor: %s not instantiated\n", k.c_str());
+					}
 #endif
 				}
 			}
@@ -447,19 +467,25 @@ YamlState           children( &node, YAML_KEY_children );
 AddChildrenVisitor  visitor( &d, getRegistry() );
 
 #ifdef CPSW_YAML_DEBUG
-	fprintf( CPSW::fDbg(), "Entering addChildren of %s\n", d.getName());
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
+		fprintf( CPSW::fDbg(), "Entering addChildren of %s\n", d.getName());
+	}
 #endif
 
 	if ( children.n ) {
 #ifdef CPSW_YAML_DEBUG
-		fprintf( CPSW::fDbg(), "Adding immediate children to %s\n", d.getName());
+		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
+			fprintf( CPSW::fDbg(), "Adding immediate children to %s\n", d.getName());
+		}
 #endif
 		// handle the 'children' node itself
 		visitor.visit( &children );
 	}
 
 #ifdef CPSW_YAML_DEBUG
-	fprintf( CPSW::fDbg(), "Leaving addChildren of %s\n", d.getName());
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
+		fprintf( CPSW::fDbg(), "Leaving addChildren of %s\n", d.getName());
+	}
 #endif
 }
 
@@ -604,6 +630,12 @@ shared_ptr<const EntryImpl::element_type> topi( dynamic_pointer_cast<const Entry
 	}
 }
 
+unsigned long
+IYamlSupport::getNumberOfUnrecognizedKeys()
+{
+	return YamlState::getUnrecognizedKeys();
+}
+
 YAML::Emitter& operator << (YAML::Emitter& out, const ScalVal_RO& s)
 {
 	uint64_t u64;
@@ -645,6 +677,8 @@ DECLARE_YAML_FIELD_FACTORY(SequenceCommandImpl);
 Dev
 IYamlSupport::buildHierarchy(const char *file_name, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
 {
+	YamlState::resetUnrecognizedKeys();
+
 	YAML::Node top( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name, yaml_dir ) );
 
 	if ( fixup ) {
@@ -674,6 +708,8 @@ IYamlSupport::startHierarchy(Dev rootHub)
 Dev
 IYamlSupport::buildHierarchy(std::istream &in, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
 {
+	YamlState::resetUnrecognizedKeys();
+
 	YAML::Node top( CYamlFieldFactoryBase::loadPreprocessedYaml( in, yaml_dir ) );
 	if ( fixup ) {
 		YAML::Node root( root_name ? YAML::NodeFind( top, root_name ) : top );
@@ -750,58 +786,140 @@ YAML::NodeFind(const YAML::Node &n, const YAML::Node &k)
 YamlState::YamlState( YamlState *parent, unsigned index )
 : n( &parent->n, index )
 {
-fprintf( CPSW::fDbg(),"initSieve from index %d\n", index);
-	initSieve();
+#ifdef CPSW_YAML_DEBUG
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
+#ifdef CPSW_YAML_DEBUG_TRACKER
+		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACKER) ) {
+			fprintf( CPSW::fDbg(),"initSieve from index %d\n", index);
+		}
+#endif
+		initSieve();
+	}
+#endif
 }
 
 YamlState::YamlState( YamlState *parent, const char *key )
 : n( &parent->n, key )
 {
-fprintf( CPSW::fDbg(),"initSieve from key %s\n", key);
-	parent->keySeen( key );
-	initSieve();
+#ifdef CPSW_YAML_DEBUG
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
+#ifdef CPSW_YAML_DEBUG_TRACKER
+		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACKER) ) {
+			fprintf( CPSW::fDbg(),"initSieve from key %s\n", key);
+		}
+#endif
+		parent->keySeen( key );
+		initSieve();
+	}
+#endif
 }
 
 YamlState::YamlState( YamlState *parent, const char *key, const YAML::Node &node )
 : n( (parent ? &parent->n : NULL), key, node )
 {
-fprintf( CPSW::fDbg(),"initSieve from node + key %s\n", key);
-	if ( parent ) {
-		parent->keySeen( key );
+#ifdef CPSW_YAML_DEBUG
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
+#ifdef CPSW_YAML_DEBUG_TRACKER
+		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACKER) ) {
+			fprintf( CPSW::fDbg(),"initSieve from node + key %s\n", key);
+		}
+#endif
+		if ( parent ) {
+			parent->keySeen( key );
+		}
+		initSieve();
 	}
-	initSieve();
+#endif
 }
 
 void
 YamlState::initSieve()
 {
-	if ( n.IsMap() ) {
+#ifdef CPSW_YAML_DEBUG
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) && n.IsMap() ) {
 		YAML::Node::const_iterator it;
 		for ( it = n.begin(); it != n.end(); ++it ) {
-fprintf( CPSW::fDbg(), "Inserting %s/%s\n", n.toString().c_str(), it->first.Scalar().c_str());
+#ifdef CPSW_YAML_DEBUG_TRACKER
+			if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACKER) ) {
+				fprintf( CPSW::fDbg(), "Inserting %s/%s\n", n.toString().c_str(), it->first.Scalar().c_str());
+			}
+#endif
 			unusedKeys.insert( it->first.Scalar().c_str() );
 		}
 	}
+#endif
 }
 
 void
 YamlState::keySeen(const char *k)
 {
-fprintf( CPSW::fDbg(), "Erasing %s/%s\n", n.toString().c_str(), k);
-	unusedKeys.erase( k );
+#ifdef CPSW_YAML_DEBUG
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
+#ifdef CPSW_YAML_DEBUG_TRACKER
+		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACKER) ) {
+			fprintf( CPSW::fDbg(), "Erasing %s/%s\n", n.toString().c_str(), k);
+		}
+#endif
+		unusedKeys.erase( k );
+	}
+#endif
 }
 
 YamlState::~YamlState()
 {
-YamlState::Set::const_iterator it;	
-	for ( it = unusedKeys.begin(); it != unusedKeys.end(); ++it ) {
-		std::string s = n.toString() + std::string("/") + *it;
-		fprintf( CPSW::fErr(), "Warning -- unused YAML key: %s\n", s.c_str() );
+#ifdef CPSW_YAML_DEBUG
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
+	YamlState::Set::const_iterator it;	
+		for ( it = unusedKeys.begin(); it != unusedKeys.end(); ++it ) {
+			std::string s = n.toString() + std::string("/") + *it;
+			incUnrecognizedKeys();
+			fprintf( CPSW::fErr(), "Warning -- unused YAML key: %s\n", s.c_str() );
+		}
 	}
+#endif
 }
 
 void
 YamlState::purgeKeys()
 {
-	unusedKeys.clear();
+#ifdef CPSW_YAML_DEBUG
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
+		unusedKeys.clear();
+	}
+#endif
+}
+
+unsigned long
+YamlState::incUnrecognizedKeys(int inc)
+{
+static unsigned long unrecognizedKeys = 0;
+	if ( inc < 0 ) {
+		unrecognizedKeys = 0;
+	} else {
+		unrecognizedKeys += inc;
+	}
+	return unrecognizedKeys;
+}
+
+void
+YamlState::resetUnrecognizedKeys()
+{
+	incUnrecognizedKeys( -1 );
+}
+
+unsigned long
+YamlState::getUnrecognizedKeys()
+{
+#ifdef CPSW_YAML_DEBUG
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
+		return incUnrecognizedKeys( 0 );
+	}
+#endif
+	return (unsigned long)(-1UL);
+}
+
+unsigned long
+YamlState::incUnrecognizedKeys()
+{
+	return incUnrecognizedKeys( 1 );
 }

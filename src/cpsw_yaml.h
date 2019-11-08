@@ -70,11 +70,20 @@ namespace YAML {
 	};
 };
 
+// !!NOT thread safe!!
 struct YamlState {
 private:
+	// -1 resets
+	static unsigned long incUnrecognizedKeys(int op);
+
 	YamlState(const YamlState &orig);
 	YamlState &operator=(const YamlState *);
+
 public:
+
+	static void          resetUnrecognizedKeys();
+	static unsigned long getUnrecognizedKeys();
+	static unsigned long incUnrecognizedKeys();
 
 	typedef std::set<const char *, StrCmp> Set;
 

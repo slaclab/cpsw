@@ -24,6 +24,7 @@ static void usage(const char *nm)
 	fprintf(stderr,"           -Y <yaml_file>       : load YAML definition from file\n");
 	fprintf(stderr,"           -r <root_node_name>  : node in input YAML file to use for the root node\n");
 	fprintf(stderr,"           -q                   : don't dump expanded YAML, just load.\n");
+	fprintf(stderr,"           -t                   : track unrecognized YAML keys.\n");
 	fprintf(stderr,"  Read YAML from stdin (or -Y file), build hierarchy and dump YAML on stdout\n");
 }
 
@@ -38,7 +39,8 @@ const char *rootname = 0;
 const char *conflnam = 0;
 const char *defflnam = 0;
 int            quiet = 0;
-	while ( (opt = getopt(argc, argv, "hcC:r:L:Y:q")) > 0 ) {
+int            track = 0;
+	while ( (opt = getopt(argc, argv, "hcC:r:L:Y:qt")) > 0 ) {
 		switch ( opt ) {
 			case 'c':
 				cd = 1;
@@ -68,6 +70,10 @@ int            quiet = 0;
 				rootname = optarg;
 			break;
 
+			case 't':
+				track    = 1;
+			break;
+
 			case 'Y':
 				defflnam = optarg;
 			break;
@@ -78,6 +84,7 @@ int            quiet = 0;
 		return 1;
 	}
 	try {
+		setCPSWVerbosity( "yaml", track );
 		Dev r( defflnam ? IYamlSupport::buildHierarchy(defflnam, rootname) : IYamlSupport::buildHierarchy(std::cin, rootname) );
 		Path p;
 
@@ -115,6 +122,13 @@ int            quiet = 0;
 		if ( quiet )
 			return 1;
 		throw;
+	}
+	if ( track ) {
+		unsigned long n = IYamlSupport::getNumberOfUnrecognizedKeys();
+		printf( "Unrecognized YAML Keys: %lu\n", n );
+		if ( n ) {
+			return 2;
+		}
 	}
 	return 0;
 }

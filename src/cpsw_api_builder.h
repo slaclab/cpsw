@@ -484,5 +484,9 @@ namespace IYamlSupport {
 	                    IYamlFixup *fixup      = 0);
 
 	Path startHierarchy(Dev);
+
+	// return the number of unrecognized/unsupported YAML keys
+	// found when the (last) hierarchy was built.
+	unsigned long getNumberOfUnrecognizedKeys();
 };
 #endif
