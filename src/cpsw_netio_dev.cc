@@ -36,7 +36,7 @@ CNetIODevImpl::CNetIODevImpl(Key &k, const char *name, const char *ip)
 	}
 }
 
-CNetIODevImpl::CNetIODevImpl(Key &k, YamlState *ypath)
+CNetIODevImpl::CNetIODevImpl(Key &k, YamlState &ypath)
 : CDevImpl       (k, ypath     ),
   rssi_bridge_ip_( INADDR_NONE )
 {
@@ -172,7 +172,7 @@ void CNetIODevImpl::startUp()
 	}
 }
 
-void CNetIODevImpl::addAtAddress(Field child, YamlState *ypath)
+void CNetIODevImpl::addAtAddress(Field child, YamlState &ypath)
 {
 ProtoStackBuilder bldr( IProtoStackBuilder::create( ypath ) );
 

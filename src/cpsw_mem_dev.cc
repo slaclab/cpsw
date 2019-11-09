@@ -44,7 +44,7 @@ CMemDevImpl::CMemDevImpl(Key &k, const char *name, uint64_t size, uint8_t *ext_b
 	}
 }
 
-CMemDevImpl::CMemDevImpl(Key &key, YamlState *node)
+CMemDevImpl::CMemDevImpl(Key &key, YamlState &node)
 : CDevImpl( key, node ),
   buf_    ( 0         ),
   isExt_  ( false     ),
@@ -124,7 +124,7 @@ void CMemDevImpl::addAtAddress(Field child, unsigned nelms)
 }
 
 void
-CMemDevImpl::addAtAddress(Field child, YamlState *ypath)
+CMemDevImpl::addAtAddress(Field child, YamlState &ypath)
 {
 	try {
 		doAddAtAddress<CFSAddressImpl>( child, ypath );
@@ -173,7 +173,7 @@ CMemAddressImpl::CMemAddressImpl(AKey k, int align)
 	checkAlign();
 }
 
-CMemAddressImpl::CMemAddressImpl(AKey key, YamlState *ypath)
+CMemAddressImpl::CMemAddressImpl(AKey key, YamlState &ypath)
 : CAddressImpl( key, ypath          ),
   align_      ( IMemDev::DFLT_ALIGN )
 {

@@ -266,7 +266,7 @@ public:
 	virtual ProtoStackBuilder    clone()                           = 0;
 
 	static ProtoStackBuilder create();
-	static ProtoStackBuilder create(YamlState *);
+	static ProtoStackBuilder create(YamlState &);
 };
 
 
@@ -382,7 +382,7 @@ public:
 
 	static MutableEnum create();
 
-	static MutableEnum create(YamlState *node);
+	static MutableEnum create(YamlState &node);
 };
 
 extern Enum const enumBool;

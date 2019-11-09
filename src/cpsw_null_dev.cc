@@ -27,7 +27,7 @@ CNullDevImpl::CNullDevImpl(Key &k, const char *name, uint64_t size)
 {
 }
 
-CNullDevImpl::CNullDevImpl(Key &key, YamlState *node)
+CNullDevImpl::CNullDevImpl(Key &key, YamlState &node)
 : CDevImpl(key, node)
 {
 }
@@ -61,7 +61,7 @@ CNullAddressImpl::CNullAddressImpl(AKey k)
 {
 }
 
-CNullAddressImpl::CNullAddressImpl(AKey k, YamlState *ypath)
+CNullAddressImpl::CNullAddressImpl(AKey k, YamlState &ypath)
 : CAddressImpl(k, ypath)
 {
 	if ( 1 != getNelms() )

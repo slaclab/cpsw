@@ -79,7 +79,7 @@ public:
 	}
 
 	// construct from a YAML node; extract 'our' information
-	CMyCommandImpl(Key &k, YamlState *node)
+	CMyCommandImpl(Key &k, YamlState &node)
 	: CCommandImpl(k, node)
 	{
 	std::string connectTo;

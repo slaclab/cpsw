@@ -30,7 +30,7 @@ class CMemAddressImpl : public CAddressImpl {
 
 	public:
 		CMemAddressImpl(AKey key, int align);
-		CMemAddressImpl(AKey key, YamlState *ypath);
+		CMemAddressImpl(AKey key, YamlState &ypath);
 
 		CMemAddressImpl(const CMemAddressImpl &orig, AKey k)
 		: CAddressImpl( orig,           k),
@@ -67,7 +67,7 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 	public:
 		CMemDevImpl(Key &k, const char *name, uint64_t size, uint8_t *ext_buf);
 
-		CMemDevImpl(Key &k, YamlState *n);
+		CMemDevImpl(Key &k, YamlState &n);
 
 		static  const char *_getClassName()       { return "MemDev";        }
 		virtual const char * getClassName() const { return _getClassName(); }
@@ -75,7 +75,7 @@ class CMemDevImpl : public CDevImpl, public virtual IMemDev {
 		virtual void dumpYamlPart(YAML::Node &node) const;
 
 		virtual void
-		addAtAddress(Field child, YamlState *ypath);
+		addAtAddress(Field child, YamlState &ypath);
 
 		virtual void addAtAddress(Field child, int align = DFLT_ALIGN);
 

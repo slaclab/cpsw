@@ -24,7 +24,7 @@ CConstIntEntryImpl::isString() const
 	return IScalVal_Base::ASCII == getEncoding();
 }
 
-CConstIntEntryImpl::CConstIntEntryImpl(Key &k, YamlState *n)
+CConstIntEntryImpl::CConstIntEntryImpl(Key &k, YamlState &n)
 : CIntEntryImpl(k, n)
 {
 Encoding     enc;

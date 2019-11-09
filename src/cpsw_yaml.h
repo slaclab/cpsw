@@ -142,7 +142,7 @@ class CYamlSupportBase : public virtual IYamlSupportBase {
 		// Can be used to modify the YAML node before it is passed
 		// to the constructor (create a new node from 'orig', modify
 		// and return it).
-		static void overrideNode(YamlState *orig);
+		static void overrideNode(YamlState &orig);
 
 		// insert the classname into a node;
 		// e.g.,:
@@ -442,17 +442,17 @@ namespace YAML {
 }
 
 // helpers to read map entries
-static inline bool hasNode(YamlState *node, const char *fld)
+static inline bool hasNode(YamlState &node, const char *fld)
 {
-	const YAML::Node &n( node->n.lookup(fld) );
-	node->keySeen( fld );
+	const YAML::Node &n( node.n.lookup(fld) );
+	node.keySeen( fld );
 	return ( !!n && ! n.IsNull() );
 }
 
-template <typename T> static void mustReadNode(YamlState *node, const char *fld, T *val)
+template <typename T> static void mustReadNode(YamlState &node, const char *fld, T *val)
 {
-	const YAML::Node &n( node->n.lookup(fld) );
-	node->keySeen( fld );
+	const YAML::Node &n( node.n.lookup(fld) );
+	node.keySeen( fld );
 	if ( ! n ) {
 		throw NotFoundError( std::string("property '") + std::string(fld) + std::string("'") );
 	} else {
@@ -466,10 +466,10 @@ template <typename T> static void mustReadNode(YamlState *node, const char *fld,
 /* CAUTION: if 'T' is uint8_t then yaml-cpp will treat it as 'char'. I.e., the
  *          65 is rendered as 'A' and '2' is read as 50!
  */
-template <typename T> static bool readNode(YamlState *node, const char *fld, T *val)
+template <typename T> static bool readNode(YamlState &node, const char *fld, T *val)
 {
-	const YAML::Node &n( node->n.lookup(fld) );
-	node->keySeen( fld );
+	const YAML::Node &n( node.n.lookup(fld) );
+	node.keySeen( fld );
 	if ( n && ! n.IsNull() ) {
 		*val = n.as<T>();
 		return true;
@@ -495,9 +495,9 @@ template <typename T> class IYamlFactoryBase;
 template <typename T> class IYamlTypeRegistry {
 public:
 
-	virtual T    makeItem(YamlState *) = 0;
+	virtual T    makeItem(YamlState &) = 0;
 
-	virtual void extractClassName(std::vector<std::string> *svec_p, YamlState *)  = 0;
+	virtual void extractClassName(std::vector<std::string> *svec_p, YamlState &)  = 0;
 
 	virtual void addFactory(const char *className, IYamlFactoryBase<T> *f) = 0;
 	virtual void delFactory(const char *className)                         = 0;
@@ -534,7 +534,7 @@ public:
 		r->addFactory( className, this );
 	}
 
-	virtual T makeItem(YamlState *node) = 0;
+	virtual T makeItem(YamlState &node ) = 0;
 
 	virtual Registry getRegistry()
 	{
@@ -571,11 +571,11 @@ public:
 		registry_->delItem(className);
 	}
 
-	virtual void extractClassName(std::vector<std::string> *svec_p, YamlState *n);
+	virtual void extractClassName(std::vector<std::string> *svec_p, YamlState &n);
 
-	virtual bool extractInstantiate(YamlState *n);
+	virtual bool extractInstantiate(YamlState &n);
 
-	virtual T makeItem(YamlState *n)
+	virtual T makeItem(YamlState &n)
 	{
 	std::vector<std::string> str_vec;
 	std::string str_no_factory = "";
@@ -621,8 +621,8 @@ class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 		{
 		}
 
-		virtual void addChildren(CEntryImpl &, YamlState *);
-		virtual void addChildren(CDevImpl &,   YamlState *);
+		virtual void addChildren(CEntryImpl &, YamlState &);
+		virtual void addChildren(CDevImpl &,   YamlState &);
 
 
 	public:
@@ -643,10 +643,10 @@ public:
 	{
 	}
 
-	virtual Field makeItem(YamlState * state)
+	virtual Field makeItem(YamlState & state)
 	{
 	    T::element_type::overrideNode(state);
-		T fld( CShObj::create<T, YamlState *>(state) );
+		T fld( CShObj::create<T, YamlState &>(state) );
 		addChildren( *fld, state );
 		return fld;
 	}

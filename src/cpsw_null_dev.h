@@ -28,7 +28,7 @@ class CNullAddressImpl : public CAddressImpl {
 		{
 		}
 
-		CNullAddressImpl(AKey k, YamlState *ypath);
+		CNullAddressImpl(AKey k, YamlState &ypath);
 
 		// ANY subclass must implement clone(AKey) !
 		virtual CNullAddressImpl *clone(AKey k) { return new CNullAddressImpl( *this, k ); }
@@ -44,7 +44,7 @@ class CNullDevImpl : public CDevImpl, public virtual INullDev {
 	public:
 		CNullDevImpl(Key &k, const char *name, uint64_t size);
 
-		CNullDevImpl(Key &k, YamlState *n);
+		CNullDevImpl(Key &k, YamlState &n);
 
 		static  const char *_getClassName()       { return "NullDev";        }
 		virtual const char * getClassName() const { return _getClassName(); }
@@ -54,7 +54,7 @@ class CNullDevImpl : public CDevImpl, public virtual INullDev {
 		// must override to check that nelms == 1
 		virtual void addAtAddress(Field child, unsigned nelms);
 
-		virtual void addAtAddress(Field child, YamlState *ypath)
+		virtual void addAtAddress(Field child, YamlState &ypath)
 		{
 			doAddAtAddress<CNullAddressImpl>( child, ypath );
 		}

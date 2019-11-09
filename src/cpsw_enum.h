@@ -55,7 +55,7 @@ public:
 			return in;
 		}
 
-		virtual MutableEnum makeItem(YamlState *node);
+		virtual MutableEnum makeItem(YamlState &node);
 
 		// singleton access via base-class template:
 		//

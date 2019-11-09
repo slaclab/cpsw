@@ -111,7 +111,7 @@ class CEntryImpl: public virtual IField, public CShObj, public CYamlSupportBase 
 	public:
 		CEntryImpl(Key &k, const char *name, uint64_t size);
 
-		CEntryImpl(Key &k, YamlState *n);
+		CEntryImpl(Key &k, YamlState &n);
 
 		virtual void dumpYamlPart(YAML::Node &) const;
 

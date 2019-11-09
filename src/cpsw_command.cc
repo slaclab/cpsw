@@ -118,8 +118,8 @@ unsigned i;
 		std::string entry;
 		uint64_t    value;
 
-		mustReadNode( &item_node, YAML_KEY_entry, &entry );
-		mustReadNode( &item_node, YAML_KEY_value, &value );
+		mustReadNode( item_node, YAML_KEY_entry, &entry );
+		mustReadNode( item_node, YAML_KEY_value, &value );
 		items_.push_back( Item( entry, value ) );
 	}
 	// always keep a marker at the end...
@@ -127,10 +127,10 @@ unsigned i;
 
 }
 
-CSequenceCommandImpl::CSequenceCommandImpl(Key &key, YamlState *node)
+CSequenceCommandImpl::CSequenceCommandImpl(Key &key, YamlState &node)
 : CCommandImpl(key, node)
 {
-YamlState seq_node( node, YAML_KEY_sequence );
+YamlState seq_node( &node, YAML_KEY_sequence );
 
 	if ( ! seq_node.n ) {
 		throw ConfigurationError( std::string( getName() ) + ": no sequence found" );
@@ -139,10 +139,10 @@ YamlState seq_node( node, YAML_KEY_sequence );
 		throw ConfigurationError( std::string( getName() ) + ": YAML node not a sequence" );
 	}
 
-	YamlState enum_node( node, YAML_KEY_enums );
+	YamlState enum_node( &node, YAML_KEY_enums );
 
 	if ( enum_node.n ) {
-		enums_ = IMutableEnum::create( &enum_node );
+		enums_ = IMutableEnum::create( enum_node );
 	}
 
 	index_.push_back( 0 );

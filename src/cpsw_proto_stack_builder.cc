@@ -120,7 +120,7 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 			reset();
 		}
 
-		CProtoStackBuilder(YamlState *);
+		CProtoStackBuilder(YamlState &);
 
 		void setIPAddr(in_addr_t peer)
 		{
@@ -622,17 +622,17 @@ class CProtoStackBuilder : public IProtoStackBuilder {
 
 		static ProtoPort findProtoPort( ProtoPortMatchParams *, std::vector<ProtoPort>& );
 
-		static shared_ptr<CProtoStackBuilder>  create(YamlState *ypath);
+		static shared_ptr<CProtoStackBuilder>  create(YamlState &ypath);
 		static shared_ptr<CProtoStackBuilder>  create();
 };
 
 shared_ptr<CProtoStackBuilder>
-CProtoStackBuilder::create(YamlState *node)
+CProtoStackBuilder::create(YamlState &node)
 {
 	return cpsw::make_shared<CProtoStackBuilder>( node );
 }
 
-CProtoStackBuilder::CProtoStackBuilder(YamlState *node)
+CProtoStackBuilder::CProtoStackBuilder(YamlState &node)
 {
 unsigned                   u;
 uint64_t                   u64;
@@ -644,24 +644,24 @@ WriteMode                  writeMode;
 	reset();
 
 	{
-		YamlState nn( node, YAML_KEY_SRP );
+		YamlState nn( &node, YAML_KEY_SRP );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
 			// initialize proto_vers to silence rhel compiler warning
 			// about potentially un-initialized 'proto_vers'
 			proto_vers = getSRPVersion();
-			if ( readNode(&nn, YAML_KEY_protocolVersion, &proto_vers) )
+			if ( readNode(nn, YAML_KEY_protocolVersion, &proto_vers) )
 				setSRPVersion( proto_vers );
 			// initialize u64 to silence rhel compiler warning
 			// about potentially un-initialized 'u64'
 			u64 = getSRPTimeoutUS();
-			if ( readNode(&nn, YAML_KEY_timeoutUS, &u64) )
+			if ( readNode(nn, YAML_KEY_timeoutUS, &u64) )
 				setSRPTimeoutUS( u64 );
-			if ( readNode(&nn, YAML_KEY_dynTimeout, &b) )
+			if ( readNode(nn, YAML_KEY_dynTimeout, &b) )
 				useSRPDynTimeout( b );
-			if ( readNode(&nn, YAML_KEY_retryCount, &u) )
+			if ( readNode(nn, YAML_KEY_retryCount, &u) )
 				setSRPRetryCount( u );
-			if ( readNode(&nn, YAML_KEY_defaultWriteMode, &writeMode) )
+			if ( readNode(nn, YAML_KEY_defaultWriteMode, &writeMode) )
 			{
 				if ( hasSRPMux_ < 0 || UNSP == SRPDefaultWriteMode_ ) {
 					/* SRPMux'es setting overrides what we find here.. */
@@ -671,119 +671,119 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		YamlState nn( node, YAML_KEY_TCP );
+		YamlState nn( &node, YAML_KEY_TCP );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
-			if ( ! readNode(&nn, YAML_KEY_instantiate, &b) || b ) {
-				if ( readNode(&nn, YAML_KEY_port, &u) )
+			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
+				if ( readNode(nn, YAML_KEY_port, &u) )
 					setTcpPort( u );
-				if ( readNode(&nn, YAML_KEY_outQueueDepth, &u) )
+				if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 					setTcpOutQueueDepth( u );
-				if ( readNode(&nn, YAML_KEY_threadPriority, &i) )
+				if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 					setTcpThreadPriority( i );
 			}
 		}
 	}
 	{
-		YamlState nn( node, YAML_KEY_UDP );
+		YamlState nn( &node, YAML_KEY_UDP );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
-			if ( ! readNode(&nn, YAML_KEY_instantiate, &b) || b ) {
-				if ( readNode(&nn, YAML_KEY_port, &u) )
+			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
+				if ( readNode(nn, YAML_KEY_port, &u) )
 					setUdpPort( u );
-				if ( readNode(&nn, YAML_KEY_outQueueDepth, &u) )
+				if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 					setUdpOutQueueDepth( u );
-				if ( readNode(&nn, YAML_KEY_numRxThreads, &u) )
+				if ( readNode(nn, YAML_KEY_numRxThreads, &u) )
 					setUdpNumRxThreads( u );
 				// initialize i to silence rhel compiler warning
 				// about potentially un-initialized 'i'
 				i = getUdpPollSecs();
-				if ( readNode(&nn, YAML_KEY_pollSecs, &i) )
+				if ( readNode(nn, YAML_KEY_pollSecs, &i) )
 					setUdpPollSecs( i );
-				if ( readNode(&nn, YAML_KEY_threadPriority, &i) )
+				if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 					setUdpThreadPriority( i );
 			}
 		}
 	}
 	{
-        YamlState nn( node, YAML_KEY_RSSI );
+        YamlState nn( &node, YAML_KEY_RSSI );
 
         useRssi( !!nn.n );
 
 		if ( !!nn.n && nn.n.IsMap() ) {
-			if ( readNode(&nn, YAML_KEY_threadPriority, &i) ) {
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) ) {
 				setRssiThreadPriority( i );
 			}
-			if ( readNode(&nn, YAML_KEY_instantiate, &b) ) {
+			if ( readNode(nn, YAML_KEY_instantiate, &b) ) {
 				useRssi( b );
 			}
 			/* Some of the members of 'rssiConfig' are uint8_t and yaml-cpp will try
 			 * to read as 'char'; i.e., number like '2' in YAML will be interpreted
 			 * as '2' and yield 52 (numerical ascii code of '2').
 			 */
-			if ( readNode(&nn, YAML_KEY_ldMaxUnackedSegs,        &u) ) {
+			if ( readNode(nn, YAML_KEY_ldMaxUnackedSegs,        &u) ) {
 				rssiConfig_.ldMaxUnackedSegs_  = u;
 			}
-			if ( readNode(&nn, YAML_KEY_outQueueDepth,           &u) ) {
+			if ( readNode(nn, YAML_KEY_outQueueDepth,           &u) ) {
 				rssiConfig_.outQueueDepth_     = u;
 			}
-			if ( readNode(&nn, YAML_KEY_inpQueueDepth,           &u) ) {
+			if ( readNode(nn, YAML_KEY_inpQueueDepth,           &u) ) {
 				rssiConfig_.inpQueueDepth_     = u;
 			}
-			if ( readNode(&nn, YAML_KEY_retransmissionTimeoutUS, &u) ) {
+			if ( readNode(nn, YAML_KEY_retransmissionTimeoutUS, &u) ) {
 				rssiConfig_.rexTimeoutUS_      = u;
 			}
-			if ( readNode(&nn, YAML_KEY_cumulativeAckTimeoutUS,  &u) ) {
+			if ( readNode(nn, YAML_KEY_cumulativeAckTimeoutUS,  &u) ) {
 				rssiConfig_.cumAckTimeoutUS_   = u;
 			}
-			if ( readNode(&nn, YAML_KEY_nullTimeoutUS,           &u) ) {
+			if ( readNode(nn, YAML_KEY_nullTimeoutUS,           &u) ) {
 				rssiConfig_.nulTimeoutUS_      = u;
 			}
-			if ( readNode(&nn, YAML_KEY_maxRetransmissions,      &u) ) {
+			if ( readNode(nn, YAML_KEY_maxRetransmissions,      &u) ) {
 				rssiConfig_.rexMax_            = u;
 			}
-			if ( readNode(&nn, YAML_KEY_maxCumulativeAcks,       &u) ) {
+			if ( readNode(nn, YAML_KEY_maxCumulativeAcks,       &u) ) {
 				rssiConfig_.cumAckMax_         = u;
 			}
-			if ( readNode(&nn, YAML_KEY_maxSegmentSize,          &u) ) {
+			if ( readNode(nn, YAML_KEY_maxSegmentSize,          &u) ) {
 				rssiConfig_.forcedSegsMax_     = u;
 			}
 		}
 	}
 	{
-		YamlState nn( node, YAML_KEY_depack );
+		YamlState nn( &node, YAML_KEY_depack );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
 		DepackProtoVersion proto_vers = DEPACKETIZER_V0; // silence rhel g++ warning about un-initialized use (??)
 			useDepack( true );
-			if ( readNode(&nn, YAML_KEY_outQueueDepth, &u) )
+			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				setDepackOutQueueDepth( u );
-			if ( readNode(&nn, YAML_KEY_protocolVersion, &proto_vers) )
+			if ( readNode(nn, YAML_KEY_protocolVersion, &proto_vers) )
 				setDepackVersion( proto_vers );
-			if ( readNode(&nn, YAML_KEY_ldFrameWinSize, &u) )
+			if ( readNode(nn, YAML_KEY_ldFrameWinSize, &u) )
 				setDepackLdFrameWinSize( u );
-			if ( readNode(&nn, YAML_KEY_ldFragWinSize, &u) )
+			if ( readNode(nn, YAML_KEY_ldFragWinSize, &u) )
 				setDepackLdFragWinSize( u );
-			if ( readNode(&nn, YAML_KEY_threadPriority, &i) )
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 				setDepackThreadPriority( i );
-			if ( readNode(&nn, YAML_KEY_instantiate, &b) )
+			if ( readNode(nn, YAML_KEY_instantiate, &b) )
 				useDepack( b );
 		}
 	}
 	{
-		YamlState nn( node, YAML_KEY_SRPMux );
+		YamlState nn( &node, YAML_KEY_SRPMux );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
 			useSRPMux( true );
-			if ( readNode(&nn, YAML_KEY_virtualChannel, &u) )
+			if ( readNode(nn, YAML_KEY_virtualChannel, &u) )
 				setSRPMuxVirtualChannel( u );
-			if ( readNode(&nn, YAML_KEY_outQueueDepth, &u) )
+			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				setSRPMuxOutQueueDepth( u );
-			if ( readNode(&nn, YAML_KEY_threadPriority, &i) )
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 				setSRPMuxThreadPriority( i );
-			if ( readNode(&nn, YAML_KEY_instantiate, &b) )
+			if ( readNode(nn, YAML_KEY_instantiate, &b) )
 				useSRPMux( b );
-			if ( readNode(&nn, YAML_KEY_defaultWriteMode, &writeMode) )
+			if ( readNode(nn, YAML_KEY_defaultWriteMode, &writeMode) )
 			{
 				// SRPMux overrides any setting SRP might have made
 				setSRPDefaultWriteMode( writeMode );
@@ -791,28 +791,28 @@ WriteMode                  writeMode;
 		}
 	}
 	{
-		YamlState nn( node, YAML_KEY_TDESTMux );
+		YamlState nn( &node, YAML_KEY_TDESTMux );
 		if ( !!nn.n && nn.n.IsMap() )
 		{
 			useTDestMux( true );
-			if ( readNode(&nn, YAML_KEY_TDEST, &u) )
+			if ( readNode(nn, YAML_KEY_TDEST, &u) )
 				setTDestMuxTDEST( u );
-			if ( readNode(&nn, YAML_KEY_stripHeader, &b) )
+			if ( readNode(nn, YAML_KEY_stripHeader, &b) )
 				setTDestMuxStripHeader( b );
-			if ( readNode(&nn, YAML_KEY_outQueueDepth, &u) )
+			if ( readNode(nn, YAML_KEY_outQueueDepth, &u) )
 				setTDestMuxOutQueueDepth( u );
-			if ( readNode(&nn, YAML_KEY_inpQueueDepth, &u) )
+			if ( readNode(nn, YAML_KEY_inpQueueDepth, &u) )
 				setTDestMuxInpQueueDepth( u );
-			if ( readNode(&nn, YAML_KEY_threadPriority, &i) )
+			if ( readNode(nn, YAML_KEY_threadPriority, &i) )
 				setTDestMuxThreadPriority( i );
-			if ( readNode(&nn, YAML_KEY_instantiate, &b) )
+			if ( readNode(nn, YAML_KEY_instantiate, &b) )
 				useTDestMux( b );
 		}
 	}
 }
 
 ProtoStackBuilder
-IProtoStackBuilder::create(YamlState *node)
+IProtoStackBuilder::create(YamlState &node)
 {
 	return CProtoStackBuilder::create( node );
 }
