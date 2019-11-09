@@ -645,7 +645,7 @@ WriteMode                  writeMode;
 
 	{
 		YamlState nn( &node, YAML_KEY_SRP );
-		if ( !!nn.n && nn.n.IsMap() )
+		if ( !!nn && nn.IsMap() )
 		{
 			// initialize proto_vers to silence rhel compiler warning
 			// about potentially un-initialized 'proto_vers'
@@ -672,7 +672,7 @@ WriteMode                  writeMode;
 	}
 	{
 		YamlState nn( &node, YAML_KEY_TCP );
-		if ( !!nn.n && nn.n.IsMap() )
+		if ( !!nn && nn.IsMap() )
 		{
 			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
 				if ( readNode(nn, YAML_KEY_port, &u) )
@@ -686,7 +686,7 @@ WriteMode                  writeMode;
 	}
 	{
 		YamlState nn( &node, YAML_KEY_UDP );
-		if ( !!nn.n && nn.n.IsMap() )
+		if ( !!nn && nn.IsMap() )
 		{
 			if ( ! readNode(nn, YAML_KEY_instantiate, &b) || b ) {
 				if ( readNode(nn, YAML_KEY_port, &u) )
@@ -708,9 +708,9 @@ WriteMode                  writeMode;
 	{
         YamlState nn( &node, YAML_KEY_RSSI );
 
-        useRssi( !!nn.n );
+        useRssi( !!nn );
 
-		if ( !!nn.n && nn.n.IsMap() ) {
+		if ( !!nn && nn.IsMap() ) {
 			if ( readNode(nn, YAML_KEY_threadPriority, &i) ) {
 				setRssiThreadPriority( i );
 			}
@@ -752,7 +752,7 @@ WriteMode                  writeMode;
 	}
 	{
 		YamlState nn( &node, YAML_KEY_depack );
-		if ( !!nn.n && nn.n.IsMap() )
+		if ( !!nn && nn.IsMap() )
 		{
 		DepackProtoVersion proto_vers = DEPACKETIZER_V0; // silence rhel g++ warning about un-initialized use (??)
 			useDepack( true );
@@ -772,7 +772,7 @@ WriteMode                  writeMode;
 	}
 	{
 		YamlState nn( &node, YAML_KEY_SRPMux );
-		if ( !!nn.n && nn.n.IsMap() )
+		if ( !!nn && nn.IsMap() )
 		{
 			useSRPMux( true );
 			if ( readNode(nn, YAML_KEY_virtualChannel, &u) )
@@ -792,7 +792,7 @@ WriteMode                  writeMode;
 	}
 	{
 		YamlState nn( &node, YAML_KEY_TDESTMux );
-		if ( !!nn.n && nn.n.IsMap() )
+		if ( !!nn && nn.IsMap() )
 		{
 			useTDestMux( true );
 			if ( readNode(nn, YAML_KEY_TDEST, &u) )

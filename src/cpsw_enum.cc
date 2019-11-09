@@ -130,7 +130,7 @@ MutableEnum IMutableEnum::create()
 template<> void
 CYamlTypeRegistry<MutableEnum>::extractClassName(std::vector<std::string> *svec_p, YamlState &node)
 {
-	svec_p->push_back( node.n.Tag() );
+	svec_p->push_back( node.Tag() );
 }
 
 template<> bool
@@ -162,8 +162,8 @@ CEnumImpl::CTransformFuncImpl::makeItem(YamlState &node)
 {
 MutableEnum enm = IMutableEnum::create(this, 0);
 unsigned    i;
-	for ( i=0; i<node.n.size(); i++ ) {
-		YamlState node_item( &node, i );
+	for ( i=0; i<node.size(); i++ ) {
+		YamlState   node_item( &node, i );
 		std::string nam;
 		uint64_t    val;
 

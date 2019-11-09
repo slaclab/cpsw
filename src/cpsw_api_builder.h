@@ -44,7 +44,7 @@ namespace YAML {
 	class PNode;
 };
 
-struct YamlState;
+typedef const struct SYamlState YamlState;
 
 struct StrCmp {
 	bool operator () (const char *a, const char *b ) const {
