@@ -333,7 +333,7 @@ MutableEnum e;
 
 	YamlState enum_node( &node, YAML_KEY_enums );
 
-	if ( enum_node.n ) {
+	if ( enum_node ) {
 		enum_ = IMutableEnum::create( enum_node );
 	}
 }

@@ -71,13 +71,19 @@ namespace YAML {
 };
 
 // !!NOT thread safe!!
-struct YamlState {
+struct SYamlState : public YAML::PNode {
 private:
 	// -1 resets
 	static unsigned long incUnrecognizedKeys(int op);
 
-	YamlState(const YamlState &orig);
-	YamlState &operator=(const YamlState *);
+	SYamlState(const SYamlState &orig);
+	SYamlState &operator=(const SYamlState *);
+
+	typedef std::set<const char *, StrCmp> Set;
+
+	mutable Set unusedKeys;
+
+	void initSieve() const;
 
 public:
 
@@ -85,24 +91,20 @@ public:
 	static unsigned long getUnrecognizedKeys();
 	static unsigned long incUnrecognizedKeys();
 
-	typedef std::set<const char *, StrCmp> Set;
 
-	const YAML::PNode n;
-	Set               unusedKeys;
+	void keySeen(const char *) const;
 
-	void initSieve();
-
-	void keySeen(const char *);
-
-	void purgeKeys();
+	void purgeKeys() const;
 
 
-	YamlState( YamlState *parent, unsigned index );
-	YamlState( YamlState *parent, const char *key );
-	YamlState( YamlState *parent, const char *key, const YAML::Node &node );
+	SYamlState( YamlState *parent, unsigned index );
+	SYamlState( YamlState *parent, const char *key );
+	SYamlState( YamlState *parent, const char *key, const YAML::Node &node );
 
-	~YamlState();
+	~SYamlState();
 };
+
+typedef const SYamlState YamlState;
 
 class CYamlSupportBase;
 typedef shared_ptr<CYamlSupportBase> YamlSupportBase;
@@ -444,14 +446,14 @@ namespace YAML {
 // helpers to read map entries
 static inline bool hasNode(YamlState &node, const char *fld)
 {
-	const YAML::Node &n( node.n.lookup(fld) );
+	const YAML::Node &n( node.lookup(fld) );
 	node.keySeen( fld );
 	return ( !!n && ! n.IsNull() );
 }
 
 template <typename T> static void mustReadNode(YamlState &node, const char *fld, T *val)
 {
-	const YAML::Node &n( node.n.lookup(fld) );
+	const YAML::Node &n( node.lookup(fld) );
 	node.keySeen( fld );
 	if ( ! n ) {
 		throw NotFoundError( std::string("property '") + std::string(fld) + std::string("'") );
@@ -468,7 +470,7 @@ template <typename T> static void mustReadNode(YamlState &node, const char *fld,
  */
 template <typename T> static bool readNode(YamlState &node, const char *fld, T *val)
 {
-	const YAML::Node &n( node.n.lookup(fld) );
+	const YAML::Node &n( node.lookup(fld) );
 	node.keySeen( fld );
 	if ( n && ! n.IsNull() ) {
 		*val = n.as<T>();

@@ -349,23 +349,23 @@ template <typename T> void
 CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlState &node)
 {
 	YamlState class_node( &node, YAML_KEY_class );
-	if ( ! class_node.n ) {
+	if ( ! class_node ) {
 		throw   NotFoundError( std::string("No property '")
 			  + std::string(YAML_KEY_class)
-			  + std::string("' in: ") + node.n.toString()
+			  + std::string("' in: ") + node.toString()
 			    );
 	} else {
-		if( class_node.n.IsSequence() ) {
-			for ( YAML::const_iterator it=class_node.n.begin(); it != class_node.n.end(); ++it ) {
+		if( class_node.IsSequence() ) {
+			for ( YAML::const_iterator it=class_node.begin(); it != class_node.end(); ++it ) {
 				svec_p->push_back( it->as<std::string>() );
 			}
-		} else if (class_node.n.IsScalar() ) {
-			svec_p->push_back( class_node.n.as<std::string>() );
+		} else if (class_node.IsScalar() ) {
+			svec_p->push_back( class_node.as<std::string>() );
 		} else {
 			throw   InvalidArgError( std::string("property '")
 				  + std::string(YAML_KEY_class)
 				  + std::string("' in: ")
-				  + node.n.toString()
+				  + node.toString()
 				  + std::string(" is not a Sequence nor Scalar")
 				    );
 		}
@@ -399,8 +399,8 @@ public:
 	virtual bool visit(YamlState *pnode)
 	{
 
-		YAML::const_iterator it ( pnode->n.begin() );
-		YAML::const_iterator ite( pnode->n.end()   );
+		YAML::const_iterator it ( pnode->begin() );
+		YAML::const_iterator ite( pnode->end()   );
 
 		while ( it != ite ) {
 			const std::string &k = it->first.as<std::string>();
@@ -429,12 +429,12 @@ public:
 #endif
 
 						YamlState child_address( &child, YAML_KEY_at );
-						if ( child_address.n ) {
+						if ( child_address ) {
 							d_->addAtAddress( c, child_address );
 						} else {
 							not_instantiated_.insert( k );
 							std::string errmsg =   std::string("Child '")
-								+ child.n.toString()
+								+ child.toString()
 								+ std::string("' found but missing '" YAML_KEY_at "' key");
 							throw InvalidArgError(errmsg);
 						}
@@ -472,7 +472,7 @@ AddChildrenVisitor  visitor( &d, getRegistry() );
 	}
 #endif
 
-	if ( children.n ) {
+	if ( children ) {
 #ifdef CPSW_YAML_DEBUG
 		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
 			fprintf( CPSW::fDbg(), "Adding immediate children to %s\n", d.getName());
@@ -783,8 +783,8 @@ YAML::NodeFind(const YAML::Node &n, const YAML::Node &k)
 	return static_cast<const YAML::Node>(n)[k];
 }
 
-YamlState::YamlState( YamlState *parent, unsigned index )
-: n( &parent->n, index )
+SYamlState::SYamlState( YamlState *parent, unsigned index )
+: YAML::PNode( parent, index )
 {
 #ifdef CPSW_YAML_DEBUG
 	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
@@ -798,8 +798,8 @@ YamlState::YamlState( YamlState *parent, unsigned index )
 #endif
 }
 
-YamlState::YamlState( YamlState *parent, const char *key )
-: n( &parent->n, key )
+SYamlState::SYamlState( YamlState *parent, const char *key )
+: YAML::PNode ( parent, key   )
 {
 #ifdef CPSW_YAML_DEBUG
 	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
@@ -814,8 +814,8 @@ YamlState::YamlState( YamlState *parent, const char *key )
 #endif
 }
 
-YamlState::YamlState( YamlState *parent, const char *key, const YAML::Node &node )
-: n( (parent ? &parent->n : NULL), key, node )
+SYamlState::SYamlState( YamlState *parent, const char *key, const YAML::Node &node )
+: YAML::PNode( parent, key, node )
 {
 #ifdef CPSW_YAML_DEBUG
 	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
@@ -833,15 +833,15 @@ YamlState::YamlState( YamlState *parent, const char *key, const YAML::Node &node
 }
 
 void
-YamlState::initSieve()
+SYamlState::initSieve() const
 {
 #ifdef CPSW_YAML_DEBUG
-	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) && n.IsMap() ) {
+	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) && IsMap() ) {
 		YAML::Node::const_iterator it;
-		for ( it = n.begin(); it != n.end(); ++it ) {
+		for ( it = begin(); it != end(); ++it ) {
 #ifdef CPSW_YAML_DEBUG_TRACKER
 			if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACKER) ) {
-				fprintf( CPSW::fDbg(), "Inserting %s/%s\n", n.toString().c_str(), it->first.Scalar().c_str());
+				fprintf( CPSW::fDbg(), "Inserting %s/%s\n", toString().c_str(), it->first.Scalar().c_str());
 			}
 #endif
 			unusedKeys.insert( it->first.Scalar().c_str() );
@@ -851,7 +851,7 @@ YamlState::initSieve()
 }
 
 void
-YamlState::keySeen(const char *k)
+SYamlState::keySeen(const char *k) const
 {
 #ifdef CPSW_YAML_DEBUG
 	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
@@ -865,13 +865,13 @@ YamlState::keySeen(const char *k)
 #endif
 }
 
-YamlState::~YamlState()
+SYamlState::~SYamlState()
 {
 #ifdef CPSW_YAML_DEBUG
 	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
 	YamlState::Set::const_iterator it;	
 		for ( it = unusedKeys.begin(); it != unusedKeys.end(); ++it ) {
-			std::string s = n.toString() + std::string("/") + *it;
+			std::string s = toString() + std::string("/") + *it;
 			incUnrecognizedKeys();
 			fprintf( CPSW::fErr(), "Warning -- unused YAML key: %s\n", s.c_str() );
 		}
@@ -880,7 +880,7 @@ YamlState::~YamlState()
 }
 
 void
-YamlState::purgeKeys()
+SYamlState::purgeKeys() const
 {
 #ifdef CPSW_YAML_DEBUG
 	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
@@ -890,7 +890,7 @@ YamlState::purgeKeys()
 }
 
 unsigned long
-YamlState::incUnrecognizedKeys(int inc)
+SYamlState::incUnrecognizedKeys(int inc)
 {
 static unsigned long unrecognizedKeys = 0;
 	if ( inc < 0 ) {
@@ -902,13 +902,13 @@ static unsigned long unrecognizedKeys = 0;
 }
 
 void
-YamlState::resetUnrecognizedKeys()
+SYamlState::resetUnrecognizedKeys()
 {
 	incUnrecognizedKeys( -1 );
 }
 
 unsigned long
-YamlState::getUnrecognizedKeys()
+SYamlState::getUnrecognizedKeys()
 {
 #ifdef CPSW_YAML_DEBUG
 	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
@@ -919,7 +919,7 @@ YamlState::getUnrecognizedKeys()
 }
 
 unsigned long
-YamlState::incUnrecognizedKeys()
+SYamlState::incUnrecognizedKeys()
 {
 	return incUnrecognizedKeys( 1 );
 }

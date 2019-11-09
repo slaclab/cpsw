@@ -113,8 +113,8 @@ CSequenceCommandImpl::parseItems( YamlState *seq_node )
 {
 unsigned i;
 
-	for ( i = 0; i < seq_node->n.size(); ++i ) {
-		YamlState item_node( seq_node, i );
+	for ( i = 0; i < seq_node->size(); ++i ) {
+		YamlState   item_node( seq_node, i );
 		std::string entry;
 		uint64_t    value;
 
@@ -132,30 +132,30 @@ CSequenceCommandImpl::CSequenceCommandImpl(Key &key, YamlState &node)
 {
 YamlState seq_node( &node, YAML_KEY_sequence );
 
-	if ( ! seq_node.n ) {
+	if ( ! seq_node ) {
 		throw ConfigurationError( std::string( getName() ) + ": no sequence found" );
 	} 
-	if ( ! seq_node.n.IsSequence() ) {
+	if ( ! seq_node.IsSequence() ) {
 		throw ConfigurationError( std::string( getName() ) + ": YAML node not a sequence" );
 	}
 
 	YamlState enum_node( &node, YAML_KEY_enums );
 
-	if ( enum_node.n ) {
+	if ( enum_node ) {
 		enums_ = IMutableEnum::create( enum_node );
 	}
 
 	index_.push_back( 0 );
 
-	if ( 0 == seq_node.n.size() ) {
+	if ( 0 == seq_node.size() ) {
 		throw ConfigurationError( std::string(getName()) + ": sequence is empty" );
 	}
 
-	for ( unsigned i = 0; i < seq_node.n.size(); ++i ) {
+	for ( unsigned i = 0; i < seq_node.size(); ++i ) {
 
-		YamlState item_node( &seq_node, i );
+		SYamlState item_node( &seq_node, i );
 
-		if ( ! item_node.n.IsSequence() ) {
+		if ( ! item_node.IsSequence() ) {
 			// item_node *is* a map but we are not using it; instead,
 			// 'parseItems' creates a new one.
 			// Dispose of the unused keys in 'item_node'
