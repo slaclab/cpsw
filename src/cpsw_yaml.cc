@@ -413,6 +413,16 @@ public:
 			} else {
 				if ( ! d_->getChild( k.c_str() ) && 0 == not_instantiated_.count( k ) ) {
 					YamlState child( pnode, k.c_str(), v );
+
+					if ( ! child.IsMap() ) {
+						throw   InvalidArgError( std::string("child '")
+								+ child.getName()
+								+ std::string("' in: ")
+								+ pnode->toString()
+								+ std::string(" is not a Map")
+								);
+					}
+
 #ifdef CPSW_YAML_DEBUG
 					if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
 						fprintf( CPSW::fDbg(), "AddChildrenVisitor: trying to make child %s\n", k.c_str());
@@ -430,6 +440,16 @@ public:
 
 						YamlState child_address( &child, YAML_KEY_at );
 						if ( child_address ) {
+
+							if ( ! child_address.IsMap() ) {
+								throw   InvalidArgError( std::string("property '")
+										+ YAML_KEY_at
+										+ std::string("' in: ")
+										+ child.toString()
+										+ std::string(" is not a Map")
+										);
+							}
+
 							d_->addAtAddress( c, child_address );
 						} else {
 							not_instantiated_.insert( k );
@@ -473,6 +493,16 @@ AddChildrenVisitor  visitor( &d, getRegistry() );
 #endif
 
 	if ( children ) {
+
+		if ( ! children.IsMap() ) {
+			throw   InvalidArgError( std::string("property '")
+				  + std::string(YAML_KEY_children)
+				  + std::string("' in: ")
+				  + node.toString()
+				  + std::string(" is not a Map")
+				    );
+		}
+
 #ifdef CPSW_YAML_DEBUG
 		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_BUILD) ) {
 			fprintf( CPSW::fDbg(), "Adding immediate children to %s\n", d.getName());
@@ -547,10 +577,14 @@ loadYaml(YamlPreprocessor *preprocessor, StreamMuxBuf *muxer, bool resolveMergeK
 		return rootNode;
 
 	} catch (YAML::Exception &err) {
-		// line number is 1-based; but our calculations are zero-based.
-		unsigned line = err.mark.line - muxer->getOtherScopeLines() + 1;
+		// Unfortunately, yaml-cpp line context info (err.mark.line) is not directly related
+		// to the state of the input stream. yaml-cpp might have read-ahead and buffered
+		// content etc...
+		// Also note that yaml-cpp's line number marks *preprocessed* YAML and does not
+		// (necessarily) correlate with a line number in a file that contains #include
+		// and other directives.
 		fprintf( CPSW::fErr(), "ERROR: %s\n", err.what());
-		fprintf( CPSW::fErr(), "Current file: %s: %u\n", muxer->getFileName(), line);
+		fprintf( CPSW::fErr(), "(Note that line number refers to *preprocessed* YAML)\n");
 		throw;
 	}
 }
@@ -574,7 +608,6 @@ public:
 YAML::Node
 CYamlFieldFactoryBase::loadPreprocessedYaml(std::istream &top, const char *yaml_dir, bool resolveMergeKeys)
 {
-StreamMuxBuf         muxer;
 StreamMuxBuf::Stream top_stream( &top, NoOpDeletor() );
 	return loadPreprocessedYamlStream( top_stream, yaml_dir, resolveMergeKeys );
 }
