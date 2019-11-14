@@ -34,6 +34,7 @@ class IField;
 class CEntryImpl;
 class FKey;
 class IDev;
+class CYamlNode;
 
 
 typedef shared_ptr<IField>     Field;
@@ -44,6 +45,9 @@ namespace YAML {
 	class PNode;
 };
 
+// Do not expose the YAML implementation (yaml-cpp) so we
+// could switch to a different library if needed...
+typedef shared_ptr<CYamlNode>   YamlNode;
 typedef const struct SYamlState YamlState;
 
 struct StrCmp {
@@ -474,16 +478,30 @@ namespace IYamlSupport {
 
 	// Load YAML but do not start I/O
 	Dev  buildHierarchy(const char *yaml_name,
-	                    const char *root_name  = "root", // compatibility with IPath::loadYamlFile
-	                    const char *yaml_dir   = 0,
-	                    IYamlFixup *fixup      = 0);
+	                    const char *root_name        = "root", // compatibility with IPath::loadYamlFile
+	                    const char *yaml_dir         = 0,
+	                    IYamlFixup *fixup            = 0,
+	                    bool        resolveMergeKeys = true);
 
 	Dev  buildHierarchy(std::istream &in,
-	                    const char *root_name  = 0,      // compatibility with IPath::loadYamlFile
-	                    const char *yaml_dir   = 0,
-	                    IYamlFixup *fixup      = 0);
+	                    const char *root_name        = 0,      // compatibility with IPath::loadYamlFile
+	                    const char *yaml_dir         = 0,
+	                    IYamlFixup *fixup            = 0,
+	                    bool        resolveMergeKeys = true);
+
+	// Just load YAML from stream (which is assumed to be pre-processed)
+	YamlNode loadYaml(std::istream &in);
+
+	void     setSchemaVersion(YamlNode yaml, int maj = -1, int min = -1, int rev = -1);
+
+	Dev  buildHierarchy(YamlNode    yaml,
+	                    const char *root_name        = 0,      // compatibility with IPath::loadYamlFile
+	                    IYamlFixup *fixup            = 0,
+	                    bool        resolveMergeKeys = true);
 
 	Path startHierarchy(Dev);
+
+	void resolveMergeKeys(YamlNode);
 
 	// return the number of unrecognized/unsupported YAML keys
 	// found when the (last) hierarchy was built.

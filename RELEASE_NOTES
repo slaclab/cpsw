@@ -1,3 +1,6 @@
+    cpsw_yaml rework: provide more context in error messages;
+    track unrecognized/unused YAML keys. Revamped cpsw_ypp.
+
     yaml_cpp python wrapper: added YAML::Node::size()
 
     Support loading YAML and building hierarchy without starting I/O.

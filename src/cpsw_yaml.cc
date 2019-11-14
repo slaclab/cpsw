@@ -41,8 +41,17 @@ using cpsw::unordered_set;
 using YAML::PNode;
 using YAML::Node;
 
+// thin wrapper around YAML::Node just for hiding the implementation
+class CYamlNode : public YAML::Node {
+public:
+	CYamlNode( const YAML::Node & n )
+	: YAML::Node(n)
+	{
+	}
+};
+
 #define CPSW_YAML_DEBUG_TRACK   (1<<0) /* track unused keys */
-//#define CPSW_YAML_DEBUG_TRACKER (1<<8)
+#define CPSW_YAML_DEBUG_TRACKER (1<<8)
 #define CPSW_YAML_DEBUG_BUILD   (1<<9)
 
 #define CPSW_YAML_DEBUG 0
@@ -138,6 +147,19 @@ static Node fixInvalidNode(const Node &n)
 	// if operator!() returns 'true' then make sure
 	// a proper 'undefined' node is used.
 	return n ? n : Node( YAML::NodeType::Undefined );
+}
+
+static std::string toStr( int i, int w = 6 )
+{
+char buf[16 + w];
+	::snprintf(buf, sizeof(buf), "%*i", w, i);
+	return std::string( buf );
+}
+
+static std::string yamlHere(const YAML::Node &n)
+{
+YAML::Mark here( n.Mark() );
+	return std::string(" (line: ") + toStr( here.line ) + ", col: " + toStr( here.column ) + ")";
 }
 
 // Construct a PNode by map lookup while remembering
@@ -353,6 +375,7 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 		throw   NotFoundError( std::string("No property '")
 			  + std::string(YAML_KEY_class)
 			  + std::string("' in: ") + node.toString()
+		      + yamlHere( node )
 			    );
 	} else {
 		if( class_node.IsSequence() ) {
@@ -367,6 +390,7 @@ CYamlTypeRegistry<T>::extractClassName(std::vector<std::string> *svec_p, YamlSta
 				  + std::string("' in: ")
 				  + node.toString()
 				  + std::string(" is not a Sequence nor Scalar")
+				  + yamlHere( class_node )
 				    );
 		}
 	}
@@ -409,7 +433,10 @@ public:
 			// skip merge node! But remember it and follow downstream
 			// after all other children are handled.
 			if ( 0 == k.compare( cpsw::YAML_MERGE_KEY_PATTERN ) ) {
-				throw ConfigurationError("YAML still contains merge key!");
+				throw ConfigurationError(
+				          std::string( "YAML still contains merge key!" )
+				        + yamlHere( it->first )
+				      );
 			} else {
 				if ( ! d_->getChild( k.c_str() ) && 0 == not_instantiated_.count( k ) ) {
 					YamlState child( pnode, k.c_str(), v );
@@ -420,6 +447,7 @@ public:
 								+ std::string("' in: ")
 								+ pnode->toString()
 								+ std::string(" is not a Map")
+								+ yamlHere( child )
 								);
 					}
 
@@ -447,6 +475,7 @@ public:
 										+ std::string("' in: ")
 										+ child.toString()
 										+ std::string(" is not a Map")
+								        + yamlHere( child_address )
 										);
 							}
 
@@ -455,7 +484,9 @@ public:
 							not_instantiated_.insert( k );
 							std::string errmsg =   std::string("Child '")
 								+ child.toString()
-								+ std::string("' found but missing '" YAML_KEY_at "' key");
+								+ std::string("' found but missing '" YAML_KEY_at "' key"
+								+ yamlHere( child )
+							);
 							throw InvalidArgError(errmsg);
 						}
 					} else {
@@ -500,6 +531,7 @@ AddChildrenVisitor  visitor( &d, getRegistry() );
 				  + std::string("' in: ")
 				  + node.toString()
 				  + std::string(" is not a Map")
+			      + yamlHere( children )
 				    );
 		}
 
@@ -510,6 +542,11 @@ AddChildrenVisitor  visitor( &d, getRegistry() );
 #endif
 		// handle the 'children' node itself
 		visitor.visit( &children );
+	} else {
+		fprintf( CPSW::fErr(), "Warning: no '%s' property in: %s%s",
+		         YAML_KEY_children,
+		         node.toString().c_str(),
+		         yamlHere( node ).c_str() );
 	}
 
 #ifdef CPSW_YAML_DEBUG
@@ -545,14 +582,35 @@ YAML::Node versNode( node[ YAML_KEY_schemaVersionMajor ] );
 	return dynamic_pointer_cast<Dev::element_type>( getFieldRegistry_()->makeItem( root ) );
 }
 
+static void
+setSchemaVersion( YAML::Node & rootNode, int maj, int min, int rev )
+{
+	if ( maj < 0 ) {
+		// no #schemaversion present; could be a config file...
+		return;
+	}
+
+	if ( maj >= 0 ) {
+		rootNode[ YAML_KEY_schemaVersionMajor ] = maj;
+	}
+
+	if ( min >= 0 ) {
+		rootNode[ YAML_KEY_schemaVersionMinor ] = min;
+	}
+
+	if ( rev >= 0 ) {
+		rootNode[ YAML_KEY_schemaVersionRevision ] = rev;
+	}
+}
+
 static YAML::Node
 loadYaml(YamlPreprocessor *preprocessor, StreamMuxBuf *muxer, bool resolveMergeKeys)
 {
+	preprocessor->process();
+
+	std::istream top_preprocessed_stream( muxer );
+
 	try {
-
-		preprocessor->process();
-
-		std::istream top_preprocessed_stream( muxer );
 
 		YAML::Node rootNode( YAML::Load( top_preprocessed_stream ) );
 
@@ -560,19 +618,10 @@ loadYaml(YamlPreprocessor *preprocessor, StreamMuxBuf *muxer, bool resolveMergeK
 			cpsw::resolveMergeKeys( rootNode );
 		}
 
-		int vers;
-		if ( (vers = preprocessor->getSchemaVersionMajor()) >= 0 ) {
-			rootNode[ YAML_KEY_schemaVersionMajor ] = vers;
-		}
-
-		if ( (vers = preprocessor->getSchemaVersionMinor()) >= 0 ) {
-			rootNode[ YAML_KEY_schemaVersionMinor ] = vers;
-		}
-
-		if ( (vers = preprocessor->getSchemaVersionRevision()) >= 0 ) {
-			rootNode[ YAML_KEY_schemaVersionRevision ] = vers;
-		}
-
+		::setSchemaVersion( rootNode,
+		                    preprocessor->getSchemaVersionMajor(),
+		                    preprocessor->getSchemaVersionMinor(),
+		                    preprocessor->getSchemaVersionRevision() );
 
 		return rootNode;
 
@@ -708,18 +757,13 @@ DECLARE_YAML_FIELD_FACTORY(NetIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(SequenceCommandImpl);
 
 Dev
-IYamlSupport::buildHierarchy(const char *file_name, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
+IYamlSupport::buildHierarchy(const char *file_name, const char *root_name, const char *yaml_dir, IYamlFixup *fixup, bool resolveMergeKeys)
 {
 	YamlState::resetUnrecognizedKeys();
 
-	YAML::Node top( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name, yaml_dir ) );
+	YamlNode top = cpsw::make_shared<YamlNode::element_type>( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name, yaml_dir, resolveMergeKeys ) );
 
-	if ( fixup ) {
-		YAML::Node root( root_name ? YAML::NodeFind( top, root_name ) : top );
-		(*fixup)( root, top );
-	}
-
-	return CYamlFieldFactoryBase::dispatchMakeField( top, root_name );
+	return buildHierarchy( top, root_name, fixup, false ); /* merge keys already resolved */
 }
 
 Path
@@ -739,16 +783,33 @@ IYamlSupport::startHierarchy(Dev rootHub)
 }
 
 Dev
-IYamlSupport::buildHierarchy(std::istream &in, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
+IYamlSupport::buildHierarchy(std::istream &in, const char *root_name, const char *yaml_dir, IYamlFixup *fixup, bool resolveMergeKeys)
 {
 	YamlState::resetUnrecognizedKeys();
 
-	YAML::Node top( CYamlFieldFactoryBase::loadPreprocessedYaml( in, yaml_dir ) );
+	YamlNode top = cpsw::make_shared<YamlNode::element_type>( CYamlFieldFactoryBase::loadPreprocessedYaml( in, yaml_dir, resolveMergeKeys ) );
+
+	return buildHierarchy( top, root_name, fixup, false ); /* merge keys already resolved */
+}
+
+YamlNode
+IYamlSupport::loadYaml(std::istream &in)
+{
+	return cpsw::make_shared<YamlNode::element_type>( YAML::Load( in ) );
+}
+
+Dev
+IYamlSupport::buildHierarchy(YamlNode topp, const char *root_name, IYamlFixup *fixup, bool resolveMergeKeys)
+{
+YAML::Node &top( *topp );
+
+	if ( resolveMergeKeys ) {
+		cpsw::resolveMergeKeys( top );
+	}
 	if ( fixup ) {
 		YAML::Node root( root_name ? YAML::NodeFind( top, root_name ) : top );
 		(*fixup)( root, top );
 	}
-
 	return CYamlFieldFactoryBase::dispatchMakeField( top, root_name );
 }
 
@@ -877,10 +938,31 @@ SYamlState::initSieve() const
 				fprintf( CPSW::fDbg(), "Inserting %s/%s\n", toString().c_str(), it->first.Scalar().c_str());
 			}
 #endif
-			unusedKeys.insert( it->first.Scalar().c_str() );
+			unusedKeys.insert( UnusedKey( it->first ) );
 		}
 	}
 #endif
+}
+
+SYamlState::UnusedKey::UnusedKey( const YAML::Node & k )
+: name_( k.Scalar().c_str() )
+{
+YAML::Mark here( k.Mark() );
+	line_ = here.line;
+	col_  = here.column;
+}
+
+SYamlState::UnusedKey::UnusedKey( const char *k )
+: name_( k  ),
+  line_( -1 ),
+  col_ ( -1 )
+{
+}
+
+int
+SYamlState::UnusedKeyCmp::operator()( const UnusedKey &a, const UnusedKey &b ) const
+{
+	return ::strcmp( a.getName(), b.getName() ) < 0;
 }
 
 void
@@ -890,10 +972,11 @@ SYamlState::keySeen(const char *k) const
 	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
 #ifdef CPSW_YAML_DEBUG_TRACKER
 		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACKER) ) {
-			fprintf( CPSW::fDbg(), "Erasing %s/%s\n", n.toString().c_str(), k);
+			fprintf( CPSW::fDbg(), "Erasing %s/%s\n", toString().c_str(), k);
 		}
 #endif
-		unusedKeys.erase( k );
+		UnusedKey uk( k );
+		unusedKeys.erase( uk );
 	}
 #endif
 }
@@ -903,10 +986,18 @@ SYamlState::~SYamlState()
 #ifdef CPSW_YAML_DEBUG
 	if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACK) ) {
 	YamlState::Set::const_iterator it;	
+#ifdef CPSW_YAML_DEBUG_TRACKER
+		if ( (cpsw_yaml_debug & CPSW_YAML_DEBUG_TRACKER) ) {
+			fprintf( CPSW::fDbg(),"destroySieve from %s\n", toString().c_str() );
+		}
+#endif
 		for ( it = unusedKeys.begin(); it != unusedKeys.end(); ++it ) {
-			std::string s = toString() + std::string("/") + *it;
+			std::string s =   toString() + std::string("/") + it->getName();
 			incUnrecognizedKeys();
-			fprintf( CPSW::fErr(), "Warning -- unused YAML key: %s\n", s.c_str() );
+			fprintf( CPSW::fErr(), "Warning -- unused YAML key (line %6i, col %2i): %s\n",
+			                       it->getLine(),
+			                       it->getColumn(),
+			                       s.c_str() );
 		}
 	}
 #endif
@@ -955,4 +1046,16 @@ unsigned long
 SYamlState::incUnrecognizedKeys()
 {
 	return incUnrecognizedKeys( 1 );
+}
+
+void
+IYamlSupport::resolveMergeKeys( YamlNode n )
+{
+	cpsw::resolveMergeKeys( *n );
+}
+
+void
+IYamlSupport::setSchemaVersion( YamlNode n, int maj, int min, int rev )
+{
+	::setSchemaVersion( *n, maj, min, rev );
 }

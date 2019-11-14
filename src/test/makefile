@@ -115,15 +115,20 @@ cpsw_aligned_mmio_tst_SRCS= cpsw_aligned_mmio_tst.cc
 cpsw_aligned_mmio_tst_LIBS= $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_aligned_mmio_tst
 
+
 cpsw_yaml_keytrack_tst_SRCS= cpsw_yaml_keytrack_tst.cc
 cpsw_yaml_keytrack_tst_LIBS= $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_yaml_keytrack_tst
+#DISABLED_TESTPROGRAMS     += cpsw_yaml_keytrack_tst
+
+TESTPROGRAMS              += cpsw_yaml_keytrack.sh_tst
+cpsw_yaml_keytrack_sh_tst_LIBS=$(cpsw_yaml_keytrack_tst_LIBS)
 
 
 TEST_AXIV_YES=
 TEST_AXIV_NO =cpsw_axiv_udp_tst
 TEST_AXIV    =NO
-DISABLED_TESTPROGRAMS=$(TEST_AXIV_$(TEST_AXIV))
+DISABLED_TESTPROGRAMS     += $(TEST_AXIV_$(TEST_AXIV))
 
 PROGRAMS = udpsrv
 include $(CPSW_DIR)/rules.mak
@@ -180,10 +185,6 @@ cpsw_command_tst_run:   RUN_OPTS='-y cpsw_command_tst.yaml' '-Y cpsw_command_tst
 
 rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
 
-cpsw_yaml_keytrack_tst_run: cpsw_yaml_keytrack_tst
-	if ./$^ 2>&1 > /dev/null | grep -v 'Warning.*Junk$$' ; then \
-		echo "TEST $^ FAILED; unexpected keys found"; \
-		exit 1; \
-	fi
+cpsw_yaml_keytrack.sh_tst_run: cpsw_yaml_keytrack_tst
 
 #cpsw_netio_tst: udpsrv

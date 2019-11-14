@@ -166,6 +166,9 @@ public:
 
 	// process the main stream, recursively processing
 	// included files
+	// If 'appendSchemaVersion' is 'true' then the schema versions
+	// are added as YAML nodes in the top-level map.
 	virtual void process();
+
 };
 #endif

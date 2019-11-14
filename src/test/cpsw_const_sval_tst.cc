@@ -23,7 +23,7 @@ static const char *yaml=
 "    mmio:\n"
 "      " YAML_KEY_class ": MMIODev\n"
 "      " YAML_KEY_size ":  0x2000\n"
-"      " YAML_KEY_at ":\n"
+"      " YAML_KEY_at ": {}\n"
 "      " YAML_KEY_children ":\n"
 "        cStr:\n"
 "          " YAML_KEY_class ": ConstIntField\n"

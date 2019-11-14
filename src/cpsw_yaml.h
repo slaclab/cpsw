@@ -72,6 +72,26 @@ namespace YAML {
 
 // !!NOT thread safe!!
 struct SYamlState : public YAML::PNode {
+
+public:
+	class UnusedKey {
+	private:
+		const char *name_;
+		int         line_;
+		int         col_;
+	public:
+		UnusedKey(const YAML::Node &key);
+		UnusedKey(const char *k);
+		
+		const char * getName()   const { return name_; }
+		int          getLine()   const { return line_; }
+		int          getColumn() const { return col_;  }
+	};
+
+	struct UnusedKeyCmp {
+		int operator()(const UnusedKey &a, const UnusedKey &b) const;
+	};
+
 private:
 	// -1 resets
 	static unsigned long incUnrecognizedKeys(int op);
@@ -79,7 +99,7 @@ private:
 	SYamlState(const SYamlState &orig);
 	SYamlState &operator=(const SYamlState *);
 
-	typedef std::set<const char *, StrCmp> Set;
+	typedef std::set<UnusedKey, UnusedKeyCmp> Set;
 
 	mutable Set unusedKeys;
 

@@ -1,0 +1,7 @@
+#!/bin/sh
+echo "SHELLO $LD_LIBRARY_PATH"
+TESTPROG=cpsw_yaml_keytrack_tst
+if ./$TESTPROG 2>&1 > /dev/null | grep -v 'Warning.*Junk$' ; then \
+	echo "TEST $TESTPROG FAILED; unexpected keys found"; \
+	exit 1; \
+fi

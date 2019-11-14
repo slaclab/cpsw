@@ -10,6 +10,7 @@
 
 #include <cpsw_api_builder.h>
 #include <cpsw_preproc.h>
+#include <cpsw_yaml_keydefs.h>
 #include <cpsw_stdio.h>
 
 #include <iostream>
@@ -226,6 +227,15 @@ std::pair< Map::iterator, bool > ret = tags_.insert( key );
 	return ! ret.second;
 }
 
+// pre c++11 doesn't have to_string :-(
+static std::string
+tostr(int n)
+{
+char hlbuf[30];
+	snprintf(hlbuf, sizeof(hlbuf), "%d", n);
+	return std::string( hlbuf );
+}
+
 void
 YamlPreprocessor::process(StreamMuxBuf::Stream current, const std::string &name)
 {
@@ -239,12 +249,11 @@ unsigned headerLines = 0;
 		std::string line;
 		std::getline(*current, line );
 		bool onceHasNoTag;
-		// pre c++11 doesn't have to_string :-(
-		char hlbuf[30];
-		snprintf(hlbuf, sizeof(hlbuf), "%d", headerLines);
+
+		std::string hl( tostr( headerLines ) );
 
 		if ( verbose_ ) {
-			mux_->pushbuf( StreamMuxBuf::mkstrm( std::string("##(") + std::string(hlbuf) + std::string(") ") + line + std::string("\n") ), &name, headerLines );
+			mux_->pushbuf( StreamMuxBuf::mkstrm( std::string("##(") + hl + std::string(") ") + line + std::string("\n") ), &name, headerLines );
 		}
 
 		headerLines++;
@@ -260,7 +269,7 @@ unsigned headerLines = 0;
 			}
 
 			if ( onceHasNoTag ) {
-				CPSW::sErr() << "WARNING: (YamlPreprocessor) #once line lacks a 'tag' -- in : " + name + " (will use filename for now but future version escalates to ERROR) \n";
+				CPSW::sErr() << "WARNING: (YamlPreprocessor) #once line lacks a 'tag' -- in : " + name + " (will use filename for now but future version may escalate to ERROR) \n";
 //				MissingOnceTagError e("YamlPreprocessor: #once line lacks a 'tag' -- in: ");
 //				e.append( name );
 //				throw e;
@@ -353,3 +362,4 @@ YamlPreprocessor::process()
 {
 	process( main_, mainName_ );
 }
+
