@@ -66,7 +66,7 @@ multi-%: generate_srcs multi-subdir-% multi-arch-% multi-postsubdir-%
 # convert '.' and '-' in a name to '_' since the former must not
 # be present in a gnu-make variable name.
 define nam2varnam
-$(subst .,_,$(subst -,_,$(1)))
+$(subst .,_,$(subst -,_,$(notdir $(1))))
 endef
 
 # 'sub-x$(TSEP)y' builds target 'y' for architecture 'x'
@@ -233,12 +233,18 @@ $(2)_LDFLAGS_$$(TARNM) ?= $$($(2)_LDFLAGS_default)
 
 endef
 
+define SCRIPT_template
+$(2)_LIBS_WITH_PATH=$$(foreach lib,$$($(2)_LIBS),$$(call findlib,$$(lib)))
+endef
+
 BINTGTS=$(PROGRAMS) $(TESTPROGRAMS) $(SHARED_OBJS)
 
 TGTS+=$(BINTGTS)
 
 # Expand the template for all program (and testprogram) targets
 $(foreach bin,$(BINTGTS),$(eval $(call PROG_template,$(bin),$(call nam2varnam,$(bin)))))
+# Expand the template for all test-script targets
+$(foreach scr,$(TESTSCRIPTS),$(eval $(call SCRIPT_template,$(scr),$(call nam2varnam,$(scr)))))
 
 $(BINTGTS):OBJS=$($(call nam2varnam,$@)_OBJS)
 $(BINTGTS):LIBS=$($(call nam2varnam,$@)_LIBS)
@@ -256,7 +262,7 @@ $(BINTGTS): $(STATIC_LIBRARIES:%=lib%.a) $(SHARED_LIBRARIES:%=lib%.so)
 
 build: $(TGTS)
 
-run_tests: $(addsuffix _run,$(FILTERED_TBINS))
+run_tests: $(addsuffix _run,$(FILTERED_TBINS) $(FILTERED_TSCRS))
 	@echo "ALL TESTS PASSED"
 
 define make_ldlib_path
@@ -274,10 +280,12 @@ endef
 endif
 
 
-$(addsuffix _run,$(FILTERED_TBINS)):%_run: %
+$(addsuffix _run,$(FILTERED_TBINS) $(FILTERED_TSCRS)):%_run: %
+	@echo "DEPS $^"
 	@for opt in $(RUN_OPTS) ; do \
-	    echo "Running ./$< $${opt}"; \
-        if ( eval LD_LIBRARY_PATH="$(call make_ldlib_path,$($(call nam2varnam,$(notdir $<))_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) $(call do_run_test,./$<,$${opt}) ) ; then \
+		echo "LDLIBS $(call make_ldlib_path,$($(call nam2varnam,$(notdir $<))_LIBS_WITH_PATH))"; \
+		echo "Running ./$< $${opt}"; \
+        if ( eval LD_LIBRARY_PATH="$(call make_ldlib_path,$($(call nam2varnam,$<)_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) $(call do_run_test,./$<,$${opt}) ) ; then \
 			echo "TEST ./$< $${opt} PASSED" ; \
 		else \
 			echo "TEST ./$< $${opt} FAILED" ; \
@@ -348,7 +356,7 @@ do_install: install_local
 uninstall: uninstall_local
 	@if [ -n "$(INSTALL_DIR)" ] ; then \
 		echo "Uninstalling the following Architectures: $(ARCHES)" ;\
-		rm -rfv $(addprefix $(INSTALL_DIR)/, $(ARCHES)) ;\
+		$(RM) -rfv $(addprefix $(INSTALL_DIR)/, $(ARCHES)) ;\
 	fi
 
 %_git_version_string.h: PKGPRFX=$(addsuffix _,$(shell echo '$(@:%_git_version_string.h=%)' | tr 'a-z.' 'A-Z_'))

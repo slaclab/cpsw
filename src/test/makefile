@@ -115,13 +115,12 @@ cpsw_aligned_mmio_tst_SRCS= cpsw_aligned_mmio_tst.cc
 cpsw_aligned_mmio_tst_LIBS= $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_aligned_mmio_tst
 
-
 cpsw_yaml_keytrack_tst_SRCS= cpsw_yaml_keytrack_tst.cc
 cpsw_yaml_keytrack_tst_LIBS= $(CPSW_LIBS)
 TESTPROGRAMS              += cpsw_yaml_keytrack_tst
-#DISABLED_TESTPROGRAMS     += cpsw_yaml_keytrack_tst
+DISABLED_TESTPROGRAMS     += cpsw_yaml_keytrack_tst
 
-TESTPROGRAMS              += cpsw_yaml_keytrack.sh_tst
+TESTSCRIPTS               += ../cpsw_yaml_keytrack.sh_tst
 cpsw_yaml_keytrack_sh_tst_LIBS=$(cpsw_yaml_keytrack_tst_LIBS)
 
 
@@ -185,6 +184,6 @@ cpsw_command_tst_run:   RUN_OPTS='-y cpsw_command_tst.yaml' '-Y cpsw_command_tst
 
 rssi_tst_run:           RUN_OPTS='-s500' '-n30000 -G2' '-n30000 -L1'
 
-cpsw_yaml_keytrack.sh_tst_run: cpsw_yaml_keytrack_tst
+../cpsw_yaml_keytrack.sh_tst_run: cpsw_yaml_keytrack_tst
 
 #cpsw_netio_tst: udpsrv
