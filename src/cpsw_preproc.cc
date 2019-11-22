@@ -200,7 +200,7 @@ YamlPreprocessor::YamlPreprocessor(const char *main_name, StreamMuxBuf *mux, con
 {
 const char  *sep;
 std::string  main_dir;
-	if ( ! yaml_dir ) {
+	if ( ! yaml_dir || ! *yaml_dir ) {
 		if ( (sep = ::strrchr(main_name,'/')) ) {
 			main_dir = std::string(main_name);
 			main_dir.resize(sep - main_name);

@@ -1,3 +1,5 @@
+    cpsw_preproc: use main yaml directory if yaml_dir is ""
+
     cpsw_yaml rework: provide more context in error messages;
     track unrecognized/unused YAML keys. Revamped cpsw_ypp.
 
