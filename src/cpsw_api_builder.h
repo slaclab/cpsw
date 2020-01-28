@@ -399,9 +399,9 @@ class IIntField: public virtual IField {
 public:
 	// Introduce IIntField::Mode for BWDs compatibiliy
     typedef IVal_Base::Mode Mode;
-	static const enum IVal_Base::Mode RW = IVal_Base::RW;
-	static const enum IVal_Base::Mode RO = IVal_Base::RO;
-	static const enum IVal_Base::Mode WO = IVal_Base::WO;
+	static const IVal_Base::Mode RW = IVal_Base::RW;
+	static const IVal_Base::Mode RO = IVal_Base::RO;
+	static const IVal_Base::Mode WO = IVal_Base::WO;
 
 	static const uint64_t DFLT_SIZE_BITS = 32;
 	static const bool     DFLT_IS_SIGNED = false;
