@@ -96,7 +96,8 @@ char       *comma;
 uint64_t    start;
 char        buf[256];
 
-	strncpy(buf, sysfs_name_and_off, sizeof(buf));
+	buf[sizeof(buf)-1] = 0;
+	strncpy(buf, sysfs_name_and_off, sizeof(buf) - 1);
 
 	comma = strchr( buf, ',' );
 
@@ -174,7 +175,8 @@ int           mmap_flags = 0;
 		}
 
 		mapsz = st.st_size;
-		strncpy(buf, sysfs_name, sizeof(buf));
+		buf[sizeof(buf)-1] = 0;
+		strncpy(buf, sysfs_name, sizeof(buf) - 1);
 
 	} else if ( strstr(sysfs_name,"/fakedebug/") ) {
 		/* for testing this module */
