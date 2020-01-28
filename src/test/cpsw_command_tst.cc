@@ -229,7 +229,7 @@ Hub root;
 		Command bad = ICommand::create( root->findByName("mmio/bad") );
 		bad->execute();
 		throw TestFailed();
-	} catch (InvalidArgError e) {
+	} catch (InvalidArgError &e) {
 		/* expected */
 	}
 
@@ -254,7 +254,7 @@ Hub root;
 
 	}
 
-} catch (CPSWError e) {
+} catch (CPSWError &e) {
 	fprintf(stderr,"CPSW Error: %s\n", e.getInfo().c_str());
 	throw e;
 }

@@ -173,21 +173,21 @@ try {
 		// No schemaversion should fail
 		Hub h( IPath::loadYamlStream(top00, "root")->origin() );
 		throw TestFailed();
-	} catch (BadSchemaVersionError) {
+	} catch (BadSchemaVersionError &e) {
 	}
 
 	try {
 		// No no version and major should fail
 		Hub h( IPath::loadYamlStream(top03, "root")->origin() );
 		throw TestFailed();
-	} catch (BadSchemaVersionError) {
+	} catch (BadSchemaVersionError &e) {
 	}
 
 	try {
 		// No mismatching major should fail
 		Hub h( IPath::loadYamlStream(top23, "root")->origin() );
 		throw TestFailed();
-	} catch (BadSchemaVersionError) {
+	} catch (BadSchemaVersionError &e) {
 	}
 
 	{

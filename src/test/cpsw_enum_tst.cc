@@ -155,7 +155,7 @@ try {
 
 		throw TestFailed("Conversion should have failed");
 
-	} catch (ConversionError e) {
+	} catch (ConversionError &e) {
 		// expected
 	}
 
@@ -200,10 +200,10 @@ try {
 		throw TestFailed("Unexpected object count (LEAK)\n");
 	}
 
-} catch (CPSWError err) {
+} catch (CPSWError &err) {
 	fprintf(stderr,"Test '%s' FAILED: CPSW Error: %s\n", argv[0], err.getInfo().c_str());
 	return 1;
-} catch (TestFailed err) {
+} catch (TestFailed &err) {
 	fprintf(stderr,"Test '%s' FAILED: %s\n", argv[0], err.msg_.c_str());
 	return 1;
 }

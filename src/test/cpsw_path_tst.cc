@@ -542,7 +542,7 @@ Hub     r  = use_yaml ? build_yaml() : build();
 	test_dotdot_across_root_f8560f57884( build_yaml() );
 
 	printf("leaving\n");
-} catch (CPSWError e ) {
+} catch (CPSWError &e ) {
 	fprintf(stderr, "CPSW Error: %s\n", e.getInfo().c_str());
 	throw;
 }

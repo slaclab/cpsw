@@ -662,7 +662,7 @@ uint64_t    rval = 0;
 					while ( i-- > 0 )
 						p->up();
 
-				} catch ( NotFoundError e ) {
+				} catch ( NotFoundError &e ) {
 					// descendant not found; not a big deal but spit out a warning
 					fprintf( CPSW::fErr(), "WARNING CDevImpl::processYamlConfig(%s) -- unexpected YAML node @line %d, col %d (key %s not found) -- IGNORING\n", job, mrk.line, mrk.column, key.c_str() );
 					child.remove( key );

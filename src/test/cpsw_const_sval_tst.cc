@@ -55,7 +55,7 @@ main(int argc, char **argv)
 		IScalVal_RO::create( dblp );
 		// shouldn't be able to create scalVal
 		throw TestFailed();
-	} catch ( InterfaceNotImplementedError )
+	} catch ( InterfaceNotImplementedError &e )
 	{
 	}
 

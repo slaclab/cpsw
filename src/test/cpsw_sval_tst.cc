@@ -643,10 +643,10 @@ v_be->getPath()->dump(stdout); std::cout << "\n";
 		throw TestFailed("Unexpected object count");
 	}
 
-} catch ( CPSWError e ) {
+} catch ( CPSWError &e ) {
 	fprintf(stderr, "CPSW Error: %s\n", e.getInfo().c_str());
 	throw;
-} catch ( TestFailed e ) {
+} catch ( TestFailed &e ) {
 	fprintf(stderr, "Test failed -- because: %s\n", e.info);
 	throw;
 }

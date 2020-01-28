@@ -92,7 +92,7 @@ if ( cpsw_thread_debug > 0 ) {
 
 	try {
 		rval = me->threadBody();
-	} catch ( CPSWError e ) {
+	} catch ( CPSWError &e ) {
 		
 		fprintf(CPSW::fErr(), "Thread '%s' -- CPSW Error: %s\n", me->getName().c_str(), e.getInfo().c_str());
 		throw;

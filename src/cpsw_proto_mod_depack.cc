@@ -203,7 +203,7 @@ CTimeout del;
 				releaseFrames( true );
 			}
 		}
-	} catch ( IntrError e ) {
+	} catch ( IntrError &e ) {
 		// signal received; terminate...
 	}
 	return NULL;

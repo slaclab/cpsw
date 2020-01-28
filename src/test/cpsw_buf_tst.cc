@@ -211,7 +211,7 @@ try {
 	try {
 		b[1]->split();
 		throw TestFailed("splitting a chain should fail!");
-	} catch (InvalidArgError e) {
+	} catch (InvalidArgError &e) {
 	}
 
 	b[1]->unlink();
@@ -339,10 +339,10 @@ try {
 		throw TestFailed("insert/extract (offset 55, buf NULL) FAILED");
 	}
 
-} catch ( CPSWError e ) {
+} catch ( CPSWError &e ) {
 	fprintf(stderr,"ERROR: %s\n", e.getInfo().c_str());
 	throw;
-} catch ( TestFailed e) {
+} catch ( TestFailed &e) {
 	fprintf(stderr,"TEST FAILED: %s\n", e.e_.c_str());
 	throw;
 }

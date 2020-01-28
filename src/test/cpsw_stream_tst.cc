@@ -225,7 +225,7 @@ printf("Rcvr startup: %s\n", c->strmPath ? c->strmPath->toString().c_str() : "<N
 	sendMsg( strm, STOP(c->chnl), c->depack2 );
 	sendMsg( strm, STOP(c->chnl), c->depack2 );
 
-} catch ( CPSWError e ) {
+} catch ( CPSWError &e ) {
 		fprintf(stderr,"CPSW Error in reader thread (%s): %s\n", c->strmPath->toString().c_str(), e.getInfo().c_str());
 		throw;
 }
@@ -410,7 +410,7 @@ try {
 		ctxt[i].strmPath.reset();
 	}
 
-} catch ( CPSWError e ) {
+} catch ( CPSWError &e ) {
 	fprintf(stderr,"CPSW Error: %s\n", e.getInfo().c_str());
 	throw;
 }

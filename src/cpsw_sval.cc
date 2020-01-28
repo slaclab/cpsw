@@ -1569,7 +1569,7 @@ unsigned nelms, i;
 				// try to fall-back on numerical
 				try {
 					u = n.as<uint64_t>();
-				} catch (YAML::TypedBadConversion<unsigned long>) {
+				} catch (YAML::TypedBadConversion<unsigned long> &ee) {
 					throw e; // throw original error
 				}
 			}
@@ -1599,7 +1599,7 @@ unsigned nelms, i;
 					// try to fall-back on numerical
 					try {
 						valBuf[i].u = YAML::NodeFind(n,i).as<uint64_t>();
-					} catch (YAML::TypedBadConversion<unsigned long>) {
+					} catch (YAML::TypedBadConversion<unsigned long> &ee) {
 						throw e; // throw original error
 					}
 				}

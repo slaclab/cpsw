@@ -196,7 +196,7 @@ IProtoStackBuilder::SRPProtoVersion pvers;
 		check(arr,      0, true );
 
 		
-	} catch ( CPSWError e ) {
+	} catch ( CPSWError &e ) {
 		fprintf(stderr,"CPSW Error caught: %s\n", e.getInfo().c_str());
 		throw e;
 	}
