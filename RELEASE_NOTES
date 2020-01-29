@@ -1,3 +1,6 @@
+    src/makefile: Adding cpsw_stdio.h into list of headers as it needed
+    by cpsw_error.h.
+
 R4.4.0:
 
     config.mak: change default arches to buildroot-2019.08

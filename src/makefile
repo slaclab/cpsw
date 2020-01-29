@@ -21,7 +21,7 @@ POSTBUILD_SUBDIRS+=libTstAux
 POSTBUILD_SUBDIRS+=rssi_bridge
 POSTBUILD_SUBDIRS+=test
 
-HEADERS        += cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h $(SHPTR_DIR_USE_CXX11)cpsw_shared_ptr.h
+HEADERS        += cpsw_api_user.h cpsw_api_builder.h cpsw_api_timeout.h cpsw_error.h cpsw_stdio.h $(SHPTR_DIR_USE_CXX11)cpsw_shared_ptr.h
 DOCS           += doc/README.yamlDefinition.md doc/README.yamlDefinition.html doc/README.configData.html doc/INSTALL.html doc/README.html
 
 GENERATED_SRCS += cpsw_git_version_string.h
