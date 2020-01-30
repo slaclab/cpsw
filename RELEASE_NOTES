@@ -5,13 +5,13 @@ R4.3.1:
 R4.3.0:
 
     Support for a YAML_PATH env-var. This can list multiple
-    directories where to look for YAML files. Useful, e.g., 
+    directories where to look for YAML files. Useful, e.g.,
     to locate files provided by user or globally which do not
     reside in FW directory.
 
     Added IEntry::dump() to python wrapper. Print useful info,
     (in particular about networking in case of the root node).
- 
+
 R4.2.0:
 
     Changed default RSSI retransmission/cumulative-ack timeouts
@@ -83,7 +83,7 @@ R4.0.0:
     have been migrated.
 
     This means that boost is no longer necessary (if c++11 is available).
-    A few headers (lockfree) are still used but can be disabled in 
+    A few headers (lockfree) are still used but can be disabled in
     the configuration file (switch to a native but simple implementation
     which may or may not be less performant).
 
@@ -104,7 +104,7 @@ R3.branch:
 
     BUGFIX: stack overrun in udpsrv
 
-    Feature: cpsw_mem_dev: support 'offset' property when mapping a 
+    Feature: cpsw_mem_dev: support 'offset' property when mapping a
         file descriptor.
 
     Bugfix: Ipath::parent() implementation was wrong; caused segfault.
@@ -193,7 +193,7 @@ R3.branch:
         The RPC service takes care of remapping UDP to TCP
         ports in case multiple bridges are running (connecting
         to different targets).
- 
+
     Feature: NetIODev supports 'socksProxy' property (SOCKS_PROXY env-
         var is also supported) for selecting a proxy.
 
@@ -226,7 +226,7 @@ R3.branch:
     CFreeList now supports allocate_shared() (single allocation
     from free-list)
 
-    Convert IntFields with bitSize > 64 to be converted to 
+    Convert IntFields with bitSize > 64 to be converted to
     (hex) strings without truncating them (when read as CString).
 
     Fixed MTU calculation for RSSI and DEPACK
@@ -320,7 +320,7 @@ R3.7.branch
     Python: Stream.read() has an optional 'offset' argument
     (same as underlying IStream::read())
 
-    MemDev: FIX - read(NULL) means that the user wants to 
+    MemDev: FIX - read(NULL) means that the user wants to
     know if data are available; must return nonzero.
 
     Added support for thread priorities. All internal threads
@@ -328,7 +328,7 @@ R3.7.branch
     a priority (see doc/README.yamlDefinition).
 
     New features: a 'NullDev' which is not backed by anything.
-    Useful for testing/debugging because any YAML hierarchy 
+    Useful for testing/debugging because any YAML hierarchy
     can be loaded w/o need for hardware (or a lot or memory
     as with MemDev that covers a large address space).
 
