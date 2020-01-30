@@ -1,3 +1,10 @@
+R4.3.2:
+
+    config.mak: change default arches to buildroot-2019.08
+
+    cpsw_api_builder.h: Remove enum keyword when using a typedef-ed enum.
+    This was failing with gcc-8.3.0 on builroot-2019.08
+
 R4.3.1:
 
     pycpsw.stamp had not been updated
