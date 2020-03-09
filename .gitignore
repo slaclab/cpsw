@@ -1,9 +1,11 @@
 O.*
 *.local.mak
-git_version_string.h
+src/cpsw_git_version_string.h
 env.slac.sh
 INSTALL.html
 README.html
 README.configData.html
 README.yamlDefinition.md
 README.yamlDefinition.html
+rhel6-x86_64/
+buildroot-*/
