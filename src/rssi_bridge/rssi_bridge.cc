@@ -155,8 +155,10 @@ CMover::threadBody()
 				printf("%s: got %ld bytes\n", getName().c_str(), (long)bc->getSize());
 			}
 #endif
-			while ( bc->getSize() > toMTU_ ) {
-			}
+			// FIXME: figure out why this while loop was needed here. As it is,
+			// it will only enters an infinite loop when the condition is true.
+			//while ( bc->getSize() > toMTU_ ) {
+			//}
 #ifdef RSSI_BR_DEBUG
 			bool st =
 #endif
@@ -239,7 +241,7 @@ Throttler      thrtlr;
 		}
 };
 
-// Implement a TCP connection handler so that we attempt to connect the 
+// Implement a TCP connection handler so that we attempt to connect the
 // UDP side only when contacted from TCP. This way we can always start
 // the bridge on a standard set of ports and leave it to the remote peer
 // to talk to the ones where something is actually listening on the UDP
@@ -477,14 +479,14 @@ try {
 		shared_ptr<Bridge> b = bridges.back();
 
 		PortMap            m;
-		m.reqPort = b->getPeerPort();	
+		m.reqPort = b->getPeerPort();
 		m.actPort = b->getPort();
 		m.flags   = 0;
 		if ( b->useRssi() ) {
 			m.flags |= MAP_PORT_DESC_FLG_RSSI;
 		}
 		portMaps.push_back( m );
-		
+
 		rssiBit <<= 1;
 	}
 
