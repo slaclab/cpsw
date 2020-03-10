@@ -1,3 +1,12 @@
+R4.4.2:
+
+    Update the env.slac.sh.in template to support the new buildroot
+    version 2019.08.
+
+    Add the buildroot-2016.11.1 targets to the list f ARCHES.
+
+    rssi_bridge: remove infinite while loop from the CMover::threadBody().
+
 R4.4.1:
 
     src/makefile: Adding cpsw_stdio.h into list of headers as it needed
