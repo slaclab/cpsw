@@ -1,4 +1,16 @@
-R4.4.2:
+R4.5.0: 
+
+    Includes updates in R4.4.1-1.0.1
+
+    Made IOError exception reporting messages useful.
+
+    - src/cpsw_srp_addr.cc : Prints last timeout and number of retries
+
+    - src/cpsw_sval.h : Added the failing path to getVal functions
+
+
+
+R4.4.2: (Does not include updates in R4.4.1-1.0.1)
 
     Update the env.slac.sh.in template to support the new buildroot
     version 2019.08.
@@ -6,6 +18,24 @@ R4.4.2:
     Add the buildroot-2016.11.1 targets to the list f ARCHES.
 
     rssi_bridge: remove infinite while loop from the CMover::threadBody().
+
+R4.4.1-1.0.1:
+
+    Made BadStatusError exception reporting messages useful.
+
+    - config.mak: Added git tag extraction command and assigning tag to
+      passed to code through marco
+
+    - src/cpsw_api_user.h: Added new API function prototype returning string of
+      current git tag
+
+    - src/cpsw_debug.cc: Added new API function returning string of current
+      git tag
+
+    - src/cpsw_error.h: Added an exception status return method to the class
+
+    - src/cpsw_sval.cc: Capture the exception of SRP bad status error, append
+      the path information and throw the error again.
 
 R4.4.1:
 

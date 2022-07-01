@@ -424,6 +424,7 @@ public:
 	virtual CPSWErrorHdl clone() { return cpsw::make_shared<CPSWError>(*this); }
 	// every subclass MUST implement 'throwMe'
 	virtual void throwMe() { throw *this; }
+	int64_t status() const { return this->status_; }
 	virtual const char *typeName() const { return "BadStatusError"; }
 };
 
