@@ -158,3 +158,7 @@ INSTALL_DIR=$(TOPDIR)
 # as seen from the target differ from the installation paths as
 # seen from the host...
 POSTPROCESS_ENV_SCRIPT_default=true
+
+
+GIT_RELEASE_TAG := "$(shell git describe --abbrev=4 --dirty --always --tags)"
+USR_CPPFLAGS += -DGIT_RELEASE_TAG=\"$(GIT_RELEASE_TAG)\"

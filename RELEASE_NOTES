@@ -1,3 +1,19 @@
+R4.4.1-1.0.1
+
+    config.mak: Added git tag extraction command and assigning tag to
+    passed to code through marco
+
+    src/cpsw_api_user.h: Added new API function prototype returning string of
+    current git tag
+
+    src/cpsw_debug.cc: Added new API function returning string of current
+    git tag
+
+    src/cpsw_error.h: Added an exception status return method to the class
+
+    src/cpsw_sval.cc: Capture the exception of SRP bad status error, append
+    the path information and throw the error again.
+
 R4.4.1:
 
     src/makefile: Adding cpsw_stdio.h into list of headers as it needed
