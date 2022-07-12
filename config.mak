@@ -29,7 +29,6 @@ HARCH=rhel6-x86_64
 # ARCHES += xxx yyy
 
 ARCHES += buildroot-2019.08-x86_64 buildroot-2019.08-i686 buildroot-2019.08-arm
-ARCHES += buildroot-2016.11.1-x86_64 buildroot-2016.11.1-i686 buildroot-2016.11.1-arm
 
 # Next, you need to define prefixes (which may include
 # absolute paths) so that e.g., $(CROSS_xxx)gcc can be

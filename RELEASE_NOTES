@@ -2,6 +2,10 @@ R4.5.0:
 
     Includes updates in R4.4.1-1.0.1
 
+    Removed Buildroot-2016 targets from build.
+
+    Added rhel7-x86_64 to the .gitignore file.
+
     Made IOError exception reporting messages useful.
 
     - src/cpsw_srp_addr.cc : Prints last timeout and number of retries
