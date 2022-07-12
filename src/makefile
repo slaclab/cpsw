@@ -203,10 +203,10 @@ pycpsw_wrap.cc: pycpsw.i cpsw_api_user.h cpsw_swig_python.h
 	swig -python -c++ -o $@ $<
 
 $(addsuffix /,$(SRCDIR))pycpsw.cc: pycpsw.pyx pycpsw.pxd yaml_cpp.pxd cpsw_api_user.h
-	$(call maybe_run_cython,$(CYTHON) --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X language_level=2 -X embedsignature=True $< -o $@)
+	$(call maybe_run_cython,$(CYTHON) --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X language_level=3 -X embedsignature=True $< -o $@)
 
 $(addsuffix /,$(SRCDIR))pyyaml_cpp.cc: yaml_cpp.pyx yaml_cpp.pxd
-	$(call maybe_run_cython,$(CYTHON) --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X language_level=2 -X embedsignature=True $< -o $@)
+	$(call maybe_run_cython,$(CYTHON) --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X language_level=3 -X embedsignature=True $< -o $@)
 
 doc/README.yamlDefinition.md:doc/README.yamlDefinition.in
 	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@

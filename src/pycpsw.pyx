@@ -1,4 +1,4 @@
-# cython: c_string_type=str, c_string_encoding=ascii
+# cython: c_string_type=unicode, c_string_encoding=default
 # ^^^^^^ DO NOT REMOVE THE ABOVE LINE ^^^^^^^
  #@C Copyright Notice
  #@C ================
