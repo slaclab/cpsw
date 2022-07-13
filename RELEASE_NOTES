@@ -1,3 +1,11 @@
+R4.4.1-1.0.2
+
+    Made IOError exception reporting messages useful.
+
+    - src/cpsw_srp_addr.cc : Prints last timeout and number of retries
+
+    - src/cpsw_sval.h : Added the failing path to getVal functions
+
 R4.4.1-1.0.1
 
     config.mak: Added git tag extraction command and assigning tag to
