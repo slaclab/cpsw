@@ -25,7 +25,7 @@
 
 using cpsw::atomic;
 
-#define RSSI_DEBUG 0 // level
+#define RSSI_DEBUG 1  // level
 
 #include <cpsw_debug.h>
 
@@ -69,7 +69,7 @@ protected:
 	virtual void processNulTimeout() = 0;
 public:
 	INulTimer(RssiTimerList *l) : RssiTimer("NUL", l) {}
-	virtual void process() { processNulTimeout(); }
+	virtual void process() { processNulTimeout(); std::cout << "crash_debugging: CPSW NUL timeout proceeded\n";}
 
 };
 
