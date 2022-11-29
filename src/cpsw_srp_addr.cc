@@ -24,7 +24,7 @@
 using cpsw::dynamic_pointer_cast;
 
 //#define SRPADDR_DEBUG 0
-//#define TIMEOUT_DEBUG
+#define TIMEOUT_DEBUG
 
 // SRP (V3) does strange things when we use more than 1024
 // words (2018/8); when we use a few more then a bad SRP
