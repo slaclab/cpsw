@@ -196,23 +196,39 @@ protected:
 	template <typename E> unsigned getVal(E *e, unsigned nelms, IndexRange *r)
 	{
 	SlicedPathIterator it(p_, r);
-		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), &it );
+		try {
+			return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), &it );
+		} catch (const IOError &ex)  {
+			throw IOError((ex.what() + std::string(": ") + p_->toString()).c_str());
+		}
 	}
 
 	template <typename E> unsigned getVal(AsyncIO aio, E *e, unsigned nelms, IndexRange *r)
 	{
 	SlicedPathIterator it(p_, r);
-		return getVal(aio, reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), &it );
+		try {
+			return getVal(aio, reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), &it );
+		} catch (const IOError &ex)  {
+			throw IOError((ex.what() + std::string(": ") + p_->toString()).c_str());
+		}			
 	}
 
 	template <typename E> unsigned getVal(E *e, unsigned nelms, SlicedPathIterator *it)
 	{
-		return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), it );
+		try {
+			return getVal( reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), it );
+		} catch (const IOError &ex)  {
+			throw IOError((ex.what() + std::string(": ") + p_->toString()).c_str());
+		}		
 	}
 
 	template <typename E> unsigned getVal(AsyncIO aio, E *e, unsigned nelms, SlicedPathIterator *it)
 	{
-		return getVal(aio, reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), it );
+		try {
+			return getVal(aio, reinterpret_cast<uint8_t*>(e), nelms, sizeof(E), it );
+		} catch (const IOError &ex)  {
+			throw IOError((ex.what() + std::string(": ") + p_->toString()).c_str());
+		}		
 	}
 
 

@@ -353,11 +353,14 @@ retry:
 		nRetries_++;
 
 	} while ( ++attempt <= retryCnt_ );
-
+	
+	char error[256];
+	sprintf(error,  "No response -- timeout (Retries=%d, Last timeout=%llu)", attempt-1, usrTimeout_.getUs());
+	
 	if ( useDynTimeout_ )
 		dynTimeout_.reset( usrTimeout_ );
-
-	throw IOError("No response -- timeout");
+	
+	throw IOError(error);
 }
 
 
@@ -798,10 +801,13 @@ retry:
 		nRetries_++;
 	} while ( ++attempt <= retryCnt_ );
 
+	char error[256];
+	sprintf(error,  "Too many retries (Retries=%d, Last timeout=%llu)", attempt-1, usrTimeout_.getUs());
+	
 	if ( useDynTimeout_ )
 		dynTimeout_.reset( usrTimeout_ );
 
-	throw IOError("Too many retries");
+	throw IOError(error);
 }
 
 uint64_t CSRPAddressImpl::write(CWriteArgs *args) const

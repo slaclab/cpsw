@@ -1578,10 +1578,30 @@ unsigned nelms, i;
 		}
 		if ( isFloat ) {
 			DoubleVal val = IDoubleVal::create( p );
-			val->setVal( d );
+
+			try {
+				val->setVal( d );
+			}
+			catch (const BadStatusError &ex) {
+				throw BadStatusError( (std::string(__FILE__) + std::string(":") +
+						std::string(__FUNCTION__) + std::string(":") +
+						std::string(BOOST_STRINGIZE(__LINE__)) + std::string("\n") +
+						ex.what() + std::string(": ") + p->toString()).c_str(),
+						ex.status());
+			}
+
 		} else {
 			ScalVal val = IScalVal::create( p );
-			val->setVal( u );
+			try {
+				val->setVal( u );
+			}
+			catch (const BadStatusError &ex) {
+				throw BadStatusError( (std::string(__FILE__) + std::string(":") +
+						std::string(__FUNCTION__) + std::string(":") +
+						std::string(BOOST_STRINGIZE(__LINE__)) + std::string("\n") +
+						ex.what() + std::string(": ") + p->toString()).c_str(),
+						ex.status());
+			}
 		}
 		nelms = nelmsFromPath;
 	} else {
@@ -1611,10 +1631,28 @@ unsigned nelms, i;
 		}
 		if ( isFloat ) {
 			DoubleVal val = IDoubleVal::create( p );
-			val->setVal( &valBuf[0].d, nelms );
+			try {
+				val->setVal( &valBuf[0].d, nelms );
+			}
+			catch (const BadStatusError &ex) {
+				throw BadStatusError( (std::string(__FILE__) + std::string(":") +
+						std::string(__FUNCTION__) + std::string(":") +
+						std::string(BOOST_STRINGIZE(__LINE__)) + std::string("\n") +
+						ex.what() + std::string(": ") + p->toString()).c_str(),
+						ex.status());
+			}
 		} else {
 			ScalVal val = IScalVal::create( p );
-			val->setVal( &valBuf[0].u, nelms );
+			try {
+				val->setVal( &valBuf[0].u, nelms );
+			}
+			catch (const BadStatusError &ex) {
+				throw BadStatusError( (std::string(__FILE__) + std::string(":") +
+						std::string(__FUNCTION__) + std::string(":") +
+						std::string(BOOST_STRINGIZE(__LINE__)) + std::string("\n") +
+						ex.what() + std::string(": ") + p->toString()).c_str(),
+						ex.status());
+			}
 		}
 	}
 	return nelms;

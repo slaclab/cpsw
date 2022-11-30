@@ -910,4 +910,9 @@ const char *getCPSWVersionString();
  */
 int setCPSWVerbosity(const char *component = 0, int value = 0);
 
+
+/*!
+ * Get CPSW release tag sctring.
+ */
+const char * CPSWRealease();
 #endif

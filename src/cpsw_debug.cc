@@ -65,3 +65,9 @@ struct Component *c, *f = 0;
 	}
 	return 0;
 }
+
+
+const char * CPSWRealease()
+{
+	return GIT_RELEASE_TAG;
+}
