@@ -165,6 +165,13 @@ void CSockSd::init(struct sockaddr_in *dest, struct sockaddr_in *me_p, bool nblk
 	}
 #endif
 
+        {
+            int v=0;
+            socklen_t l;
+            ::getsockopt(sd_, SOL_SOCKET, SO_RCVBUF, &v, &l);
+            std::cout<<"cpsw_sock: Receive Buffer Size "<< v <<"\n";
+        }
+
 	if ( ::bind( sd_, (struct sockaddr*)&me_, sizeof(me_)) ) {
 		throw IOError("bind failed ", errno);
 	}
