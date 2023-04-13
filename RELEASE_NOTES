@@ -5,8 +5,8 @@ R4.5.1:
     to a missing qt related shared library (libicui18n.so.) It 
     will now be found in the conda environment.
     
-    - config.mak : Now points to v2.5 of our conda environment. This
-    version is stable and cpsw should not need to be rebuilt even if
+    - config.mak : Now points to v2.4 of our conda environment. This
+    version is stable and cpsw should not need to be rebuilt even when
     we move on to higher versions of the environment.
 
 R4.5.0: 
