@@ -134,7 +134,7 @@ FOUND_BOOST_PY=$(if $(boostlib_DIR),$(if $(wildcard $(boostlib_DIR)/libboost_pyt
 
 #py_DIR_default=/afs/slac/g/lcls/package/python/python2.7.9/$(TARCH)
 #pyinc_DIR_default=$(addsuffix /include/python2.7/,$(py_DIR))
-py_DIR_default=/afs/slac/g/lcls/package/anaconda/envs/python3.8envs/v2.5/
+py_DIR_default=/afs/slac/g/lcls/package/anaconda/envs/python3.8envs/v2.4/$(TARCH)
 pyinc_DIR_default=$(addsuffix /include/python3.8/,$(py_DIR))
 
 # Whether to use C++11 or boost (note that boost is still used internally
