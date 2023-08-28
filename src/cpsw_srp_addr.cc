@@ -355,7 +355,7 @@ retry:
 	} while ( ++attempt <= retryCnt_ );
 	
 	char error[256];
-	sprintf(error,  "No response -- timeout (Retries=%d, Last timeout=%llu)", attempt-1, usrTimeout_.getUs());
+	sprintf(error,  "No response -- timeout (Retries=%d, Last timeout=%lu)", attempt-1, usrTimeout_.getUs());
 	
 	if ( useDynTimeout_ )
 		dynTimeout_.reset( usrTimeout_ );
@@ -802,7 +802,7 @@ retry:
 	} while ( ++attempt <= retryCnt_ );
 
 	char error[256];
-	sprintf(error,  "Too many retries (Retries=%d, Last timeout=%llu)", attempt-1, usrTimeout_.getUs());
+	sprintf(error,  "Too many retries (Retries=%d, Last timeout=%lu)", attempt-1, usrTimeout_.getUs());
 	
 	if ( useDynTimeout_ )
 		dynTimeout_.reset( usrTimeout_ );

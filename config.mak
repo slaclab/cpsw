@@ -148,6 +148,10 @@ USE_CXX11_default=NO
 # This variable can be set for individual target architectures...
 WITH_BOOST_default=YES
 
+# glibc 2.26+ removed RPC support, so a different library must be used for that
+# Generally you will need to enable this option on newer systems
+USE_TIRPC=NO
+
 # Define an install location
 INSTALL_DIR=$(TOPDIR)
 
