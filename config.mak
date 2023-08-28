@@ -148,6 +148,14 @@ USE_CXX11_default=NO
 # This variable can be set for individual target architectures...
 WITH_BOOST_default=YES
 
+# glibc 2.26+ no longer has an RPC library built in, so RPC support must come from libtirpc instead.
+# You may override this setting in your config.local.mak if this conditional doesn't cover all cases where this is needed.
+ifeq ($(HARCH),$(filter $(HARCH),rhel9-x86_64 rhel8-x86_64))
+USE_TIRPC=YES
+else
+USE_TIRPC=NO
+endif
+
 # Define an install location
 INSTALL_DIR=$(TOPDIR)
 
@@ -161,3 +169,4 @@ POSTPROCESS_ENV_SCRIPT_default=true
 
 GIT_RELEASE_TAG := "$(shell git describe --abbrev=4 --dirty --always --tags)"
 USR_CPPFLAGS += -DGIT_RELEASE_TAG=\"$(GIT_RELEASE_TAG)\"
+
