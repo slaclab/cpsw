@@ -698,7 +698,7 @@ CBufChainImpl::~CBufChainImpl()
 {
 	BufImpl b = getTailImpl();
 	if ( b ) {
-		while ( b = b->getPrevImpl() ) {
+		while ( ( b = b->getPrevImpl() ) ) {
 			b->unlinkCheap( Key() );
 		}
 	}
