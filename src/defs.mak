@@ -10,8 +10,10 @@
 # (Default) Definitions for CPSW Makefiles
 
 # host architecture
-HARCH_DEFAULT:=linux-$(shell uname -m)
+include $(CPSW_DIR)/arch-detect.mak
+HARCH_DEFAULT:=$(HOST_ARCH)
 HARCH=$(HARCH_DEFAULT)
+
 # Architectures to build
 ARCHES=$(HARCH)
 
