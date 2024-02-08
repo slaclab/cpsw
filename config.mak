@@ -21,7 +21,7 @@ PACKAGE_TOP=/afs/slac/g/lcls/package
 # you can redefine the name of the host architecture:
 # HARCH = www
 #HARCH=linux-x86_64
-HARCH=rhel6-x86_64
+#HARCH=rhel6-x86_64
 
 # Assuming you also want 'xxx' and 'yyy' then you'd
 # add these to the 'ARCHES' variable:
