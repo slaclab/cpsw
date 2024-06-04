@@ -652,9 +652,10 @@ class CYamlFieldFactoryBase : public IYamlFactoryBase<Field> {
 
 		static YAML::Node loadPreprocessedYaml    (std::istream &,          const char *yaml_dir = 0, bool resolveMergeKeys = true);
 		static YAML::Node loadPreprocessedYaml    (const char *char_stream, const char *yaml_dir = 0, bool resolveMergeKeys = true);
-		static YAML::Node loadPreprocessedYamlFile(const char *file_name,   const char *yaml_dir = 0, bool resolveMergeKeys = true);
-
-		static void dumpClasses(std::ostream &os) { getFieldRegistry_()->dumpClasses( os ); }
+		//static YAML::Node loadPreprocessedYamlFile(const char *file_name,   const char *yaml_dir = 0, bool resolveMergeKeys = true);
+		static YAML::Node loadPreprocessedYamlFile(const char *file_name,   const char *yaml_dir = 0, bool resolveMergeKeys = true, int dumpYamlExcept = 0);
+		
+    static void dumpClasses(std::ostream &os) { getFieldRegistry_()->dumpClasses( os ); }
 };
 
 

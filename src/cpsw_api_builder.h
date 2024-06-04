@@ -479,9 +479,10 @@ namespace IYamlSupport {
 	// Load YAML but do not start I/O
 	Dev  buildHierarchy(const char *yaml_name,
 	                    const char *root_name        = "root", // compatibility with IPath::loadYamlFile
+	                    int         dumpYamlExcept   = 0,
 	                    const char *yaml_dir         = 0,
 	                    IYamlFixup *fixup            = 0,
-	                    bool        resolveMergeKeys = true);
+                      bool        resolveMergeKeys = true);
 
 	Dev  buildHierarchy(std::istream &in,
 	                    const char *root_name        = 0,      // compatibility with IPath::loadYamlFile

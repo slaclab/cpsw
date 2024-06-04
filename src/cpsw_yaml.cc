@@ -603,39 +603,98 @@ setSchemaVersion( YAML::Node & rootNode, int maj, int min, int rev )
 	}
 }
 
+void
+dumpMergedYaml(StreamMuxBuf *muxer)
+{
+  // Dump the merged YAML file in a file
+  std::filebuf filebuffer;
+  filebuffer.open ("merged.yaml",std::ios::out|std::ios::trunc);
+  std::ostream os(&filebuffer);
+  muxer->dump(os);
+  filebuffer.close();
+  std::cout << "Created file merged.yaml and dumped yaml tree contents" << std::endl;
+
+  // Get an input stream to the stream buffer
+  //std::istream top_preprocessed_stream( muxer );
+
+  // Create a merged yaml file to reference when looking for syntax errors 
+  //std::ofstream outfile;
+  //outfile.open("merged.yaml", std::ios::out | std::ios::trunc );
+
+  /*
+  std::streampos pos=top_preprocessed_stream.tellg();
+  int chars = 0;
+  char c = top_preprocessed_stream.get();
+  while (top_preprocessed_stream)
+  {
+      ++chars;
+      outfile << c;
+      c = top_preprocessed_stream.get();
+  }
+  outfile.close();
+  std::cout << "Get bytes total..." << chars << std::endl;
+  while (chars)
+  {
+      top_preprocessed_stream.unget();
+      --chars;
+  }
+  std::cout << "Unget bytes left..." << chars << std::endl;
+  top_preprocessed_stream.clear();
+  top_preprocessed_stream.seekg (pos);
+  */
+
+  //char c = top_preprocessed_stream.get();
+  //while (top_preprocessed_stream)
+  //{
+  //    outfile << c;
+  //    c = top_preprocessed_stream.get();
+  //}
+
+  //outfile.close();
+}
+
 static YAML::Node
-loadYaml(YamlPreprocessor *preprocessor, StreamMuxBuf *muxer, bool resolveMergeKeys)
+loadYaml(YamlPreprocessor *preprocessor, StreamMuxBuf *muxer, bool resolveMergeKeys, int dumpYamlExcept)
 {
 	preprocessor->process();
-
+  
 	std::istream top_preprocessed_stream( muxer );
-
-	try {
-
-		YAML::Node rootNode( YAML::Load( top_preprocessed_stream ) );
-
-		if ( resolveMergeKeys ) {
-			cpsw::resolveMergeKeys( rootNode );
-		}
-
-		::setSchemaVersion( rootNode,
-		                    preprocessor->getSchemaVersionMajor(),
-		                    preprocessor->getSchemaVersionMinor(),
-		                    preprocessor->getSchemaVersionRevision() );
-
-		return rootNode;
-
-	} catch (YAML::Exception &err) {
-		// Unfortunately, yaml-cpp line context info (err.mark.line) is not directly related
-		// to the state of the input stream. yaml-cpp might have read-ahead and buffered
-		// content etc...
-		// Also note that yaml-cpp's line number marks *preprocessed* YAML and does not
-		// (necessarily) correlate with a line number in a file that contains #include
-		// and other directives.
-		fprintf( CPSW::fErr(), "ERROR: %s\n", err.what());
-		fprintf( CPSW::fErr(), "(Note that line number refers to *preprocessed* YAML)\n");
-		throw;
-	}
+ 
+  if (!dumpYamlExcept){
+  
+    try {
+      
+  		YAML::Node rootNode( YAML::Load( top_preprocessed_stream ) );
+  
+  		if ( resolveMergeKeys ) {
+  			cpsw::resolveMergeKeys( rootNode );
+  		}
+  
+  		::setSchemaVersion( rootNode,
+  		                    preprocessor->getSchemaVersionMajor(),
+  		                    preprocessor->getSchemaVersionMinor(),
+  		                    preprocessor->getSchemaVersionRevision() );
+  
+  		return rootNode;
+  
+  	} catch (YAML::Exception &err) {
+  		// Unfortunately, yaml-cpp line context info (err.mark.line) is not directly related
+  		// to the state of the input stream. yaml-cpp might have read-ahead and buffered
+  		// content etc...
+  		// Also note that yaml-cpp's line number marks *preprocessed* YAML and does not
+  		// (necessarily) correlate with a line number in a file that contains #include
+  		// and other directives.
+      fprintf( CPSW::fErr(), "ERROR: %s\n", err.what());
+  		fprintf( CPSW::fErr(), "(Note that line number refers to *preprocessed* YAML)\n");
+  		fprintf( CPSW::fErr(), "(The *preprocessed* YAML content can be found in file merged.yaml)\n");
+  		fprintf( CPSW::fErr(), "(To generate merged.yaml, run cpsw_yaml_xpand with the -D option)\n");
+  		throw;
+  	}
+  }
+  else{
+    dumpMergedYaml(muxer); 
+    exit(EXIT_SUCCESS);
+  }
 }
 
 static YAML::Node
@@ -644,7 +703,7 @@ loadPreprocessedYamlStream(StreamMuxBuf::Stream top_stream, const char *yaml_dir
 StreamMuxBuf         muxer;
 YamlPreprocessor     preprocessor( top_stream, &muxer, yaml_dir );
 
-	return loadYaml( &preprocessor, &muxer, resolveMergeKeys );
+	return loadYaml( &preprocessor, &muxer, resolveMergeKeys, 0 );
 }
 
 class NoOpDeletor {
@@ -671,12 +730,12 @@ std::stringstream sstrm( str );
 }
 
 YAML::Node
-CYamlFieldFactoryBase::loadPreprocessedYamlFile(const char *file_name, const char *yaml_dir, bool resolveMergeKeys)
+CYamlFieldFactoryBase::loadPreprocessedYamlFile(const char *file_name, const char *yaml_dir, bool resolveMergeKeys, int dumpYamlExcept)
 {
 StreamMuxBuf         muxer;
 YamlPreprocessor     preprocessor( file_name, &muxer, yaml_dir );
 
-	return loadYaml( &preprocessor, &muxer, resolveMergeKeys );
+	return loadYaml( &preprocessor, &muxer, resolveMergeKeys, dumpYamlExcept );
 }
 
 void
@@ -757,11 +816,11 @@ DECLARE_YAML_FIELD_FACTORY(NetIODevImpl);
 DECLARE_YAML_FIELD_FACTORY(SequenceCommandImpl);
 
 Dev
-IYamlSupport::buildHierarchy(const char *file_name, const char *root_name, const char *yaml_dir, IYamlFixup *fixup, bool resolveMergeKeys)
+IYamlSupport::buildHierarchy(const char *file_name, const char *root_name, int dumpYamlExcept, const char *yaml_dir, IYamlFixup *fixup, bool resolveMergeKeys)
 {
 	YamlState::resetUnrecognizedKeys();
 
-	YamlNode top = cpsw::make_shared<YamlNode::element_type>( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name, yaml_dir, resolveMergeKeys ) );
+	YamlNode top = cpsw::make_shared<YamlNode::element_type>( CYamlFieldFactoryBase::loadPreprocessedYamlFile( file_name, yaml_dir, resolveMergeKeys, dumpYamlExcept ) );
 
 	return buildHierarchy( top, root_name, fixup, false ); /* merge keys already resolved */
 }
@@ -769,7 +828,7 @@ IYamlSupport::buildHierarchy(const char *file_name, const char *root_name, const
 Path
 IPath::loadYamlFile(const char *file_name, const char *root_name, const char *yaml_dir, IYamlFixup *fixup)
 {
-	Dev rootHub = IYamlSupport::buildHierarchy( file_name, root_name, yaml_dir, fixup );
+	Dev rootHub = IYamlSupport::buildHierarchy( file_name, root_name, 0, yaml_dir, fixup );
 	return IYamlSupport::startHierarchy( rootHub );
 }
 

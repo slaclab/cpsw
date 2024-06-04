@@ -25,6 +25,7 @@ static void usage(const char *nm)
 	fprintf(stderr,"           -r <root_node_name>  : node in input YAML file to use for the root node\n");
 	fprintf(stderr,"           -q                   : don't dump expanded YAML, just load.\n");
 	fprintf(stderr,"           -t                   : track unrecognized YAML keys.\n");
+	fprintf(stderr,"           -D                   : dump merged yaml file to debug yaml errors\n");
 	fprintf(stderr,"  Read YAML from stdin (or -Y file), build hierarchy and dump YAML on stdout\n");
 }
 
@@ -40,7 +41,8 @@ const char *conflnam = 0;
 const char *defflnam = 0;
 int            quiet = 0;
 int            track = 0;
-	while ( (opt = getopt(argc, argv, "hcC:r:L:Y:qt")) > 0 ) {
+int         dumpYaml = 0;
+	while ( (opt = getopt(argc, argv, "hcC:r:L:Y:qtD")) > 0 ) {
 		switch ( opt ) {
 			case 'c':
 				cd = 1;
@@ -74,6 +76,10 @@ int            track = 0;
 				track    = 1;
 			break;
 
+			case 'D':
+				dumpYaml = 1;
+			break;
+
 			case 'Y':
 				defflnam = optarg;
 			break;
@@ -85,7 +91,7 @@ int            track = 0;
 	}
 	try {
 		setCPSWVerbosity( "yaml", track );
-		Dev r( defflnam ? IYamlSupport::buildHierarchy(defflnam, rootname) : IYamlSupport::buildHierarchy(std::cin, rootname) );
+		Dev r( defflnam ? IYamlSupport::buildHierarchy(defflnam, rootname, dumpYaml) : IYamlSupport::buildHierarchy(std::cin, rootname) );
 		Path p;
 
 		if ( conflnam || cd ) {
