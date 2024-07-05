@@ -211,3 +211,11 @@ else
 -include $(TOPDIR)/config.mak
 -include $(TOPDIR)/config.local.mak
 endif
+
+# Configure tirpc includes and linker flags
+ifeq ($(USE_TIRPC),YES)
+CPPFLAGS+=-I/usr/include/tirpc
+CPSW_LIBS+=tirpc
+CPSW_STATIC_LIBS+=tirpc
+LDFLAGS+=-ltirpc
+endif
