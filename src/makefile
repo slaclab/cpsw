@@ -209,7 +209,7 @@ $(addsuffix /,$(SRCDIR))pyyaml_cpp.cc: yaml_cpp.pyx yaml_cpp.pxd
 	$(call maybe_run_cython,$(CYTHON) --cplus $(addprefix -I,$(yaml_cppinc_DIR)) -X language_level=3 -X embedsignature=True $< -o $@)
 
 doc/README.yamlDefinition.md:doc/README.yamlDefinition.in
-	awk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
+	gawk 'BEGIN{ FS="[ \t\"]+" } /\<YAML_KEY_/{ printf("s/%s/%s/g\n", $$2, $$3); }' cpsw_yaml_keydefs.h | sed -f - $< > $@
 	if grep 'YAML_KEY_' $@; then \
 		echo 'ERROR: Some YAML_KEY_ tags not expanded (ill-spelled?)' ; \
 		$(RM) $@ ; \
