@@ -1,0 +1,42 @@
+
+on: ['push']
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        USE_CXX11: ['YES', 'NO']
+        # NOTE: cpsw cython3 is currently busted, so we're only building with boost python bindings for now.
+        WITH_PYCPSW: ['BOOST']
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          # Ensure that we fetch all tags for git describe
+          fetch-depth: 0
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install -y libboost-python-dev libtirpc-dev gcc g++ make cython3 python3.10-dev libyaml-cpp-dev gawk sed git
+      - name: Generate Local Config
+        run: |
+          echo "ARCHES=\$(HARCH)"                            > config.local.mak
+          echo "boostinc_DIR=/usr/include/"                  >> config.local.mak
+          echo "boostlib_DIR=/usr/lib/x86_64-linux-gnu"      >> config.local.mak
+          echo "#yaml_cppinc_DIR=/usr/include/"              >> config.local.mak
+          echo "#yaml_cpplib_DIR=/usr/lib/x86_64-linux-gnu"  >> config.local.mak
+          echo "pyinc_DIR=/usr/include/python3.10"           >> config.local.mak
+          echo "USE_TIRPC=YES"                               >> config.local.mak
+          echo "USE_CXX11_default=${{ matrix.USE_CXX11 }}"   >> config.local.mak
+          echo "WITH_PYCPSW=${{ matrix.WITH_PYCPSW }}"       >> config.local.mak
+          echo "BOOST_PYTHON_LIB_default=boost_python310"    >> config.local.mak
+          echo "CYTHON_default=cython3"                      >> config.local.mak
+      - name: Build and Install
+        run: make && make install
+      - name: Test
+        run: |
+          source env.slac.sh          # Setup the enviroment.
+          udpsrv -S0 -L0 &            # Start udpsrv in the background.
+          make test                   # Run the tests.
+          python3 -c "import pycpsw"  # Test to import the python wrapper.
