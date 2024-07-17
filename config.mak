@@ -168,10 +168,12 @@ WITH_BOOST_default=YES
 
 # glibc 2.26+ no longer has an RPC library built in, so RPC support must come from libtirpc instead.
 # You may override this setting in your config.local.mak if this conditional doesn't cover all cases where this is needed.
-ifeq ($(HARCH),$(filter $(HARCH),rhel9-x86_64 rhel8-x86_64))
+ifdef TARCH
+ifeq ($(TARCH),$(filter $(TARCH),rhel9-x86_64 rhel8-x86_64))
 USE_TIRPC=YES
 else
 USE_TIRPC=NO
+endif
 endif
 
 # Define an install location
