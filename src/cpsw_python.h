@@ -158,19 +158,6 @@ public:
 	{
 	}
 
-#if __cplusplus >= 201103L
-	PyUniqueObj(PyUniqueObj &&orig)
-	: up_( cpsw::move( orig.up_ ) )
-	{
-	}
-
-	PyUniqueObj & operator=(PyUniqueObj &&rhs)
-	{
-		up_ = cpsw::move( rhs.up_ );
-		return *this;
-	}
-#endif
-
 	PyUniqueObj & operator=(PyUniqueObj &rhs)
 	{
 		up_ = cpsw::move( rhs.up_ );

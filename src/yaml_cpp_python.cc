@@ -121,6 +121,6 @@ BOOST_PYTHON_MODULE(yaml_cpp)
 	.value("Map",       YAML::NodeType::Map)
 	;
 
-	def("LoadFile",   &YAML::LoadFile)
+	def("LoadFile",   &YAML::LoadFile);
 	def("emitNode", emitNode);
 }

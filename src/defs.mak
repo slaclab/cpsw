@@ -135,7 +135,7 @@ STATIC_LIBRARIES=$(STATIC_LIBRARIES_$(WITH_STATIC_LIBRARIES))
 SHARED_LIBRARIES=$(SHARED_LIBRARIES_$(WITH_SHARED_LIBRARIES))
 
 # Default values -- DO NOT OVERRIDE HERE but in config.mak or config.local.mak
-BOOST_PYTHON_LIB_default     =boost_python
+BOOST_PYTHON_LIB_default     =boost_python3
 WITH_SHARED_LIBRARIES_default=YES
 WITH_STATIC_LIBRARIES_default=NO
 WITH_PYCPSW_default          =$(or $(and $(pyinc_DIR),$(WITH_SHARED_LIBRARIES),CYTHON),NO)

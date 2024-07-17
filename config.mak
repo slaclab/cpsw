@@ -15,7 +15,25 @@
 # arbitrarily but should not characters besides
 # [0-9][a-z][A-Z][.][-][_]
 
-PACKAGE_TOP=/afs/slac/g/lcls/package
+# Set defaults for PACKAGE_TOP. In S3DF, this should be the same as EPICS_PACKAGE_TOP
+# This may be overridden in config.local.mak
+ifeq ($(PACKAGE_TOP),)
+ifeq ($(EPICS_PACKAGE_TOP),)
+	PACKAGE_TOP=/afs/slac/g/lcls/package
+else
+	PACKAGE_TOP:=$(EPICS_PACKAGE_TOP)
+endif
+endif
+
+# Set a directory for the toolchain location. in S3DF, this is the same as EPICS_PACKAGE_TOP
+# This may be overridden in config.local.mak
+ifeq ($(TOOLCHAINS),)
+ifeq ($(EPICS_PACKAGE_TOP),)
+	TOOLCHAINS:=/afs/slac/package
+else
+	TOOLCHAINS:=$(EPICS_PACKAGE_TOP)
+endif
+endif
 
 # By default the 'host' architecture is built. But
 # you can redefine the name of the host architecture:
@@ -49,7 +67,7 @@ BR_VERSN=$(word 2,$(subst -, ,$(TARCH)))
 BR_TARCH=$(subst zynq,arm,$(word 3,$(subst -, ,$(TARCH))))
 
 # cross compiler path
-BR_CROSS=/afs/slac/package/linuxRT/buildroot-$(BR_VERSN)/host/$(BR_HARCH)/$(BR_TARCH)/usr/bin/$(BR_TARCH)-linux-
+BR_CROSS=$(TOOLCHAINS)/linuxRT/buildroot-$(BR_VERSN)/host/$(BR_HARCH)/$(BR_TARCH)/usr/bin/$(BR_TARCH)-linux-
 
 # map target arch-name into a make variable name
 BR_ARNAMS=$(subst .,_,$(subst -,_,$(filter buildroot-%,$(ARCHES))))
@@ -134,7 +152,7 @@ FOUND_BOOST_PY=$(if $(boostlib_DIR),$(if $(wildcard $(boostlib_DIR)/libboost_pyt
 
 #py_DIR_default=/afs/slac/g/lcls/package/python/python2.7.9/$(TARCH)
 #pyinc_DIR_default=$(addsuffix /include/python2.7/,$(py_DIR))
-py_DIR_default=/afs/slac/g/lcls/package/anaconda/envs/python3.8envs/v2.4/$(TARCH)
+py_DIR_default=$(PACKAGE_TOP)/anaconda/envs/python3.8envs/v2.4/$(TARCH)
 pyinc_DIR_default=$(addsuffix /include/python3.8/,$(py_DIR))
 
 # Whether to use C++11 or boost (note that boost is still used internally
