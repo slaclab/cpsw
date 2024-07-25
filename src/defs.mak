@@ -219,3 +219,8 @@ CPSW_LIBS+=tirpc
 CPSW_STATIC_LIBS+=tirpc
 LDFLAGS+=-ltirpc
 endif
+
+# Check that we have PACKAGE_TOP, otherwise things will fail to build.
+ifeq ($(PACKAGE_TOP),)
+	$(error PACKAGE_TOP or EPICS_PACKAGE_TOP must be provided by your environment, on the command line, or by config.local.mak)
+endif
