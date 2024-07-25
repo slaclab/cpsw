@@ -18,9 +18,7 @@
 # Set defaults for PACKAGE_TOP. In S3DF, this should be the same as EPICS_PACKAGE_TOP
 # This may be overridden in config.local.mak
 ifeq ($(PACKAGE_TOP),)
-ifeq ($(EPICS_PACKAGE_TOP),)
-	PACKAGE_TOP=/afs/slac/g/lcls/package
-else
+ifneq ($(EPICS_PACKAGE_TOP),)
 	PACKAGE_TOP:=$(EPICS_PACKAGE_TOP)
 endif
 endif
