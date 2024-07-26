@@ -366,7 +366,7 @@ public:
 
 		template <typename T> static TransformFunc get()
 		{
-		static T the_instance_( Key( T::getName_() ) );
+		static T the_instance_ = { Key( T::getName_() ) };
 			return &the_instance_;
 		}
 	};

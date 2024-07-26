@@ -62,31 +62,31 @@ public:
 	static const unsigned VERSION_BIT_OFFSET  =  0;
 	static const unsigned VERSION_BIT_SIZE    =  4;
 
-	static const unsigned FRAME_NO_BIT_OFFSET = T::FRAME_NO_BIT_OFFSET;
-	static const unsigned FRAME_NO_BIT_SIZE   = T::FRAME_NO_BIT_SIZE;
-	static const unsigned FRAG_NO_BIT_OFFSET  = T::FRAG_NO_BIT_OFFSET;
-	static const unsigned FRAG_NO_BIT_SIZE    = T::FRAG_NO_BIT_SIZE;
-	static const unsigned FRAG_MAX_DFLT       = (1<<FRAG_NO_BIT_SIZE) - 1;
-	static const unsigned FRAG_MAX            = T::FRAG_MAX_DFLT;
+	static const unsigned FRAME_NO_BIT_OFFSET;
+	static const unsigned FRAME_NO_BIT_SIZE;
+	static const unsigned FRAG_NO_BIT_OFFSET;
+	static const unsigned FRAG_NO_BIT_SIZE;
+	static const unsigned FRAG_MAX_DFLT;
+	static const unsigned FRAG_MAX;
 
-	static const unsigned TDEST_BIT_OFFSET    = T::TDEST_BIT_OFFSET;
-	static const unsigned TDEST_BIT_SIZE      = T::TDEST_BIT_SIZE;
-	static const unsigned TID_BIT_OFFSET      = T::TID_BIT_OFFSET;
-	static const unsigned TID_BIT_SIZE        = T::TID_BIT_SIZE;
-	static const unsigned TUSR1_BIT_OFFSET    = T::TUSR1_BIT_OFFSET;
-	static const unsigned TUSR1_BIT_SIZE      = T::TUSR1_BIT_SIZE;
+	static const unsigned TDEST_BIT_OFFSET;
+	static const unsigned TDEST_BIT_SIZE;
+	static const unsigned TID_BIT_OFFSET;
+	static const unsigned TID_BIT_SIZE;
+	static const unsigned TUSR1_BIT_OFFSET;
+	static const unsigned TUSR1_BIT_SIZE;
 
-	static const unsigned FRAG_FRST_BIT       = T::FRAG_FRST_BIT;
-	static const unsigned T_FRAG_LAST_BIT     = T::T_FRAG_LAST_BIT;
+	static const unsigned FRAG_FRST_BIT;
+	static const unsigned T_FRAG_LAST_BIT;
 
 	static const unsigned VERSION_0           =  0;
 	static const unsigned VERSION_2           =  2;
 
-	static const unsigned VERSION             = T::VERSION;
+	static const unsigned VERSION;
 
 	static const unsigned HEADER_SIZE         =  8;
 
-	static const unsigned TAIL_SIZE           = T::TAIL_SIZE;
+	static const unsigned TAIL_SIZE;
 
 	void         setSOF(bool v)
 	{
@@ -471,5 +471,23 @@ public:
 	}
 
 };
+
+/* Static const initializers specialized out here to avoid compile errors */
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::FRAME_NO_BIT_OFFSET = T::FRAME_NO_BIT_OFFSET;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::FRAME_NO_BIT_SIZE   = T::FRAME_NO_BIT_SIZE;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::FRAG_NO_BIT_OFFSET  = T::FRAG_NO_BIT_OFFSET;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::FRAG_NO_BIT_SIZE    = T::FRAG_NO_BIT_SIZE;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::FRAG_MAX            = T::FRAG_MAX_DFLT;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::FRAG_MAX_DFLT       = (1<<FRAG_NO_BIT_SIZE) - 1;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::TDEST_BIT_OFFSET    = T::TDEST_BIT_OFFSET;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::TDEST_BIT_SIZE      = T::TDEST_BIT_SIZE;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::TID_BIT_OFFSET      = T::TID_BIT_OFFSET;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::TID_BIT_SIZE        = T::TID_BIT_SIZE;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::TUSR1_BIT_OFFSET    = T::TUSR1_BIT_OFFSET;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::TUSR1_BIT_SIZE      = T::TUSR1_BIT_SIZE;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::FRAG_FRST_BIT       = T::FRAG_FRST_BIT;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::T_FRAG_LAST_BIT     = T::T_FRAG_LAST_BIT;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::VERSION             = T::VERSION;
+template<typename T> /*static*/ const unsigned CPackHeaderBase<T>::TAIL_SIZE           = T::TAIL_SIZE;
 
 #endif
