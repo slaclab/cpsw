@@ -251,6 +251,18 @@ You could then say
 
 Dont' forget to substitute `-` with `_` in gnumake variable names.
 
+#### 2.3.1 Dependent `tirpc` Package
+
+On Linux systems with GLIBC 2.26+ (rhel8+, for example), CPSW must be
+linked against the 'tirpc' library. You may need to set `WITH_TIRPC_xxx` as
+needed in your `config.local.mak`.
+
+Much like `boost` and `yaml-cpp`, the following variables may be used to 
+control the `tirpc` library and include locations:
+
+        tirpcinc_DIR=
+        tirpclib_DIR=
+
 ### 2.4 Building Static and Shared Libraries.
 
 The makefile system can build either static or shared libraries or
