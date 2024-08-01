@@ -44,6 +44,7 @@ ARCHSPECIFIC_VARS+=WITH_SHARED_LIBRARIES
 ARCHSPECIFIC_VARS+=WITH_STATIC_LIBRARIES
 ARCHSPECIFIC_VARS+=WITH_PYCPSW
 ARCHSPECIFIC_VARS+=WITH_BOOST
+ARCHSPECIFIC_VARS+=WITH_TIRPC
 ARCHSPECIFIC_VARS+=BOOST_PYTHON_LIB
 ARCHSPECIFIC_VARS+=USR_CPPFLAGS
 ARCHSPECIFIC_VARS+=USR_CXXFLAGS
@@ -69,6 +70,7 @@ ARCHSPECIFIC_VARS+=POSTPROCESS_ENV_SCRIPT
 ARCHSPECIFIC_LIBVARS+=yaml_cpp
 ARCHSPECIFIC_LIBVARS+=boost
 ARCHSPECIFIC_LIBVARS+=py
+ARCHSPECIFIC_LIBVARS+=tirpc
 
 $(foreach var,$(ARCHSPECIFIC_VARS),$(eval $(call arch2var,$(var))))
 
@@ -122,9 +124,9 @@ RUN_OPTS=''
 
 # colon separated dirlist
 # Note: += adds a whitespace
-cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(boostinc_DIR))$(addprefix :,$(yaml_cppinc_DIR))
+cpswinc_DIRS=$(CPSW_DIR)$(addprefix :,$(boostinc_DIR))$(addprefix :,$(yaml_cppinc_DIR))$(addprefix :,$(tirpcinc_DIR))
 # colon separated dirlist
-cpsw_deplib_DIRS=$(addprefix :,$(boostlib_DIR))$(addprefix :,$(yaml_cpplib_DIR))
+cpsw_deplib_DIRS=$(addprefix :,$(boostlib_DIR))$(addprefix :,$(yaml_cpplib_DIR))$(addprefix :,$(tirpclib_DIR))
 cpswlib_DIRS=$(addsuffix /O.$(TARCH),$(CPSW_DIR))$(cpsw_deplib_DIRS)
 
 # Libraries CPSW requires -- must be added to application's <prog>_LIBS variable
@@ -140,6 +142,11 @@ WITH_SHARED_LIBRARIES_default=YES
 WITH_STATIC_LIBRARIES_default=NO
 WITH_PYCPSW_default          =$(or $(and $(and $(pyinc_DIR),$(wildcard $(pyinc_DIR)/*),$(pyinc_DIR)),$(WITH_SHARED_LIBRARIES),CYTHON),NO)
 WITH_BOOST_default           =YES
+WITH_TIRPC_default           =NO
+
+# tirpc is needed at least on these systems
+WITH_TIRPC_rhel9_x86_64	     =YES
+WITH_TIRPC_rhel8_x86_64      =YES
 
 COMMA__:=,
 SPACE__:=
@@ -195,6 +202,12 @@ define maybe_run_cython
 	fi
 endef
 
+TIRPC_LIBS_YES=tirpc
+TIRPC_STATIC_LIBS_YES=tirpc.a
+
+CPSW_LIBS+=$(TIRPC_LIBS_$(WITH_TIRPC))
+CPSW_STATIC_LIBS+=$(TIRPC_STATIC_LIBS_$(WITH_TIRPC))
+
 # definitions
 include $(CPSW_DIR)/../config.mak
 -include $(CPSW_DIR)/../config.local.mak
@@ -210,14 +223,6 @@ else
 # Package using cpsw makefiles may define TOPDIR and add to config or override
 -include $(TOPDIR)/config.mak
 -include $(TOPDIR)/config.local.mak
-endif
-
-# Configure tirpc includes and linker flags
-ifeq ($(USE_TIRPC),YES)
-CPPFLAGS+=-I/usr/include/tirpc
-CPSW_LIBS+=tirpc
-CPSW_STATIC_LIBS+=tirpc
-LDFLAGS+=-ltirpc
 endif
 
 # Check that we have PACKAGE_TOP, otherwise things will fail to build.

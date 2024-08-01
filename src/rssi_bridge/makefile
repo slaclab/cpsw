@@ -34,7 +34,7 @@ rssi_bridge_SRCS+= mapClnt.c
 rssi_bridge_SRCS+= rpcMapServer.c
 
 rssi_bridge_LIBS_NO = cpswTstAux $(CPSW_LIBS)
-rssi_bridge_LIBS_YES= cpswTstAux cpsw.a pthread rt
+rssi_bridge_LIBS_YES= cpswTstAux $(CPSW_STATIC_LIBS)
 rssi_bridge_LIBS=$(rssi_bridge_LIBS_$(WITH_STATIC_LIBRARIES))
 
 rssi_bqm_SRCS += rssi_bqm.cc
@@ -42,7 +42,7 @@ rssi_bqm_SRCS += rpcMapLookup.c
 rssi_bqm_SRCS += prot_xdr.c
 
 rssi_bqm_LIBS_NO = cpswTstAux $(CPSW_LIBS)
-rssi_bqm_LIBS_YES= cpswTstAux cpsw.a pthread rt
+rssi_bqm_LIBS_YES= cpswTstAux $(CPSW_STATIC_LIBS)
 rssi_bqm_LIBS=$(rssi_bqm_LIBS_$(WITH_STATIC_LIBRARIES))
 
 PROGRAMS = rssi_bridge rssi_bqm
