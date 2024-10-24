@@ -160,7 +160,7 @@ pycpsw_so_SRCS_BOOST  = cpsw_boost_python.cc cpsw_python.cc
 pycpsw_so_SRCS_CYTHON = cpsw_python.cc pycpsw.cc cpsw_cython.cc
 pycpsw_so_LIBS_BOOST  = $(BOOST_PYTHON_LIB) $(CPSW_LIBS)
 pycpsw_so_LIBS_CYTHON = $(CPSW_LIBS)
-pycpsw_so_CPPFLAGS    = $(addprefix -I,$(pyinc_DIR)) -I.
+pycpsw_so_CPPFLAGS    = $(addprefix -I,$(pyinc_DIR)) -I. -DWITH_PYCPSW=PYCPSW_$(WITH_PYCPSW)
 pycpsw_so_CXXFLAGS    = -fno-strict-aliasing
 
 pycpsw_so_SRCS        = $(pycpsw_so_SRCS_$(WITH_PYCPSW))
