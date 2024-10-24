@@ -473,6 +473,9 @@ PyUniqueObj::PyUniqueObj( PyListObj &o )
 {
 }
 
+// The following functions are only required by Cython
+#if WITH_PYCPSW == PYCPSW_CYTHON
+
 void
 handleException()
 {
@@ -650,5 +653,6 @@ translateException(CPSWError *err)
 	throw std::runtime_error( std::string( "Internal Error -- uncaught CPSWError" ) );
 }
 
+#endif
 
 };

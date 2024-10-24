@@ -19,6 +19,10 @@
 #include <vector>
 #include <iostream>
 
+#define PYCPSW_CYTHON 	1
+#define PYCPSW_BOOST	2
+#define PYCPSW_SWIG		3
+
 extern "C" {
 	extern PyObject *pCpswPyExc_InternalError;
 	extern PyObject *pCpswPyExc_IOError;
