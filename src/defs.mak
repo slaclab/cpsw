@@ -142,8 +142,7 @@ WITH_PYCPSW_default          =$(or $(and $(and $(pyinc_DIR),$(wildcard $(pyinc_D
 WITH_BOOST_default           =YES
 
 COMMA__:=,
-SPACE__:=
-SPACE__+=
+SPACE__:=$() $()
 
 ifndef SRCDIR
 SRCDIR=.
