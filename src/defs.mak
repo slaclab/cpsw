@@ -149,8 +149,7 @@ WITH_TIRPC_rhel9_x86_64	     =YES
 WITH_TIRPC_rhel8_x86_64      =YES
 
 COMMA__:=,
-SPACE__:=
-SPACE__+=
+SPACE__:=$() $()
 
 ifndef SRCDIR
 SRCDIR=.
