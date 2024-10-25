@@ -285,7 +285,7 @@ $(addsuffix _run,$(FILTERED_TBINS) $(FILTERED_TSCRS)):%_run: %
 	@for opt in $(RUN_OPTS) ; do \
 		echo "LDLIBS $(call make_ldlib_path,$($(call nam2varnam,$(notdir $<))_LIBS_WITH_PATH))"; \
 		echo "Running ./$< $${opt}"; \
-        if ( eval LD_LIBRARY_PATH="$(call make_ldlib_path,$($(call nam2varnam,$<)_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}" $(RUN_VARS) $(call do_run_test,./$<,$${opt}) ) ; then \
+        if ( eval LD_LIBRARY_PATH=\"$(call make_ldlib_path,$($(call nam2varnam,$<)_LIBS_WITH_PATH))$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}\" $(RUN_VARS) $(call do_run_test,./$<,$${opt}) ) ; then \
 			echo "TEST ./$< $${opt} PASSED" ; \
 		else \
 			echo "TEST ./$< $${opt} FAILED" ; \
