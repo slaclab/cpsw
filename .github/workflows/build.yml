@@ -27,10 +27,12 @@ jobs:
           echo "#yaml_cppinc_DIR=/usr/include/"              >> config.local.mak
           echo "#yaml_cpplib_DIR=/usr/lib/x86_64-linux-gnu"  >> config.local.mak
           echo "pyinc_DIR=/usr/include/python3.10"           >> config.local.mak
-          echo "USE_TIRPC=YES"                               >> config.local.mak
+          echo "WITH_TIRPC=YES"                              >> config.local.mak
+          echo "tirpcinc_DIR=/usr/include/tirpc"             >> config.local.mak
           echo "USE_CXX11_default=${{ matrix.USE_CXX11 }}"   >> config.local.mak
           echo "WITH_PYCPSW=${{ matrix.WITH_PYCPSW }}"       >> config.local.mak
           echo "BOOST_PYTHON_LIB_default=boost_python310"    >> config.local.mak
+          echo "WITH_STATIC_LIBRARIES=NO"                    >> config.local.mak
           echo "CYTHON_default=cython3"                      >> config.local.mak
       - name: Build and Install
         run: make && make install
