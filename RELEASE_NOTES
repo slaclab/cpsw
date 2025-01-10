@@ -1,3 +1,15 @@
+R4.5.2:
+    - Added support for systems with glibc 2.26+ (rhel9, ubuntu, etc.).
+      libtirpc is now a required dependency of CPSW.
+    - Added GitHub Actions CI/CD configuration
+    - Fixed various warnings in the codebase
+    - Added the ability to automatically detect HARCH. You no longer
+      have to supply this on the command line.
+    - Fixed build issue with SWIG
+    - Fixed issues on newer versions of GNU/Make
+    - Various Makefile improvements
+
+
 R4.5.1:
     Update the cpsw python bindings to use our python 3.8 conda 
     environment. This fixes an issue where the cpswTreeGui was 
