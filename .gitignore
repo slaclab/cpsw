@@ -9,3 +9,5 @@ README.yamlDefinition.md
 README.yamlDefinition.html
 rhel*-x86_64/
 buildroot-*/
+.cache/
+compile_commands.json
