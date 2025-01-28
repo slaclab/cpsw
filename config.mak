@@ -177,8 +177,11 @@ POSTPROCESS_ENV_SCRIPT_default=true
 # Define the location of libtirpc. This is required for builds targeting
 # systems that use glibc 2.26+, as that version of glibc removed the built-in
 # RPC library.
-tirpcinc_DIR_default=$(PACKAGE_TOP)/tirpc/1.3.5/$(TARCH)/include/tirpc
-tirpclib_DIR_default=$(PACKAGE_TOP)/tirpc/1.3.5/$(TARCH)/lib
+TIRPC_VERSION		 = 1.3.5
+TIRPC_PATH			 = $(PACKAGE_TOP)/tirpc/$(TIRPC_VERSION)
+
+tirpcinc_DIR_default = $(TIRPC_PATH)/$(TARCH)/include/tirpc
+tirpclib_DIR_default = $(TIRPC_PATH)/$(TARCH)/lib
 
 GIT_RELEASE_TAG := "$(shell git describe --abbrev=4 --dirty --always --tags)"
 USR_CPPFLAGS += -DGIT_RELEASE_TAG=\"$(GIT_RELEASE_TAG)\"
