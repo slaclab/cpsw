@@ -1,0 +1,15 @@
+//@C Copyright Notice
+//@C ================
+//@C This file is part of CPSW. It is subject to the license terms in the LICENSE.txt
+//@C file found in the top-level directory of this distribution and at
+//@C https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+//@C
+//@C No part of CPSW, including this file, may be copied, modified, propagated, or
+//@C distributed except according to the terms contained in the LICENSE.txt file.
+
+#ifndef _CPSW_API_VERSION_H_
+#define _CPSW_API_VERSION_H_
+
+#define CPSW_API_VERSION ${CPSW_API_VERSION}
+
+#endif // _CPSW_API_VERSION_H_

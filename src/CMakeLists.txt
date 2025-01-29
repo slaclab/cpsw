@@ -117,11 +117,40 @@ set(CPSW_FRAMEWORK_SRCS
     cpsw_stdio.h
 )
 
+# CPSW public API headers
+set(CPSW_FRAMEWORK_HEADERS
+    cpsw_api_user.h
+    cpsw_api_builder.h
+    cpsw_api_timeout.h
+    cpsw_error.h
+    cpsw_stdio.h
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/cpsw_api_version.h
+)
+
+#############################################################
+# CPSW
+#############################################################
+
+if (WITH_CXX11)
+    list(APPEND CPSW_FRAMEWORK_HEADERS std/cpsw_shared_ptr.h)
+else()
+    list(APPEND CPSW_FRAMEWORK_HEADERS boost/cpsw_shared_ptr.h)
+endif()
+
+# Generate the API version header
+configure_file(
+    cpsw_api_version.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/cpsw_api_version.h
+)
+
+# Generate GIT version header
+configure_file(
+    cpsw_git_version_string.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/cpsw_git_version_string.h
+)
+
 add_library(
     cpsw STATIC
     ${CPSW_FRAMEWORK_SRCS}
 )
-
 
 target_link_libraries(
 	cpsw PUBLIC
@@ -129,6 +158,7 @@ target_link_libraries(
 	yaml-cpp::yaml-cpp
 )
 
+# Link against TIRPC if required
 if (WITH_TIRPC)
 	target_link_libraries(
 		cpsw PUBLIC 
@@ -141,7 +171,14 @@ if (WITH_TIRPC)
 endif()
 
 target_include_directories(
-	cpsw PRIVATE "${CMAKE_CURRENT_LIST_DIR}"
+	cpsw PUBLIC
+    "${CMAKE_CURRENT_LIST_DIR}"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated"
+)
+
+target_compile_definitions(
+    cpsw PRIVATE
+    "-DGIT_RELEASE_TAG=${CPSW_GIT_VERSION_STRING}"
 )
 
 # C++11 specific includes for CPSW
@@ -157,3 +194,141 @@ else()
 	)
 endif()
 
+# Install CPSW headers
+install(
+    FILES ${CPSW_FRAMEWORK_HEADERS}
+    TYPE INCLUDE
+)
+
+# Install CPSW library
+install(
+    TARGETS cpsw
+)
+
+#############################################################
+# pycpsw & pyyaml
+#############################################################
+if ("${WITH_PYCPSW}" STREQUAL "BOOST")
+    set(PYCPSW_SRCS
+        cpsw_boost_python.cc
+        cpsw_python.cc
+    )
+
+    set(PYYAML_SRCS
+        yaml_cpp_python.cc
+    )
+
+    set(
+        PYCPSW_LIBS
+        Boost::python
+    )
+elseif ("${WITH_PYCPSW}" STREQUAL "CYTHON")
+    set(PYCPSW_SRCS
+        cpsw_python.cc
+        pycpsw.cc
+        cpsw_cython.cc
+    )
+
+    set(PYYAML_SRCS
+        pyyaml_cpp.cc
+    )
+
+    set(
+        PYCPSW_LIBS
+    )
+endif()
+
+if (NOT "${WITH_PYCPSW}" STREQUAL "NO")
+    add_library(
+        pycpsw SHARED ${PYCPSW_SRCS}
+    )
+
+    add_library(
+        yaml_cpp SHARED ${PYYAML_SRCS}
+    )
+
+    target_link_libraries(
+        pycpsw PUBLIC cpsw Python::Python ${PYCPSW_LIBS}
+    )
+
+    target_link_libraries(
+        yaml_cpp PUBLIC cpsw Python::Python ${PYCPSW_LIBS}
+    )
+
+    target_compile_options(
+        pycpsw PRIVATE -fno-strict-aliasing
+    )
+
+    target_compile_options(
+        yaml_cpp PRIVATE -fno-strict-aliasing
+    )
+
+    target_compile_definitions(
+        pycpsw PRIVATE WITH_PYCPSW=PYCPSW_${WITH_PYCPSW}
+    )
+
+    target_compile_definitions(
+        yaml_cpp PRIVATE WITH_PYCPSW=PYCPSW_${WITH_PYCPSW}
+    )
+
+    # A bit unconventional; needs to go in the bin directory for runtime use
+    install(
+        TARGETS pycpsw yaml_cpp
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+
+    # Disable lib prefix for these binaries
+    set_target_properties(
+        pycpsw yaml_cpp PROPERTIES PREFIX ""
+    )
+endif()
+
+#############################################################
+# cpsw_yaml_xpand
+#############################################################
+
+add_executable(
+    cpsw_yaml_xpand
+
+    cpsw_yaml_xpand.cc
+)
+
+target_link_libraries(
+    cpsw_yaml_xpand PRIVATE cpsw
+)
+
+install(TARGETS cpsw_yaml_xpand)
+
+#############################################################
+# cpsw_yaml_merge
+#############################################################
+
+add_executable(
+    cpsw_yaml_merge
+
+    cpsw_yaml_merge.cc
+    cpsw_yaml_merge_main.cc
+    cpsw_stdio.cc
+)
+
+target_link_libraries(
+    cpsw_yaml_merge PRIVATE cpsw
+)
+
+install(TARGETS cpsw_yaml_merge)
+
+#############################################################
+# cpsw_ypp
+#############################################################
+
+add_executable(
+    cpsw_ypp
+
+    cpsw_ypp.cc
+)
+
+target_link_libraries(
+    cpsw_ypp PRIVATE cpsw
+)
+
+install(TARGETS cpsw_ypp)
