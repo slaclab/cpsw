@@ -50,10 +50,10 @@ static void
 mergeInto(const PNode *p, YAML::Node n, YAML::Node m)
 {
 	if ( ! m.IsMap() ) {
-		throw InternalError( "Internal Error -- mergee no a map: " + pps( p ) );
+    throw InternalError( "Internal Error -- mergee not a map! YAML anchor is not a valid YAML map. All children must be key : node pairs (not sequences represented with dashes). Check for syntax errors in the YAML anchor: " + pps( p ) );
 	}
 	if ( ! n.IsMap() ) {
-		throw InternalError( "Internal Error -- merge target no a map: " + pps( p ) );
+    throw InternalError( "Internal Error -- merge target not a map! Children overriding the YAML anchor's children's attributes must be key : node pairs (not sequences represented with dashes). Check for syntax errors in the overriding attributes: " + pps( p ) );
 	}
 
 	YAML::iterator it  = m.begin();
