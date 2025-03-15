@@ -26,13 +26,6 @@ import numpy as np
 #             Global variables             #
 ############################################
 
-# Path variables for the binaries
-package_site_top = '/afs/slac/g/lcls/package/'
-cpsw             = 'cpsw/framework/'
-cpsw_version     = 'R4.5.0/'
-oper_sys         = 'rhel7-x86_64/'
-bin_dir          = 'bin/'
-
 # Top Level YAML file path
 toplevel = ''
 yamldir  = ''
@@ -128,8 +121,7 @@ class BINARY_CMD_BUILDER:
             cmd_arg = ' ' + cmd_arg
             cmd_arg = cmd_arg.replace('<top-level-yaml>',yamldir+'/'+toplevel)
             cmd_arg = cmd_arg.replace('<yaml-dir>',yamldir)
-            cmds.append(package_site_top + cpsw + cpsw_version + oper_sys + bin_dir + cmd + cmd_arg) 
-             
+            cmds.append(os.path.dirname(__file__) + '/' + cmd + cmd_arg) 
         return cmds 
 
 #************ BINARY_CMD_EXEC Class ************#
@@ -403,7 +395,7 @@ if __name__ == "__main__":
     # Create a command builder object to piece together commands 
     cmdbuilder = BINARY_CMD_BUILDER()
     commands = cmdbuilder.build_cmds()
-    
+
     # Create a command exec object to run the CPSW executables
     cmdexec = BINARY_CMD_EXEC()
     results = cmdexec.run_cmds(commands)
