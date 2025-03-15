@@ -345,6 +345,7 @@ do_install: install_local
 			mkdir -p $(INSTALL_BIN) ;\
 			echo "Installing Programs $(PROGRAMS)" ; \
 			$(INSTALL) $(PROGRAMS) $(INSTALL_BIN) ;\
+		  $(INSTALL) $(SCRIPTS)  $(INSTALL_BIN) ;\
 		fi ;\
 		if [ -n "$(SHARED_OBJS)" ] ; then \
 			mkdir -p $(INSTALL_LIB) ;\
