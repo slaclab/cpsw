@@ -153,6 +153,7 @@ cpsw_ypp_LIBS        += $(cpsw_ypp_LIBS_$(WITH_STATIC_LIBRARIES))
 cpsw_yaml_merge_SRCS += cpsw_yaml_merge.cc cpsw_yaml_merge_main.cc cpsw_stdio.cc
 cpsw_yaml_merge_LIBS += yaml-cpp
 
+SCRIPTS = $(CPSW_DIR)/scripts/*
 
 # Python wrapper; only built if WITH_PYCPSW is set to CYTHON/BOOST/SWIG
 # (can be target specific)
