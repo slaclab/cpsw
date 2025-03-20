@@ -11,11 +11,18 @@ set(WITH_PYCPSW "BOOST" CACHE STRING "")
 set(WITH_BOOST ON CACHE BOOL "")
 set(WITH_CXX11 ON CACHE BOOL "")
 set(WITH_TIRPC OFF CACHE BOOL "")
+set(BUILD_TESTING ON CACHE BOOL "")
 ####################################################
 
 include(FetchContent)
 include(CheckIncludeFile)
 include(GNUInstallDirs)
+include(cmake/CpswUtils.cmake)
+
+if (BUILD_TESTING)
+	include(CTest)
+	enable_testing()
+endif()
 
 # Always build with -fPIC
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)

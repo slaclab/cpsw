@@ -206,6 +206,29 @@ install(
 )
 
 #############################################################
+# libTstAux
+#############################################################
+
+add_library(
+    TstAux STATIC
+
+    "libTstAux/crc32-le-tbl-4.c"
+    "libTstAux/udpsrv_port.cc"
+    "libTstAux/udpsrv_util.cc"
+    "libTstAux/udpsrv_stream_state_monitor.cc"
+)
+
+target_include_directories(
+    TstAux PUBLIC
+    "${CMAKE_CURRENT_LIST_DIR}/libTstAux"
+    "${CMAKE_CURRENT_LIST_DIR}"
+)
+
+target_link_libraries(
+    TstAux PUBLIC cpsw
+)
+
+#############################################################
 # pycpsw & pyyaml
 #############################################################
 if ("${WITH_PYCPSW}" STREQUAL "BOOST")
@@ -332,3 +355,76 @@ target_link_libraries(
 )
 
 install(TARGETS cpsw_ypp)
+
+#############################################################
+# rssi_bridge
+#############################################################
+
+add_executable(
+    rssi_bridge
+
+    rssi_bridge/rssi_bridge.cc
+    rssi_bridge/daemonize.c
+    rssi_bridge/printErrMsg.c
+    rssi_bridge/protMap_procs.c
+    rssi_bridge/protRelay.c
+    rssi_bridge/probeRelay.c
+    rssi_bridge/protRelay_procs.c
+    rssi_bridge/prot_xdr.c
+    rssi_bridge/mcastSock.c
+    rssi_bridge/mapClnt.c
+    rssi_bridge/rpcMapServer.c
+)
+
+target_link_libraries(
+    rssi_bridge PUBLIC TstAux
+)
+
+target_include_directories(
+    rssi_bridge PUBLIC 
+    "${CMAKE_CURRENT_LIST_DIR}/rssi_bridge"
+)
+
+#############################################################
+# rssi_bqm
+#############################################################
+
+add_executable(
+    rssi_bqm
+    
+    rssi_bridge/rssi_bqm.cc
+    rssi_bridge/rpcMapLookup.c
+    rssi_bridge/prot_xdr.c
+)
+
+target_link_libraries(
+    rssi_bqm PUBLIC TstAux
+)
+
+target_include_directories(
+    rssi_bqm PUBLIC 
+    "${CMAKE_CURRENT_LIST_DIR}/rssi_bridge"
+)
+
+install(
+    TARGETS rssi_bridge rssi_bqm
+)
+
+#############################################################
+# udpsrv
+#############################################################
+
+add_executable(
+    udpsrv
+    
+    "test/udpsrv.c"
+    "test/udpsrv_mod_mem.cc"
+    "test/udpsrv_mod_axiprom.cc"
+    "test/udpsrv_mod_pendsim.cc"
+    "test/udpsrv_mod_genadc.cc"
+    "test/udpsrv_mod_mmio.cc"
+)
+
+target_link_libraries(
+    udpsrv PUBLIC TstAux
+)
