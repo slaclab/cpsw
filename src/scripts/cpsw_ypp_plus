@@ -1,0 +1,406 @@
+#!/usr/bin/env python3
+
+import os
+import re
+import sys
+import time
+import math
+import glob
+import pathlib
+import logging
+import argparse
+import subprocess
+import numpy as np
+
+############################################
+#            README - HOW TO RUN           #
+############################################
+# Run as shown below:
+#./cpsw_ypp_plus --yamldir <path to YAMLs> --toplevel <Top-level.yaml>
+# E.g.,
+# ./cpsw_ypp_plus --toplevel 000TopLevel.yaml --yamldir /afs/slac/g/controls/development/users/skoufis/other/cpsw_ypp_plus/gmd_yaml
+# Or
+# ./cpsw_ypp_plus --yamldir /afs/slac/g/controls/development/users/skoufis/other/cpsw_ypp_plus/gmd_yaml
+
+############################################
+#             Global variables             #
+############################################
+
+# Top Level YAML file path
+toplevel = ''
+yamldir  = ''
+verbose  = '' 
+
+# Binaries
+# It is assumed that all CPSW binaries are in the same directory
+binaries = ['cpsw_ypp','cpsw_yaml_xpand']
+
+# Binary input arguments
+binaries_args = ['-Y <top-level-yaml> -D <yaml-dir> -P prep_file -p','-Y <top-level-yaml> -q -r mmio']
+
+# Clues
+error_clues = ['yaml-cpp: error at line', 'line:   ']
+
+# Logger object - CRITICAL, ERROR, WARNING, INFO, DEBUG
+logger = logging.getLogger()
+file_handler = logging.FileHandler("logfile.log", mode='w')
+file_handler.setLevel(logging.DEBUG)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+logger.setLevel(logging.DEBUG)
+
+############################################
+#             Python Classes               #
+############################################
+
+# ************ ARG PARSER Class ************#
+class ARG_PARSER:
+    """
+
+    This class parses out the arguments.
+
+    """
+
+    def __init__(self):
+        # List argument options
+        #print("\nInitializing ARG_PARSER\n")
+        parser = argparse.ArgumentParser(description='Process YAML check configuration.')
+        parser.add_argument('-y','--yamldir', dest='yamldir', default='none',
+                            help='Directory where YAMLs are stored (default: none)')
+        parser.add_argument('-t','--toplevel', dest='toplevel', default='000TopLevel.yaml',
+                            help='Filename for top level YAML, NOT full path (default: 000TopLevel.yaml)')
+        parser.add_argument('-v','--verbose', dest='verbose', default='False', action='store_true',
+                            help='Enable verbose mode, (default: Disabled)')
+        
+        # Parse out arguments
+        args = parser.parse_args()
+
+        # Set the top-level filename
+        global yamldir
+        if args.yamldir:
+            yamldir = args.yamldir
+        
+        global toplevel
+        if args.toplevel:
+            toplevel = args.toplevel
+        
+        global verbose
+        if args.verbose:
+            verbose = args.verbose 
+
+#************ BINARY_CMD_BUILDER Class ************#
+class BINARY_CMD_BUILDER:
+    """
+    
+    This class will construct the required binary command(s).
+
+    """
+
+    def __init__(self):
+        #print("Initializing BINARY_CMD_BUILDER\n")
+        print()
+        pass
+
+    def build_cmds(self):
+        # Check correctness of paths and filenames
+        global toplevel, yamldir
+        # Check the path to the YAML directory
+        while not os.path.exists(yamldir):
+            print('\nThe entered YAML directory path doesn\'t seem to be valid. Try again.\n')
+            yamldir = input('Please enter the complete path to the YAML directory:\n\n')
+        # Check the top level YAML filename
+        while not os.path.isfile(yamldir+'/'+toplevel):
+            print('\nThe top level YAML ' + toplevel + ' cannot be found in ' + yamldir + '. Try again.\n')
+            toplevel = input('Please enter the top level YAML filename in '+yamldir+':\n\n')
+
+        # Construct the binary command(s)
+        cmds = []
+        for cmd, cmd_arg in zip(binaries,binaries_args):
+            cmd_arg = ' ' + cmd_arg
+            cmd_arg = cmd_arg.replace('<top-level-yaml>',yamldir+'/'+toplevel)
+            cmd_arg = cmd_arg.replace('<yaml-dir>',yamldir)
+            cmds.append(os.path.dirname(__file__) + '/' + cmd + cmd_arg) 
+        return cmds 
+
+#************ BINARY_CMD_EXEC Class ************#
+class BINARY_CMD_EXEC:
+    """
+    
+    This class will run the binary commands and collect clues about the error.
+
+    """
+
+    def __init__(self):
+        #print("Initializing BINARY_CMD_EXEC\n")
+        pass
+
+    def run_cmds(self,cmds):
+        # Run the commands
+        print('---------------------------------')
+        print('    Running the CPSW binaries    ') 
+        print('---------------------------------')
+        results = []
+        for cmd in cmds:
+            global verbose, binaries
+            if verbose is True: print('***************')
+            if verbose is True: print(binaries[cmds.index(cmd)])
+            if verbose is True: print('***************')
+            if verbose is True: print('Running: ' + cmd + '\n')
+            #os.system(cmd)
+            try:
+                subproc = subprocess.run(cmd, shell=True, capture_output=True, check=True, text=True)
+                results.append(subproc.stderr)
+                if subproc.stderr: print(f"Command returned: {subproc.stderr}\n")
+            except subprocess.CalledProcessError as e:
+                results.append(e.stderr)
+                print(f"Error executing command: {e.stderr}\n")
+            time.sleep(2)
+       
+        #if verbose is True: print(results)
+        return results
+
+#************ GLOBAL_YAML_SEARCH Class ************#
+class GLOBAL_YAML_SEARCH:
+    """
+    
+    This class will search in all YAMLs for the parsed error.
+
+    """
+
+    def __init__(self):
+        #print("Initializing GLOBAL_YAML_SEARCH\n")
+        pass
+
+    def get_line_number(self, results):
+        matches = []
+        global clue, verbose, binaries
+        pattern = [error_clues[0]+' *[0-9]+', error_clues[1]+' *[0-9]+']
+        for error in results:
+            index = results.index(error)
+            match = re.findall(pattern[index], error)
+            if verbose is True: print('***************')
+            if verbose is True: print(binaries[index])
+            if verbose is True: print('***************')
+            if verbose is True and error: print('The error from ' + binaries[index] + ' was: ' + error + '\n')
+            if len(match) > 0:
+                match = match[0]
+                match = match.split()
+                match = match[len(match)-1]
+                matches.append(match)
+                if verbose is True: print('Found line number with the error in preprocessed YAML: ' + str(match) + '\n')
+            else:
+                if verbose is True: print('Nothing to report.\n')
+                matches.append(error)
+        # Only return the first line number that corresponds to the cpsw_ypp generated file
+        return matches
+
+    def get_original_line(selfi, line_number):
+        # The line number refers to the content in prep_file
+        global verbose
+        line_count = 0
+        original_line = ''
+        f = open('prep_file','r')
+        lines = f.readlines()
+        f.close()
+        # Create a buffer consisting of multiple lines that surround the matched line
+        buff = []
+        buffer_length = 5 # use odd number for symmetry (e.g. 5 = matched line + 2 preceeding lines + 2 subsequent lines)
+        for line in lines:
+            line_count += 1
+            if line_count == line_number:
+                original_line = line
+                for i in range(line_count - int((buffer_length-1)/2), line_count + 1 + int((buffer_length-1)/2)):
+                    if line_count > int((buffer_length-1)/2) and line_count <= (len(lines) - int((buffer_length-1)/2)): 
+                        buff.append(lines[i-1])
+        if original_line:
+            print('Found line with the error in the preprocessed YAML: ' + original_line.strip() + '\n')
+        return original_line, buff 
+
+    def get_filename(self, original_line):
+        filelist = glob.glob(yamldir+'/*.yaml') 
+        match = ''
+        max_hits = 1
+        file_count = 0
+        global verbose 
+        if filelist:
+            for file in filelist:
+                line_count = 0
+                f = open(file,'r')
+                lines = f.readlines()
+                f.close()
+                for line in lines:
+                    line_count += 1
+                    if line == original_line:
+                        file_count += 1
+                        #match = '*** Matched line in the original YAMLs *** \n\n>> File:\t' + file + '\n>> Line number:\t' + str(line_count) + '\n>> Line:\t' + line.lstrip() + '\n'
+                        match = '--- MATCHED LINE IN THE ORIGINAL YAMLS ---   \n\n>> File:\t' + file + '\n>> Line number:\t' + str(line_count) + '\n>> Line:\t' + line.lstrip() + '\n'
+                        if verbose is True: print(match)
+
+                if file_count > max_hits:
+                    if verbose is True: 
+                        print('Found multiple matches in the original YAMLs for the line with the error.\n')  
+                        print('It is likely the reported line number in the preprocessed YAML is misleading.\n')
+                    print('Printing a snippet from the preprocessed YAML that  l i k e l y  contains the error.\n')
+                    return False
+                    break
+        if verbose is not True and file_count <= max_hits: print(match)        
+        return True
+
+    def track_included_yamls(self):
+        # Get a list of all YAML files, including 000TopLevel.yaml
+        global_filelist = glob.glob(yamldir+'/*.yaml') 
+        # Now get a list of the YAMLs referenced by #included
+        included = []
+        not_included = []
+        local_filelist = []
+        # Matching regular expression patterns
+        inc_pattern = ' *#{1}include ' + ' *[a-zA-Z0-9]+' + '.yaml' + ' *' 
+        exc_pattern = ' *#{1} *#{1}include ' + ' *[a-zA-Z0-9]+' + '.yaml' + ' *' 
+        # Traverse filelist
+        for file in global_filelist:
+            f = open(file,'r')
+            lines = f.readlines()
+            f.close()
+            for line in lines:
+                inc_match = re.findall(inc_pattern, line)
+                exc_match = re.findall(exc_pattern, line)
+                if len(inc_match) > 0 and len(exc_match) == 0:
+                    inc_match = inc_match[0]
+                    inc_match = inc_match.split()
+                    inc_match = inc_match[len(inc_match)-1]
+                    if inc_match not in included:
+                        included.append(inc_match)
+            file = file.split('/')
+            file = file[len(file)-1]
+            local_filelist.append(file)
+        # Now find which files have not been included
+        for file in local_filelist:
+           if file not in included:
+               not_included.append(file)
+               print(file,end=', ')
+        print('\n')
+    
+    def track_included_recursive(self, filename, pattern1, pattern2):
+        # Open the top level file and identify the included YAMLs
+        f = open(yamldir + '/' + filename, 'r')
+        lines = f.readlines()
+        f.close()
+        # Now get a list of the YAMLs referenced by #included
+        included = []
+        # Go through all lines
+        for line in lines:
+            # Match regular expressions
+            inc_match = re.findall(pattern1, line)
+            exc_match = re.findall(pattern2, line)
+            # Check match result
+            if len(inc_match) > 0 and len(exc_match) == 0:
+                inc_match = inc_match[0]
+                inc_match = inc_match.split()
+                inc_match = inc_match[len(inc_match)-1]
+                # Add match to the included list
+                included.append(inc_match)
+                # For each match, open the corresponding file and perform the next recursive call 
+                next_iter = self.track_included_recursive(inc_match, pattern1, pattern2)
+                # Flatten the list before returning
+                if next_iter: 
+                    for x in next_iter:
+                        included.append(x)
+        return included
+
+    def track_included_yamls2(self):
+        # Initialize lists 
+        included       = []
+        not_included   = []
+        local_filelist = []
+        # Get a list of all YAML files, including 000TopLevel.yaml
+        global toplevel
+        global_filelist = glob.glob(yamldir+'/*.yaml') 
+        # Remove paths and keep only local filenames
+        for f in global_filelist:
+            f = f.split('/')
+            f = f[len(f)-1]
+            local_filelist.append(f)
+        # Matching regular expression patterns
+        inc_pattern = ' *#{1}include ' + ' *[a-zA-Z0-9]+' + '.yaml' + ' *' 
+        exc_pattern = ' *#{1} *#{1}include ' + ' *[a-zA-Z0-9]+' + '.yaml' + ' *' 
+        # Start the recursive calls by passing the top level file as a parameter
+        included = self.track_included_recursive(toplevel, inc_pattern, exc_pattern)
+        # Now find which files have not been included
+        not_included = [f for f in local_filelist if f not in included and f != toplevel]
+        not_included = sorted(not_included)
+        for f in not_included:
+            print(f, end=', ')
+        print('\n')
+
+    def process_results(self,results):
+        # Parse out error line and locate in YAMLs
+            if not all(len(r) == 0 for r in results):
+                global verbose, binaries
+                if verbose is True: print('-----------------------------------------------------------------------------')
+                if verbose is True: print('   Searching for the line number with the error in the preprocessed YAML     ')
+                if verbose is True: print('-----------------------------------------------------------------------------')
+                # First find the line number with the error
+                extract = self.get_line_number(results)
+                # Find the line with the error or print out the CPSW error
+                if verbose is True: print('-----------------------------------------------------------------------------')
+                if verbose is True: print('   Searching for the actual line with the error in the preprocessed YAML     ')
+                if verbose is True: print('-----------------------------------------------------------------------------')
+                for e in extract:
+                    # Process output from both cpsw_ypp and cpsw_yaml_xpand
+                    if verbose is True: print('***************')
+                    if verbose is True: print(binaries[extract.index(e)])
+                    if verbose is True: print('***************')
+                    if e.isnumeric():
+                        # Adjust the line number (increment by 2 for cpsw_yaml_xpand output)
+                        if extract.index(e)==1: e = str(int(e) + 2) 
+                        print('Actual or adjusted line number: ' + e + '\n')
+                        # Get original line with error 
+                        original_line, buff = self.get_original_line(int(e))
+                        # Now find the YAML file and local line number
+                        success = self.get_filename(original_line)
+                        if not success:
+                            print('##########################')
+                            for line in buff:
+                                if line == original_line:
+                                    print('\033[1;31;48m')
+                                    print(line)
+                                    print('\033[0m')
+                                else:
+                                    print(line)
+                            print('##########################\n')
+                    # If we have a CPSW exception, print it out 
+                    else:
+                        if verbose is True: print('No match for the regular expression was found.\n')
+                        if verbose is True: print(e)
+            else:
+                print('Did not detect any errors in the YAMLs.\n')       
+                
+            # Check which YAMLS have not been included in the top level file
+            print('-----')
+            print('NOTE:')
+            print('-----')
+            print('Ensure the following NOT-INCLUDED YAMLs are not needed. Note that an error could occur if these are required and have been omitted.\n')
+            self.track_included_yamls2()
+
+############################################
+#         __main__ block goes here         #
+############################################
+if __name__ == "__main__":
+
+    # Create an arg parser object to obtain user input
+    argparse = ARG_PARSER()
+
+    # Create a command builder object to piece together commands 
+    cmdbuilder = BINARY_CMD_BUILDER()
+    commands = cmdbuilder.build_cmds()
+
+    # Create a command exec object to run the CPSW executables
+    cmdexec = BINARY_CMD_EXEC()
+    results = cmdexec.run_cmds(commands)
+
+    # Create a YAML search object to locate the error
+    locator = GLOBAL_YAML_SEARCH()
+    locator.process_results(results)
+
